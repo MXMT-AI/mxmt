@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Данные для обучения Агента Аналитика</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;900&family=JetBrains+Mono:wght@300;400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f7f5f0;
+    --surface: #ffffff;
+    --surface2: #f0ede6;
+    --border: #e0dbd0;
+    --ink: #1a1714;
+    --muted: #8a847a;
+    --accent: #c8401a;
+    --accent2: #2d6a4f;
+    --accent3: #1d4e89;
+    --accent4: #b5451b;
+    --yellow: #e9a825;
+    --tag-bg: #ede9e0;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* HEADER */
+  .header {
+    background: var(--ink);
+    color: #f7f5f0;
+    padding: 52px 48px 44px;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::after {
+    content: 'DATA';
+    position: absolute;
+    right: -20px; top: -20px;
+    font-family: 'Unbounded', sans-serif;
+    font-size: 160px;
+    font-weight: 900;
+    color: rgba(255,255,255,0.03);
+    line-height: 1;
+    pointer-events: none;
+  }
+  .header-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 2.5px;
+    margin-bottom: 14px;
+  }
+  .header h1 {
+    font-family: 'Unbounded', sans-serif;
+    font-size: clamp(20px, 3.5vw, 36px);
+    font-weight: 700;
+    line-height: 1.15;
+    color: #f7f5f0;
+    max-width: 620px;
+  }
+  .header-desc {
+    margin-top: 14px;
+    color: rgba(247,245,240,0.5);
+    font-size: 13px;
+    max-width: 520px;
+    line-height: 1.7;
+  }
+  .header-stats {
+    display: flex;
+    gap: 32px;
+    margin-top: 28px;
+    padding-top: 24px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+  }
+  .stat-item { }
+  .stat-num {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  .stat-label {
+    font-size: 11px;
+    color: rgba(247,245,240,0.4);
+    font-family: 'JetBrains Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 2px;
+  }
+
+  /* LEGEND */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 20px 48px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* MAIN */
+  .main {
+    padding: 40px 48px;
+    max-width: 1080px;
+  }
+
+  /* SECTION */
+  .section {
+    margin-bottom: 36px;
+  }
+  .section-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 16px;
+    padding-bottom: 14px;
+    border-bottom: 2px solid var(--ink);
+  }
+  .section-num {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--surface);
+    background: var(--ink);
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .section-title-wrap { flex: 1; }
+  .section-title {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1.2;
+  }
+  .section-subtitle {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .priority-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    flex-shrink: 0;
+  }
+  .p-critical { background: #fde8e3; color: var(--accent); border: 1px solid #f5c4b8; }
+  .p-high { background: #e8f4ee; color: var(--accent2); border: 1px solid #b5d9c5; }
+  .p-medium { background: #e3edf8; color: var(--accent3); border: 1px solid #afc5e3; }
+  .p-context { background: #fdf3e3; color: var(--yellow); border: 1px solid #f0d898; }
+
+  /* ITEMS GRID */
+  .items-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .items-grid.three { grid-template-columns: 1fr 1fr 1fr; }
+  @media (max-width: 680px) {
+    .items-grid, .items-grid.three { grid-template-columns: 1fr; }
+    .main, .legend { padding-left: 20px; padding-right: 20px; }
+    .header { padding: 36px 20px 32px; }
+    .header-stats { gap: 20px; }
+  }
+
+  .data-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    position: relative;
+  }
+  .data-card.full { grid-column: 1 / -1; }
+  .data-card-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .data-card h4 {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 12px;
+    line-height: 1.3;
+  }
+
+  /* CHECKLIST */
+  .checklist { list-style: none; }
+  .checklist li {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--ink);
+  }
+  .checklist li:last-child { border-bottom: none; }
+  .check-box {
+    width: 16px; height: 16px;
+    border: 1.5px solid var(--border);
+    border-radius: 4px;
+    flex-shrink: 0;
+    margin-top: 2px;
+    background: var(--bg);
+  }
+  .checklist li .note {
+    display: block;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* FORMAT BLOCK */
+  .format-block {
+    background: var(--ink);
+    border-radius: 8px;
+    padding: 16px 18px;
+    margin-top: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    line-height: 1.8;
+    color: #90a4ae;
+    overflow-x: auto;
+  }
+  .format-block .k { color: #80cbc4; }
+  .format-block .v { color: #ffcc80; }
+  .format-block .s { color: #a5d6a7; }
+  .format-block .c { color: #546e7a; }
+  .format-block .h { color: #ce93d8; }
+
+  /* TAGS */
+  .tag-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .tag {
+    background: var(--tag-bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 3px 9px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* IMPORTANT BOX */
+  .important-box {
+    background: #fff8f6;
+    border: 1.5px solid #f5c4b8;
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-top: 10px;
+  }
+  .important-box-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .important-box p { font-size: 13px; color: var(--ink); line-height: 1.65; }
+
+  /* DIVIDER */
+  hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+
+  /* CHECKLIST MASTER */
+  .master-list { list-style: none; }
+  .master-list li {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 11px 14px;
+    border-radius: 8px;
+    margin-bottom: 4px;
+    transition: background 0.15s;
+  }
+  .master-list li:hover { background: var(--surface2); }
+  .master-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    min-width: 28px;
+    padding-top: 1px;
+  }
+  .master-text { flex: 1; font-size: 13px; }
+  .master-text strong { font-weight: 600; }
+  .master-text span { color: var(--muted); font-size: 12px; display: block; margin-top: 2px; }
+  .master-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 6px;
+  }
+
+  /* SUMMARY TABLE */
+  .summary-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  .summary-table th {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 2px solid var(--ink);
+  }
+  .summary-table td {
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    vertical-align: top;
+  }
+  .summary-table tr:last-child td { border-bottom: none; }
+  .summary-table td:first-child {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-eyebrow">Агент Аналитик — Техническое задание</div>
+  <h1>Что нужно дать агенту,<br>чтобы он работал точно</h1>
+  <p class="header-desc">Полный список данных, форматов и контекста для обучения и настройки агента аналитика. Разбито по блокам с приоритетами.</p>
+  <div class="header-stats">
+    <div class="stat-item">
+      <div class="stat-num">6</div>
+      <div class="stat-label">Блоков данных</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">40+</div>
+      <div class="stat-label">Параметров</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">3</div>
+      <div class="stat-label">Уровня приоритета</div>
+    </div>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#c8401a;"></div> Критично — без этого агент не работает</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#2d6a4f;"></div> Важно — улучшает качество анализа</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#1d4e89;"></div> Дополнительно — повышает точность</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#e9a825;"></div> Контекст — для понимания вашего бизнеса</div>
+</div>
+
+<div class="main">
+
+  <!-- ======= БЛОК 1: ТОВАРНАЯ БАЗА ======= -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">1</div>
+      <div class="section-title-wrap">
+        <div class="section-title">Товарная база (Справочник SKU)</div>
+        <div class="section-subtitle">Фундамент — без этого агент не знает, что анализировать</div>
+      </div>
+      <span class="priority-badge p-critical">Критично</span>
+    </div>
+
+    <div class="items-grid">
+      <div class="data-card">
+        <div class="data-card-label">Обязательные поля</div>
+        <ul class="checklist">
+          <li><div class="check-box"></div><div>Артикул / SKU-код<span class="note">Уникальный идентификатор — основа всех таблиц</span></div></li>
+          <li><div class="check-box"></div><div>Название товара<span class="note">Полное и краткое</span></div></li>
+          <li><div class="check-box"></div><div>Категория и подкатегория<span class="note">Например: Одежда → Куртки → Зимние</span></div></li>
+          <li><div class="check-box"></div><div>Бренд / Поставщик<span class="note">Для анализа по брендам</span></div></li>
+          <li><div class="check-box"></div><div>Розничная цена<span class="note">Текущая цена продажи</span></div></li>
+          <li><div class="check-box"></div><div>Закупочная цена<span class="note">Для расчёта маржи</span></div></li>
+          <li><div class="check-box"></div><div>Статус товара<span class="note">Активный / Архив / Сезонный / Новинка</span></div></li>
+        </ul>
+      </div>
+
+      <div class="data-card">
+        <div class="data-card-label">Дополнительные поля</div>
+        <ul class="checklist">
+          <li><div class="check-box"></div><div>Сезонность<span class="note">Зима / Лето / Всесезон / Конкретные месяцы</span></div></li>
+          <li><div class="check-box"></div><div>Целевая аудитория<span class="note">Мужской / Женский / Унисекс / Возраст</span></div></li>
+          <li><div class="check-box"></div><div>Страна производства</div></li>
+          <li><div class="check-box"></div><div>Коллекция / Линейка<span class="note">Spring 2025, Base Collection и т.д.</span></div></li>
+          <li><div class="check-box"></div><div>Взаимозаменяемые товары<span class="note">SKU-аналоги при стокауте</span></div></li>
+          <li><div class="check-box"></div><div>Дата ввода в ассортимент</div></li>
+          <li><div class="check-box"></div><div>Плановый конец продаж / дата вывода</div></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="format-block">
+<span class="c">// Пример формата строки товарного справочника</span>
+{
+  <span class="k">"sku"</span>: <span class="s">"JKT-ZIM-042"</span>,
+  <span class="k">"name"</span>: <span class="s">"Куртка зимняя Oversize черная"</span>,
+  <span class="k">"category"</span>: <span class="s">"Одежда / Куртки / Зимние"</span>,
+  <span class="k">"brand"</span>: <span class="s">"BrandName"</span>,
+  <span class="k">"price_retail"</span>: <span class="v">8900</span>,
+  <span class="k">"price_purchase"</span>: <span class="v">3200</span>,
+  <span class="k">"margin_pct"</span>: <span class="v">64.0</span>,
+  <span class="k">"season"</span>: <span class="s">"winter"</span>,         <span class="c">// winter / summer / all-season</span>
+  <span class="k">"status"</span>: <span class="s">"active"</span>,          <span class="c">// active / archive / new</span>
+  <span class="k">"date_added"</span>: <span class="s">"2024-09-01"</span>
+}
+    </div>
+  </div>
+
+  <!-- ======= БЛОК 2: ДАННЫЕ О ПРОДАЖАХ ======= -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">2</div>
+      <div class="section-title-wrap">
+        <div class="section-title">История продаж</div>
+        <div class="section-subtitle">Основной источник для прогноза и классификации товаров</div>
+      </div>
+      <span class="priority-badge p-critical">Критично</span>
+    </div>
+
+    <div class="items-grid">
+      <div class="data-card">
+        <div class="data-card-label">Минимальный набор</div>
+        <ul class="checklist">
+          <li><div class="check-box"></div><div>Дата продажи (день)<span class="note">Чем детальнее — тем точнее прогноз</span></div></li>
+          <li><div class="check-box"></div><div>SKU проданного товара</div></li>
+          <li><div class="check-box"></div><div>Количество проданных единиц</div></li>
+          <li><div class="check-box"></div><div>Сумма продажи (рублей)</div></li>
+          <li><div class="check-box"></div><div>Канал продажи<span class="note">Офлайн-касса / Сайт / Маркетплейс</span></div></li>
+        </ul>
+      </div>
+
+      <div class="data-card">
+        <div class="data-card-label">Дополнительно</div>
+        <ul class="checklist">
+          <li><div class="check-box"></div><div>Возвраты по SKU и дате<span class="note">Влияет на реальную скорость продаж</span></div></li>
+          <li><div class="check-box"></div><div>Продажи со скидкой vs без<span class="note">Органический vs промо-спрос</span></div></li>
+          <li><div class="check-box"></div><div>Точка продажи / склад</div></li>
+          <li><div class="check-box"></div><div>ID транзакции (для трекинга)</div></li>
+          <li><div class="check-box"></div><div>Метод оплаты (опционально)</div></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="important-box">
+      <div class="important-box-title">⚠️ Важно — глубина истории</div>
+      <p>Минимум для запуска агента — <strong>12 месяцев</strong> истории продаж. Оптимально — <strong>24–36 месяцев</strong>: агент увидит сезонные циклы и сможет строить точные прогнозы. Если история короткая, укажи это явно — агент скорректирует уровень уверенности в прогнозах.</p>
+    </div>
+
+    <div class="format-block">
+<span class="c">// Пример строки истории продаж (CSV или JSON)</span>
+{
+  <span class="k">"date"</span>: <span class="s">"2025-01-15"</span>,
+  <span class="k">"sku"</span>: <span class="s">"JKT-ZIM-042"</span>,
+  <span class="k">"qty_sold"</span>: <span class="v">3</span>,
+  <span class="k">"revenue"</span>: <span class="v">26700</span>,
+  <span class="k">"channel"</span>: <span class="s">"offline"</span>,     <span class="c">// offline / online / marketplace</span>
+  <span class="k">"is_promo"</span>: <span class="v">false</span>,         <span class="c">// продажа по акции?</span>
+  <span class="k">"returns"</span>: <span class="v">0</span>
+}
+    </div>
+  </div>
+
+  <!-- ======= БЛОК 3: ОСТАТКИ ======= -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">3</div>
+      <div class="section-title-wrap">
+        <div class="section-title">Остатки на складе (текущие и динамика)</div>
+        <div class="section-subtitle">Актуальный снэпшот + движение запасов</div>
+      </div>
+      <span class="priority-badge p-critical">Критично</span>
+    </div>
+
+    <div class="items-grid">
+      <div class="data-card">
+        <div class="data-card-label">Текущие остатки (на сегодня)</div>
+        <ul class="checklist">
+          <li><div class="check-box"></div><div>SKU</div></li>
+          <li><div class="check-box"></div><div>Количество единиц на складе</div></li>
+          <li><div class="check-box"></div><div>Разбивка по складским точкам<span class="note">Склад 1, Склад 2, Торговый зал</span></div></li>
+          <li><div class="check-box"></div><div>Зарезервированные единицы<span class="note">Под заказы, но ещё не отгружены</span></div></li>
+          <li><div class="check-box"></div><div>Товары в пути (ожидаемые PO)</div></li>
+        </ul>
+      </div>
+
+      <div class="data-card">
+        <div class="data-card-label">Параметры пополнения</div>
+        <ul class="checklist">
+          <li><div class="check-box"></div><div>Lead time по каждому поставщику<span class="note">Дни от заказа до получения на складе</span></div></li>
+          <li><div class="check-box"></div><div>Минимальный заказ (MOQ)</div></li>
+          <li><div class="check-box"></div><div>Целевой страховой запас<span class="note">Сколько дней запаса считается безопасным</span></div></li>
+          <li><div class="check-box"></div><div>Максимальная ёмкость склада по категориям</div></li>
+          <li><div class="check-box"></div><div>Частота поставок (раз в 2 недели / раз в месяц)</div></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="format-block">
+<span class="c">// Снэпшот остатков + параметры пополнения</span>
+{
+  <span class="k">"sku"</span>: <span class="s">"JKT-ZIM-042"</span>,
+  <span class="k">"qty_on_hand"</span>: <span class="v">18</span>,
+  <span class="k">"qty_reserved"</span>: <span class="v">3</span>,
+  <span class="k">"qty_available"</span>: <span class="v">15</span>,      <span class="c">// on_hand - reserved</span>
+  <span class="k">"qty_in_transit"</span>: <span class="v">24</span>,       <span class="c">// в пути, ожидается</span>
+  <span class="k">"lead_time_days"</span>: <span class="v">14</span>,
+  <span class="k">"moq"</span>: <span class="v">12</span>,
+  <span class="k">"safety_stock_days"</span>: <span class="v">7</span>,    <span class="c">// целевой резерв в днях</span>
+  <span class="k">"snapshot_date"</span>: <span class="s">"2026-04-22"</span>
+}
+    </div>
+  </div>
+
+  <!-- ======= БЛОК 4: БИЗНЕС-КОНТЕКСТ ======= -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">4</div>
+      <div class="section-title-wrap">
+        <div class="section-title">Бизнес-контекст (о вашем магазине)</div>
+        <div class="section-subtitle">Агент должен понимать, как устроен ваш бизнес — это задаётся один раз</div>
+      </div>
+      <span class="priority-badge p-context">Контекст</span>
+    </div>
+
+    <div class="items-grid three">
+      <div class="data-card">
+        <div class="data-card-label">Формат бизнеса</div>
+        <ul class="checklist">
+          <li><div class="check-box"></div><div>Тип магазина<span class="note">Монобренд / мультибренд / концепт</span></div></li>
+          <li><div class="check-box"></div><div>Количество точек продаж</div></li>
+          <li><div class="check-box"></div><div>Онлайн + офлайн или только одно</div></li>
+          <li><div class="check-box"></div><div>Ценовой сегмент<span class="note">Масс-маркет / средний / премиум</span></div></li>
+          <li><div class="check-box"></div><div>Основная аудитория (пол, возраст)</div></li>
+        </ul>
+      </div>
+
+      <div class="data-card">
+        <div class="data-card-label">Ключевые периоды</div>
+        <ul class="checklist">
+          <li><div class="check-box"></div><div>Высокий сезон<span class="note">Месяцы пиковых продаж</span></div></li>
+          <li><div class="check-box"></div><div>Низкий сезон</div></li>
+          <li><div class="check-box"></div><div>Регулярные акции<span class="note">Чёрная пятница, 8 марта, конец сезона</span></div></li>
+          <li><div class="check-box"></div><div>Даты смены коллекций</div></li>
+          <li><div class="check-box"></div><div>Даты поставок (плановый календарь)</div></li>
+        </ul>
+      </div>
+
+      <div class="data-card">
+        <div class="data-card-label">Пороговые значения</div>
+        <ul class="checklist">
+          <li><div class="check-box"></div><div>Порог «хит»<span class="note">+30% продаж за 7 дней — это ваш порог?</span></div></li>
+          <li><div class="check-box"></div><div>Порог «слоумувер»<span class="note">Например: -20% за 14 дней</span></div></li>
+          <li><div class="check-box"></div><div>Порог стокаут-риска<span class="note">Запас меньше X дней = алерт</span></div></li>
+          <li><div class="check-box"></div><div>Порог «зависший товар»<span class="note">Нет движения более N дней</span></div></li>
+          <li><div class="check-box"></div><div>Минимальная целевая маржа (%)</div></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="important-box">
+      <div class="important-box-title">💡 Подсказка — как передать контекст</div>
+      <p>Это лучше описать в <strong>свободном тексте</strong> как часть System Prompt агента. Например: <em>«Мы — мультибренд магазин женской одежды в Москве. Пик продаж — сентябрь–ноябрь и февраль–март. Порог хита — рост продаж более 35% за 7 дней. Критический остаток — менее 10 дней запаса при lead time 14 дней.»</em></p>
+    </div>
+  </div>
+
+  <!-- ======= БЛОК 5: ПРОМО И МАРКЕТИНГ ======= -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">5</div>
+      <div class="section-title-wrap">
+        <div class="section-title">История промо-акций и маркетинговых активностей</div>
+        <div class="section-subtitle">Без этого агент перепутает «промо-всплеск» с «органическим хитом»</div>
+      </div>
+      <span class="priority-badge p-high">Важно</span>
+    </div>
+
+    <div class="items-grid">
+      <div class="data-card">
+        <div class="data-card-label">Промо-акции</div>
+        <ul class="checklist">
+          <li><div class="check-box"></div><div>Даты начала и конца акции</div></li>
+          <li><div class="check-box"></div><div>Какие SKU / категории участвовали</div></li>
+          <li><div class="check-box"></div><div>Размер скидки (%)</div></li>
+          <li><div class="check-box"></div><div>Тип механики<span class="note">Скидка / 2+1 / подарок / бандл</span></div></li>
+          <li><div class="check-box"></div><div>Канал (офлайн / онлайн / оба)</div></li>
+        </ul>
+      </div>
+
+      <div class="data-card">
+        <div class="data-card-label">Рекламные кампании</div>
+        <ul class="checklist">
+          <li><div class="check-box"></div><div>Даты запуска рекламных кампаний</div></li>
+          <li><div class="check-box"></div><div>Продвигаемые SKU / категории</div></li>
+          <li><div class="check-box"></div><div>Бюджет кампании</div></li>
+          <li><div class="check-box"></div><div>Канал (Яндекс / VK / IG / TG)</div></li>
+          <li><div class="check-box"></div><div>Результат: клики / конверсии / выручка<span class="note">Для корреляции рекламы с продажами</span></div></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="format-block">
+<span class="c">// Лог промо-акции</span>
+{
+  <span class="k">"promo_id"</span>: <span class="s">"SALE-W2025-01"</span>,
+  <span class="k">"name"</span>: <span class="s">"Зимняя распродажа"</span>,
+  <span class="k">"date_start"</span>: <span class="s">"2025-01-10"</span>,
+  <span class="k">"date_end"</span>: <span class="s">"2025-01-31"</span>,
+  <span class="k">"sku_list"</span>: [<span class="s">"JKT-ZIM-042"</span>, <span class="s">"JKT-ZIM-037"</span>],
+  <span class="k">"discount_pct"</span>: <span class="v">30</span>,
+  <span class="k">"mechanic"</span>: <span class="s">"discount"</span>,   <span class="c">// discount / bundle / gift</span>
+  <span class="k">"channel"</span>: <span class="s">"both"</span>
+}
+    </div>
+  </div>
+
+  <!-- ======= БЛОК 6: ВНЕШНИЙ КОНТЕКСТ ======= -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">6</div>
+      <div class="section-title-wrap">
+        <div class="section-title">Внешний контекст (погода, события, конкуренты)</div>
+        <div class="section-subtitle">Это то, чего нет у Prediko — ваше конкурентное преимущество</div>
+      </div>
+      <span class="priority-badge p-medium">Дополнительно</span>
+    </div>
+
+    <div class="items-grid three">
+      <div class="data-card">
+        <div class="data-card-label">🌡 Погода</div>
+        <h4>Связи погода → категория</h4>
+        <ul class="checklist">
+          <li><div class="check-box"></div><div>Температура воздуха (ежедневно)</div></li>
+          <li><div class="check-box"></div><div>Осадки (дождь / снег)</div></li>
+          <li><div class="check-box"></div><div>Карта: погода → спрос<span class="note">Например: t°&lt;0 → +X% куртки, t°&gt;20 → +Y% сарафаны</span></div></li>
+        </ul>
+        <div class="tag-list">
+          <span class="tag">OpenWeather API</span>
+          <span class="tag">Яндекс.Погода API</span>
+        </div>
+      </div>
+
+      <div class="data-card">
+        <div class="data-card-label">📅 События и праздники</div>
+        <h4>Локальный календарь</h4>
+        <ul class="checklist">
+          <li><div class="check-box"></div><div>Федеральные праздники РФ</div></li>
+          <li><div class="check-box"></div><div>Городские события<span class="note">Фестивали, ярмарки, концерты</span></div></li>
+          <li><div class="check-box"></div><div>Школьный календарь<span class="note">Если детская одежда в ассортименте</span></div></li>
+          <li><div class="check-box"></div><div>Ваши внутренние события<span class="note">Открытие новой точки, коллаборации</span></div></li>
+        </ul>
+      </div>
+
+      <div class="data-card">
+        <div class="data-card-label">🏪 Конкуренты</div>
+        <h4>Мониторинг рынка</h4>
+        <ul class="checklist">
+          <li><div class="check-box"></div><div>Список ключевых конкурентов</div></li>
+          <li><div class="check-box"></div><div>Их промо-активности (даты акций)</div></li>
+          <li><div class="check-box"></div><div>Ценовой мониторинг по пересекающимся SKU</div></li>
+          <li><div class="check-box"></div><div>Открытие / закрытие точек конкурентов</div></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="important-box">
+      <div class="important-box-title">💡 Как передать карту «погода → спрос»</div>
+      <p>Это экспертное знание, которое вы передаёте агенту один раз текстом: <em>«При температуре ниже 0°C спрос на зимние куртки вырастает на 40–60% относительно нормы. При первом снеге — краткосрочный пик +80% в течение 3 дней. Дождливые дни снижают трафик в офлайн на 20–30%, но не влияют на онлайн.»</em></p>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- ======= СВОДНАЯ ТАБЛИЦА ======= -->
+  <div class="section">
+    <div class="section-header" style="border-bottom-color: var(--accent);">
+      <div class="section-num" style="background:var(--accent);">✓</div>
+      <div class="section-title-wrap">
+        <div class="section-title">Сводный чеклист — что собрать прямо сейчас</div>
+        <div class="section-subtitle">Приоритизированный список с форматами</div>
+      </div>
+    </div>
+
+    <div class="data-card full">
+      <table class="summary-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Что собрать</th>
+            <th>Формат</th>
+            <th>Источник</th>
+            <th>Приоритет</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>01</td>
+            <td>Справочник всех SKU с ценами и категориями</td>
+            <td>Excel / CSV</td>
+            <td>1С / ERP</td>
+            <td><span class="priority-badge p-critical" style="font-size:10px;">Критично</span></td>
+          </tr>
+          <tr>
+            <td>02</td>
+            <td>История продаж за 24 месяца (по дням)</td>
+            <td>CSV / JSON</td>
+            <td>1С / Касса</td>
+            <td><span class="priority-badge p-critical" style="font-size:10px;">Критично</span></td>
+          </tr>
+          <tr>
+            <td>03</td>
+            <td>Текущие остатки по SKU + склад</td>
+            <td>Excel / API</td>
+            <td>WMS / 1С</td>
+            <td><span class="priority-badge p-critical" style="font-size:10px;">Критично</span></td>
+          </tr>
+          <tr>
+            <td>04</td>
+            <td>Параметры поставщиков: lead time, MOQ</td>
+            <td>Таблица</td>
+            <td>Ваши данные</td>
+            <td><span class="priority-badge p-critical" style="font-size:10px;">Критично</span></td>
+          </tr>
+          <tr>
+            <td>05</td>
+            <td>Описание бизнеса и пороговые значения</td>
+            <td>Текст (для промпта)</td>
+            <td>Вы пишете</td>
+            <td><span class="priority-badge p-context" style="font-size:10px;">Контекст</span></td>
+          </tr>
+          <tr>
+            <td>06</td>
+            <td>История промо-акций за 12 месяцев</td>
+            <td>Excel / JSON</td>
+            <td>Маркетинг</td>
+            <td><span class="priority-badge p-high" style="font-size:10px;">Важно</span></td>
+          </tr>
+          <tr>
+            <td>07</td>
+            <td>Календарь сезонности и ключевых событий</td>
+            <td>Текст / таблица</td>
+            <td>Вы пишете</td>
+            <td><span class="priority-badge p-high" style="font-size:10px;">Важно</span></td>
+          </tr>
+          <tr>
+            <td>08</td>
+            <td>Карта зависимостей «погода → категория»</td>
+            <td>Текст (для промпта)</td>
+            <td>Ваш опыт</td>
+            <td><span class="priority-badge p-high" style="font-size:10px;">Важно</span></td>
+          </tr>
+          <tr>
+            <td>09</td>
+            <td>Открытые PO (заказы в пути)</td>
+            <td>Excel / JSON</td>
+            <td>Закупки</td>
+            <td><span class="priority-badge p-high" style="font-size:10px;">Важно</span></td>
+          </tr>
+          <tr>
+            <td>10</td>
+            <td>Данные конкурентов: акции, цены</td>
+            <td>Таблица мониторинга</td>
+            <td>Ручной / парсинг</td>
+            <td><span class="priority-badge p-medium" style="font-size:10px;">Дополнительно</span></td>
+          </tr>
+          <tr>
+            <td>11</td>
+            <td>История возвратов по SKU</td>
+            <td>CSV</td>
+            <td>1С / CRM</td>
+            <td><span class="priority-badge p-medium" style="font-size:10px;">Дополнительно</span></td>
+          </tr>
+          <tr>
+            <td>12</td>
+            <td>Результаты рекламных кампаний (ROAS, CPO)</td>
+            <td>Excel / API рекламных кабинетов</td>
+            <td>Таргетолог</td>
+            <td><span class="priority-badge p-medium" style="font-size:10px;">Дополнительно</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

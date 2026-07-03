@@ -1,0 +1,1386 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ціноутворення та маржа — Агент Аналітик</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Mono:wght@300;400;500&family=Nunito:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0e0c09;
+  --s1: #161410;
+  --s2: #1e1b16;
+  --s3: #28241d;
+  --border: rgba(255,255,255,0.08);
+  --border2: rgba(255,255,255,0.14);
+  --text: #e8e4dd;
+  --muted: #7a766e;
+  --dim: #4a4740;
+
+  --gold: #d4a84b;
+  --gold-light: #f0c96a;
+  --gold-bg: rgba(212,168,75,0.08);
+  --gold-border: rgba(212,168,75,0.25);
+
+  --green: #3fa876;
+  --green-bg: rgba(63,168,118,0.08);
+  --green-border: rgba(63,168,118,0.25);
+
+  --red: #e05050;
+  --red-bg: rgba(224,80,80,0.08);
+  --red-border: rgba(224,80,80,0.25);
+
+  --blue: #4a90d9;
+  --blue-bg: rgba(74,144,217,0.08);
+  --blue-border: rgba(74,144,217,0.25);
+
+  --orange: #e07830;
+  --orange-bg: rgba(224,120,48,0.08);
+  --orange-border: rgba(224,120,48,0.25);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Nunito', sans-serif;
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+
+/* HEADER */
+.header {
+  padding: 52px 48px 40px;
+  position: relative;
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+}
+.header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 70% 50%, rgba(212,168,75,0.07) 0%, transparent 60%);
+  pointer-events: none;
+}
+.h-eye {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--gold);
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  margin-bottom: 14px;
+  opacity: 0.8;
+}
+.header h1 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(28px, 4vw, 52px);
+  font-weight: 600;
+  color: #fff;
+  line-height: 1.1;
+}
+.header h1 em { font-style: italic; color: var(--gold-light); }
+.header-desc {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 13px;
+  max-width: 600px;
+  line-height: 1.75;
+}
+
+/* NAV */
+.nav {
+  background: var(--s1);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 0 48px;
+}
+.nav::-webkit-scrollbar { display: none; }
+.nb {
+  padding: 14px 18px 12px;
+  border: none;
+  background: none;
+  font-family: 'Nunito', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  transition: all 0.15s;
+  position: relative;
+  bottom: -1px;
+}
+.nb:hover { color: var(--text); }
+.nb.active { color: var(--gold-light); border-bottom-color: var(--gold); }
+
+/* PAGES */
+.page { display: none; padding: 36px 48px; max-width: 1120px; }
+.page.active { display: block; }
+
+@media(max-width:720px) {
+  .header, .nav, .page { padding-left: 18px; padding-right: 18px; }
+  .g2, .g3 { grid-template-columns: 1fr !important; }
+}
+
+/* GRIDS */
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.full { grid-column: 1/-1; }
+
+/* SECTION */
+.sh {
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.sh-eye {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--dim);
+  margin-bottom: 6px;
+}
+.sh h2 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 24px;
+  font-weight: 600;
+  color: #fff;
+}
+.sh-desc { color: var(--muted); font-size: 13px; margin-top: 4px; }
+
+/* CARD */
+.card {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 22px 24px;
+  margin-bottom: 14px;
+}
+.card h3 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.card-sub {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--dim);
+  margin-bottom: 14px;
+}
+
+/* FORMULA DISPLAY */
+.formula {
+  background: var(--s2);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  padding: 18px 20px;
+  margin: 14px 0;
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  line-height: 2;
+}
+.formula .k { color: var(--gold); }
+.formula .v { color: #a5d6a7; }
+.formula .op { color: var(--muted); }
+.formula .result { color: var(--gold-light); font-size: 15px; font-weight: 500; }
+.formula .c { color: var(--dim); font-size: 11px; }
+
+/* INPUT ROW */
+.inp-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.inp-label {
+  font-size: 12.5px;
+  color: var(--muted);
+  min-width: 160px;
+  font-weight: 500;
+}
+.inp {
+  padding: 8px 14px;
+  background: var(--s2);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  width: 140px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.inp:focus { border-color: var(--gold); }
+.inp-unit {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* RESULT BOX */
+.result-box {
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin-top: 14px;
+  border: 1px solid;
+}
+.result-box.gold { background: var(--gold-bg); border-color: var(--gold-border); }
+.result-box.green { background: var(--green-bg); border-color: var(--green-border); }
+.result-box.red { background: var(--red-bg); border-color: var(--red-border); }
+.result-box.blue { background: var(--blue-bg); border-color: var(--blue-border); }
+.result-box.orange { background: var(--orange-bg); border-color: var(--orange-border); }
+
+.result-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 6px;
+}
+.result-label.gold { color: var(--gold); }
+.result-label.green { color: var(--green); }
+.result-label.red { color: var(--red); }
+.result-label.blue { color: var(--blue); }
+.result-label.orange { color: var(--orange); }
+.result-val {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.result-sub { font-size: 12.5px; color: var(--muted); line-height: 1.55; }
+
+/* MARGIN TABLE */
+.mtable-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+table.mtable { width: 100%; border-collapse: collapse; min-width: 700px; }
+table.mtable thead tr { background: var(--s2); }
+table.mtable th {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--border2);
+  white-space: nowrap;
+}
+table.mtable th.r { text-align: right; }
+table.mtable td {
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  vertical-align: middle;
+}
+table.mtable tr:last-child td { border-bottom: none; }
+table.mtable tr:hover td { background: rgba(255,255,255,0.02); }
+table.mtable td.r { text-align: right; font-family: 'DM Mono', monospace; }
+
+.cat-icon-cell { display: flex; align-items: center; gap: 10px; }
+.cat-icon-cell .icon { font-size: 18px; }
+.cat-name { font-weight: 700; color: #fff; }
+.cat-sub { font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; }
+
+/* MARGIN RANGE BAR */
+.margin-range {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 200px;
+}
+.mrange-track {
+  flex: 1;
+  height: 8px;
+  background: var(--s3);
+  border-radius: 4px;
+  position: relative;
+  min-width: 100px;
+}
+.mrange-fill {
+  position: absolute;
+  height: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--red), var(--gold), var(--green));
+  opacity: 0.6;
+}
+.mrange-bar {
+  position: absolute;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--gold);
+  opacity: 0.8;
+}
+.mrange-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--gold);
+  white-space: nowrap;
+  font-weight: 500;
+}
+.mrange-user {
+  position: absolute;
+  top: -4px;
+  width: 3px;
+  height: 16px;
+  background: #fff;
+  border-radius: 2px;
+  transition: left 0.3s;
+}
+
+/* DEVIATION BADGE */
+.dev {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.dev-ok { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+.dev-low { background: var(--red-bg); color: var(--red); border: 1px solid var(--red-border); }
+.dev-high { background: var(--gold-bg); color: var(--gold); border: 1px solid var(--gold-border); }
+.dev-warn { background: var(--orange-bg); color: var(--orange); border: 1px solid var(--orange-border); }
+
+/* DISCOUNT CALCULATOR */
+.disc-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+@media(max-width:700px) { .disc-grid { grid-template-columns: 1fr; } }
+
+.disc-card {
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px;
+}
+.disc-card h4 {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.disc-card-sub { font-size: 11px; color: var(--muted); margin-bottom: 12px; font-family: 'DM Mono', monospace; }
+.disc-val {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.disc-price { font-family: 'DM Mono', monospace; font-size: 13px; color: var(--muted); }
+.disc-warn { font-size: 11.5px; color: var(--orange); margin-top: 8px; line-height: 1.5; }
+.disc-ok { font-size: 11.5px; color: var(--green); margin-top: 8px; line-height: 1.5; }
+
+/* OPTIONS */
+.options-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 10px;
+  margin-top: 14px;
+}
+@media(max-width:900px) { .options-row { grid-template-columns: 1fr 1fr; } }
+@media(max-width:600px) { .options-row { grid-template-columns: 1fr; } }
+
+.opt-card {
+  border-radius: 12px;
+  border: 1px solid;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+}
+.opt-card:hover { transform: translateY(-2px); }
+.opt-card.selected::after {
+  content: '✓';
+  position: absolute;
+  top: 10px; right: 12px;
+  font-size: 14px;
+  font-weight: 700;
+}
+.opt-num {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 6px;
+  opacity: 0.7;
+}
+.opt-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  line-height: 1.2;
+  margin-bottom: 6px;
+}
+.opt-disc-val {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.opt-price {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  margin-bottom: 10px;
+}
+.opt-pro { font-size: 11px; line-height: 1.4; margin-bottom: 3px; }
+.opt-con { font-size: 11px; line-height: 1.4; margin-bottom: 3px; }
+
+/* MARKETPLACE */
+.mp-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+@media(max-width:700px) { .mp-grid { grid-template-columns: 1fr 1fr; } }
+
+.mp-card {
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+}
+.mp-card.active { border-color: var(--gold); background: var(--gold-bg); }
+.mp-card.active::after { content: '✓'; position: absolute; top: 10px; right: 12px; color: var(--gold); font-weight: 700; }
+.mp-name { font-weight: 800; font-size: 13px; color: #fff; margin-bottom: 4px; }
+.mp-comm {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--red);
+  line-height: 1;
+}
+.mp-type { font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; margin-top: 3px; }
+
+/* TOGGLE */
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.toggle-switch {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  background: var(--s3);
+  border-radius: 11px;
+  cursor: pointer;
+  border: 1px solid var(--border2);
+  transition: background 0.2s;
+}
+.toggle-switch.on { background: var(--gold); border-color: var(--gold); }
+.toggle-switch::after {
+  content: '';
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 16px; height: 16px;
+  background: #fff;
+  border-radius: 50%;
+  transition: left 0.2s;
+}
+.toggle-switch.on::after { left: 20px; }
+.toggle-label { font-size: 13px; font-weight: 600; color: var(--text); cursor: pointer; }
+
+/* CUSTOM INPUT */
+.custom-input-area {
+  margin-top: 12px;
+  background: var(--s2);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+.custom-inp {
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--s3);
+  border: 1px solid var(--border2);
+  border-radius: 7px;
+  color: var(--text);
+  font-family: 'Nunito', sans-serif;
+  font-size: 13px;
+  outline: none;
+  margin-top: 8px;
+}
+.custom-inp:focus { border-color: var(--gold); }
+.calc-btn {
+  margin-top: 10px;
+  padding: 8px 20px;
+  background: var(--gold);
+  color: var(--bg);
+  border: none;
+  border-radius: 7px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.calc-btn:hover { opacity: 0.85; }
+
+/* PROMPT BLOCK */
+.pblock {
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 22px 24px;
+  margin-bottom: 18px;
+}
+.pblock-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--gold);
+  margin-bottom: 12px;
+}
+.pcode {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  line-height: 1.9;
+  color: var(--muted);
+}
+.pcode .k { color: #79c0ff; }
+.pcode .v { color: #fbbf24; }
+.pcode .s { color: #a5d6a7; }
+.pcode .c { color: var(--dim); }
+.pcode strong { color: var(--text); font-weight: 500; }
+
+hr.div { border: none; border-top: 1px solid var(--border); margin: 22px 0; }
+
+.note {
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 12.5px;
+  line-height: 1.7;
+  margin-bottom: 14px;
+}
+.note-gold { background: var(--gold-bg); border: 1px solid var(--gold-border); color: #d4a84b; }
+.note-red { background: var(--red-bg); border: 1px solid var(--red-border); color: #f08080; }
+.note-green { background: var(--green-bg); border: 1px solid var(--green-border); color: #7dd3aa; }
+.note strong { font-weight: 700; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="h-eye">Агент Аналітик — Блок Ціноутворення та Маржа</div>
+  <h1>Ціна, маржа<br>та <em>максимальна знижка</em></h1>
+  <p class="header-desc">Логіка ціноутворення від RRP, середні маржі по ринку UA, калькулятор мінімальної ціни реалізації і 3+1 варіанти переоцінки з урахуванням маркетплейсів.</p>
+</div>
+
+<nav class="nav">
+  <button class="nb active" data-tab="pricing">💱 Ціноутворення</button>
+  <button class="nb" data-tab="benchmarks">📊 Маржа по ринку</button>
+  <button class="nb" data-tab="calculator">🧮 Калькулятор знижок</button>
+  <button class="nb" data-tab="marketplaces">🏪 Маркетплейси</button>
+  <button class="nb" data-tab="repricing">🎯 Переоцінка 3+1</button>
+  <button class="nb" data-tab="prompt">🧠 Промпт агента</button>
+</nav>
+
+<!-- ═════ ЦІНОУТВОРЕННЯ ═════ -->
+<div id="tab-pricing" class="page active">
+
+  <div class="sh">
+    <div class="sh-eye">Як формується ціна</div>
+    <h2>Логіка ціноутворення від RRP</h2>
+    <p class="sh-desc">Три моделі розрахунку роздрібної ціни — агент визначає яка застосовується через бриф клієнта</p>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <h3>Модель A — від EUR RRP бренду</h3>
+      <div class="card-sub">Основна модель для імпортних брендів</div>
+      <div class="formula">
+        <span class="c"># Крок 1: Переводимо EUR RRP в гривню</span><br>
+        <span class="k">rrp_uah</span> = <span class="v">rrp_eur</span> <span class="op">×</span> <span class="v">rate_eur_uah</span><br>
+        <span class="c"># Крок 2: Додаємо коефіцієнт (+10% до EUR RRP)</span><br>
+        <span class="k">retail_price</span> = <span class="v">rrp_uah</span> <span class="op">×</span> <span class="v">coeff</span> <span class="c">(зазвичай 1.05–1.15)</span><br>
+        <span class="c"># Крок 3: Заокруглюємо до прайс-поінту</span><br>
+        <span class="result">retail_price → round to price point (990 / 1490 / 1990 / 2990...)</span>
+      </div>
+
+      <div class="inp-row">
+        <span class="inp-label">EUR RRP бренду</span>
+        <input class="inp" id="rrpEur" type="number" value="89" oninput="calcModelA()">
+        <span class="inp-unit">EUR</span>
+      </div>
+      <div class="inp-row">
+        <span class="inp-label">Курс EUR/UAH</span>
+        <input class="inp" id="eurRate" type="number" value="44.2" step="0.1" oninput="calcModelA()">
+        <span class="inp-unit">₴</span>
+      </div>
+      <div class="inp-row">
+        <span class="inp-label">Коефіцієнт до RRP</span>
+        <input class="inp" id="rrpCoeff" type="number" value="1.10" step="0.01" oninput="calcModelA()">
+        <span class="inp-unit">×</span>
+      </div>
+      <div class="result-box gold" id="resultA">
+        <div class="result-label gold">Рекомендована роздрібна ціна</div>
+        <div class="result-val" id="rA" style="color:var(--gold-light);">—</div>
+        <div class="result-sub" id="rA2">—</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Модель B — від собівартості (markup)</h3>
+      <div class="card-sub">Коли бренд не дає RRP або власне виробництво</div>
+      <div class="formula">
+        <span class="c"># Собівартість включає: закупівля + доставка + мито</span><br>
+        <span class="k">landed_cost</span> = <span class="v">purchase_price</span> <span class="op">+</span> <span class="v">logistics</span> <span class="op">+</span> <span class="v">duties</span><br>
+        <span class="c"># Markup для fashion зазвичай 2.5× — 3.5×</span><br>
+        <span class="k">retail_price</span> = <span class="v">landed_cost</span> <span class="op">×</span> <span class="v">markup</span><br>
+        <span class="result">margin_pct = (retail - landed_cost) / retail × 100</span>
+      </div>
+
+      <div class="inp-row">
+        <span class="inp-label">Закупівельна ціна</span>
+        <input class="inp" id="costB" type="number" value="1200" oninput="calcModelB()">
+        <span class="inp-unit">₴</span>
+      </div>
+      <div class="inp-row">
+        <span class="inp-label">Логістика + мито</span>
+        <input class="inp" id="logisticsB" type="number" value="180" oninput="calcModelB()">
+        <span class="inp-unit">₴</span>
+      </div>
+      <div class="inp-row">
+        <span class="inp-label">Markup коефіцієнт</span>
+        <input class="inp" id="markupB" type="number" value="2.8" step="0.1" oninput="calcModelB()">
+        <span class="inp-unit">×</span>
+      </div>
+      <div class="result-box gold" id="resultB">
+        <div class="result-label gold">Роздрібна ціна та маржа</div>
+        <div class="result-val" id="rB" style="color:var(--gold-light);">—</div>
+        <div class="result-sub" id="rB2">—</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card full">
+    <h3>Прайс-поінти — округлення до психологічних цін</h3>
+    <div class="card-sub">Агент автоматично округлює розрахункову ціну до найближчого прайс-поінту</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;" id="ppGrid"></div>
+    <div class="note note-gold" style="margin-top:14px;">
+      <strong>Логіка агента:</strong> Якщо розрахована ціна = 4,285₴ — агент пропонує прайс-поінт 3,990₴ (нижче) або 4,490₴ (вище) і показує як зміниться маржа у кожному випадку.
+    </div>
+  </div>
+</div>
+
+<!-- ═════ BENCHMARKS ═════ -->
+<div id="tab-benchmarks" class="page">
+
+  <div class="sh">
+    <div class="sh-eye">Середні по ринку UA — 2024–2025</div>
+    <h2>Маржа по категоріях</h2>
+    <p class="sh-desc">Gross margin від роздрібної ціни (RRP). Можна порівняти із власними показниками клієнта.</p>
+  </div>
+
+  <div class="note note-gold">
+    <strong>Як читати:</strong> Маржа = (RRP − собівартість товару) / RRP × 100%. Не включає операційні витрати (оренда, зарплати, доставка) — це товарна маржа. Markup = 1 / (1 − margin%).
+  </div>
+
+  <div class="inp-row" style="margin-bottom:16px;">
+    <span class="inp-label">Ваша маржа (порівняти):</span>
+    <input class="inp" id="userMarginInput" type="number" value="" placeholder="напр. 58" oninput="highlightUserMargin()">
+    <span class="inp-unit">%</span>
+    <span id="userMarginHint" style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;"></span>
+  </div>
+
+  <div class="mtable-wrap">
+    <table class="mtable" id="benchmarkTable">
+      <thead><tr>
+        <th>Категорія</th>
+        <th>Підкатегорія</th>
+        <th class="r">Мін. маржа</th>
+        <th class="r">Ринок (середнє)</th>
+        <th class="r">Макс. маржа</th>
+        <th style="min-width:200px;">Діапазон</th>
+        <th>Markup ×</th>
+        <th id="userCol">Ваша відмінність</th>
+      </tr></thead>
+      <tbody id="benchmarkBody"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<!-- ═════ CALCULATOR ═════ -->
+<div id="tab-calculator" class="page">
+
+  <div class="sh">
+    <div class="sh-eye">Калькулятор мінімальної ціни</div>
+    <h2>Максимально допустима знижка</h2>
+    <p class="sh-desc">Скільки можна знизити ціну не йдучи в мінус — з урахуванням собівартості та маркетплейс-комісій</p>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <h3>Параметри товару</h3>
+      <div class="card-sub">Введи дані для розрахунку</div>
+      <div class="inp-row">
+        <span class="inp-label">Поточна роздрібна ціна</span>
+        <input class="inp" id="cRetail" type="number" value="3990" oninput="calcDiscount()">
+        <span class="inp-unit">₴</span>
+      </div>
+      <div class="inp-row">
+        <span class="inp-label">Собівартість (landed cost)</span>
+        <input class="inp" id="cCost" type="number" value="1400" oninput="calcDiscount()">
+        <span class="inp-unit">₴</span>
+      </div>
+      <div class="inp-row">
+        <span class="inp-label">Мінімальна маржа-флор</span>
+        <input class="inp" id="cFloor" type="number" value="20" oninput="calcDiscount()">
+        <span class="inp-unit">%</span>
+      </div>
+
+      <hr class="div">
+
+      <div class="toggle-row" onclick="toggleMp()">
+        <div class="toggle-switch" id="mpToggle"></div>
+        <span class="toggle-label">Продаю на маркетплейсі</span>
+      </div>
+      <div id="mpSelector" style="display:none;">
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Обери маркетплейс:</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;" id="mpSelectMini"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Поточний стан</h3>
+      <div class="card-sub">До знижки</div>
+      <div class="disc-grid" style="grid-template-columns:1fr 1fr;gap:10px;">
+        <div>
+          <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Поточна маржа</div>
+          <div class="result-val" id="curMargin" style="font-size:28px;color:var(--gold-light);">—</div>
+        </div>
+        <div>
+          <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Прибуток з одиниці</div>
+          <div class="result-val" id="curProfit" style="font-size:28px;color:var(--green);">—</div>
+        </div>
+      </div>
+
+      <hr class="div">
+
+      <div class="disc-card" style="border-color:var(--red-border);">
+        <div class="disc-card-sub">⚠️ АБСОЛЮТНИЙ МІН — продаж по собівартості (0% маржа)</div>
+        <div class="disc-val" id="maxDiscZero" style="color:var(--red);">—</div>
+        <div class="disc-price" id="priceZero">—</div>
+        <div class="disc-warn" id="warnZero">—</div>
+      </div>
+
+      <div class="disc-card" style="margin-top:10px;border-color:var(--orange-border);">
+        <div class="disc-card-sub">🟡 ПОРІГ — мінімальна допустима маржа (флор)</div>
+        <div class="disc-val" id="maxDiscFloor" style="color:var(--orange);">—</div>
+        <div class="disc-price" id="priceFloor">—</div>
+        <div class="disc-ok" id="okFloor">—</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note note-red" id="mpWarningBox" style="display:none;">
+    <strong>⚠️ Увага — маркетплейс!</strong> При продажу через маркетплейс ти платиш комісію <strong id="mpCommNote">—</strong> з ціни продажу. Твоя реальна мінімальна ціна вища за собівартість на суму комісії. Агент перераховує поріг автоматично.
+  </div>
+
+  <div class="card full">
+    <h3>Сценарії — візуально</h3>
+    <div style="margin-top:14px;position:relative;height:60px;" id="priceLine">
+      <div style="position:absolute;top:20px;left:0;right:0;height:4px;background:var(--s3);border-radius:2px;"></div>
+      <div id="fillLine" style="position:absolute;top:20px;left:0;height:4px;background:linear-gradient(90deg,var(--red),var(--orange),var(--gold),var(--green));border-radius:2px;width:0%;transition:width 0.4s;"></div>
+      <div id="pin0" style="position:absolute;top:8px;width:2px;height:28px;background:var(--red);border-radius:1px;display:none;"><div style="position:absolute;bottom:-18px;left:-14px;font-family:'DM Mono',monospace;font-size:9px;color:var(--red);white-space:nowrap;" id="pin0l">0%</div></div>
+      <div id="pinF" style="position:absolute;top:8px;width:2px;height:28px;background:var(--orange);border-radius:1px;display:none;"><div style="position:absolute;bottom:-18px;left:-14px;font-family:'DM Mono',monospace;font-size:9px;color:var(--orange);white-space:nowrap;" id="pinFl">флор</div></div>
+      <div id="pinC" style="position:absolute;top:8px;width:2px;height:28px;background:#fff;border-radius:1px;display:none;"><div style="position:absolute;bottom:-18px;left:-14px;font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);white-space:nowrap;">RRP</div></div>
+    </div>
+    <div id="lineLabels" style="margin-top:8px;display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:10px;color:var(--dim);">
+      <span>← Збиток</span><span>Мін. допустимо</span><span>Оптимально →</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═════ MARKETPLACES ═════ -->
+<div id="tab-marketplaces" class="page">
+
+  <div class="sh">
+    <div class="sh-eye">Комісії та умови</div>
+    <h2>Маркетплейси та їх вплив на маржу</h2>
+    <p class="sh-desc">Агент запитує про маркетплейси під час онбордингу та враховує комісію у всіх розрахунках ціни</p>
+  </div>
+
+  <div class="note note-gold">
+    <strong>Логіка агента:</strong> Перш ніж рекомендувати ціну чи знижку — агент запитує «Де продаєте цей товар?» і обирає відповідний флор для кожного каналу.
+  </div>
+
+  <div class="mp-grid" id="mpCardsMain"></div>
+
+  <div class="card full">
+    <h3>Розрахунок реальної маржі по каналах</h3>
+    <div class="card-sub">На прикладі одного товару: RRP 3,990₴ / Собівартість 1,400₴ / Маржа до комісій 64.9%</div>
+
+    <div class="mtable-wrap" style="margin:14px 0 0;">
+      <table class="mtable" id="mpCalcTable">
+        <thead><tr>
+          <th>Канал</th>
+          <th class="r">Комісія</th>
+          <th class="r">Виручка з продажу</th>
+          <th class="r">Маржа після комісії</th>
+          <th class="r">Мін. ціна продажу (0% маржа)</th>
+          <th>Оцінка каналу</th>
+        </tr></thead>
+        <tbody id="mpCalcBody"></tbody>
+      </table>
+    </div>
+
+    <div class="note note-red" style="margin-top:14px;">
+      <strong>Критично для MDfashion / TSUM:</strong> При комісії 30–35% продаж по собівартості 1,400₴ дає ЗБИТОК. Мінімальна ціна в цьому каналі = 1,400 / (1 − 0.32) = <strong>2,059₴</strong>, що відповідає знижці −48% від RRP. Агент попереджає якщо клієнт хоче поставити знижку більшу.
+    </div>
+  </div>
+
+  <div class="card full" style="margin-top:14px;">
+    <h3>Онбординг-запитання агента про канали</h3>
+    <div class="card-sub">Агент задає ці питання при першому запуску або при аналізі конкретного товару</div>
+    <div style="margin-top:12px;">
+      <div style="margin-bottom:12px;">
+        <div style="font-size:13.5px;font-weight:700;color:#fff;margin-bottom:6px;">1. Де продаєте цей товар? (можна обрати кілька)</div>
+        <div style="font-size:12.5px;color:var(--muted);">Власний магазин / Власний сайт / MDfashion / Rozetka / Prom.ua / Instagram-продажі / Інший маркетплейс</div>
+      </div>
+      <div style="margin-bottom:12px;">
+        <div style="font-size:13.5px;font-weight:700;color:#fff;margin-bottom:6px;">2. Яка комісія на вашому маркетплейсі? (якщо не стандартна)</div>
+        <div style="font-size:12.5px;color:var(--muted);">Деякі бренди мають індивідуальні умови — агент запитує якщо категорія відрізняється від стандарту.</div>
+      </div>
+      <div>
+        <div style="font-size:13.5px;font-weight:700;color:#fff;margin-bottom:6px;">3. Чи хочете автоматично перераховувати флор-ціну для кожного каналу?</div>
+        <div style="font-size:12.5px;color:var(--muted);">Якщо «Так» — агент показує різні поріги для офлайн, свого сайту і маркетплейсів в одному звіті.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═════ REPRICING ═════ -->
+<div id="tab-repricing" class="page">
+
+  <div class="sh">
+    <div class="sh-eye">Стратегії переоцінки</div>
+    <h2>3 варіанти + твій сценарій</h2>
+    <p class="sh-desc">Агент пропонує три обґрунтовані стратегії переоцінки залежно від ситуації зі стоком, сезоном і каналом продажу</p>
+  </div>
+
+  <div class="note note-gold">
+    Ці варіанти генеруються агентом під <strong>конкретний товар</strong> з урахуванням: залишку, днів до сейлу, поточної маржі, наявності маркетплейс-комісії та мінімального маржа-флору клієнта.
+  </div>
+
+  <div style="margin-bottom:18px;">
+    <div class="inp-row">
+      <span class="inp-label">Ситуація:</span>
+      <select class="inp" id="situationSelect" style="width:220px;" onchange="renderRepricing()">
+        <option value="slowmover">Слоу-мувер (не продається)</option>
+        <option value="lastsizes">Останні розміри / 1–3 шт</option>
+        <option value="endseason">Кінець сезону (до сейлу 3 тижні)</option>
+        <option value="dead">Повний зависляк (deadstock)</option>
+      </select>
+    </div>
+    <div class="inp-row">
+      <span class="inp-label">Залишок (шт):</span>
+      <input class="inp" id="repStock" type="number" value="8" style="width:80px;" oninput="renderRepricing()">
+      <span class="inp-label" style="min-width:auto;">Поточна ціна:</span>
+      <input class="inp" id="repRetail" type="number" value="3990" style="width:110px;" oninput="renderRepricing()">
+      <span class="inp-unit">₴</span>
+      <span class="inp-label" style="min-width:auto;">Собівартість:</span>
+      <input class="inp" id="repCost" type="number" value="1400" style="width:110px;" oninput="renderRepricing()">
+      <span class="inp-unit">₴</span>
+    </div>
+  </div>
+
+  <div class="options-row" id="repricingOptions"></div>
+
+  <hr class="div">
+
+  <div class="card full">
+    <h3>Логіка «Продаж в довісок до основної покупки»</h3>
+    <div class="card-sub">Останні одиниці — як інструмент підвищення середнього чека</div>
+
+    <div class="g2" style="margin-top:12px;">
+      <div>
+        <div class="note note-green" style="margin-bottom:10px;">
+          <strong>Коли використовувати:</strong> Залишилось 1–5 шт у непопулярних розмірах (XS або XL). Товар є в наявності, але не продається сам по собі. Ідеально для «допродажу».
+        </div>
+        <ul style="list-style:none;display:flex;flex-direction:column;gap:8px;">
+          <li style="display:flex;gap:8px;font-size:13px;"><span style="color:var(--green);">→</span> Додати до кошика хіта як «рекомендований товар зі знижкою»</li>
+          <li style="display:flex;gap:8px;font-size:13px;"><span style="color:var(--green);">→</span> При покупці на суму X — отримай цей товар зі знижкою Y%</li>
+          <li style="display:flex;gap:8px;font-size:13px;"><span style="color:var(--green);">→</span> Бандл: основний товар + довісок = пакет зі знижкою на обидва</li>
+          <li style="display:flex;gap:8px;font-size:13px;"><span style="color:var(--green);">→</span> Подарункова упаковка — останні шт як преміальний подарунок</li>
+        </ul>
+      </div>
+      <div class="formula" style="margin:0;">
+        <span class="c"># Розрахунок ефективності довіска</span><br>
+        <span class="k">addon_price</span> = cost × <span class="v">1.0</span> <span class="c">(або нижче для швидкої реалізації)</span><br>
+        <span class="k">avg_basket_uplift</span> = addon_price / main_item_price<br>
+        <br>
+        <span class="c"># Приклад: основний товар 3,990₴</span><br>
+        <span class="c"># Довісок по 800₴ (собів. 700₴)</span><br>
+        <span class="k">uplift</span> = 800 / 3990 = <span class="v">+20%</span> до середнього чека<br>
+        <span class="k">margin_addon</span> = (800-700)/800 = <span class="v">12.5%</span> <span class="c">(краще ніж 0)</span><br>
+        <br>
+        <span class="result">Агент рекомендує: якщо залишок ≤3 шт і STR &lt;5% — довісок пріоритетніший за знижку</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═════ PROMPT ═════ -->
+<div id="tab-prompt" class="page">
+
+  <div class="sh">
+    <div class="sh-eye">System Prompt — Блок ціноутворення</div>
+    <h2>Готовий промпт для агента</h2>
+    <p class="sh-desc">Цей блок вставляється в Master System Prompt після блоків сезонності та тригерів</p>
+  </div>
+
+  <div class="pblock">
+    <div class="pblock-label">Блок 1 — Логіка ціноутворення</div>
+    <div class="pcode">
+<strong>## ЦІНОУТВОРЕННЯ</strong><br><br>
+
+<span class="k">МОДЕЛЬ_А</span> (від EUR RRP бренду):<br>
+retail_price = rrp_eur × rate_eur_uah × coeff_brand<br>
+<span class="c"># coeff_brand: береться з брифу клієнта, за замовч. 1.10</span><br>
+<span class="c"># rate_eur_uah: отримуємо з Minfin API щодня</span><br>
+<br>
+<span class="k">МОДЕЛЬ_Б</span> (від собівартості):<br>
+retail_price = landed_cost × markup<br>
+<span class="c"># markup для fashion UA: одяг 2.5–3.0×, аксесуари 3.0–4.0×, взуття 2.5–3.5×</span><br>
+<br>
+<span class="k">ЗАОКРУГЛЕННЯ</span> до прайс-поінту:<br>
+price_points = [490, 690, 890, 990, 1190, 1390, 1490, 1690, 1890, 1990,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2490, 2990, 3490, 3990, 4490, 4990, 5990, 7990, 9990]<br>
+<span class="c"># Округлюй до найближчого нижнього прайс-поінту якщо різниця &lt;5%</span>
+    </div>
+  </div>
+
+  <div class="pblock">
+    <div class="pblock-label">Блок 2 — Маржа і флор</div>
+    <div class="pcode">
+<strong>## МАРЖА ТА МІНІМАЛЬНА ЦІНА</strong><br><br>
+
+<span class="c"># Завжди зберігай для кожного SKU:</span><br>
+<span class="k">landed_cost</span>: собівартість (закупівля + логістика + мито)<br>
+<span class="k">margin_floor</span>: мінімальна допустима маржа клієнта (з брифу, за замовч. 20%)<br>
+<span class="k">margin_current</span>: (retail - landed_cost) / retail × 100<br>
+<br>
+<span class="c"># Порогові ціни:</span><br>
+<span class="k">price_zero</span> = landed_cost <span class="c"># продаж по собівартості (0% маржа)</span><br>
+<span class="k">price_floor</span> = landed_cost / (1 - margin_floor/100)<br>
+<span class="k">price_floor_mp</span> = landed_cost / (1 - margin_floor/100 - mp_commission/100)<br>
+<br>
+<span class="k">max_discount_pct_zero</span> = (retail - price_zero) / retail × 100<br>
+<span class="k">max_discount_pct_floor</span> = (retail - price_floor) / retail × 100<br>
+<span class="k">max_discount_pct_mp</span> = (retail - price_floor_mp) / retail × 100<br>
+<br>
+<span class="c"># ПРАВИЛО: ніколи не рекомендуй знижку більшу за max_discount_pct_zero</span><br>
+<span class="c"># без явного підтвердження від клієнта ("продаю в збиток свідомо")</span>
+    </div>
+  </div>
+
+  <div class="pblock">
+    <div class="pblock-label">Блок 3 — Маркетплейси</div>
+    <div class="pcode">
+<strong>## МАРКЕТПЛЕЙС-ЛОГІКА</strong><br><br>
+
+<span class="c"># Комісії маркетплейсів (оновлюй з брифу клієнта):</span><br>
+<span class="k">mp_commissions</span> = {<br>
+&nbsp;&nbsp;<span class="s">"MDfashion/TSUM"</span>: 0.30,<br>
+&nbsp;&nbsp;<span class="s">"Rozetka"</span>: 0.12,<br>
+&nbsp;&nbsp;<span class="s">"Prom.ua"</span>: 0.08,<br>
+&nbsp;&nbsp;<span class="s">"Instagram/Direct"</span>: 0.00,<br>
+&nbsp;&nbsp;<span class="s">"own_site"</span>: 0.00,<br>
+&nbsp;&nbsp;<span class="s">"own_store"</span>: 0.00<br>
+}<br>
+<br>
+<span class="c"># При аналізі переоцінки — ЗАВЖДИ перевіряй:</span><br>
+<span class="k">if</span> client_sells_on_marketplace:<br>
+&nbsp;&nbsp;<span class="k">price_floor_mp</span> = landed_cost / (1 - mp_comm - margin_floor/100)<br>
+&nbsp;&nbsp;<span class="k">if</span> proposed_price &lt; price_floor_mp:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;ALERT: <span class="s">"Ця ціна дає збиток на маркетплейсі після комісії!"</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;SHOW: <span class="s">f"Мін. ціна для {mp_name}: {price_floor_mp:.0f}₴"</span>
+    </div>
+  </div>
+
+  <div class="pblock">
+    <div class="pblock-label">Блок 4 — Логіка переоцінки 3+1</div>
+    <div class="pcode">
+<strong>## ПРОПОЗИЦІЯ ПЕРЕОЦІНКИ</strong><br><br>
+
+<span class="c"># Агент генерує 3 варіанти + 1 користувацький:</span><br>
+<br>
+<span class="k">ВАРІАНТ_1</span> (консервативний): <span class="c"># тримати маржу</span><br>
+&nbsp;&nbsp;discount = min(15%, max_discount_floor)<br>
+&nbsp;&nbsp;price = retail × (1 - discount)<br>
+&nbsp;&nbsp;new_margin = (price - cost) / price × 100<br>
+<br>
+<span class="k">ВАРІАНТ_2</span> (агресивний): <span class="c"># швидкий продаж</span><br>
+&nbsp;&nbsp;<span class="k">if</span> days_to_sale &lt; 21: discount = max_discount_floor<br>
+&nbsp;&nbsp;<span class="k">else</span>: discount = (max_discount_floor + max_discount_zero) / 2<br>
+<br>
+<span class="k">ВАРІАНТ_3</span> (в 0 або довісок): <span class="c"># ліквідація</span><br>
+&nbsp;&nbsp;<span class="k">if</span> stock &lt;= 3: рекомендуй довісок до основної покупки<br>
+&nbsp;&nbsp;<span class="k">else</span>: discount = max_discount_zero (продаж по собівартості)<br>
+<br>
+<span class="k">ВАРІАНТ_4</span> (користувацький):<br>
+&nbsp;&nbsp;Отримати ціль/відсоток від користувача → розрахувати маржу → попередити якщо збиток<br>
+<br>
+<span class="c"># Для кожного варіанту показуй:</span><br>
+<span class="c"># нову ціну, нову маржу, прибуток з одиниці, прибуток з усього залишку</span><br>
+<span class="c"># попередження якщо нижче флору або нижче mp-порогу</span>
+    </div>
+  </div>
+
+  <div class="pblock">
+    <div class="pblock-label">Блок 5 — Порівняння з ринком</div>
+    <div class="pcode">
+<strong>## БЕНЧМАРК-ПОРІВНЯННЯ</strong><br><br>
+
+<span class="c"># При аналізі SKU — порівнювати маржу клієнта з ринком:</span><br>
+<span class="k">market_avg</span> = BENCHMARKS[category][subcategory]["avg"]<br>
+<span class="k">deviation</span> = margin_current - market_avg<br>
+<br>
+<span class="k">if</span> deviation &gt; 10: STATUS = <span class="s">"Вища за ринок ✓ — ціна може бути завищена або дуже якісний товар"</span><br>
+<span class="k">elif</span> deviation &gt; -5: STATUS = <span class="s">"В межах ринку ✓"</span><br>
+<span class="k">elif</span> deviation &gt; -15: STATUS = <span class="s">"Нижча за ринок ⚠️ — перевір ціноутворення"</span><br>
+<span class="k">else</span>: STATUS = <span class="s">"Критично нижча ✗ — ймовірно помилка у ціні або собівартості"</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── NAVIGATION ──
+document.querySelectorAll('.nb').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.nb').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ── PRICE POINTS ──
+const PRICE_POINTS = [490,690,890,990,1190,1390,1490,1690,1890,1990,2490,2990,3490,3990,4490,4990,5990,7990,9990,12990,19990];
+document.getElementById('ppGrid').innerHTML = PRICE_POINTS.map(p =>
+  `<div style="background:var(--s2);border:1px solid var(--border);border-radius:6px;padding:5px 12px;font-family:'DM Mono',monospace;font-size:12px;color:var(--gold);">${p.toLocaleString()}₴</div>`
+).join('');
+
+function nearestPP(price) {
+  return PRICE_POINTS.reduce((a,b) => Math.abs(b-price)<Math.abs(a-price)?b:a);
+}
+
+// ── MODEL A ──
+function calcModelA() {
+  const eur = +document.getElementById('rrpEur').value||0;
+  const rate = +document.getElementById('eurRate').value||0;
+  const coeff = +document.getElementById('rrpCoeff').value||0;
+  if(!eur||!rate||!coeff) return;
+  const raw = eur * rate * coeff;
+  const pp = nearestPP(raw);
+  document.getElementById('rA').textContent = pp.toLocaleString() + '₴';
+  document.getElementById('rA2').textContent = `Розрахункова ціна: ${Math.round(raw).toLocaleString()}₴ → прайс-поінт: ${pp.toLocaleString()}₴. EUR RRP в UAH: ${Math.round(eur*rate).toLocaleString()}₴`;
+}
+
+// ── MODEL B ──
+function calcModelB() {
+  const cost = +document.getElementById('costB').value||0;
+  const log = +document.getElementById('logisticsB').value||0;
+  const mu = +document.getElementById('markupB').value||0;
+  if(!cost||!mu) return;
+  const landed = cost + log;
+  const raw = landed * mu;
+  const pp = nearestPP(raw);
+  const margin = Math.round((pp - landed)/pp*100);
+  document.getElementById('rB').textContent = pp.toLocaleString() + '₴';
+  document.getElementById('rB2').textContent = `Landed cost: ${landed.toLocaleString()}₴ | Markup ${mu}× → Маржа: ${margin}%`;
+}
+calcModelA(); calcModelB();
+
+// ── BENCHMARKS ──
+const BENCHMARKS = [
+  { cat:'Одяг', icon:'👗', sub:'Футболки, блузки, сукні', min:52, avg:61, max:70, note:'Базовий + нарядний' },
+  { cat:'Верхній одяг', icon:'🧥', sub:'Куртки, пальто, пуховики', min:48, avg:57, max:66, note:'Сезонний, важкий' },
+  { cat:'Джинси & Штани', icon:'👖', sub:'Класика та базові низи', min:50, avg:58, max:66, note:'' },
+  { cat:'Трикотаж', icon:'🧶', sub:'Светри, худі, кардигани', min:52, avg:62, max:70, note:'' },
+  { cat:'Взуття', icon:'👟', sub:'Кросівки, черевики, сандалі', min:48, avg:57, max:65, note:'' },
+  { cat:'Сумки', icon:'👜', sub:'Всі типи шкіргалантереї', min:55, avg:65, max:74, note:'Висока маржа' },
+  { cat:'Окуляри (сонцезахисні)', icon:'🕶', sub:'Fashion та спорт', min:60, avg:68, max:76, note:'★ Найвища' },
+  { cat:'Оправи', icon:'👓', sub:'Преміум та базові', min:55, avg:63, max:72, note:'' },
+  { cat:'Аксесуари (шарфи, рукавички)', icon:'🧣', sub:'Сезонні', min:58, avg:67, max:76, note:'' },
+  { cat:'Ювелірка', icon:'💍', sub:'Золото, срібло', min:40, avg:52, max:62, note:'Матеріал коштовний' },
+  { cat:'Біжутерія', icon:'✨', sub:'Ланцюги, сережки, каблучки', min:58, avg:68, max:78, note:'★ Найвища' },
+  { cat:'Білизна (базова)', icon:'🩱', sub:'Бавовна, щоденна', min:52, avg:62, max:70, note:'' },
+  { cat:'Білизна (fashion/sexy)', icon:'👙', sub:'Мереживо, шовк', min:58, avg:68, max:76, note:'' },
+  { cat:'Купальники', icon:'🩴', sub:'Пляж та басейн', min:55, avg:65, max:74, note:'' },
+  { cat:'Спортивний одяг', icon:'🏃', sub:'Зал, yoga, running', min:48, avg:57, max:66, note:'' },
+  { cat:'Дім & Декор', icon:'🕯', sub:'Свічки, дифузори, декор', min:52, avg:63, max:74, note:'' },
+  { cat:'Постільна білизна', icon:'🛏', sub:'Комплекти', min:45, avg:55, max:65, note:'Об\'єм важливий' },
+  { cat:'Парфумерія', icon:'🌸', sub:'Аромати всі типи', min:38, avg:50, max:62, note:'Низька відносно ринку' },
+  { cat:'Годинники', icon:'⌚', sub:'Fashion та lifestyle', min:42, avg:54, max:65, note:'' },
+  { cat:'Канцелярія & Планери', icon:'📓', sub:'Щоденники, аксесуари', min:50, avg:62, max:72, note:'' },
+];
+
+function buildBenchmarkRow(b) {
+  const userM = parseFloat(document.getElementById('userMarginInput').value)||null;
+  const left = b.min;
+  const range = b.max - b.min;
+  const midPct = (b.avg - b.min)/range*100;
+  const lowPct = 0;
+  const highPct = 100;
+  let devHtml = '<span style="color:var(--dim);font-family:\'DM Mono\',monospace;font-size:11px;">—</span>';
+  let userPinHtml = '';
+  if(userM !== null) {
+    const dev = userM - b.avg;
+    const cls = Math.abs(dev) <= 5 ? 'dev-ok' : dev > 5 ? 'dev-high' : dev > -15 ? 'dev-low' : 'dev-warn';
+    const sign = dev > 0 ? '+' : '';
+    devHtml = `<span class="dev ${cls}">${sign}${Math.round(dev)}%</span>`;
+    const userPinPct = Math.max(0, Math.min(100, (userM - b.min)/range*100));
+    userPinHtml = `<div class="mrange-user" style="left:${userPinPct}%;"></div>`;
+  }
+  const markup = (1/(1-b.avg/100)).toFixed(2);
+  return `<tr>
+    <td><div class="cat-icon-cell"><span class="icon">${b.icon}</span><div><div class="cat-name">${b.cat}</div></div></div></td>
+    <td><span class="cat-sub">${b.sub}</span></td>
+    <td class="r"><span style="color:var(--red);font-family:'DM Mono',monospace;">${b.min}%</span></td>
+    <td class="r"><span style="color:var(--gold-light);font-family:'DM Mono',monospace;font-weight:700;">${b.avg}%</span></td>
+    <td class="r"><span style="color:var(--green);font-family:'DM Mono',monospace;">${b.max}%</span></td>
+    <td>
+      <div class="margin-range">
+        <div class="mrange-track">
+          <div class="mrange-fill" style="left:0%;width:100%;"></div>
+          <div class="mrange-bar" style="left:${(b.avg-b.min)/range*50}%;width:${(b.max-b.avg)/range*50+5}%;opacity:0.5;"></div>
+          ${userPinHtml}
+        </div>
+        <span class="mrange-label">${b.avg}%</span>
+      </div>
+    </td>
+    <td class="r"><span style="font-family:'DM Mono',monospace;color:var(--muted);">${markup}×</span></td>
+    <td>${devHtml}</td>
+  </tr>`;
+}
+
+function renderBenchmarks() {
+  document.getElementById('benchmarkBody').innerHTML = BENCHMARKS.map(b => buildBenchmarkRow(b)).join('');
+}
+
+function highlightUserMargin() { renderBenchmarks(); }
+renderBenchmarks();
+
+// ── DISCOUNT CALCULATOR ──
+let mpOn = false;
+let selectedMp = { name:'MDfashion/TSUM', comm:0.30 };
+
+const MARKETPLACES = [
+  { name:'MDfashion / TSUM', comm:30, type:'Преміум-ринок' },
+  { name:'Rozetka', comm:12, type:'Масовий ринок' },
+  { name:'Prom.ua', comm:8, type:'B2C маркетплейс' },
+  { name:'SHAFA', comm:15, type:'Fashion-секонд' },
+  { name:'Instagram', comm:0, type:'Прямий продаж' },
+  { name:'Власний сайт', comm:0, type:'Прямий продаж' },
+];
+
+function buildMpSelect(id) {
+  return MARKETPLACES.map((mp,i) => `<div onclick="selectMp(${i},'${id}')" id="${id}_mp${i}" style="padding:6px 12px;border:1px solid var(--border);border-radius:7px;cursor:pointer;background:var(--s2);font-size:12px;transition:all 0.12s;">
+    <span style="font-weight:700;color:#fff;">${mp.name}</span>
+    <span style="margin-left:6px;font-family:'DM Mono',monospace;font-size:11px;color:${mp.comm>0?'var(--red)':'var(--green)'};">${mp.comm > 0 ? '-'+mp.comm+'%':' 0%'}</span>
+  </div>`).join('');
+}
+
+document.getElementById('mpSelectMini').innerHTML = buildMpSelect('mini');
+
+function selectMp(i, id) {
+  selectedMp = { name: MARKETPLACES[i].name, comm: MARKETPLACES[i].comm/100 };
+  document.querySelectorAll(`[id^="${id}_mp"]`).forEach((el,j) => {
+    el.style.borderColor = j===i ? 'var(--gold)' : 'var(--border)';
+    el.style.background = j===i ? 'var(--gold-bg)' : 'var(--s2)';
+  });
+  calcDiscount();
+}
+
+function toggleMp() {
+  mpOn = !mpOn;
+  document.getElementById('mpToggle').classList.toggle('on', mpOn);
+  document.getElementById('mpSelector').style.display = mpOn ? 'block' : 'none';
+  document.getElementById('mpWarningBox').style.display = mpOn ? 'block' : 'none';
+  calcDiscount();
+}
+
+function calcDiscount() {
+  const retail = +document.getElementById('cRetail').value||0;
+  const cost = +document.getElementById('cCost').value||0;
+  const floor = +document.getElementById('cFloor').value||20;
+  if(!retail||!cost) return;
+
+  const curM = Math.round((retail-cost)/retail*100);
+  const curP = Math.round(retail-cost);
+  document.getElementById('curMargin').textContent = curM+'%';
+  document.getElementById('curProfit').textContent = curP.toLocaleString()+'₴';
+
+  const priceZero = cost;
+  const discZero = Math.round((retail-priceZero)/retail*100);
+
+  let priceMp = cost;
+  if(mpOn && selectedMp.comm > 0) priceMp = cost / (1 - selectedMp.comm);
+
+  const priceFl = Math.max(cost/(1-floor/100), priceMp);
+  const discFl = Math.round((retail-priceFl)/retail*100);
+
+  document.getElementById('maxDiscZero').textContent = '-'+discZero+'%';
+  document.getElementById('priceZero').textContent = `Ціна: ${Math.round(priceZero).toLocaleString()}₴`;
+  document.getElementById('warnZero').textContent = mpOn && selectedMp.comm > 0
+    ? `⚠️ На ${selectedMp.name} (комісія ${Math.round(selectedMp.comm*100)}%) мінімальна ціна вища: ${Math.round(priceMp).toLocaleString()}₴`
+    : 'Прибутку немає. Тільки якщо треба терміново звільнити кошти.';
+
+  document.getElementById('maxDiscFloor').textContent = '-'+Math.max(0,discFl)+'%';
+  document.getElementById('priceFloor').textContent = `Ціна: ${Math.round(priceFl).toLocaleString()}₴`;
+  document.getElementById('okFloor').textContent = `Маржа після знижки: ${floor}% (${Math.round(priceFl-cost).toLocaleString()}₴/шт)`;
+
+  if(mpOn) {
+    document.getElementById('mpCommNote').textContent = `${selectedMp.name} — ${Math.round(selectedMp.comm*100)}%`;
+  }
+
+  const fillPct = Math.min(100, Math.max(0, (retail-cost)/retail*100));
+  const pin0Pct = Math.max(0, Math.min(100, (retail-priceZero)/retail*100/(fillPct/100)/1));
+  const pinFPct = Math.max(0, Math.min(100, (retail-priceFl)/retail*100/(fillPct/100)/1));
+
+  document.getElementById('fillLine').style.width = fillPct+'%';
+  document.getElementById('pin0').style.display = 'block';
+  document.getElementById('pin0').style.left = (discZero/fillPct*fillPct)+'%';
+  document.getElementById('pin0l').textContent = '-'+discZero+'%';
+  document.getElementById('pinF').style.display = 'block';
+  document.getElementById('pinF').style.left = (Math.max(0,discFl)/fillPct*fillPct)+'%';
+  document.getElementById('pinFl').textContent = '-'+Math.max(0,discFl)+'%';
+  document.getElementById('pinC').style.display = 'block';
+  document.getElementById('pinC').style.left = '100%';
+}
+calcDiscount();
+
+// ── MARKETPLACES TAB ──
+document.getElementById('mpCardsMain').innerHTML = MARKETPLACES.map(mp => `
+  <div class="mp-card">
+    <div class="mp-name">${mp.name}</div>
+    <div class="mp-comm">${mp.comm > 0 ? '-'+mp.comm+'%' : '0%'}</div>
+    <div class="mp-type">${mp.type}</div>
+  </div>`).join('');
+
+const SAMPLE_RETAIL = 3990, SAMPLE_COST = 1400;
+document.getElementById('mpCalcBody').innerHTML = MARKETPLACES.map(mp => {
+  const comm = mp.comm/100;
+  const netRevenue = Math.round(SAMPLE_RETAIL*(1-comm));
+  const margin = Math.round((netRevenue - SAMPLE_COST)/netRevenue*100);
+  const minPrice = comm > 0 ? Math.round(SAMPLE_COST/(1-comm)) : SAMPLE_COST;
+  const minDisc = Math.round((SAMPLE_RETAIL-minPrice)/SAMPLE_RETAIL*100);
+  const isGood = margin >= 50;
+  const isWarn = margin >= 30 && margin < 50;
+  return `<tr>
+    <td><span style="font-weight:700;color:#fff;">${mp.name}</span></td>
+    <td class="r"><span style="color:${mp.comm>0?'var(--red)':'var(--green)'};font-family:'DM Mono',monospace;">${mp.comm > 0 ? '-'+mp.comm+'%':'0%'}</span></td>
+    <td class="r"><span style="font-family:'DM Mono',monospace;">${netRevenue.toLocaleString()}₴</span></td>
+    <td class="r"><span style="font-family:'DM Mono',monospace;color:${isGood?'var(--green)':isWarn?'var(--gold)':'var(--red)'};">${margin}%</span></td>
+    <td class="r"><span style="font-family:'DM Mono',monospace;">${minPrice.toLocaleString()}₴ <span style="color:var(--red);font-size:11px;">(−${minDisc}%)</span></span></td>
+    <td><span class="dev ${isGood?'dev-ok':isWarn?'dev-warn':'dev-low'}">${isGood?'★ Рекомендовано':isWarn?'⚠ Прийнятно':'✗ Небезпечно'}</span></td>
+  </tr>`;
+}).join('');
+
+// ── REPRICING ──
+function renderRepricing() {
+  const situation = document.getElementById('situationSelect').value;
+  const stock = +document.getElementById('repStock').value||1;
+  const retail = +document.getElementById('repRetail').value||3990;
+  const cost = +document.getElementById('repCost').value||1400;
+
+  const maxDiscZero = Math.round((retail-cost)/retail*100);
+  const maxDiscFloor = Math.round((retail - cost/(1-0.20))/retail*100);
+
+  const scenarios = {
+    slowmover: [
+      { color:'#4a90d9', title:'Знижка −15% + реклама', pct:15, pro:'Маржа збережена, поштовх продажам', con:'Потрібен рекламний бюджет' },
+      { color:'#d4a84b', title:'Бандл зі хітом', pct:20, pro:'Без явної знижки, вищий чек', con:'Складніша логістика та контент' },
+      { color:'#e07830', title:'Знижка −'+maxDiscFloor+'% (флор)', pct:maxDiscFloor, pro:'Швидка реалізація, маржа ≥ 20%', con:'Маржа мінімальна' },
+    ],
+    lastsizes: [
+      { color:'#3fa876', title:'Довісок до основної покупки', pct:Math.round((retail-cost*1.1)/retail*100), pro:'Підвищення середнього чека', con:'Не продається самостійно' },
+      { color:'#d4a84b', title:'Знижка −'+Math.round(maxDiscFloor*0.7)+'%', pct:Math.round(maxDiscFloor*0.7), pro:'Ще є маржа', con:'Може бути недостатньо для продажу' },
+      { color:'#e05050', title:'По собівартості (в 0)', pct:maxDiscZero, pro:'Швидко звільняє гроші', con:'0% прибутку на залишку' },
+    ],
+    endseason: [
+      { color:'#d4a84b', title:'−20% за 3 тижні до сейлу', pct:20, pro:'Натуральний сейл-старт, маржа ок', con:'Треба ще 3 тижні' },
+      { color:'#e07830', title:'−'+maxDiscFloor+'% зараз', pct:maxDiscFloor, pro:'Швидший продаж до сейлу', con:'Нижча маржа ніж чекати' },
+      { color:'#e05050', title:'Агресивний сейл −'+Math.round((maxDiscZero+maxDiscFloor)/2)+'%', pct:Math.round((maxDiscZero+maxDiscFloor)/2), pro:'Максимальна швидкість', con:'Близько до собівартості' },
+    ],
+    dead: [
+      { color:'#e07830', title:'Бандл + подарунок', pct:0, pro:'Без видимої знижки', con:'Потрібно знайти що бандлювати' },
+      { color:'#e05050', title:'По собівартості (в 0)', pct:maxDiscZero, pro:'Повернення оборотних коштів', con:'Нульова маржа' },
+      { color:'#7a766e', title:'Донат / Вибуття', pct:100, pro:'Звільнення складу', con:'Повна втрата товарної вартості' },
+    ]
+  };
+
+  const opts = scenarios[situation] || scenarios.slowmover;
+  const all = [...opts, { color:'#4a4740', title:'Свій варіант', custom:true }];
+
+  document.getElementById('repricingOptions').innerHTML = all.map((o, i) => {
+    if(o.custom) return `
+      <div class="opt-card" style="border-color:var(--border);background:var(--s2);">
+        <div class="opt-num" style="color:var(--muted);">Варіант 4 — ваш</div>
+        <div class="opt-title" style="color:var(--text);">✍️ ${o.title}</div>
+        <div class="custom-input-area">
+          <div style="font-size:11.5px;color:var(--muted);">Введіть бажану ціну або відсоток знижки:</div>
+          <input class="custom-inp" type="number" placeholder="Напр. 2490 або знижка 35%" oninput="calcCustom(this, ${retail}, ${cost})">
+          <div id="customResult" style="margin-top:8px;font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);"></div>
+          <button class="calc-btn">Розрахувати →</button>
+        </div>
+      </div>`;
+    const newPrice = o.pct > 0 ? Math.round(retail * (1 - o.pct/100)) : retail;
+    const newMargin = Math.round((newPrice - cost)/newPrice*100);
+    const totalProfit = Math.round((newPrice - cost) * stock);
+    return `<div class="opt-card" style="border-color:${o.color}33;background:${o.color}0a;">
+      <div class="opt-num" style="color:${o.color};">Варіант ${i+1}</div>
+      <div class="opt-title" style="color:${o.color};">${o.title}</div>
+      <div class="opt-disc-val" style="color:${o.color};">${o.pct > 0 ? '-'+o.pct+'%':'Без знижки'}</div>
+      <div class="opt-price">${newPrice.toLocaleString()}₴ / Маржа: ${newMargin}%</div>
+      <div class="opt-price" style="color:var(--gold);">Прибуток з ${stock} шт: ${totalProfit.toLocaleString()}₴</div>
+      <div class="opt-pro" style="color:var(--green);">+ ${o.pro}</div>
+      <div class="opt-con" style="color:var(--red);">− ${o.con}</div>
+    </div>`;
+  }).join('');
+}
+
+function calcCustom(inp, retail, cost) {
+  const val = parseFloat(inp.value);
+  if(!val) return;
+  let price, disc;
+  if(val > 1 && val < 100) { disc = val; price = retail*(1-val/100); }
+  else { price = val; disc = (retail-val)/retail*100; }
+  const margin = Math.round((price-cost)/price*100);
+  const result = document.getElementById('customResult');
+  const color = margin >= 20 ? 'var(--green)' : margin >= 0 ? 'var(--orange)' : 'var(--red)';
+  result.innerHTML = `<span style="color:${color};">Ціна: ${Math.round(price).toLocaleString()}₴ | Знижка: −${Math.round(disc)}% | Маржа: ${margin}%</span>`;
+}
+
+renderRepricing();
+</script>
+</body>
+</html>

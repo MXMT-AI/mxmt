@@ -1,0 +1,1319 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Вплив погоди на продажі — Ринок України</title>
+<link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=JetBrains+Mono:wght@300;400;500&family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f4f2ef;
+    --surface: #ffffff;
+    --surface2: #ece9e3;
+    --border: #dedad2;
+    --ink: #181512;
+    --muted: #857f76;
+    --dim: #b8b3aa;
+
+    /* Temperature palette */
+    --t-blizzard: #0f2a4a;
+    --t-freeze: #1a3f6e;
+    --t-cold: #2563a8;
+    --t-cool: #5b8dd9;
+    --t-mild: #82b8a0;
+    --t-warm: #e8a84a;
+    --t-hot: #e05c2a;
+    --t-heat: #b91c1c;
+
+    /* Impact colors */
+    --up-strong: #15803d;
+    --up-mid: #16a34a;
+    --up-light: #4ade80;
+    --neutral: #92400e;
+    --down-light: #dc2626;
+    --down-mid: #991b1b;
+    --down-strong: #7f1d1d;
+
+    --rain: #3b6fd4;
+    --snow: #8ab4e8;
+    --sun: #f59e0b;
+    --wind: #6b7280;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Manrope', sans-serif;
+    font-size: 13.5px;
+    line-height: 1.6;
+  }
+
+  /* HEADER — editorial split */
+  .header {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-height: 240px;
+  }
+  .header-left {
+    background: var(--ink);
+    padding: 44px 40px 36px;
+    position: relative;
+    overflow: hidden;
+  }
+  .header-left::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 30px,
+      rgba(255,255,255,0.015) 30px,
+      rgba(255,255,255,0.015) 31px
+    );
+  }
+  .header-eye {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: rgba(255,255,255,0.3);
+    text-transform: uppercase;
+    letter-spacing: 2.5px;
+    margin-bottom: 16px;
+  }
+  .header-left h1 {
+    font-family: 'Dela Gothic One', sans-serif;
+    font-size: clamp(20px, 3vw, 36px);
+    color: #fff;
+    line-height: 1.15;
+    position: relative;
+  }
+  .header-left h1 em {
+    color: #f59e0b;
+    font-style: normal;
+  }
+  .header-desc {
+    margin-top: 12px;
+    color: rgba(255,255,255,0.4);
+    font-size: 12px;
+    line-height: 1.75;
+    position: relative;
+  }
+
+  .header-right {
+    background: #f59e0b;
+    padding: 36px 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .temp-range-visual {
+    display: flex;
+    align-items: stretch;
+    height: 48px;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+  .temp-seg {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: rgba(255,255,255,0.85);
+    font-weight: 500;
+    writing-mode: horizontal-tb;
+    cursor: default;
+    transition: flex 0.2s;
+    position: relative;
+  }
+  .temp-seg:hover { flex: 1.5; }
+  .temp-seg span { font-size: 8px; opacity: 0.7; display: block; text-align: center; }
+
+  .header-right-title {
+    font-family: 'Dela Gothic One', sans-serif;
+    font-size: 13px;
+    color: #78350f;
+    margin-bottom: 10px;
+  }
+  .temp-labels {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: #92400e;
+  }
+
+  @media(max-width:700px) {
+    .header { grid-template-columns: 1fr; min-height: auto; }
+    .header-right { display: none; }
+    .header-left { padding: 28px 20px; }
+  }
+
+  /* NAV */
+  .nav {
+    background: var(--surface);
+    border-bottom: 2px solid var(--ink);
+    display: flex;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding: 0 40px;
+    gap: 2px;
+  }
+  .nav::-webkit-scrollbar { display: none; }
+  .nav-btn {
+    padding: 13px 18px 11px;
+    border: none;
+    background: none;
+    font-family: 'Manrope', sans-serif;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    white-space: nowrap;
+    transition: all 0.15s;
+    position: relative;
+    bottom: -2px;
+  }
+  .nav-btn:hover { color: var(--ink); }
+  .nav-btn.active { color: var(--ink); border-bottom-color: var(--ink); }
+
+  /* CONTENT */
+  .page { display: none; padding: 36px 40px; max-width: 1100px; }
+  .page.active { display: block; }
+
+  @media(max-width:700px) {
+    .nav { padding: 0 16px; }
+    .page { padding: 24px 16px; }
+  }
+
+  /* TEMPERATURE SCALE */
+  .temp-scale {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 8px;
+    margin-bottom: 32px;
+  }
+  @media(max-width:700px) {
+    .temp-scale { grid-template-columns: repeat(4, 1fr); }
+  }
+  .temp-card {
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid rgba(0,0,0,0.06);
+  }
+  .temp-card-head {
+    padding: 10px 12px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+  }
+  .temp-icon { font-size: 20px; }
+  .temp-deg {
+    font-family: 'Dela Gothic One', sans-serif;
+    font-size: 12px;
+    color: #fff;
+    text-align: center;
+    line-height: 1.2;
+  }
+  .temp-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: rgba(255,255,255,0.65);
+    text-align: center;
+    letter-spacing: 0.5px;
+  }
+  .temp-card-body {
+    background: var(--surface);
+    padding: 10px 10px;
+  }
+  .temp-effect {
+    display: flex;
+    align-items: flex-start;
+    gap: 5px;
+    margin-bottom: 5px;
+    font-size: 11px;
+    line-height: 1.35;
+  }
+  .temp-effect:last-child { margin-bottom: 0; }
+  .eff-icon { font-size: 10px; flex-shrink: 0; margin-top: 1px; }
+  .eff-text { color: var(--muted); }
+  .eff-text strong { color: var(--ink); font-size: 10.5px; }
+
+  /* SECTION TITLE */
+  .sec-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--dim);
+    margin-bottom: 8px;
+  }
+  .sec-title {
+    font-family: 'Dela Gothic One', sans-serif;
+    font-size: 18px;
+    color: var(--ink);
+    margin-bottom: 6px;
+    line-height: 1.2;
+  }
+  .sec-desc { color: var(--muted); font-size: 12.5px; margin-bottom: 22px; }
+
+  /* IMPACT TABLE */
+  .impact-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 28px;
+  }
+  table.impact {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 700px;
+  }
+  table.impact thead tr { background: var(--ink); }
+  table.impact th {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9.5px;
+    font-weight: 400;
+    color: rgba(255,255,255,0.45);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 10px 12px;
+    text-align: center;
+    white-space: nowrap;
+  }
+  table.impact th.cat-th {
+    text-align: left;
+    min-width: 180px;
+    color: rgba(255,255,255,0.7);
+  }
+  table.impact td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-align: center;
+    vertical-align: middle;
+  }
+  table.impact td.cat-td {
+    text-align: left;
+    font-family: 'Manrope', sans-serif;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--ink);
+    padding-left: 16px;
+  }
+  table.impact td.cat-td small {
+    display: block;
+    font-size: 10px;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    margin-top: 2px;
+  }
+  table.impact tbody tr:last-child td { border-bottom: none; }
+  table.impact tbody tr:hover { background: rgba(0,0,0,0.015); }
+  tr.group-r td {
+    background: var(--surface2);
+    font-family: 'Dela Gothic One', sans-serif;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    padding: 7px 16px;
+    text-align: left;
+  }
+
+  /* IMPACT CELLS */
+  .up3 { background: #dcfce7; color: #14532d; font-weight: 700; }
+  .up2 { background: #bbf7d0; color: #166534; font-weight: 600; }
+  .up1 { background: #d1fae5; color: #065f46; }
+  .neu { background: #f3f4f6; color: #6b7280; }
+  .dn1 { background: #fee2e2; color: #991b1b; }
+  .dn2 { background: #fca5a5; color: #7f1d1d; font-weight: 600; }
+  .dn3 { background: #f87171; color: #450a0a; font-weight: 700; }
+  .na  { background: transparent; color: var(--dim); }
+
+  /* TRIGGER CARDS */
+  .trigger-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+  @media(max-width:700px) { .trigger-grid { grid-template-columns: 1fr; } }
+
+  .trigger-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .trigger-head {
+    padding: 16px 20px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .trigger-icon {
+    font-size: 28px;
+    flex-shrink: 0;
+  }
+  .trigger-name {
+    font-family: 'Dela Gothic One', sans-serif;
+    font-size: 15px;
+    color: var(--ink);
+    line-height: 1.2;
+  }
+  .trigger-cond {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 3px;
+  }
+  .trigger-body { padding: 14px 20px; }
+  .trigger-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+  }
+  .trigger-row:last-child { border-bottom: none; }
+  .tr-cat { font-size: 12.5px; color: var(--ink); font-weight: 500; flex: 1; }
+  .tr-cat small { display: block; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); }
+  .tr-badge {
+    font-family: 'Dela Gothic One', sans-serif;
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .tr-badge.up { background: #dcfce7; color: #14532d; }
+  .tr-badge.dn { background: #fee2e2; color: #991b1b; }
+  .tr-badge.mid { background: #fef3c7; color: #92400e; }
+  .tr-duration {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9.5px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  /* TRAFFIC CHART */
+  .traffic-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+  @media(max-width:700px) { .traffic-grid { grid-template-columns: 1fr; } }
+
+  .traffic-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .traffic-card-title {
+    font-family: 'Dela Gothic One', sans-serif;
+    font-size: 13px;
+    margin-bottom: 14px;
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .bar-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .bar-label {
+    font-size: 12px;
+    color: var(--muted);
+    min-width: 110px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+  }
+  .bar-track {
+    flex: 1;
+    height: 22px;
+    background: var(--surface2);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    color: #fff;
+    transition: width 0.5s;
+  }
+  .bar-fill.pos { background: linear-gradient(90deg, #16a34a, #22c55e); }
+  .bar-fill.neg { background: linear-gradient(90deg, #dc2626, #ef4444); justify-content: flex-start; padding-left: 8px; color: #fff; }
+  .bar-fill.neu { background: linear-gradient(90deg, #6b7280, #9ca3af); }
+
+  /* PROMPT BLOCK */
+  .prompt-block {
+    background: var(--ink);
+    border-radius: 12px;
+    padding: 24px 28px;
+    margin-bottom: 28px;
+  }
+  .prompt-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #f59e0b;
+    margin-bottom: 14px;
+  }
+  .prompt-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 1.9;
+    color: #8b949e;
+  }
+  .prompt-text .k { color: #79c0ff; }
+  .prompt-text .v { color: #fbbf24; }
+  .prompt-text .s { color: #a5d6a7; }
+  .prompt-text .c { color: #3d444d; }
+  .prompt-text strong { color: #e6edf3; font-weight: 500; }
+
+  /* NOTE BOX */
+  .note {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 12px;
+    color: #92400e;
+    line-height: 1.7;
+    margin-bottom: 20px;
+  }
+  .note strong { color: #78350f; }
+
+  /* API CARD */
+  .api-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+  @media(max-width:700px) { .api-grid { grid-template-columns: 1fr; } }
+  .api-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .api-card-name {
+    font-family: 'Dela Gothic One', sans-serif;
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+  .api-card-url {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .api-card-desc { font-size: 11.5px; color: var(--muted); line-height: 1.55; }
+  .api-card .tag {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    background: var(--surface2);
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+  .api-card .tag.free { background: #dcfce7; color: #15803d; border-color: #bbf7d0; }
+  .api-card .tag.paid { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <div class="header-eye">Агент Аналітик — Weather Intelligence / Україна</div>
+    <h1>Як <em>погода</em><br>впливає на продажі</h1>
+    <p class="header-desc">Карта залежностей температури, опадів та погодних подій на попит по категоріях. Базові знання для агента.</p>
+  </div>
+  <div class="header-right">
+    <div class="header-right-title">Температурна шкала UA (°C)</div>
+    <div class="temp-range-visual">
+      <div class="temp-seg" style="background:var(--t-blizzard);" title="Хуртовина">❄<span>&lt;−15</span></div>
+      <div class="temp-seg" style="background:var(--t-freeze);" title="Мороз">🥶<span>−15..−5</span></div>
+      <div class="temp-seg" style="background:var(--t-cold);" title="Холодно">🧤<span>−5..+5</span></div>
+      <div class="temp-seg" style="background:var(--t-cool);" title="Прохолодно">🧥<span>+5..+12</span></div>
+      <div class="temp-seg" style="background:var(--t-mild);" title="М'яко">🌤<span>+12..+20</span></div>
+      <div class="temp-seg" style="background:var(--t-warm);" title="Тепло">☀<span>+20..+28</span></div>
+      <div class="temp-seg" style="background:var(--t-hot);" title="Спека">🌡<span>+28..+35</span></div>
+      <div class="temp-seg" style="background:var(--t-heat);" title="Екстрем">🔥<span>&gt;+35</span></div>
+    </div>
+    <div class="temp-labels">
+      <span>Зима UA: до −25°C</span>
+      <span>Літо UA: до +38°C</span>
+    </div>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav class="nav">
+  <button class="nav-btn active" data-tab="triggers">⚡ Тригери подій</button>
+  <button class="nav-btn" data-tab="temperature">🌡 Температура → категорії</button>
+  <button class="nav-btn" data-tab="precipitation">🌧 Опади → трафік</button>
+  <button class="nav-btn" data-tab="traffic">🏬 Онлайн vs Офлайн</button>
+  <button class="nav-btn" data-tab="prompt">🧠 Промпт агента</button>
+</nav>
+
+<!-- ===== ТРИГЕРИ ===== -->
+<div id="triggers" class="page active">
+
+  <div class="sec-label">Найважливіше для агента</div>
+  <div class="sec-title">Погодні тригери — миттєвий вплив на попит</div>
+  <p class="sec-desc">Ці події викликають різкий spike або обвал протягом 1–5 днів. Агент має реагувати превентивно — за 5–7 днів до прогнозованої події.</p>
+
+  <div class="trigger-grid">
+
+    <div class="trigger-card">
+      <div class="trigger-head">
+        <div class="trigger-icon">🌨</div>
+        <div>
+          <div class="trigger-name">Перший сніг сезону</div>
+          <div class="trigger-cond">Тригер: перше стійке снігопокриття / T° &lt; 0°C протягом 3+ днів</div>
+        </div>
+      </div>
+      <div class="trigger-body">
+        <div class="trigger-row">
+          <div class="tr-cat">Зимові чоботи / черевики<small>Найбільший spike взуттєвого ринку</small></div>
+          <span class="tr-badge up">+80–120%</span>
+          <span class="tr-duration">3–5 днів</span>
+        </div>
+        <div class="trigger-row">
+          <div class="tr-cat">Шапки & Балаклави<small></small></div>
+          <span class="tr-badge up">+60–90%</span>
+          <span class="tr-duration">2–4 дні</span>
+        </div>
+        <div class="trigger-row">
+          <div class="tr-cat">Рукавички & Варежки</div>
+          <span class="tr-badge up">+50–80%</span>
+          <span class="tr-duration">2–4 дні</span>
+        </div>
+        <div class="trigger-row">
+          <div class="tr-cat">Термобілизна Daily</div>
+          <span class="tr-badge up">+40–60%</span>
+          <span class="tr-duration">1 тиждень</span>
+        </div>
+        <div class="trigger-row">
+          <div class="tr-cat">Пуховики / Парки<small>Якщо залишок є</small></div>
+          <span class="tr-badge up">+50–70%</span>
+          <span class="tr-duration">5–7 днів</span>
+        </div>
+        <div class="trigger-row">
+          <div class="tr-cat">Офлайн-трафік</div>
+          <span class="tr-badge dn">−20–35%</span>
+          <span class="tr-duration">Поки сніг</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="trigger-card">
+      <div class="trigger-head">
+        <div class="trigger-icon">🌡</div>
+        <div>
+          <div class="trigger-name">Перший мороз −10°C</div>
+          <div class="trigger-cond">Тригер: T° опускається нижче −10°C вперше за сезон</div>
+        </div>
+      </div>
+      <div class="trigger-body">
+        <div class="trigger-row">
+          <div class="tr-cat">Термобілизна (всі типи)<small>Паніка-покупка</small></div>
+          <span class="tr-badge up">+70–100%</span>
+          <span class="tr-duration">3–5 днів</span>
+        </div>
+        <div class="trigger-row">
+          <div class="tr-cat">Зимові шкарпетки (вовна)</div>
+          <span class="tr-badge up">+50–70%</span>
+          <span class="tr-duration">3–5 днів</span>
+        </div>
+        <div class="trigger-row">
+          <div class="tr-cat">Пуховики / Важкий верх</div>
+          <span class="tr-badge up">+40–60%</span>
+          <span class="tr-duration">1 тиждень</span>
+        </div>
+        <div class="trigger-row">
+          <div class="tr-cat">Тапочки / Домашнє взуття</div>
+          <span class="tr-badge mid">+20–30%</span>
+          <span class="tr-duration">1–2 тижні</span>
+        </div>
+        <div class="trigger-row">
+          <div class="tr-cat">Пледи & Флісові піжами</div>
+          <span class="tr-badge mid">+30–50%</span>
+          <span class="tr-duration">1–2 тижні</span>
+        </div>
+        <div class="trigger-row">
+          <div class="tr-cat">Онлайн-замовлення загалом</div>
+          <span class="tr-badge up">+15–25%</span>
+          <span class="tr-duration">Весь холодний пер.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="trigger-card">
+      <div class="trigger-head">
+        <div class="trigger-icon">🌸</div>
+        <div>
+          <div class="trigger-name">Перший теплий день +18°C</div>
+          <div class="trigger-cond">Тригер: T° > +18°C вперше після зими, сонячно</div>
+        </div>
+      </div>
+      <div class="trigger-body">
+        <div class="trigger-row">
+          <div class="tr-cat">Легкий верх / Тренчі<small>«Весняний вихід»</small></div>
+          <span class="tr-badge up">+40–60%</span>
+          <span class="tr-duration">3–7 днів</span>
+        </div>
+        <div class="trigger-row">
+          <div class="tr-cat">Кросівки сітка / Літні<small></small></div>
+          <span class="tr-badge up">+35–55%</span>
+          <span class="tr-duration">1–2 тижні</span>
+        </div>
+        <div class="trigger-row">
+          <div class="tr-cat">Сонцезахисні окуляри</div>
+          <span class="tr-badge up">+50–80%</span>
+          <span class="tr-duration">3–5 днів</span>
+        </div>
+        <div class="trigger-row">
+          <div class="tr-cat">Капелюхи / Кепки</div>
+          <span class="tr-badge mid">+25–40%</span>
+          <span class="tr-duration">1 тиждень</span>
+        </div>
+        <div class="trigger-row">
+          <div class="tr-cat">Офлайн-трафік</div>
+          <span class="tr-badge up">+20–35%</span>
+          <span class="tr-duration">Поки тепло</span>
+        </div>
+        <div class="trigger-row">
+          <div class="tr-cat">Важкий верх / Светри</div>
+          <span class="tr-badge dn">−30–50%</span>
+          <span class="tr-duration">Миттєво</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="trigger-card">
+      <div class="trigger-head">
+        <div class="trigger-icon">🔥</div>
+        <div>
+          <div class="trigger-name">Перша спека +30°C</div>
+          <div class="trigger-cond">Тригер: T° > +30°C вперше за сезон, 2+ дні поспіль</div>
+        </div>
+      </div>
+      <div class="trigger-body">
+        <div class="trigger-row">
+          <div class="tr-cat">Купальники (пляж)<small>Ажіотажний попит</small></div>
+          <span class="tr-badge up">+80–130%</span>
+          <span class="tr-duration">3–5 днів</span>
+        </div>
+        <div class="trigger-row">
+          <div class="tr-cat">Шорти / Сарафани</div>
+          <span class="tr-badge up">+60–90%</span>
+          <span class="tr-duration">3–5 днів</span>
+        </div>
+        <div class="trigger-row">
+          <div class="tr-cat">В'єтнамки / Шльопанці</div>
+          <span class="tr-badge up">+70–100%</span>
+          <span class="tr-duration">1 тиждень</span>
+        </div>
+        <div class="trigger-row">
+          <div class="tr-cat">Сонцезахисні окуляри</div>
+          <span class="tr-badge up">+50–70%</span>
+          <span class="tr-duration">1 тиждень</span>
+        </div>
+        <div class="trigger-row">
+          <div class="tr-cat">Офлайн-трафік (вдень)</div>
+          <span class="tr-badge dn">−25–40%</span>
+          <span class="tr-duration">Пік спеки</span>
+        </div>
+        <div class="trigger-row">
+          <div class="tr-cat">Онлайн-замовлення</div>
+          <span class="tr-badge up">+20–35%</span>
+          <span class="tr-duration">Весь період спеки</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="trigger-card">
+      <div class="trigger-head">
+        <div class="trigger-icon">🌧</div>
+        <div>
+          <div class="trigger-name">Затяжний дощ (3+ дні)</div>
+          <div class="trigger-cond">Тригер: дощ без перерви 3+ дні, особливо у вихідні</div>
+        </div>
+      </div>
+      <div class="trigger-body">
+        <div class="trigger-row">
+          <div class="tr-cat">Офлайн-трафік<small>Головний ефект — падіння ТЦ</small></div>
+          <span class="tr-badge dn">−30–50%</span>
+          <span class="tr-duration">Весь дощ</span>
+        </div>
+        <div class="trigger-row">
+          <div class="tr-cat">Онлайн-замовлення</div>
+          <span class="tr-badge up">+25–40%</span>
+          <span class="tr-duration">Весь дощ</span>
+        </div>
+        <div class="trigger-row">
+          <div class="tr-cat">Rain boots / Гумове взуття</div>
+          <span class="tr-badge up">+40–70%</span>
+          <span class="tr-duration">1–3 дні</span>
+        </div>
+        <div class="trigger-row">
+          <div class="tr-cat">Loungewear / Піжами</div>
+          <span class="tr-badge mid">+20–35%</span>
+          <span class="tr-duration">Весь дощ</span>
+        </div>
+        <div class="trigger-row">
+          <div class="tr-cat">Пледи & Домашній текстиль</div>
+          <span class="tr-badge mid">+15–25%</span>
+          <span class="tr-duration">Весь дощ</span>
+        </div>
+        <div class="trigger-row">
+          <div class="tr-cat">Сонцезахисні окуляри<small></small></div>
+          <span class="tr-badge dn">−70–90%</span>
+          <span class="tr-duration">Весь дощ</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="trigger-card">
+      <div class="trigger-head">
+        <div class="trigger-icon">🌩</div>
+        <div>
+          <div class="trigger-name">Хуртовина / Сильний снігопад</div>
+          <div class="trigger-cond">Тригер: снігопад 15+ см, містом важко пересуватись</div>
+        </div>
+      </div>
+      <div class="trigger-body">
+        <div class="trigger-row">
+          <div class="tr-cat">Офлайн-трафік<small>Критичне падіння</small></div>
+          <span class="tr-badge dn">−60–80%</span>
+          <span class="tr-duration">1–3 дні</span>
+        </div>
+        <div class="trigger-row">
+          <div class="tr-cat">Онлайн-замовлення<small>Люди вдома, купують онлайн</small></div>
+          <span class="tr-badge up">+40–60%</span>
+          <span class="tr-duration">1–3 дні</span>
+        </div>
+        <div class="trigger-row">
+          <div class="tr-cat">Швидкі доставки<small>Попит на courier зростає</small></div>
+          <span class="tr-badge up">+50–80%</span>
+          <span class="tr-duration">Весь снігопад</span>
+        </div>
+        <div class="trigger-row">
+          <div class="tr-cat">Теплий домашній одяг</div>
+          <span class="tr-badge mid">+20–30%</span>
+          <span class="tr-duration">1–2 дні</span>
+        </div>
+        <div class="trigger-row">
+          <div class="tr-cat">Нарядний одяг / Взуття<small>Нікуди йти</small></div>
+          <span class="tr-badge dn">−50–70%</span>
+          <span class="tr-duration">Час хуртовини</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="note">
+    <strong>⚡ Як агент використовує тригери:</strong> Агент отримує прогноз погоди на 7 днів вперед. Якщо виявляє майбутній тригер (перший сніг, спека, тривалий дощ) — заздалегідь формує алерт: «За 5 днів очікується перший сніг. Рекомендую перевірити залишки зимових чобіт та термобілизни — прогнозований spike +80%».
+  </div>
+
+</div>
+
+<!-- ===== ТЕМПЕРАТУРА → КАТЕГОРІЇ ===== -->
+<div id="temperature" class="page">
+
+  <div class="sec-label">Матриця залежностей</div>
+  <div class="sec-title">Температура → Вплив на категорії</div>
+  <p class="sec-desc">Як змінюється попит залежно від діапазону температури. Агент застосовує відповідний коефіцієнт до прогнозу.</p>
+
+  <div class="temp-scale">
+    <div class="temp-card">
+      <div class="temp-card-head" style="background:var(--t-blizzard);">
+        <div class="temp-icon">❄️</div>
+        <div class="temp-deg">&lt; −15°C</div>
+        <div class="temp-name">Сильний мороз</div>
+      </div>
+      <div class="temp-card-body">
+        <div class="temp-effect"><span class="eff-icon">🔺</span><div class="eff-text"><strong>Термобілизна</strong> +80%</div></div>
+        <div class="temp-effect"><span class="eff-icon">🔺</span><div class="eff-text"><strong>Пуховики</strong> +60%</div></div>
+        <div class="temp-effect"><span class="eff-icon">🔺</span><div class="eff-text"><strong>Онлайн</strong> +30%</div></div>
+        <div class="temp-effect"><span class="eff-icon">🔻</span><div class="eff-text"><strong>Офлайн</strong> −50%</div></div>
+        <div class="temp-effect"><span class="eff-icon">🔻</span><div class="eff-text">Літній одяг: 0</div></div>
+      </div>
+    </div>
+    <div class="temp-card">
+      <div class="temp-card-head" style="background:var(--t-freeze);">
+        <div class="temp-icon">🥶</div>
+        <div class="temp-deg">−15 .. −5°C</div>
+        <div class="temp-name">Мороз</div>
+      </div>
+      <div class="temp-card-body">
+        <div class="temp-effect"><span class="eff-icon">🔺</span><div class="eff-text"><strong>Зимовий верх</strong> +40%</div></div>
+        <div class="temp-effect"><span class="eff-icon">🔺</span><div class="eff-text"><strong>Аксесуари</strong> +35%</div></div>
+        <div class="temp-effect"><span class="eff-icon">🔺</span><div class="eff-text"><strong>Онлайн</strong> +20%</div></div>
+        <div class="temp-effect"><span class="eff-icon">🔻</span><div class="eff-text"><strong>Офлайн</strong> −30%</div></div>
+        <div class="temp-effect"><span class="eff-icon">🔻</span><div class="eff-text">Сарафани, шорти: 0</div></div>
+      </div>
+    </div>
+    <div class="temp-card">
+      <div class="temp-card-head" style="background:var(--t-cold);">
+        <div class="temp-icon">🧤</div>
+        <div class="temp-deg">−5 .. +5°C</div>
+        <div class="temp-name">Холодно</div>
+      </div>
+      <div class="temp-card-body">
+        <div class="temp-effect"><span class="eff-icon">🔺</span><div class="eff-text"><strong>Пальто</strong> +25%</div></div>
+        <div class="temp-effect"><span class="eff-icon">🔺</span><div class="eff-text"><strong>Светри</strong> +20%</div></div>
+        <div class="temp-effect"><span class="eff-icon">▶</span><div class="eff-text">Офлайн: норма −15%</div></div>
+        <div class="temp-effect"><span class="eff-icon">🔺</span><div class="eff-text">Тапочки +15%</div></div>
+        <div class="temp-effect"><span class="eff-icon">🔻</span><div class="eff-text">Літо-категорії: 0</div></div>
+      </div>
+    </div>
+    <div class="temp-card">
+      <div class="temp-card-head" style="background:var(--t-cool);">
+        <div class="temp-icon">🧥</div>
+        <div class="temp-deg">+5 .. +12°C</div>
+        <div class="temp-name">Прохолодно</div>
+      </div>
+      <div class="temp-card-body">
+        <div class="temp-effect"><span class="eff-icon">🔺</span><div class="eff-text"><strong>Тренчі</strong> +20%</div></div>
+        <div class="temp-effect"><span class="eff-icon">🔺</span><div class="eff-text"><strong>Челсі, черевики</strong> +15%</div></div>
+        <div class="temp-effect"><span class="eff-icon">▶</span><div class="eff-text">Офлайн: норма</div></div>
+        <div class="temp-effect"><span class="eff-icon">▶</span><div class="eff-text">Джинси: норма</div></div>
+        <div class="temp-effect"><span class="eff-icon">🔻</span><div class="eff-text">Зимовий верх −20%</div></div>
+      </div>
+    </div>
+    <div class="temp-card">
+      <div class="temp-card-head" style="background:var(--t-mild);">
+        <div class="temp-icon">🌤</div>
+        <div class="temp-deg">+12 .. +20°C</div>
+        <div class="temp-name">М'яко / Весна</div>
+      </div>
+      <div class="temp-card-body">
+        <div class="temp-effect"><span class="eff-icon">🔺</span><div class="eff-text"><strong>Офлайн</strong> +15–25%</div></div>
+        <div class="temp-effect"><span class="eff-icon">🔺</span><div class="eff-text"><strong>Легкий одяг</strong> +25%</div></div>
+        <div class="temp-effect"><span class="eff-icon">🔺</span><div class="eff-text">Сонцезахисні +30%</div></div>
+        <div class="temp-effect"><span class="eff-icon">🔺</span><div class="eff-text">Кросівки +20%</div></div>
+        <div class="temp-effect"><span class="eff-icon">🔻</span><div class="eff-text">Пуховики −60%</div></div>
+      </div>
+    </div>
+    <div class="temp-card">
+      <div class="temp-card-head" style="background:var(--t-warm);">
+        <div class="temp-icon">☀️</div>
+        <div class="temp-deg">+20 .. +28°C</div>
+        <div class="temp-name">Тепло / Літо</div>
+      </div>
+      <div class="temp-card-body">
+        <div class="temp-effect"><span class="eff-icon">🔺</span><div class="eff-text"><strong>Офлайн</strong> +20–30%</div></div>
+        <div class="temp-effect"><span class="eff-icon">🔺</span><div class="eff-text"><strong>Сарафани, шорти</strong> +40%</div></div>
+        <div class="temp-effect"><span class="eff-icon">🔺</span><div class="eff-text">Купальники +30%</div></div>
+        <div class="temp-effect"><span class="eff-icon">🔺</span><div class="eff-text">Сандалі +40%</div></div>
+        <div class="temp-effect"><span class="eff-icon">🔻</span><div class="eff-text">Важкий верх: 0</div></div>
+      </div>
+    </div>
+    <div class="temp-card">
+      <div class="temp-card-head" style="background:var(--t-hot);">
+        <div class="temp-icon">🌡</div>
+        <div class="temp-deg">+28 .. +35°C</div>
+        <div class="temp-name">Спека</div>
+      </div>
+      <div class="temp-card-body">
+        <div class="temp-effect"><span class="eff-icon">🔺</span><div class="eff-text"><strong>Купальники</strong> +60%</div></div>
+        <div class="temp-effect"><span class="eff-icon">🔺</span><div class="eff-text"><strong>Онлайн</strong> +25%</div></div>
+        <div class="temp-effect"><span class="eff-icon">🔻</span><div class="eff-text"><strong>Офлайн</strong> −25%</div></div>
+        <div class="temp-effect"><span class="eff-icon">🔺</span><div class="eff-text">В'єтнамки +50%</div></div>
+        <div class="temp-effect"><span class="eff-icon">🔻</span><div class="eff-text">Все теплий одяг: 0</div></div>
+      </div>
+    </div>
+    <div class="temp-card">
+      <div class="temp-card-head" style="background:var(--t-heat);">
+        <div class="temp-icon">🔥</div>
+        <div class="temp-deg">&gt; +35°C</div>
+        <div class="temp-name">Екстремальна</div>
+      </div>
+      <div class="temp-card-body">
+        <div class="temp-effect"><span class="eff-icon">🔺</span><div class="eff-text"><strong>Онлайн</strong> +40%</div></div>
+        <div class="temp-effect"><span class="eff-icon">🔻</span><div class="eff-text"><strong>Офлайн</strong> −40%</div></div>
+        <div class="temp-effect"><span class="eff-icon">🔺</span><div class="eff-text">Мінімум одягу</div></div>
+        <div class="temp-effect"><span class="eff-icon">🔺</span><div class="eff-text">Аксесуари SPF</div></div>
+        <div class="temp-effect"><span class="eff-icon">🔻</span><div class="eff-text">Важка покупка ↓</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FULL MATRIX TABLE -->
+  <div class="sec-title" style="font-size:15px;margin-bottom:14px;">Повна матриця: категорія × температурний діапазон</div>
+  <div class="impact-wrap">
+    <table class="impact">
+      <thead><tr>
+        <th class="cat-th">Категорія</th>
+        <th>&lt;−15</th>
+        <th>−15..−5</th>
+        <th>−5..+5</th>
+        <th>+5..+12</th>
+        <th>+12..+20</th>
+        <th>+20..+28</th>
+        <th>+28..+35</th>
+        <th>&gt;+35</th>
+      </tr></thead>
+      <tbody id="matrix-body"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<!-- ===== ОПАДИ ===== -->
+<div id="precipitation" class="page">
+
+  <div class="sec-label">Вплив опадів</div>
+  <div class="sec-title">Дощ, Сніг, Туман → Попит і трафік</div>
+  <p class="sec-desc">Опади впливають насамперед на трафік, і вже через нього — на продажі. Онлайн-канал завжди виграє при поганій погоді.</p>
+
+  <div class="impact-wrap">
+    <table class="impact">
+      <thead><tr>
+        <th class="cat-th">Умова / Категорія</th>
+        <th>Легкий дощ</th>
+        <th>Сильний дощ</th>
+        <th>3+ дні дощу</th>
+        <th>Перший сніг</th>
+        <th>Снігопад</th>
+        <th>Хуртовина</th>
+        <th>Туман</th>
+        <th>Сонячно</th>
+      </tr></thead>
+      <tbody>
+        <tr class="group-r"><td colspan="9">🏬 ТРАФІК</td></tr>
+        <tr><td class="cat-td">Офлайн-трафік (ТЦ)</td>
+          <td class="dn1">−15%</td><td class="dn2">−35%</td><td class="dn2">−40%</td>
+          <td class="dn1">−20%</td><td class="dn1">−25%</td><td class="dn3">−65%</td>
+          <td class="dn1">−10%</td><td class="up2">+25%</td></tr>
+        <tr><td class="cat-td">Онлайн-замовлення</td>
+          <td class="up1">+10%</td><td class="up2">+30%</td><td class="up2">+35%</td>
+          <td class="up1">+15%</td><td class="up1">+20%</td><td class="up3">+55%</td>
+          <td class="up1">+8%</td><td class="dn1">−5%</td></tr>
+        <tr><td class="cat-td">Середній чек онлайн<small>Більше часу на шопінг</small></td>
+          <td class="neu">±0</td><td class="up1">+8%</td><td class="up1">+12%</td>
+          <td class="neu">±0</td><td class="up1">+6%</td><td class="up2">+18%</td>
+          <td class="neu">±0</td><td class="dn1">−5%</td></tr>
+
+        <tr class="group-r"><td colspan="9">👗 ОДЯГ</td></tr>
+        <tr><td class="cat-td">Верхній одяг (демісезон)</td>
+          <td class="up1">+15%</td><td class="up1">+20%</td><td class="up2">+25%</td>
+          <td class="up1">+10%</td><td class="neu">±0</td><td class="na">—</td>
+          <td class="up1">+8%</td><td class="dn1">−10%</td></tr>
+        <tr><td class="cat-td">Пуховики / Зимовий верх</td>
+          <td class="neu">±0</td><td class="neu">±0</td><td class="neu">±0</td>
+          <td class="up2">+40%</td><td class="up2">+30%</td><td class="up1">+20%</td>
+          <td class="neu">±0</td><td class="dn1">−15%</td></tr>
+        <tr><td class="cat-td">Loungewear / Піжами<small>«Погода для лежання»</small></td>
+          <td class="up1">+10%</td><td class="up2">+25%</td><td class="up2">+35%</td>
+          <td class="neu">±0</td><td class="up1">+15%</td><td class="up2">+30%</td>
+          <td class="up1">+8%</td><td class="dn1">−15%</td></tr>
+        <tr><td class="cat-td">Літній одяг / Шорти</td>
+          <td class="dn2">−40%</td><td class="dn3">−70%</td><td class="dn3">−70%</td>
+          <td class="dn1">−20%</td><td class="dn2">−50%</td><td class="dn3">−90%</td>
+          <td class="dn1">−15%</td><td class="up3">+50%</td></tr>
+        <tr><td class="cat-td">Купальники</td>
+          <td class="dn3">−80%</td><td class="dn3">−90%</td><td class="dn3">−95%</td>
+          <td class="dn1">−30%</td><td class="dn2">−60%</td><td class="dn3">−95%</td>
+          <td class="dn2">−40%</td><td class="up3">+70%</td></tr>
+
+        <tr class="group-r"><td colspan="9">👟 ВЗУТТЯ</td></tr>
+        <tr><td class="cat-td">Rain boots / Гумові</td>
+          <td class="up2">+30%</td><td class="up3">+70%</td><td class="up3">+80%</td>
+          <td class="neu">±0</td><td class="up1">+10%</td><td class="na">—</td>
+          <td class="up1">+20%</td><td class="dn1">−20%</td></tr>
+        <tr><td class="cat-td">Зимові чоботи</td>
+          <td class="na">—</td><td class="na">—</td><td class="na">—</td>
+          <td class="up3">+100%</td><td class="up3">+60%</td><td class="up2">+30%</td>
+          <td class="na">—</td><td class="na">—</td></tr>
+        <tr><td class="cat-td">Сандалі / В'єтнамки</td>
+          <td class="dn3">−70%</td><td class="dn3">−95%</td><td class="dn3">−95%</td>
+          <td class="dn2">−40%</td><td class="dn3">−80%</td><td class="dn3">−99%</td>
+          <td class="dn2">−50%</td><td class="up3">+80%</td></tr>
+
+        <tr class="group-r"><td colspan="9">👓 АКСЕСУАРИ</td></tr>
+        <tr><td class="cat-td">Сонцезахисні окуляри</td>
+          <td class="dn3">−70%</td><td class="dn3">−95%</td><td class="dn3">−95%</td>
+          <td class="dn2">−50%</td><td class="dn3">−80%</td><td class="dn3">−99%</td>
+          <td class="dn2">−60%</td><td class="up3">+80%</td></tr>
+        <tr><td class="cat-td">Капелюхи літні</td>
+          <td class="dn2">−50%</td><td class="dn3">−80%</td><td class="dn3">−85%</td>
+          <td class="dn1">−30%</td><td class="dn2">−60%</td><td class="dn3">−90%</td>
+          <td class="dn1">−20%</td><td class="up3">+70%</td></tr>
+        <tr><td class="cat-td">Шапки / Рукавички</td>
+          <td class="na">—</td><td class="na">—</td><td class="na">—</td>
+          <td class="up3">+80%</td><td class="up2">+40%</td><td class="up1">+20%</td>
+          <td class="na">—</td><td class="dn2">−40%</td></tr>
+
+        <tr class="group-r"><td colspan="9">🕯 ДІМ & КОМФОРТ</td></tr>
+        <tr><td class="cat-td">Свічки / Аромадифузори<small>«Затишна погода»</small></td>
+          <td class="up1">+10%</td><td class="up2">+20%</td><td class="up2">+25%</td>
+          <td class="up1">+10%</td><td class="up1">+12%</td><td class="up2">+20%</td>
+          <td class="up1">+8%</td><td class="dn1">−10%</td></tr>
+        <tr><td class="cat-td">Пледи & Текстиль</td>
+          <td class="up1">+15%</td><td class="up2">+25%</td><td class="up2">+30%</td>
+          <td class="up1">+10%</td><td class="up1">+15%</td><td class="up2">+25%</td>
+          <td class="up1">+8%</td><td class="dn1">−20%</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<!-- ===== ТРАФІК ===== -->
+<div id="traffic" class="page">
+
+  <div class="sec-label">Онлайн vs Офлайн</div>
+  <div class="sec-title">Як погода перерозподіляє канали продажів</div>
+  <p class="sec-desc">Погода не завжди знижує загальні продажі — вона часто переносить їх з офлайну в онлайн. Агент враховує це при прогнозі.</p>
+
+  <div class="traffic-grid">
+    <div class="traffic-card">
+      <div class="traffic-card-title">☀️ Сонячна / тепла (+18–25°C)</div>
+      <div class="bar-row"><div class="bar-label">Офлайн ТЦ</div><div class="bar-track"><div class="bar-fill pos" style="width:85%;">+25%</div></div></div>
+      <div class="bar-row"><div class="bar-label">Онлайн</div><div class="bar-track"><div class="bar-fill neg" style="width:15%;">−5%</div></div></div>
+      <div class="bar-row"><div class="bar-label">Загальні продажі</div><div class="bar-track"><div class="bar-fill pos" style="width:75%;">+18%</div></div></div>
+      <div class="bar-row"><div class="bar-label">Середній чек</div><div class="bar-track"><div class="bar-fill pos" style="width:40%;">+8%</div></div></div>
+      <div style="margin-top:10px;font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;">Люди виходять, заходять у магазини, роблять спонтанні покупки</div>
+    </div>
+
+    <div class="traffic-card">
+      <div class="traffic-card-title">🌧 Дощ / похмуро</div>
+      <div class="bar-row"><div class="bar-label">Офлайн ТЦ</div><div class="bar-track"><div class="bar-fill neg" style="width:55%;">−35%</div></div></div>
+      <div class="bar-row"><div class="bar-label">Онлайн</div><div class="bar-track"><div class="bar-fill pos" style="width:65%;">+30%</div></div></div>
+      <div class="bar-row"><div class="bar-label">Загальні продажі</div><div class="bar-track"><div class="bar-fill neg" style="width:20%;">−10%</div></div></div>
+      <div class="bar-row"><div class="bar-label">Час на сайті</div><div class="bar-track"><div class="bar-fill pos" style="width:50%;">+20%</div></div></div>
+      <div style="margin-top:10px;font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;">Онлайн компенсує до 70% втраченого офлайн-трафіку</div>
+    </div>
+
+    <div class="traffic-card">
+      <div class="traffic-card-title">❄️ Сильний мороз (нижче −15°C)</div>
+      <div class="bar-row"><div class="bar-label">Офлайн ТЦ</div><div class="bar-track"><div class="bar-fill neg" style="width:70%;">−50%</div></div></div>
+      <div class="bar-row"><div class="bar-label">Онлайн</div><div class="bar-track"><div class="bar-fill pos" style="width:55%;">+25%</div></div></div>
+      <div class="bar-row"><div class="bar-label">Загальні продажі</div><div class="bar-track"><div class="bar-fill neg" style="width:35%;">−20%</div></div></div>
+      <div class="bar-row"><div class="bar-label">Термо-категорії</div><div class="bar-track"><div class="bar-fill pos" style="width:95%;">+80%</div></div></div>
+      <div style="margin-top:10px;font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;">Онлайн компенсує слабко — люди економлять час на вулиці</div>
+    </div>
+
+    <div class="traffic-card">
+      <div class="traffic-card-title">🔥 Спека (+33°C+)</div>
+      <div class="bar-row"><div class="bar-label">Офлайн (вдень)</div><div class="bar-track"><div class="bar-fill neg" style="width:55%;">−40%</div></div></div>
+      <div class="bar-row"><div class="bar-label">Офлайн (вечір)</div><div class="bar-track"><div class="bar-fill pos" style="width:30%;">+15%</div></div></div>
+      <div class="bar-row"><div class="bar-label">Онлайн (з кондиц.)</div><div class="bar-track"><div class="bar-fill pos" style="width:60%;">+35%</div></div></div>
+      <div class="bar-row"><div class="bar-label">Загальні продажі</div><div class="bar-track"><div class="bar-fill neg" style="width:15%;">−8%</div></div></div>
+      <div style="margin-top:10px;font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;">Пік онлайну зранку та ввечері. Офлайн оживає після 18:00</div>
+    </div>
+  </div>
+
+  <div class="note">
+    <strong>🧠 Висновок для агента:</strong> При дощі або спеці — не вважати падіння офлайн-трафіку повним падінням продажів. Перевіряти онлайн-канал окремо. Для магазинів з сильним онлайном погана погода може бути <strong>позитивним фактором</strong>. Для чистих офлайн-точок — негативним.
+  </div>
+
+</div>
+
+<!-- ===== ПРОМПТ ===== -->
+<div id="prompt" class="page">
+
+  <div class="sec-label">System Prompt — блок погоди</div>
+  <div class="sec-title">Як зашити погодну логіку в агента</div>
+  <p class="sec-desc">Готовий блок для System Prompt агента-аналітика. Додається після базових бенчмарків та даних клієнта.</p>
+
+  <div class="prompt-block">
+    <div class="prompt-label">System Prompt — Блок Weather Intelligence</div>
+    <div class="prompt-text">
+<span class="c">## ПОГОДНА ЛОГІКА (Weather Intelligence)</span><br><br>
+
+<strong>Вхідні дані від Weather API (щоденно):</strong><br>
+— Поточна температура (T°C)<br>
+— Прогноз на 7 днів (min/max T°C + тип опадів)<br>
+— Тип погоди: sunny / cloudy / rain / snow / storm<br>
+— Інтенсивність опадів: light / moderate / heavy<br><br>
+
+<span class="c">## ТЕМПЕРАТУРНІ КОЕФІЦІЄНТИ</span><br>
+<span class="k">if</span> T° &lt; -15: термо-категорії ×<span class="v">1.8</span>, офлайн ×<span class="v">0.5</span>, онлайн ×<span class="v">1.3</span><br>
+<span class="k">if</span> T° -15..−5: зимовий верх ×<span class="v">1.4</span>, аксесуари ×<span class="v">1.35</span>, офлайн ×<span class="v">0.7</span><br>
+<span class="k">if</span> T° -5..+5: пальто ×<span class="v">1.25</span>, светри ×<span class="v">1.2</span>, норма<br>
+<span class="k">if</span> T° +5..+12: тренчі ×<span class="v">1.2</span>, черевики ×<span class="v">1.15</span>, офлайн ×<span class="v">1.1</span><br>
+<span class="k">if</span> T° +12..+20: легкий одяг ×<span class="v">1.25</span>, кросівки ×<span class="v">1.2</span>, офлайн ×<span class="v">1.2</span><br>
+<span class="k">if</span> T° +20..+28: літо-категорії ×<span class="v">1.4</span>, купальники ×<span class="v">1.3</span>, офлайн ×<span class="v">1.25</span><br>
+<span class="k">if</span> T° +28..+35: купальники ×<span class="v">1.6</span>, в'єтнамки ×<span class="v">1.5</span>, офлайн ×<span class="v">0.75</span>, онлайн ×<span class="v">1.35</span><br>
+<span class="k">if</span> T° &gt; +35: онлайн ×<span class="v">1.4</span>, офлайн ×<span class="v">0.6</span>, важкі покупки ×<span class="v">0.7</span><br><br>
+
+<span class="c">## ТРИГЕРИ ПОДІЙ (перевіряй ПРОГНОЗ, не лише поточну погоду)</span><br>
+<span class="k">TRIGGER</span> <span class="s">"перший сніг"</span>: T° буде &lt; 0°C 3+ дні → зимові чоботи ×<span class="v">2.0</span>, шапки ×<span class="v">1.8</span> (3–5 днів)<br>
+<span class="k">TRIGGER</span> <span class="s">"перший мороз"</span>: T° буде &lt; -10°C вперше → термо ×<span class="v">1.9</span>, пуховики ×<span class="v">1.6</span><br>
+<span class="k">TRIGGER</span> <span class="s">"весняний прихід"</span>: T° &gt; +18°C вперше → тренчі ×<span class="v">1.5</span>, сонцезах. ×<span class="v">1.7</span><br>
+<span class="k">TRIGGER</span> <span class="s">"перша спека"</span>: T° &gt; +30°C вперше → купальники ×<span class="v">1.9</span>, шорти ×<span class="v">1.8</span><br>
+<span class="k">TRIGGER</span> <span class="s">"дощ 3+ дні"</span>: rain 3+ consecutive → онлайн ×<span class="v">1.35</span>, офлайн ×<span class="v">0.6</span>, loungewear ×<span class="v">1.35</span><br>
+<span class="k">TRIGGER</span> <span class="s">"хуртовина"</span>: storm/blizzard → офлайн ×<span class="v">0.35</span>, онлайн ×<span class="v">1.55</span><br><br>
+
+<span class="c">## ПРАВИЛА ЗАСТОСУВАННЯ</span><br>
+<strong>1.</strong> Застосовуй погодний коефіцієнт ПОВЕРХ сезонного коефіцієнта<br>
+&nbsp;&nbsp;&nbsp;<span class="s">adjusted_forecast = base_forecast × seasonal_coeff × weather_coeff</span><br><br>
+<strong>2.</strong> Для тригерних подій — формуй ПРЕВЕНТИВНИЙ алерт за 5–7 днів:<br>
+&nbsp;&nbsp;&nbsp;<span class="s">"За 5 днів прогнозується перший сніг. Перевір залишки: зимові чоботи, шапки, термо."</span><br><br>
+<strong>3.</strong> Розрізняй офлайн та онлайн канали — вони реагують ПРОТИЛЕЖНО при поганій погоді<br><br>
+<strong>4.</strong> Не рахуй погодний spike як органічний ріст — він тимчасовий (3–7 днів)<br>
+&nbsp;&nbsp;&nbsp;Після spike повертайся до базового сезонного прогнозу<br><br>
+<strong>5.</strong> При тривалому несприятливому сезоні (&gt;2 тижні дощу / морозу) — коригуй прогноз на місяць
+    </div>
+  </div>
+
+  <div class="sec-title" style="font-size:15px;margin-bottom:12px;">Рекомендовані Weather API для підключення</div>
+  <div class="api-grid">
+    <div class="api-card">
+      <div class="api-card-name">🌤 Open-Meteo</div>
+      <div class="api-card-url">open-meteo.com</div>
+      <div class="api-card-desc">Безкоштовний API без ключа. Прогноз 7 днів, погодинно. Підтримує Україну. Найпростіша інтеграція.</div>
+      <span class="tag free">Безкоштовний</span>
+    </div>
+    <div class="api-card">
+      <div class="api-card-name">🌍 OpenWeatherMap</div>
+      <div class="api-card-url">openweathermap.org/api</div>
+      <div class="api-card-desc">Free tier — 60 запитів/хв. Прогноз 5 днів / 3-годинні інтервали. Добре покриття UA міст.</div>
+      <span class="tag free">Free tier</span>
+    </div>
+    <div class="api-card">
+      <div class="api-card-name">⚡ Tomorrow.io</div>
+      <div class="api-card-url">tomorrow.io</div>
+      <div class="api-card-desc">Прогноз до 15 днів. Додаткові дані: вологість, вітер, UV. Найточніший для UA. Платний за обсяг.</div>
+      <span class="tag paid">Платний</span>
+    </div>
+  </div>
+
+  <div class="prompt-block" style="margin-top:0;">
+    <div class="prompt-label">Приклад алерту агента з погодним контекстом</div>
+    <div class="prompt-text">
+<span class="c">// Автоматичний щоденний алерт — 7:00 ранку</span><br><br>
+
+<strong>📍 Прогноз погоди на тиждень (Київ):</strong><br>
+Сьогодні: <span class="v">+3°C</span>, дощ → завтра: <span class="v">−1°C</span>, сніг → пт: <span class="v">−8°C</span><br><br>
+
+<strong>⚡ Виявлено ТРИГЕР: Перший сніг сезону (прогноз на завтра)</strong><br><br>
+
+<span class="s">Рекомендовані дії сьогодні:</span><br>
+1. Зимові чоботи (арт. 1042, 1043) — залишок <span class="v">14 шт</span><br>
+&nbsp;&nbsp;&nbsp;Прогноз spike: <span class="v">+100%</span> за 3–5 днів → залишок розійдеться за <span class="k">4 дні</span><br>
+&nbsp;&nbsp;&nbsp;→ <strong>Терміново розмістити дозамовлення. Lead time: 14 днів.</strong><br><br>
+
+2. Шапки & Балаклави — залишок <span class="v">31 шт</span> (норма)<br>
+&nbsp;&nbsp;&nbsp;При spike +80% → залишок на <span class="k">7–8 днів</span>. Не критично.<br><br>
+
+3. Сонцезахисні окуляри — активна промо-кампанія<br>
+&nbsp;&nbsp;&nbsp;→ <strong>Рекомендую зупинити рекламу на 5–7 днів.</strong> Попит впаде до ~0.<br><br>
+
+<span class="c">Confidence: HIGH (дані з прогнозу погоди + реальні залишки клієнта)</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// Matrix data [blizzard, freeze, cold, cool, mild, warm, hot, extreme]
+const matrixData = [
+  {g:'🧥 ВЕРХНІЙ ОДЯГ', rows:[
+    ['Пуховики / Парки','важкий зимовий', ['up3','up3','up2','dn1','dn2','dn3','na','na'], ['+60%','+40%','+25%','−30%','−60%','0','—','—']],
+    ['Пальто теплі','', ['up2','up2','up1','up1','dn1','dn2','na','na'], ['+40%','+30%','+15%','+10%','−20%','−50%','—','—']],
+    ['Тренчі / Демісезон','padded jacket', ['dn1','dn1','up1','up2','up2','dn1','dn2','dn3'], ['−15%','−10%','+15%','+20%','+20%','−15%','−40%','−60%']],
+    ['Denim / Light jacket','', ['dn2','dn1','up1','up2','up1','dn1','dn2','dn3'], ['−40%','−20%','+10%','+20%','+10%','−15%','−35%','−50%']],
+  ]},
+  {g:'👗 СУКНІ & БАЗОВИЙ ОДЯГ', rows:[
+    ['Сукні нарядні / вечірні','погода впливає мало', ['neu','neu','neu','neu','up1','up1','up1','dn1'], ['±0','±0','±0','±0','+10%','+10%','+10%','−15%']],
+    ['Сукні літні / сарафани','', ['na','na','na','dn2','up1','up3','up2','up2'], ['—','—','—','−50%','+20%','+50%','+35%','+30%']],
+    ['Футболки & Топи','', ['na','dn1','dn1','neu','up1','up2','up1','up1'], ['—','−15%','−10%','±0','+15%','+30%','+20%','+20%']],
+    ['Худі & Світшоти','', ['up1','up1','up1','up1','neu','dn1','dn2','dn2'], ['+15%','+15%','+10%','+10%','±0','−20%','−35%','−40%']],
+    ['Светри & Кардигани','', ['up2','up1','up1','up1','dn1','dn3','na','na'], ['+25%','+20%','+15%','+10%','−20%','−60%','—','—']],
+    ['Шорти','', ['na','na','na','dn3','up1','up3','up3','up3'], ['—','—','—','−70%','+15%','+60%','+70%','+60%']],
+    ['Купальники (пляж)','', ['na','na','na','dn3','neu','up2','up3','up3'], ['—','—','—','−80%','±0','+30%','+70%','+60%']],
+    ['Loungewear / Піжами','', ['up2','up1','up1','neu','neu','dn1','dn1','dn1'], ['+30%','+20%','+15%','±0','±0','−15%','−20%','−25%']],
+  ]},
+  {g:'👟 ВЗУТТЯ', rows:[
+    ['Зимові чоботи (хутро)','', ['up2','up3','up2','dn1','dn3','na','na','na'], ['+40%','+60%','+35%','−20%','−70%','—','—','—']],
+    ['Черевики демісезон','', ['dn1','neu','up2','up3','up2','dn1','dn2','dn3'], ['−15%','±0','+25%','+40%','+20%','−20%','−40%','−60%']],
+    ['Кросівки Lifestyle','всесезон', ['dn1','neu','up1','up1','up2','up1','neu','dn1'], ['−15%','±0','+10%','+15%','+20%','+10%','±0','−10%']],
+    ['Кросівки сітка / Літо','', ['na','na','dn1','dn1','up2','up3','up2','up2'], ['—','—','−20%','−15%','+30%','+55%','+40%','+35%']],
+    ['Босоніжки & Сандалі','', ['na','na','na','dn3','up1','up3','up3','up3'], ['—','—','—','−70%','+20%','+60%','+70%','+65%']],
+    ['В\'єтнамки / Шльопанці','', ['na','na','na','na','neu','up3','up3','up3'], ['—','—','—','—','±0','+80%','+90%','+80%']],
+    ['Тапочки / Домашнє','', ['up1','up1','up1','up1','neu','dn1','dn1','dn1'], ['+20%','+15%','+10%','+10%','±0','−15%','−20%','−25%']],
+  ]},
+  {g:'🧣 АКСЕСУАРИ', rows:[
+    ['Рукавички & Варежки','', ['up3','up3','up2','dn1','dn3','na','na','na'], ['+70%','+60%','+30%','−20%','−80%','—','—','—']],
+    ['Шапки & Балаклави','', ['up3','up3','up2','dn1','dn3','na','na','na'], ['+60%','+55%','+25%','−25%','−75%','—','—','—']],
+    ['Сонцезахисні окуляри','', ['na','na','dn2','dn1','up2','up3','up3','up2'], ['—','—','−50%','−20%','+30%','+55%','+60%','+45%']],
+    ['Літні капелюхи','', ['na','na','na','dn2','up1','up3','up3','up2'], ['—','—','—','−40%','+20%','+60%','+65%','+50%']],
+    ['Кепки','всесезон', ['dn1','dn1','neu','up1','up1','up1','neu','dn1'], ['−15%','−10%','±0','+10%','+15%','+15%','±0','−10%']],
+    ['Термобілизна','', ['up3','up3','up2','dn1','dn3','na','na','na'], ['+80%','+70%','+35%','−20%','−80%','—','—','—']],
+  ]},
+  {g:'🕯 ДІМ & ЗАТИШОК', rows:[
+    ['Свічки & Аромадифузори','«затишна» погода', ['up2','up1','up1','up1','neu','dn1','dn1','dn1'], ['+30%','+20%','+15%','+10%','±0','−15%','−20%','−20%']],
+    ['Пледи & Важкий текстиль','', ['up2','up2','up1','up1','dn1','dn2','dn3','dn3'], ['+30%','+25%','+15%','+10%','−15%','−40%','−55%','−60%']],
+    ['Loungewear / Піжами флісові','', ['up2','up1','up1','neu','dn1','dn2','dn2','dn2'], ['+30%','+20%','+15%','±0','−15%','−35%','−40%','−45%']],
+  ]},
+];
+
+function getClass(code) {
+  const map = {up3:'up3',up2:'up2',up1:'up1',neu:'neu',dn1:'dn1',dn2:'dn2',dn3:'dn3',na:'na'};
+  return map[code] || 'neu';
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  const tabs = document.querySelectorAll('.nav-btn');
+  const pages = document.querySelectorAll('.page');
+
+  tabs.forEach(btn => {
+    btn.addEventListener('click', () => {
+      tabs.forEach(b => b.classList.remove('active'));
+      pages.forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(btn.dataset.tab).classList.add('active');
+    });
+  });
+
+  // Build matrix
+  const tbody = document.getElementById('matrix-body');
+  if (!tbody) return;
+  let html = '';
+  matrixData.forEach(group => {
+    html += `<tr class="group-r"><td colspan="9">${group.g}</td></tr>`;
+    group.rows.forEach(([name, sub, codes, vals]) => {
+      html += `<tr><td class="cat-td">${name}${sub?`<small>${sub}</small>`:''}</td>`;
+      codes.forEach((code, i) => {
+        html += `<td class="${code}">${vals[i]}</td>`;
+      });
+      html += '</tr>';
+    });
+  });
+  tbody.innerHTML = html;
+});
+</script>
+
+</body>
+</html>

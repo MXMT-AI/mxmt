@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Сезонні коефіцієнти — Ринок України</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700&family=JetBrains+Mono:wght@300;400;500&family=Manrope:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f8f7f4;
+    --surface: #ffffff;
+    --surface2: #f0ede6;
+    --border: #e3ddd3;
+    --ink: #1a1714;
+    --muted: #8a847a;
+    --dim: #b5b0a8;
+
+    --c0: #f8f7f4;
+    --c1: #fff3e0;
+    --c2: #fff8e1;
+    --c3: #f9fbe7;
+    --c4: #e8f5e9;
+    --c5: #c8e6c9;
+    --c6: #a5d6a7;
+
+    --t0: #9e9e9e;
+    --t1: #f57c00;
+    --t2: #f9a825;
+    --t3: #afb42b;
+    --t4: #388e3c;
+    --t5: #2e7d32;
+    --t6: #1b5e20;
+
+    --red: #fee2e2;
+    --red-t: #b91c1c;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Manrope', sans-serif;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  /* HEADER */
+  .header {
+    background: var(--ink);
+    padding: 36px 40px 28px;
+    color: #f8f7f4;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::after {
+    content: 'UA';
+    position: absolute;
+    right: -10px; bottom: -30px;
+    font-family: 'Unbounded', sans-serif;
+    font-size: 180px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.03);
+    line-height: 1;
+    pointer-events: none;
+  }
+  .header-top { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+  .header-eye {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: #f0c040;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+  }
+  .header h1 {
+    font-family: 'Unbounded', sans-serif;
+    font-size: clamp(18px, 3vw, 30px);
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.15;
+  }
+  .header-desc {
+    color: rgba(248,247,244,0.45);
+    font-size: 12px;
+    margin-top: 8px;
+    max-width: 500px;
+    line-height: 1.7;
+  }
+  .legend-inline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+  }
+  .leg-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: rgba(248,247,244,0.5);
+  }
+  .leg-swatch {
+    width: 22px; height: 14px;
+    border-radius: 3px;
+  }
+
+  /* EVENT RIBBON */
+  .event-ribbon {
+    background: #1c1916;
+    padding: 8px 40px;
+    display: flex;
+    gap: 20px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .event-ribbon::-webkit-scrollbar { display: none; }
+  .ev {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: rgba(248,247,244,0.4);
+  }
+  .ev-dot { width: 6px; height: 6px; border-radius: 50%; background: #f0c040; flex-shrink: 0; }
+  .ev-dot.r { background: #f87171; }
+  .ev-dot.g { background: #86efac; }
+
+  /* NAV TABS */
+  .nav {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 40px;
+    display: flex;
+    gap: 2px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .nav::-webkit-scrollbar { display: none; }
+  .nav-btn {
+    padding: 12px 16px 10px;
+    border: none;
+    background: none;
+    color: var(--muted);
+    font-family: 'Manrope', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    transition: all 0.15s;
+    position: relative;
+    bottom: -1px;
+  }
+  .nav-btn:hover { color: var(--ink); }
+  .nav-btn.active { color: var(--ink); border-bottom-color: var(--ink); }
+
+  /* CONTENT */
+  .content { display: none; padding: 28px 40px; }
+  .content.active { display: block; }
+
+  @media(max-width:700px) {
+    .header, .event-ribbon, .nav, .content { padding-left: 16px; padding-right: 16px; }
+    .header { padding-top: 24px; padding-bottom: 20px; }
+  }
+
+  /* SECTION HEADER */
+  .sec-head {
+    margin-bottom: 14px;
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .sec-head h2 {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .sec-head p { font-size: 12px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+
+  /* TABLE WRAPPER */
+  .tbl-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 24px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 860px;
+  }
+
+  thead tr {
+    background: var(--ink);
+  }
+  th {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 400;
+    color: rgba(248,247,244,0.5);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 10px 8px;
+    text-align: center;
+    white-space: nowrap;
+  }
+  th.cat-th {
+    text-align: left;
+    padding-left: 16px;
+    min-width: 200px;
+    max-width: 200px;
+    color: rgba(248,247,244,0.7);
+  }
+  th.has-event {
+    color: #f0c040;
+    position: relative;
+  }
+  th.has-event::after {
+    content: '●';
+    font-size: 6px;
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    color: #f0c040;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+  }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: rgba(0,0,0,0.02); }
+
+  td {
+    padding: 7px 8px;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  td.cat-name {
+    text-align: left;
+    padding-left: 16px;
+    font-family: 'Manrope', sans-serif;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--ink);
+    min-width: 200px;
+    max-width: 200px;
+    line-height: 1.3;
+  }
+  td.cat-name small {
+    display: block;
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 2px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* GROUP ROW */
+  tr.group-row td {
+    background: var(--surface2);
+    font-family: 'Unbounded', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    padding: 8px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* COEFFICIENT COLORS */
+  .c-00 { background: #f1f0ee; color: #c0bbb5; } /* 0 */
+  .c-low { background: #fef3c7; color: #b45309; } /* 0.1-0.5 */
+  .c-mid-low { background: #fef9c3; color: #92400e; } /* 0.5-0.7 */
+  .c-norm { background: #f0fdf4; color: #166534; } /* 0.8-1.0 */
+  .c-good { background: #dcfce7; color: #15803d; } /* 1.1-1.2 */
+  .c-high { background: #bbf7d0; color: #166534; } /* 1.3-1.4 */
+  .c-peak { background: #86efac; color: #14532d; font-weight: 700; } /* 1.5-1.6 */
+  .c-max { background: #4ade80; color: #052e16; font-weight: 700; } /* 1.7+ */
+
+  /* NOTES */
+  .note-box {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 12px;
+    color: #92400e;
+    line-height: 1.65;
+    margin-bottom: 20px;
+  }
+  .note-box strong { color: #78350f; }
+
+  /* SEARCH */
+  .search-wrap {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .search-input {
+    flex: 1;
+    min-width: 200px;
+    padding: 9px 14px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: var(--surface);
+    font-family: 'Manrope', sans-serif;
+    font-size: 13px;
+    color: var(--ink);
+    outline: none;
+  }
+  .search-input:focus { border-color: var(--ink); }
+  .search-input::placeholder { color: var(--dim); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-eye">Агент Аналітик — Ринок України</div>
+  <div class="header-top">
+    <div>
+      <h1>Сезонні коефіцієнти<br>за категоріями товарів</h1>
+      <p class="header-desc">Базові бенчмарки для агента. 1.0 = середньомісячні продажі. Адаптовано під календар UA та поведінку споживача.</p>
+    </div>
+  </div>
+  <div class="legend-inline">
+    <div class="leg-item"><div class="leg-swatch" style="background:#f1f0ee;border:1px solid #e0dbd0;"></div>0 — не сезон</div>
+    <div class="leg-item"><div class="leg-swatch" style="background:#fef3c7;"></div>0.1–0.5 — низький</div>
+    <div class="leg-item"><div class="leg-swatch" style="background:#fef9c3;"></div>0.6–0.7 — нижче норми</div>
+    <div class="leg-item"><div class="leg-swatch" style="background:#f0fdf4;"></div>0.8–1.0 — норма</div>
+    <div class="leg-item"><div class="leg-swatch" style="background:#dcfce7;"></div>1.1–1.2 — вище норми</div>
+    <div class="leg-item"><div class="leg-swatch" style="background:#bbf7d0;"></div>1.3–1.4 — високий</div>
+    <div class="leg-item"><div class="leg-swatch" style="background:#86efac;"></div>1.5–1.6 — пік</div>
+    <div class="leg-item"><div class="leg-swatch" style="background:#4ade80;"></div>1.7+ — максимум</div>
+  </div>
+</div>
+
+<div class="event-ribbon">
+  <div class="ev"><div class="ev-dot"></div>Лют: 14 лют — День закоханих</div>
+  <div class="ev"><div class="ev-dot"></div>Бер: 8 березня — найбільший пік UA</div>
+  <div class="ev"><div class="ev-dot g"></div>Кві: Великдень (змінна дата)</div>
+  <div class="ev"><div class="ev-dot"></div>Лип–Сер: Back-to-school</div>
+  <div class="ev"><div class="ev-dot"></div>Вер–Жов: Осінній пік AW</div>
+  <div class="ev"><div class="ev-dot r"></div>Лис: Чорна п'ятниця</div>
+  <div class="ev"><div class="ev-dot"></div>Гру: Новий рік — подарунки</div>
+</div>
+
+<nav class="nav">
+  <button class="nav-btn active" data-tab="clothing">👗 Одяг</button>
+  <button class="nav-btn" data-tab="accessories">🧣 Аксесуари сезонні</button>
+  <button class="nav-btn" data-tab="sport">🏃 Спорт</button>
+  <button class="nav-btn" data-tab="lingerie">👙 Білизна & Дім</button>
+  <button class="nav-btn" data-tab="shoes">👟 Взуття</button>
+  <button class="nav-btn" data-tab="bags">👜 Сумки</button>
+  <button class="nav-btn" data-tab="eyewear">👓 Окуляри</button>
+  <button class="nav-btn" data-tab="home">🕯 Дім & Декор</button>
+  <button class="nav-btn" data-tab="jewelry">💍 Ювелірка</button>
+  <button class="nav-btn" data-tab="perfume">🌸 Парфумерія</button>
+  <button class="nav-btn" data-tab="stationery">📓 Канцелярія</button>
+</nav>
+
+<script>
+// Helper to generate coefficient cell
+function cell(val) {
+  let cls = '';
+  if (val === 0) cls = 'c-00';
+  else if (val <= 0.5) cls = 'c-low';
+  else if (val <= 0.7) cls = 'c-mid-low';
+  else if (val <= 1.0) cls = 'c-norm';
+  else if (val <= 1.2) cls = 'c-good';
+  else if (val <= 1.4) cls = 'c-high';
+  else if (val <= 1.6) cls = 'c-peak';
+  else cls = 'c-max';
+  const display = val === 0 ? '—' : val.toFixed(1);
+  return `<td class="${cls}">${display}</td>`;
+}
+
+function row(name, sub, vals) {
+  return `<tr>
+    <td class="cat-name">${name}${sub ? `<small>${sub}</small>` : ''}</td>
+    ${vals.map(v => cell(v)).join('')}
+  </tr>`;
+}
+
+function groupRow(label) {
+  return `<tr class="group-row"><td colspan="13">${label}</td></tr>`;
+}
+
+const MONTHS_HEAD = ['Січ','Лют','Бер','Кві','Тра','Чер','Лип','Сер','Вер','Жов','Лис','Гру'];
+const EVENT_MONTHS = [false, true, true, false, false, false, false, false, false, false, true, true];
+
+function buildTable(rows) {
+  const thead = `<thead><tr>
+    <th class="cat-th">Категорія</th>
+    ${MONTHS_HEAD.map((m,i) => `<th class="${EVENT_MONTHS[i]?'has-event':''}">${m}</th>`).join('')}
+  </tr></thead>`;
+  return `<div class="tbl-wrap"><table>${thead}<tbody>${rows}</tbody></table></div>`;
+}
+
+// ============ DATA ============
+
+const DATA = {
+
+clothing: [
+  groupRow('🧥 ВАЖКИЙ ВЕРХ'),
+  row('Пуховики & Парки', 'Важка зимова куртка', [1.0,0.8,0.4,0.1,0,0,0,0.3,1.3,1.6,1.7,1.3]),
+  row('Пальто теплі', 'Вовна, кашемір', [0.9,0.8,0.5,0.2,0.1,0,0.1,0.5,1.4,1.5,1.5,1.3]),
+  groupRow('🍂 ДЕМІСЕЗОН'),
+  row('Демісезонний верх', 'Тренчі, padded jacket', [0.5,0.6,1.3,1.5,1.2,0.4,0.2,0.7,1.5,1.4,1.0,0.7]),
+  row('Легкий верх', 'Denim jacket, light jacket', [0.3,0.4,1.0,1.4,1.3,0.8,0.6,0.9,1.2,1.0,0.6,0.3]),
+  groupRow('👗 СУКНІ'),
+  row('Сукні нарядні / вечірні', '', [0.8,1.4,1.8,1.1,1.0,0.8,0.7,0.6,0.9,0.8,1.2,1.5]),
+  row('Сукні літні / сарафани', '', [0.2,0.3,0.8,1.3,1.5,1.6,1.4,0.9,0.4,0.1,0.05,0.1]),
+  row('Сукні осінні / з рукавом', '', [0.5,0.5,0.8,0.7,0.5,0.2,0.1,0.5,1.4,1.5,1.3,1.0]),
+  groupRow('👕 БАЗОВИЙ ОДЯГ'),
+  row('Футболки & Топи', '', [0.4,0.5,1.0,1.3,1.4,1.4,1.2,1.1,0.8,0.6,0.5,0.6]),
+  row('Худі & Світшоти', '', [0.8,0.8,0.9,0.7,0.6,0.4,0.3,0.7,1.3,1.4,1.4,1.2]),
+  row('Светри & Кардигани', '', [1.0,0.9,0.7,0.4,0.2,0.1,0.1,0.4,1.3,1.5,1.5,1.3]),
+  row('Жакети & Піджаки', '', [0.6,0.7,1.2,1.2,1.0,0.7,0.5,0.8,1.3,1.2,1.1,0.8]),
+  groupRow('👖 ШТАНИ & ДЖИНСИ'),
+  row('Штани осінні', '', [0.7,0.7,0.8,0.7,0.6,0.3,0.2,0.7,1.4,1.5,1.4,1.0]),
+  row('Штани літні', '', [0.2,0.3,0.7,1.2,1.4,1.5,1.3,0.9,0.5,0.2,0.1,0.1]),
+  row('Джинси осінні', '', [0.8,0.8,1.0,0.9,0.8,0.5,0.4,0.8,1.4,1.4,1.3,1.0]),
+  row('Джинси літні', '', [0.3,0.4,0.8,1.2,1.3,1.3,1.2,0.9,0.6,0.3,0.2,0.2]),
+  groupRow('👗 СПІДНИЦІ & ШОРТИ'),
+  row('Спідниці осінні', '', [0.5,0.6,1.0,0.9,0.7,0.3,0.2,0.6,1.4,1.4,1.3,0.8]),
+  row('Спідниці літні', '', [0.2,0.3,0.8,1.3,1.5,1.5,1.3,0.9,0.4,0.1,0.05,0.1]),
+  row('Шорти', '', [0.1,0.2,0.5,1.1,1.4,1.6,1.5,1.0,0.5,0.1,0.05,0.1]),
+  row('Купальники (пляж/відкритий)', '', [0.3,0.5,1.0,1.3,1.4,1.5,1.5,1.0,0.3,0.1,0.05,0.1]),
+],
+
+accessories: [
+  groupRow('❄️ ЗИМОВІ АКСЕСУАРИ'),
+  row('Рукавички & Варежки', '', [1.2,1.0,0.5,0.1,0,0,0,0.1,0.5,1.2,1.5,1.4]),
+  row('Шапки & Балаклави', '', [1.2,1.0,0.5,0.2,0.1,0,0,0.2,0.7,1.3,1.5,1.4]),
+  row('Шарфи & Палантини', '', [1.0,0.9,0.7,0.3,0.2,0.1,0.1,0.4,1.0,1.3,1.4,1.3]),
+  row('Термобілизна Daily', '', [1.3,1.1,0.6,0.2,0.1,0,0,0.2,0.6,1.1,1.4,1.4]),
+  row('Зимові шкарпетки (вовна)', '', [1.2,1.0,0.7,0.3,0.1,0,0,0.2,0.6,1.1,1.4,1.5]),
+  groupRow('☀️ ЛІТНІ АКСЕСУАРИ'),
+  row('Літні капелюхи', '', [0.2,0.3,0.6,1.0,1.3,1.5,1.5,1.0,0.4,0.1,0.05,0.1]),
+  row('Кепки', 'Всесезонні', [0.4,0.5,0.8,1.0,1.2,1.3,1.3,1.1,1.0,0.8,0.6,0.5]),
+  row('Хустки на шию', 'Аксесуар — всесезон з піком', [0.7,1.0,1.4,1.1,0.9,0.7,0.6,0.8,1.1,1.1,1.0,1.1]),
+],
+
+sport: [
+  groupRow('💪 ФІТНЕС & ЗАЛ'),
+  row('Одяг для залу / Йоги', 'Новорічний spike — резолюції', [1.3,1.2,1.1,0.9,0.9,0.8,0.7,1.0,1.2,1.1,1.0,0.9]),
+  row('Купальники для басейну', 'Критий — рівномірний попит', [1.1,1.0,1.0,0.9,0.9,0.9,0.8,0.9,1.0,1.1,1.1,1.1]),
+  row('Спорт топи / Бра', 'Jan spike — нові цілі', [1.3,1.2,1.1,1.0,1.0,0.9,0.8,1.0,1.1,1.0,0.9,0.9]),
+  row('Спорт-аксесуари', 'Килимки, пляшки, резинки', [1.4,1.2,1.1,1.0,1.0,0.9,0.8,1.0,1.2,1.0,0.9,1.3]),
+  groupRow('🏃 АКТИВНИЙ ВІДПОЧИНОК'),
+  row('Running & Outdoor Sport', '', [0.5,0.6,1.0,1.3,1.4,1.3,1.2,1.1,1.2,1.0,0.7,0.5]),
+  row('Термобілизна спортивна', '', [1.3,1.1,0.7,0.3,0.1,0,0,0.3,0.7,1.2,1.4,1.4]),
+  row('Athleisure / Streetwear', 'Стабільний тренд', [1.0,0.9,1.0,1.0,1.0,1.0,1.0,1.0,1.1,1.1,1.1,1.0]),
+],
+
+lingerie: [
+  groupRow('👙 ЖІНОЧА БІЛИЗНА'),
+  row('Білизна Fashion / Sexy', '', [0.7,1.8,1.6,0.9,0.8,0.8,0.7,0.8,0.9,0.9,1.1,1.2]),
+  row('Білизна База / Бавовна', '', [1.0,1.1,1.2,1.0,1.0,1.0,0.9,1.0,1.1,1.0,1.0,1.0]),
+  row('Корекційна білизна', '', [1.0,0.9,1.1,1.0,0.9,0.8,0.7,0.9,1.1,1.1,1.1,1.0]),
+  groupRow('🩲 ЧОЛОВІЧА БІЛИЗНА'),
+  row('Труси / База (чоловічі)', '', [0.9,0.9,0.8,0.9,0.9,0.9,0.9,0.9,1.0,1.0,1.2,1.4]),
+  row('Шкарпетки (набори)', 'Подарунковий товар', [0.8,1.2,0.9,0.8,0.8,0.8,0.8,0.8,0.9,1.0,1.2,1.6]),
+  row('THERMO Унісекс', '', [1.3,1.1,0.6,0.2,0.1,0,0,0.2,0.6,1.1,1.4,1.4]),
+  groupRow('🩱 БРА'),
+  row('БРА Класика / База', '', [1.0,1.1,1.2,1.0,1.0,1.0,0.9,1.0,1.1,1.0,1.0,1.0]),
+  row('БРА Push-up / Sexy', '', [0.7,1.6,1.5,0.9,0.8,0.8,0.7,0.8,0.9,0.9,1.1,1.3]),
+  row('Бралети / М\'які', 'Весна-літо акцент', [0.5,0.7,1.0,1.3,1.4,1.4,1.3,1.1,1.0,0.9,0.8,0.7]),
+  groupRow('🩴 ТРУСИ & БОДІ'),
+  row('Труси щоденні', '', [1.0,1.0,1.1,1.0,1.0,1.0,0.9,1.0,1.0,1.0,1.0,1.0]),
+  row('Труси Мереживо / Sexy', '', [0.7,1.8,1.5,0.9,0.8,0.8,0.7,0.8,0.9,0.9,1.1,1.3]),
+  row('Боді Fashion', '', [0.6,0.9,1.2,1.2,1.1,1.0,0.9,1.0,1.1,1.0,1.0,0.9]),
+  row('Для мам / Годування', 'Рівномірний попит', [1.0,1.0,1.1,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0]),
+  groupRow('🛋 ДОМАШНІЙ ОДЯГ'),
+  row('Sleep / Loungewear (Шовк)', '', [0.8,1.3,1.3,0.9,0.8,0.8,0.7,0.8,0.9,0.9,1.1,1.4]),
+  row('Піжами / Флісові', '', [1.2,1.0,0.7,0.4,0.2,0.1,0.1,0.3,0.9,1.2,1.3,1.5]),
+  row('Халати махрові', '', [1.1,1.0,0.9,0.7,0.6,0.5,0.5,0.6,0.9,1.0,1.2,1.5]),
+  row('Халати легкі', '', [0.7,0.9,1.1,1.0,0.9,0.9,0.9,0.9,0.9,0.9,1.1,1.3]),
+],
+
+shoes: [
+  groupRow('❄️ ЗИМОВЕ ВЗУТТЯ'),
+  row('Зимові чоботи / черевики', 'З хутром, утеплені', [1.1,1.0,0.4,0.1,0,0,0,0.2,0.8,1.4,1.6,1.4]),
+  groupRow('🍂 ДЕМІСЕЗОННЕ ВЗУТТЯ'),
+  row('Черевики демісезон', 'Челсі, ботинки', [0.6,0.7,1.2,1.4,1.0,0.3,0.2,0.7,1.5,1.4,1.1,0.7]),
+  row('Гумове взуття / Rain boots', '', [0.7,0.6,1.2,1.3,1.0,0.7,0.5,0.6,1.2,1.3,0.9,0.7]),
+  groupRow('👟 КРОСІВКИ'),
+  row('Кросівки Lifestyle / Шкіра', 'Всесезонні, трохи пік AW-SS', [0.6,0.7,1.0,1.2,1.2,1.1,1.0,1.1,1.2,1.1,1.0,0.8]),
+  row('Кросівки Сітка / Літо', '', [0.2,0.3,0.7,1.2,1.5,1.6,1.5,1.2,0.7,0.3,0.1,0.1]),
+  groupRow('🥿 КЛАСИКА & КАБЛУК'),
+  row('Лофери & Туфлі класика', '', [0.5,0.7,1.2,1.3,1.2,0.8,0.6,0.9,1.3,1.2,0.9,0.8]),
+  row('Святкові туфлі (Heels)', '', [0.6,1.3,1.7,0.9,0.7,0.6,0.6,0.6,0.8,0.8,1.2,1.5]),
+  groupRow('☀️ ЛІТНЄ ВЗУТТЯ'),
+  row('Босоніжки & Сандалі', '', [0.1,0.2,0.6,1.2,1.5,1.6,1.5,1.1,0.5,0.1,0.05,0.05]),
+  row('В\'єтнамки / Шльопанці', '', [0.1,0.1,0.3,0.8,1.3,1.8,1.8,1.3,0.5,0.1,0.05,0.05]),
+  groupRow('🏠 ДОМАШНЄ ВЗУТТЯ'),
+  row('Тапочки / Домашнє', '', [1.2,1.0,0.8,0.6,0.5,0.4,0.4,0.5,0.8,1.1,1.3,1.5]),
+],
+
+bags: [
+  groupRow('👜 ЩОДЕННІ СУМКИ'),
+  row('Крос-боді & Міні Daily', '', [0.8,1.0,1.3,1.1,1.0,0.9,0.9,1.0,1.2,1.1,1.0,1.0]),
+  row('Шоппери & Тоути', '', [0.7,0.8,1.2,1.2,1.1,1.0,1.0,1.0,1.3,1.1,1.0,0.9]),
+  row('Клатчі & Нарядні сумки', '', [0.7,1.3,1.6,0.9,0.8,0.8,0.7,0.7,0.9,0.9,1.1,1.4]),
+  groupRow('🎒 РЮКЗАКИ'),
+  row('Рюкзаки міські', '', [0.7,0.8,1.0,1.0,0.9,0.8,0.8,1.2,1.4,1.2,1.0,0.8]),
+  row('Рюкзаки шкільні', 'Back-to-school пік Лип–Вер', [0.3,0.3,0.4,0.5,0.5,0.4,1.2,1.8,1.4,0.7,0.5,0.4]),
+  groupRow('✈️ TRAVEL & OFFICE'),
+  row('Дорожні сумки & Валізи', '', [0.8,0.9,1.0,1.2,1.3,1.4,1.4,1.2,1.0,0.9,0.8,1.0]),
+  row('Сумки для ноутбуків / Офіс', 'Back-to-school + вересень', [0.9,1.0,1.1,1.0,1.0,0.9,0.8,1.1,1.2,1.1,1.0,0.9]),
+  row('Чоловічі сумки / Портфелі', '', [0.8,0.9,0.9,1.0,1.0,0.9,0.8,1.0,1.2,1.1,1.1,1.2]),
+  groupRow('💼 ДРІБНІ ШКІРГАЛАНТЕРЕЙНІ'),
+  row('Гаманці', 'Подарунковий попит', [0.7,1.1,1.3,0.9,0.9,0.9,0.8,0.9,1.0,1.0,1.1,1.4]),
+  row('Косметички', '', [0.7,1.1,1.4,0.9,0.9,0.9,0.9,0.9,1.0,1.0,1.1,1.3]),
+  row('Ремені', '', [0.7,0.9,1.1,1.0,1.0,0.9,0.9,1.0,1.1,1.1,1.1,1.2]),
+],
+
+eyewear: [
+  groupRow('🕶 СОНЦЕЗАХИСНІ ОКУЛЯРИ'),
+  row('Сонцезахисні Fashion', '', [0.3,0.5,1.0,1.4,1.5,1.5,1.4,1.1,0.7,0.3,0.15,0.2]),
+  row('Сонцезахисні Спорт', '', [0.3,0.4,0.9,1.3,1.5,1.5,1.4,1.2,0.8,0.4,0.2,0.2]),
+  groupRow('🔬 ОПРАВИ'),
+  row('Оправи Преміум / Бренд', 'Рівномірний + подарунки', [0.7,0.9,1.1,1.0,1.0,0.9,0.9,0.9,1.1,1.1,1.0,1.1]),
+  row('Оправи Бюджет / База', '', [0.8,0.9,1.1,1.0,1.0,1.0,0.9,1.0,1.1,1.1,1.0,0.9]),
+  row('Дитячі оправи', 'Back-to-school Лип–Вер', [0.7,0.8,0.9,1.0,0.9,0.8,1.3,1.5,1.2,0.9,0.8,0.8]),
+  row('Комп\'ютерні окуляри Blue Light', 'Стабільний попит', [1.1,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.1,1.1,1.1,1.0]),
+],
+
+home: [
+  groupRow('🕯 АРОМАТИКА & СВІЧКИ'),
+  row('Свічки & Аромадифузори', 'Подарунковий пік', [0.8,1.2,1.4,0.9,0.8,0.7,0.7,0.8,1.0,1.1,1.3,1.6]),
+  row('Благовония & Пало-Санто', '', [0.8,1.1,1.2,0.9,0.9,0.8,0.8,0.9,1.0,1.1,1.2,1.5]),
+  row('Аромати для дому (рум-спреї)', '', [0.8,1.1,1.3,1.0,0.9,0.8,0.8,0.9,1.0,1.1,1.2,1.5]),
+  groupRow('🛏 ТЕКСТИЛЬ ДОМ'),
+  row('Постільна білизна', '', [0.8,0.9,1.2,1.0,0.9,0.9,0.8,1.0,1.1,1.1,1.2,1.2]),
+  row('Пледи & Важкий текстиль', '', [1.0,0.9,0.7,0.4,0.3,0.2,0.2,0.4,1.0,1.3,1.4,1.5]),
+  row('Рушники & Ванний текстиль', '', [0.8,0.9,1.2,1.0,1.0,1.0,0.9,1.0,1.0,1.0,1.1,1.2]),
+  groupRow('🌸 ДЕКОР'),
+  row('Декор столу (скатертини, посуд)', 'Подарунки 8 березня, НР', [0.7,0.9,1.3,1.0,1.0,0.9,0.8,0.9,1.0,1.0,1.1,1.5]),
+  row('Вази & Кашпо', '8 березня пік (квіти)', [0.7,0.9,1.5,1.2,1.1,1.0,0.9,0.9,1.0,1.0,1.0,1.2]),
+],
+
+jewelry: [
+  groupRow('💍 ЮВЕЛІРНІ ВИРОБИ'),
+  row('Каблучки Engagement', 'Лют (14 лют) + Гру (НР)', [0.8,1.3,1.0,1.0,1.1,1.1,1.0,0.9,1.0,1.0,1.0,1.3]),
+  row('Сережки & Кольє', '', [0.7,1.2,1.5,1.0,0.9,0.9,0.8,0.9,1.0,1.0,1.2,1.4]),
+  row('Браслети ювелірні', '', [0.7,1.2,1.4,1.0,0.9,0.9,0.8,0.9,1.0,1.0,1.1,1.4]),
+  row('Чоловіча ювелірка', 'НР найбільший пік', [0.7,0.9,0.9,0.9,0.9,0.9,0.9,0.9,1.0,1.0,1.1,1.5]),
+  groupRow('✨ БІЖУТЕРІЯ'),
+  row('Ланцюжки & Намиста', '', [0.7,1.1,1.4,1.1,1.0,1.0,0.9,0.9,1.0,1.0,1.1,1.3]),
+  row('Браслети & Анклети', 'SS акцент (анклети)', [0.5,0.8,1.2,1.3,1.3,1.3,1.2,1.1,1.0,0.9,1.0,1.2]),
+  row('Сережки біжутерія', '', [0.7,1.1,1.4,1.1,1.0,1.0,0.9,0.9,1.0,1.0,1.1,1.3]),
+  row('Каблучки біжутерія', '', [0.7,1.1,1.3,1.1,1.0,1.0,0.9,0.9,1.0,1.0,1.1,1.3]),
+],
+
+perfume: [
+  groupRow('🌸 ПАРФУМИ — ЗА НАПРЯМКОМ'),
+  row('Квіткові & Фруктові', '8 березня пік', [0.7,1.2,1.5,1.1,1.1,1.0,0.9,0.9,1.0,1.0,1.1,1.3]),
+  row('Цитрусові & Аква (Свіжі)', 'Літній сезон', [0.5,0.7,0.9,1.1,1.3,1.4,1.4,1.2,1.0,0.8,0.7,0.6]),
+  row('Деревні & Пряні', 'Осінь-Зима домінування', [1.1,1.0,0.9,0.8,0.8,0.7,0.7,0.8,1.0,1.2,1.3,1.5]),
+  row('Гурманські (Ваніль, Солодкі)', 'AW + Новий рік', [1.0,1.0,0.9,0.8,0.8,0.7,0.7,0.8,0.9,1.1,1.3,1.6]),
+  row('Нішеві / Унісекс (Складні)', 'Рівномірний, подарунки', [0.9,1.1,1.2,1.0,0.9,0.9,0.9,0.9,1.0,1.0,1.1,1.3]),
+],
+
+stationery: [
+  groupRow('📓 ПЛАНЕРИ & ЩОДЕННИКИ'),
+  row('Планери & Щоденники', 'Подвійний пік: Jan (НР) + Вер (н.р.)', [1.8,1.2,1.0,0.8,0.7,0.6,0.8,0.9,1.5,1.0,0.9,1.3]),
+  row('Творчість (Sketchbooks)', '', [1.2,1.0,1.0,0.9,0.9,0.9,1.0,1.1,1.2,1.0,0.9,1.0]),
+  groupRow('✏️ КАНЦЕЛЯРІЯ'),
+  row('Канцелярія загальна', 'Back-to-school пік', [0.9,0.9,1.0,0.9,0.8,0.7,1.2,1.6,1.4,1.0,0.9,0.9]),
+  row('Бізнес-аксесуари (Ручки)', 'Подарунки корпоративні', [1.1,1.1,1.1,1.0,1.0,0.9,0.8,1.0,1.2,1.1,1.0,1.2]),
+  groupRow('🎁 ПОДАРУНКОВІ ТОВАРИ'),
+  row('Подарункова упаковка', '8 березня + Новий рік', [0.6,1.4,1.8,0.7,0.7,0.6,0.6,0.6,0.7,0.7,1.0,1.8]),
+  row('Листівки & Сувеніри', '', [0.7,1.5,1.8,0.8,0.7,0.6,0.6,0.6,0.7,0.7,0.9,1.6]),
+],
+
+};
+
+// ============ RENDER ============
+
+window.addEventListener('DOMContentLoaded', () => {
+  const tabs = document.querySelectorAll('.nav-btn');
+  const contents = document.querySelectorAll('.content');
+
+  Object.keys(DATA).forEach(key => {
+    const div = document.getElementById(key);
+    if (div) {
+      div.innerHTML = buildTable(DATA[key].join(''));
+    }
+  });
+
+  tabs.forEach(btn => {
+    btn.addEventListener('click', () => {
+      tabs.forEach(b => b.classList.remove('active'));
+      contents.forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      const target = document.getElementById(btn.dataset.tab);
+      if (target) target.classList.add('active');
+    });
+  });
+});
+</script>
+
+<!-- TABS -->
+<div id="clothing" class="content active">
+  <div class="note-box">
+    <strong>🔑 Ключовий орієнтир для одягу:</strong> 8 березня — найбільший одноразовий пік в Україні (+40–80% до норми для нарядного одягу). Осінній пік (вересень–листопад) — стабільно найприбутковіший сезон для AW-категорій. Чорна п'ятниця (листопад) дає +30–50% до місячних продажів.
+  </div>
+</div>
+
+<div id="accessories" class="content">
+  <div class="note-box">
+    <strong>❄️ Зимові аксесуари:</strong> Різкий старт у жовтні, пік у листопаді–грудні. Практично нульові продажі червень–серпень. Планери та капелюхи мають окрему логіку — дивись категорію "Канцелярія". <strong>Кепки</strong> — відносно всесезонний товар з м'якою сезонністю.
+  </div>
+</div>
+
+<div id="sport" class="content">
+  <div class="note-box">
+    <strong>💪 Спорт-специфіка UA:</strong> Січень — "Resolution spike" (+30% до норми для залу/йоги). Running пікує навесні та вересні. Купальники для критих басейнів — рівномірний попит протягом року (закриті заклади). Athleisure — один з найстабільніших сегментів без різких коливань.
+  </div>
+</div>
+
+<div id="lingerie" class="content">
+  <div class="note-box">
+    <strong>👙 Білизна:</strong> Лютий (14 лют) та Березень (8 бер) — різкий пік для Fashion/Sexy категорій (×1.6–1.8). База та щоденна білизна — рівномірний попит. Флісові піжами та халати — яскраво виражена зимова сезонність з піком у грудні (подарунки). Шкарпетки-набори — типовий "подарунок на НР", пік у грудні ×1.6.
+  </div>
+</div>
+
+<div id="shoes" class="content">
+  <div class="note-box">
+    <strong>👟 Взуття UA-специфіка:</strong> Демісезон (черевики/челсі) має два рівних піки — березень–квітень та вересень. Святкові каблуки — пік 8 березня та грудень. В'єтнамки — найбільш моносезонний товар (червень–липень). Кросівки lifestyle — найстабільніший сегмент взуття.
+  </div>
+</div>
+
+<div id="bags" class="content">
+  <div class="note-box">
+    <strong>🎒 Сумки:</strong> Шкільні рюкзаки — один з найгостріших сезонних пікових товарів (липень–серпень ×1.8, back-to-school). Клатчі та нарядні — 8 березня та грудень. Дорожні сумки пікують влітку. Крос-боді та шоппери — відносно рівномірний попит з акцентом на весну та осінь.
+  </div>
+</div>
+
+<div id="eyewear" class="content">
+  <div class="note-box">
+    <strong>👓 Окуляри:</strong> Сонцезахисні — яскраво сезонні (квітень–серпень). Комп'ютерні окуляри Blue Light — рівномірний попит, незначний пік у жовтні–листопаді (робочий сезон). Дитячі оправи — back-to-school пік у серпні. Преміум оправи — часто подарунковий товар, пік у грудні.
+  </div>
+</div>
+
+<div id="home" class="content">
+  <div class="note-box">
+    <strong>🕯 Дім & Декор:</strong> Свічки та аромадифузори — топ подарунок на 8 березня та Новий рік. Вази мають специфічний пік у березні (квіти як подарунок). Пледи — яскраво виражена осінньо-зимова сезонність. Постільна білизна — рівномірна з підвищенням до свят (часто подарунок на весілля/народження).
+  </div>
+</div>
+
+<div id="jewelry" class="content">
+  <div class="note-box">
+    <strong>💍 Ювелірка & Біжутерія:</strong> 8 березня — найбільший пік для сережок, кольє, браслетів. 14 лютого — пік engagement-каблучок та романтичних подарунків. Грудень — другий за розміром пік (НР). Анклети та легка біжутерія — додатковий акцент влітку. Чоловіча ювелірка — переважно подарунковий товар, пік у грудні.
+  </div>
+</div>
+
+<div id="perfume" class="content">
+  <div class="note-box">
+    <strong>🌸 Парфумерія:</strong> Квіткові/фруктові — природний вибір на 8 березня. Цитрусові та аква — літній сезонний тренд. Деревні та гурманські (ваніль) — AW та новорічний характер, пік у листопаді–грудні. Нішеві аромати — найрівномірніший сегмент, менш залежний від сезону.
+  </div>
+</div>
+
+<div id="stationery" class="content">
+  <div class="note-box">
+    <strong>📓 Канцелярія:</strong> Планери мають унікальний подвійний пік — Січень (нові цілі на рік) та Вересень (новий навчальний рік). Подарункова упаковка та листівки — екстремальна сезонність: пік ×1.8 у березні та грудні. Back-to-school (серпень–вересень) — головний пік для загальної канцелярії.
+  </div>
+</div>
+
+</body>
+</html>

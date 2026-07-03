@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Адаптивный Агент Аналитик</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;0,700;0,900;1,400&family=JetBrains+Mono:wght@300;400;500&family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2330;
+    --border: rgba(255,255,255,0.06);
+    --border2: rgba(255,255,255,0.12);
+    --text: #e6edf3;
+    --muted: #7d8590;
+    --dim: #484f58;
+
+    --l1: #f0a500;      /* Уровень 1 — золото */
+    --l1-bg: rgba(240,165,0,0.08);
+    --l1-border: rgba(240,165,0,0.25);
+
+    --l2: #3fb950;      /* Уровень 2 — зелёный */
+    --l2-bg: rgba(63,185,80,0.08);
+    --l2-border: rgba(63,185,80,0.25);
+
+    --l3: #58a6ff;      /* Уровень 3 — синий */
+    --l3-bg: rgba(88,166,255,0.08);
+    --l3-border: rgba(88,166,255,0.25);
+
+    --accent: #f0a500;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Manrope', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* HEADER */
+  .header {
+    padding: 52px 48px 44px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 80% 50%, rgba(240,165,0,0.05) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--l1);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 14px;
+    opacity: 0.8;
+  }
+  .header h1 {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(28px, 4vw, 48px);
+    font-weight: 900;
+    line-height: 1.1;
+    color: #fff;
+    max-width: 680px;
+  }
+  .header h1 em {
+    font-style: italic;
+    color: var(--l1);
+  }
+  .header-desc {
+    margin-top: 14px;
+    color: var(--muted);
+    font-size: 13px;
+    max-width: 560px;
+    line-height: 1.75;
+  }
+  .concept-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 22px;
+  }
+  .pill {
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    border: 1px solid;
+  }
+  .pill-gold { background: var(--l1-bg); border-color: var(--l1-border); color: var(--l1); }
+  .pill-green { background: var(--l2-bg); border-color: var(--l2-border); color: var(--l2); }
+  .pill-blue { background: var(--l3-bg); border-color: var(--l3-border); color: var(--l3); }
+
+  /* MAIN */
+  .main { padding: 40px 48px; max-width: 1100px; }
+
+  @media (max-width: 700px) {
+    .header, .main { padding-left: 20px; padding-right: 20px; }
+    .header { padding-top: 32px; padding-bottom: 28px; }
+    .main { padding-top: 28px; }
+    .grid-2, .grid-3 { grid-template-columns: 1fr !important; }
+  }
+
+  /* ARCHITECTURE DIAGRAM */
+  .arch {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-bottom: 48px;
+  }
+
+  .arch-level {
+    border-radius: 14px;
+    border: 1px solid;
+    padding: 28px 32px;
+    position: relative;
+  }
+  .arch-level-1 {
+    background: var(--l1-bg);
+    border-color: var(--l1-border);
+  }
+  .arch-level-2 {
+    background: var(--l2-bg);
+    border-color: var(--l2-border);
+    margin: 0 24px;
+  }
+  .arch-level-3 {
+    background: var(--l3-bg);
+    border-color: var(--l3-border);
+    margin: 0 48px;
+  }
+
+  .arch-connector {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 6px 0;
+    gap: 3px;
+  }
+  .arch-connector-line {
+    width: 2px;
+    height: 20px;
+    background: var(--border2);
+  }
+  .arch-connector-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    background: var(--surface);
+    padding: 2px 10px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+
+  .level-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    padding: 3px 10px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+  .badge-1 { background: rgba(240,165,0,0.15); color: var(--l1); }
+  .badge-2 { background: rgba(63,185,80,0.15); color: var(--l2); }
+  .badge-3 { background: rgba(88,166,255,0.15); color: var(--l3); }
+
+  .arch-level h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 6px;
+  }
+  .arch-level p {
+    color: var(--muted);
+    font-size: 13px;
+    margin-bottom: 16px;
+    max-width: 600px;
+  }
+
+  .arch-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .arch-item {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    padding: 5px 12px;
+    font-size: 12px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* SECTION */
+  .section { margin-bottom: 44px; }
+  .section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .section h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 6px;
+  }
+  .section-desc {
+    color: var(--muted);
+    font-size: 13px;
+    margin-bottom: 22px;
+  }
+
+  /* CARDS GRID */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px;
+  }
+  .card.full { grid-column: 1 / -1; }
+  .card h3 {
+    font-family: 'Fraunces', serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 4px;
+  }
+  .card-sub {
+    color: var(--muted);
+    font-size: 12px;
+    margin-bottom: 14px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .card-inner-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--dim);
+    margin-bottom: 8px;
+    margin-top: 14px;
+  }
+  .card-inner-label:first-child { margin-top: 0; }
+
+  /* CHECKLIST */
+  .clist { list-style: none; }
+  .clist li {
+    display: flex;
+    gap: 9px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--text);
+    align-items: flex-start;
+  }
+  .clist li:last-child { border-bottom: none; }
+  .clist li::before {
+    content: '→';
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--dim);
+    flex-shrink: 0;
+    padding-top: 2px;
+  }
+  .clist li small {
+    display: block;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* CODE */
+  .code {
+    background: #0a0d13;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 1.8;
+    color: #8b949e;
+    margin-top: 12px;
+    overflow-x: auto;
+  }
+  .code .k { color: #79c0ff; }
+  .code .v { color: #ffa657; }
+  .code .s { color: #a5d6a7; }
+  .code .c { color: #3d444d; }
+  .code .h { color: var(--l1); }
+  .code .g { color: var(--l2); }
+  .code .b { color: var(--l3); }
+
+  /* PROMPT */
+  .prompt-box {
+    border-radius: 10px;
+    padding: 20px 22px;
+    margin-top: 12px;
+  }
+  .prompt-box.gold { background: var(--l1-bg); border: 1px solid var(--l1-border); }
+  .prompt-box.green { background: var(--l2-bg); border: 1px solid var(--l2-border); }
+  .prompt-box.blue { background: var(--l3-bg); border: 1px solid var(--l3-border); }
+  .prompt-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 10px;
+  }
+  .prompt-label.gold { color: var(--l1); }
+  .prompt-label.green { color: var(--l2); }
+  .prompt-label.blue { color: var(--l3); }
+  .prompt-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 1.85;
+    color: #8b949e;
+  }
+  .prompt-text strong { color: #cdd9e5; font-weight: 500; }
+  .prompt-text em { font-style: normal; color: var(--l1); }
+  .prompt-text .eg { color: var(--l2); }
+
+  /* FALLBACK FLOW */
+  .fallback-flow {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+  .ff-step {
+    flex: 1;
+    min-width: 160px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 14px;
+    position: relative;
+  }
+  .ff-step + .ff-step { margin-left: 10px; }
+  .ff-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--dim);
+    margin-bottom: 8px;
+  }
+  .ff-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 6px;
+    line-height: 1.3;
+  }
+  .ff-desc { font-size: 11.5px; color: var(--muted); line-height: 1.5; }
+  .ff-arrow {
+    display: flex;
+    align-items: center;
+    color: var(--dim);
+    font-size: 18px;
+    padding: 0 4px;
+    flex-shrink: 0;
+    align-self: center;
+  }
+
+  /* BENCHMARK TABLE */
+  .bench-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  .bench-table th {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border2);
+  }
+  .bench-table td {
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    vertical-align: top;
+  }
+  .bench-table tr:last-child td { border-bottom: none; }
+  .bench-table td:first-child { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #cdd9e5; }
+  .bench-val { color: var(--l1); font-family: 'JetBrains Mono', monospace; font-weight: 500; }
+  .bench-source { font-size: 11px; color: var(--dim); display: block; margin-top: 2px; }
+
+  /* CONFIDENCE */
+  .confidence-bar {
+    height: 6px;
+    background: var(--surface2);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 6px;
+  }
+  .confidence-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s;
+  }
+
+  /* DIVIDER */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 36px 0; }
+
+  /* TAG */
+  .tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .tag {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 3px 9px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* HIGHLIGHT BOX */
+  .hl-box {
+    border-radius: 10px;
+    padding: 18px 22px;
+    margin-top: 14px;
+  }
+  .hl-box.gold { background: var(--l1-bg); border: 1px solid var(--l1-border); }
+  .hl-box.green { background: var(--l2-bg); border: 1px solid var(--l2-border); }
+  .hl-box-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 8px;
+  }
+  .hl-box-label.gold { color: var(--l1); }
+  .hl-box-label.green { color: var(--l2); }
+  .hl-box p { font-size: 13px; color: var(--text); line-height: 1.7; }
+  .hl-box p strong { color: #fff; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="eyebrow">Архитектура — Adaptive Analyst Agent</div>
+  <h1>Агент с двумя уровнями:<br><em>базовый</em> и персональный</h1>
+  <p class="header-desc">
+    Агент стартует с рыночными бенчмарками как основой знаний. По мере поступления данных клиента — постепенно переключается на персонализированный анализ. Чем больше данных, тем точнее рекомендации.
+  </p>
+  <div class="concept-pills">
+    <span class="pill pill-gold">⚙️ Уровень 1 — Рыночная база</span>
+    <span class="pill pill-green">📊 Уровень 2 — Данные клиента</span>
+    <span class="pill pill-blue">🧠 Уровень 3 — Гибридный анализ</span>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- ARCHITECTURE -->
+  <div class="section">
+    <div class="section-label">Общая архитектура</div>
+    <h2>Три уровня знаний агента</h2>
+    <p class="section-desc">Агент всегда работает — даже с нулём данных клиента. Каждый новый блок данных улучшает точность.</p>
+
+    <div class="arch">
+      <div class="arch-level arch-level-1">
+        <span class="level-badge badge-1">⚙️ Уровень 1 — Всегда активен</span>
+        <h2>Рыночная база (Market Baseline)</h2>
+        <p>Среднестатистические бенчмарки по ритейлу в нише. Зашиты в System Prompt агента при создании. Работают без каких-либо данных клиента.</p>
+        <div class="arch-items">
+          <span class="arch-item">Средняя оборачиваемость по категориям</span>
+          <span class="arch-item">Сезонные коэффициенты</span>
+          <span class="arch-item">Пороги хит / слоумувер / стокаут</span>
+          <span class="arch-item">Lead time по типу поставщика</span>
+          <span class="arch-item">Нормы маржинальности</span>
+          <span class="arch-item">Логика промо-механик</span>
+        </div>
+      </div>
+
+      <div class="arch-connector">
+        <div class="arch-connector-line"></div>
+        <div class="arch-connector-label">+ данные клиента</div>
+        <div class="arch-connector-line"></div>
+      </div>
+
+      <div class="arch-level arch-level-2">
+        <span class="level-badge badge-2">📊 Уровень 2 — По мере поступления</span>
+        <h2>Данные клиента (Client Layer)</h2>
+        <p>Реальные данные конкретного магазина. Агент приоритизирует их над базой — там, где данные есть. Там, где нет — продолжает использовать бенчмарк.</p>
+        <div class="arch-items">
+          <span class="arch-item">История продаж</span>
+          <span class="arch-item">Остатки на складе</span>
+          <span class="arch-item">Справочник SKU</span>
+          <span class="arch-item">Промо-история</span>
+          <span class="arch-item">Lead time поставщиков</span>
+          <span class="arch-item">Пороги бизнеса</span>
+        </div>
+      </div>
+
+      <div class="arch-connector">
+        <div class="arch-connector-line"></div>
+        <div class="arch-connector-label">= финальный анализ</div>
+        <div class="arch-connector-line"></div>
+      </div>
+
+      <div class="arch-level arch-level-3">
+        <span class="level-badge badge-3">🧠 Уровень 3 — Гибридный вывод</span>
+        <h2>Адаптивная рекомендация</h2>
+        <p>Агент смешивает данные клиента и бенчмарк в зависимости от полноты данных. Всегда указывает — откуда пришёл вывод и насколько он уверен в нём.</p>
+        <div class="arch-items">
+          <span class="arch-item">Классификация SKU с источником</span>
+          <span class="arch-item">Уровень уверенности (confidence)</span>
+          <span class="arch-item">Рекомендация с обоснованием</span>
+          <span class="arch-item">Что нужно для большей точности</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FALLBACK LOGIC -->
+  <div class="section">
+    <div class="section-label">Логика переключения</div>
+    <h2>Fallback Flow — как агент решает, что использовать</h2>
+    <p class="section-desc">При каждом запросе агент проверяет наличие данных клиента и выбирает источник для ответа</p>
+
+    <div class="fallback-flow">
+      <div class="ff-step">
+        <div class="ff-num">01</div>
+        <div class="ff-title">Запрос поступил</div>
+        <div class="ff-desc">Агент получает вопрос или запускает плановый анализ SKU</div>
+      </div>
+      <div class="ff-arrow">→</div>
+      <div class="ff-step">
+        <div class="ff-num">02</div>
+        <div class="ff-title">Проверка данных клиента</div>
+        <div class="ff-desc">Есть ли история продаж, остатки, параметры по этому SKU/категории?</div>
+      </div>
+      <div class="ff-arrow">→</div>
+      <div class="ff-step" style="border-color: var(--l2-border);">
+        <div class="ff-num" style="color: var(--l2);">03a</div>
+        <div class="ff-title">Данные есть</div>
+        <div class="ff-desc">Использует реальные данные клиента. Бенчмарк — как контекст для сравнения</div>
+      </div>
+      <div class="ff-arrow">→</div>
+      <div class="ff-step" style="border-color: var(--l1-border);">
+        <div class="ff-num" style="color: var(--l1);">03b</div>
+        <div class="ff-title">Данных нет</div>
+        <div class="ff-desc">Использует рыночный бенчмарк. Явно сообщает об этом в ответе</div>
+      </div>
+      <div class="ff-arrow">→</div>
+      <div class="ff-step">
+        <div class="ff-num">04</div>
+        <div class="ff-title">Ответ с Confidence</div>
+        <div class="ff-desc">Даёт рекомендацию + уровень уверенности + что нужно для повышения точности</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MARKET BASELINE -->
+  <div class="section">
+    <div class="section-label">Уровень 1 — Рыночная база</div>
+    <h2>Что зашиваем в агента как «знание по умолчанию»</h2>
+    <p class="section-desc">Это средние показатели по ритейлу в нише одежды/аксессуаров. Агент использует их когда нет данных клиента.</p>
+
+    <div class="card full">
+      <div class="card-inner-label">Бенчмарки оборачиваемости — Fashion Retail</div>
+      <table class="bench-table">
+        <thead>
+          <tr>
+            <th>Параметр</th>
+            <th>Среднее по рынку</th>
+            <th>Хороший показатель</th>
+            <th>Тревожный показатель</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Оборачиваемость склада (Inventory Turnover)</td>
+            <td><span class="bench-val">4–6×</span> в год<span class="bench-source">для одежды/аксессуаров</span></td>
+            <td><span style="color: var(--l2);">6–8×</span></td>
+            <td><span style="color: #f85149;">&lt;3×</span></td>
+          </tr>
+          <tr>
+            <td>Days of Inventory (средний запас в днях)</td>
+            <td><span class="bench-val">45–60 дней</span></td>
+            <td><span style="color: var(--l2);">30–45 дней</span></td>
+            <td><span style="color: #f85149;">&gt;90 дней</span></td>
+          </tr>
+          <tr>
+            <td>Sell-Through Rate за сезон</td>
+            <td><span class="bench-val">60–70%</span></td>
+            <td><span style="color: var(--l2);">&gt;75%</span></td>
+            <td><span style="color: #f85149;">&lt;50%</span></td>
+          </tr>
+          <tr>
+            <td>Доля зависших товаров (deadstock)</td>
+            <td><span class="bench-val">10–15%</span> ассортимента</td>
+            <td><span style="color: var(--l2);">&lt;8%</span></td>
+            <td><span style="color: #f85149;">&gt;20%</span></td>
+          </tr>
+          <tr>
+            <td>Маржа брутто — одежда</td>
+            <td><span class="bench-val">50–65%</span></td>
+            <td><span style="color: var(--l2);">&gt;65%</span></td>
+            <td><span style="color: #f85149;">&lt;40%</span></td>
+          </tr>
+          <tr>
+            <td>Маржа брутто — аксессуары</td>
+            <td><span class="bench-val">55–70%</span></td>
+            <td><span style="color: var(--l2);">&gt;70%</span></td>
+            <td><span style="color: #f85149;">&lt;45%</span></td>
+          </tr>
+          <tr>
+            <td>Порог «хит» (рост продаж за 7 дней)</td>
+            <td><span class="bench-val">+25–35%</span> к норме</td>
+            <td colspan="2"><span style="color: var(--muted);font-size:12px;">Задаётся индивидуально</span></td>
+          </tr>
+          <tr>
+            <td>Порог «слоумувер» (падение за 14 дней)</td>
+            <td><span class="bench-val">-20–30%</span> к норме</td>
+            <td colspan="2"><span style="color: var(--muted);font-size:12px;">Задаётся индивидуально</span></td>
+          </tr>
+          <tr>
+            <td>Стокаут-риск (запас в днях)</td>
+            <td><span class="bench-val">&lt;14 дней</span> = предупреждение</td>
+            <td colspan="2"><span style="color: var(--muted);font-size:12px;">Зависит от lead time</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="grid-2" style="margin-top:14px;">
+      <div class="card">
+        <h3>Сезонные коэффициенты (базовые)</h3>
+        <div class="card-sub">Для fashion retail в России / СНГ</div>
+        <table class="bench-table">
+          <thead><tr><th>Месяц</th><th>Коэф.</th><th>Характеристика</th></tr></thead>
+          <tbody>
+            <tr><td>Янв</td><td><span class="bench-val">0.7</span></td><td style="color:var(--muted);font-size:12px;">Пост-новогодний спад</td></tr>
+            <tr><td>Фев</td><td><span class="bench-val">0.9</span></td><td style="color:var(--muted);font-size:12px;">14 фев + весна</td></tr>
+            <tr><td>Мар</td><td><span class="bench-val">1.2</span></td><td style="color:var(--muted);font-size:12px;">8 марта — пик</td></tr>
+            <tr><td>Апр–Май</td><td><span class="bench-val">1.0</span></td><td style="color:var(--muted);font-size:12px;">Норма</td></tr>
+            <tr><td>Июн–Авг</td><td><span class="bench-val">0.8</span></td><td style="color:var(--muted);font-size:12px;">Летний спад</td></tr>
+            <tr><td>Сен–Окт</td><td><span class="bench-val">1.3</span></td><td style="color:var(--muted);font-size:12px;">Осенний пик</td></tr>
+            <tr><td>Ноя</td><td><span class="bench-val">1.4</span></td><td style="color:var(--muted);font-size:12px;">Чёрная пятница</td></tr>
+            <tr><td>Дек</td><td><span class="bench-val">1.3</span></td><td style="color:var(--muted);font-size:12px;">Предновогодний</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h3>Lead Time по типу поставщика</h3>
+        <div class="card-sub">Базовые значения для расчёта ROP</div>
+        <table class="bench-table">
+          <thead><tr><th>Тип поставщика</th><th>Lead time</th></tr></thead>
+          <tbody>
+            <tr><td>Локальный (РФ / склад в городе)</td><td><span class="bench-val">3–7 дней</span></td></tr>
+            <tr><td>Локальный (другой регион)</td><td><span class="bench-val">7–14 дней</span></td></tr>
+            <tr><td>Европейский поставщик</td><td><span class="bench-val">14–21 день</span></td></tr>
+            <tr><td>Китай (авиа)</td><td><span class="bench-val">10–20 дней</span></td></tr>
+            <tr><td>Китай (море)</td><td><span class="bench-val">35–50 дней</span></td></tr>
+            <tr><td>Турция</td><td><span class="bench-val">7–14 дней</span></td></tr>
+            <tr><td>Италия / Франция</td><td><span class="bench-val">14–28 дней</span></td></tr>
+          </tbody>
+        </table>
+
+        <div class="card-inner-label">Страховой запас (по умолчанию)</div>
+        <div style="font-size:13px;color:var(--muted);">= Lead time × 1.5 — если нет данных о вариативности спроса</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONFIDENCE SYSTEM -->
+  <div class="section">
+    <div class="section-label">Система уверенности</div>
+    <h2>Confidence Levels — как агент сигнализирует о качестве данных</h2>
+    <p class="section-desc">Агент всегда показывает, насколько уверен в рекомендации и почему</p>
+
+    <div class="grid-3">
+      <div class="card" style="border-color: var(--l1-border);">
+        <span class="level-badge badge-1">⚙️ Базовый</span>
+        <h3>Рыночный бенчмарк</h3>
+        <div class="card-sub">Данных клиента нет</div>
+        <div class="confidence-bar"><div class="confidence-fill" style="width:33%;background:var(--l1);"></div></div>
+        <p style="color:var(--muted);font-size:12px;margin-top:10px;">Агент использует среднерыночные показатели. Рекомендации применимы, но не учитывают специфику бизнеса.</p>
+        <div class="hl-box gold" style="margin-top:12px;padding:12px 14px;">
+          <div class="hl-box-label gold">Фраза агента</div>
+          <p style="font-size:12px;">«Основываясь на среднем по рынку fashion retail, рекомендую... Для точного расчёта под ваш магазин нужны: история продаж, остатки.»</p>
+        </div>
+      </div>
+
+      <div class="card" style="border-color: rgba(240,165,0,0.4);">
+        <span class="level-badge" style="background:rgba(240,165,0,0.2);color:var(--l1);">⚙️ + 📊 Частичный</span>
+        <h3>Смешанный анализ</h3>
+        <div class="card-sub">Часть данных клиента есть</div>
+        <div class="confidence-bar"><div class="confidence-fill" style="width:66%;background:linear-gradient(90deg,var(--l1),var(--l2));"></div></div>
+        <p style="color:var(--muted);font-size:12px;margin-top:10px;">Агент использует данные клиента там, где они есть. По остальным — бенчмарк. Явно указывает что откуда.</p>
+        <div class="hl-box gold" style="margin-top:12px;padding:12px 14px;">
+          <div class="hl-box-label gold">Фраза агента</div>
+          <p style="font-size:12px;">«По продажам куртки использую ваши данные (+34 дня запаса). По lead time — рыночный бенчмарк 14 дней, пока не укажете реальный.»</p>
+        </div>
+      </div>
+
+      <div class="card" style="border-color: var(--l2-border);">
+        <span class="level-badge badge-2">📊 Персональный</span>
+        <h3>Полные данные клиента</h3>
+        <div class="card-sub">История, остатки, параметры есть</div>
+        <div class="confidence-bar"><div class="confidence-fill" style="width:95%;background:var(--l2);"></div></div>
+        <p style="color:var(--muted);font-size:12px;margin-top:10px;">Агент работает полностью на данных клиента. Бенчмарк используется только для сравнения с рынком.</p>
+        <div class="hl-box green" style="margin-top:12px;padding:12px 14px;">
+          <div class="hl-box-label green">Фраза агента</div>
+          <p style="font-size:12px;">«На основе ваших данных за 14 месяцев: куртка арт.1042 достигнет стокаута через 6 дней. Рекомендую срочный заказ 24 единицы.»</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ONBOARDING FLOW -->
+  <div class="section">
+    <div class="section-label">Онбординг клиента</div>
+    <h2>Как агент собирает данные клиента поэтапно</h2>
+    <p class="section-desc">При первом запуске агент задаёт приоритетные вопросы — от самых важных к деталям</p>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>Шаг 1 — Сразу при подключении</h3>
+        <div class="card-sub">5 минут / текстом или форма</div>
+        <ul class="clist">
+          <li>Тип магазина<small>Моно / мультибренд, онлайн / офлайн</small></li>
+          <li>Категории товаров<small>Одежда / обувь / аксессуары / мульти</small></li>
+          <li>Ценовой сегмент<small>Масс / средний / премиум</small></li>
+          <li>Страна и город<small>Для сезонности и внешнего контекста</small></li>
+          <li>Главный поставщик / откуда товар<small>Для baseline lead time</small></li>
+        </ul>
+        <div class="hl-box gold" style="margin-top:14px;">
+          <div class="hl-box-label gold">Результат</div>
+          <p>Агент уже адаптирует сезонные коэффициенты, lead time и пороги под тип бизнеса. Confidence: 40%</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Шаг 2 — Первые данные (1 неделя)</h3>
+        <div class="card-sub">CSV / выгрузка из 1С</div>
+        <ul class="clist">
+          <li>Список SKU с ценами и категориями<small>Хотя бы базовый справочник</small></li>
+          <li>Текущие остатки на складе</li>
+          <li>Продажи за последние 30 дней<small>Минимум для первого реального анализа</small></li>
+        </ul>
+        <div class="hl-box green" style="margin-top:14px;">
+          <div class="hl-box-label green">Результат</div>
+          <p>Агент видит реальную картину остатков и может классифицировать товары. Confidence: 65%</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Шаг 3 — Углубление (1 месяц)</h3>
+        <div class="card-sub">Подключение источников данных</div>
+        <ul class="clist">
+          <li>История продаж за 3–6 месяцев<small>Для выявления трендов</small></li>
+          <li>Параметры поставщиков<small>Реальные lead time, MOQ</small></li>
+          <li>Открытые PO (заказы в пути)</li>
+          <li>История промо-акций</li>
+        </ul>
+        <div class="hl-box green" style="margin-top:14px;">
+          <div class="hl-box-label green">Результат</div>
+          <p>Агент строит прогноз спроса на базе реальных данных, учитывает промо. Confidence: 82%</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Шаг 4 — Полная точность (3+ месяца)</h3>
+        <div class="card-sub">Накопление истории работы</div>
+        <ul class="clist">
+          <li>История 12–24 месяца<small>Видит полный сезонный цикл</small></li>
+          <li>Результаты реализованных рекомендаций<small>Обратная связь для самокалибровки</small></li>
+          <li>Внешний контекст (погода, события)</li>
+          <li>Данные конкурентов</li>
+        </ul>
+        <div class="hl-box green" style="margin-top:14px;">
+          <div class="hl-box-label green">Результат</div>
+          <p>Агент работает как персональный аналитик, знающий бизнес изнутри. Confidence: 90%+</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SYSTEM PROMPT STRUCTURE -->
+  <div class="section">
+    <div class="section-label">System Prompt — структура</div>
+    <h2>Как выглядит промпт с двумя уровнями</h2>
+    <p class="section-desc">Промпт строится из трёх блоков, которые заполняются по мере готовности данных</p>
+
+    <div class="prompt-box gold">
+      <div class="prompt-label gold">⚙️ БЛОК 1 — Рыночная база (статичный, пишем один раз)</div>
+      <div class="prompt-text">
+        <strong>Ты — Аналитик розничного бизнеса в нише fashion (одежда, обувь, аксессуары).</strong><br><br>
+
+        Ты обладаешь следующими рыночными знаниями по умолчанию:<br>
+        — Средняя оборачиваемость склада: <em>4–6× в год</em> (норма для fashion retail)<br>
+        — Целевой запас: <em>30–60 дней</em> в зависимости от категории<br>
+        — Порог «хит»: рост продаж <em>+25% за 7 дней</em> к rolling average<br>
+        — Порог «слоумувер»: падение <em>-20% за 14 дней</em><br>
+        — Стокаут-риск: остаток менее <em>1.5 × lead_time</em> в днях<br>
+        — Сезонные пики: <em>март, сентябрь–ноябрь, ноябрь (BF)</em><br>
+        — Lead time если не указан: <em>14 дней (базовый)</em><br><br>
+
+        Используй эти значения ТОЛЬКО если у клиента нет собственных данных по данному параметру. Всегда указывай когда используешь рыночный бенчмарк — фразой: <em>«По рыночным данным / по умолчанию»</em>
+      </div>
+    </div>
+
+    <div class="prompt-box green" style="margin-top:12px;">
+      <div class="prompt-label green">📊 БЛОК 2 — Контекст клиента (заполняется при онбординге)</div>
+      <div class="prompt-text">
+        <strong>Данные конкретного клиента:</strong><br><br>
+        Тип магазина: <em class="eg">[мультибренд / монобренд / ...]</em><br>
+        Категории: <em class="eg">[женская одежда, аксессуары, ...]</em><br>
+        Ценовой сегмент: <em class="eg">[средний+]</em><br>
+        Город: <em class="eg">[Москва]</em><br>
+        Поставщики и lead time: <em class="eg">[Италия — 21 день, Турция — 10 дней]</em><br>
+        Пороги бизнеса: <em class="eg">[хит = +35%, слоумувер = -25%, стокаут-риск = &lt;10 дней]</em><br>
+        Высокий сезон: <em class="eg">[февраль–март, сентябрь–октябрь]</em><br>
+        Промо-каледарь: <em class="eg">[8 марта, BF, конец сезона в январе и июле]</em><br><br>
+
+        Эти значения <strong>заменяют</strong> рыночные бенчмарки там, где указаны.
+      </div>
+    </div>
+
+    <div class="prompt-box blue" style="margin-top:12px;">
+      <div class="prompt-label blue">🧠 БЛОК 3 — Правило работы с данными (статичный)</div>
+      <div class="prompt-text">
+        <strong>При каждом анализе следуй этой логике:</strong><br><br>
+
+        1. Если у клиента есть данные по параметру — используй их как <em>приоритетный источник</em><br>
+        2. Если данных нет — используй рыночный бенчмарк и явно укажи это<br>
+        3. Для каждой рекомендации указывай:<br>
+        &nbsp;&nbsp;&nbsp;— Источник вывода: <em>«данные клиента»</em> или <em>«рыночный бенчмарк»</em><br>
+        &nbsp;&nbsp;&nbsp;— Уровень уверенности: <em>Высокий / Средний / Базовый</em><br>
+        &nbsp;&nbsp;&nbsp;— Что нужно для повышения точности<br><br>
+
+        4. Если данных клиента мало — дай рекомендацию, но добавь:<br>
+        <em>«Для точного расчёта подключи: [конкретный список данных]»</em><br><br>
+
+        <strong>Никогда не молчи из-за нехватки данных. Давай лучшую доступную рекомендацию.</strong>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

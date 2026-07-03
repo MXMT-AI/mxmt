@@ -1,0 +1,1422 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Система тригерів — Агент Аналітик</title>
+<link href="https://fonts.googleapis.com/css2?family=Cabinet+Grotesk:wght@400;500;700;800;900&family=JetBrains+Mono:wght@300;400;500&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0f11;
+    --surface: #15171a;
+    --surface2: #1c1f24;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.13);
+    --text: #e8eaed;
+    --muted: #7a7f8a;
+    --dim: #404550;
+
+    /* Trigger type colors */
+    --cal: #f59e0b;    /* Calendar */
+    --eco: #10b981;    /* Economic */
+    --soc: #8b5cf6;    /* Social/Viral */
+    --com: #ef4444;    /* Competitive */
+    --int: #3b82f6;    /* Internal */
+    --sup: #f97316;    /* Supply chain */
+    --war: #6b7280;    /* War/Force majeure */
+    --beh: #ec4899;    /* Behavioral */
+    --med: #14b8a6;    /* Media/PR */
+    --wea: #60a5fa;    /* Weather (reference) */
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Cabinet Grotesk', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    padding: 52px 48px 40px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 20% 50%, rgba(245,158,11,0.06) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 30%, rgba(139,92,246,0.05) 0%, transparent 50%);
+    pointer-events: none;
+  }
+  .h-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 2.5px;
+    color: var(--cal);
+    margin-bottom: 14px;
+    opacity: 0.9;
+  }
+  .header h1 {
+    font-size: clamp(28px, 4vw, 52px);
+    font-weight: 900;
+    line-height: 1.05;
+    color: #fff;
+    position: relative;
+  }
+  .header h1 em {
+    font-family: 'Lora', serif;
+    font-style: italic;
+    color: var(--cal);
+  }
+  .header-desc {
+    margin-top: 14px;
+    color: var(--muted);
+    font-size: 14px;
+    max-width: 580px;
+    line-height: 1.7;
+    position: relative;
+  }
+
+  .trigger-type-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 24px;
+    position: relative;
+  }
+  .tt-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1px solid;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .tt-pill:hover { opacity: 0.75; }
+  .tt-dot { width: 7px; height: 7px; border-radius: 50%; }
+
+  /* ── NAV ── */
+  .nav {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding: 0 48px;
+  }
+  .nav::-webkit-scrollbar { display: none; }
+  .nb {
+    padding: 14px 16px 12px;
+    border: none;
+    background: none;
+    color: var(--muted);
+    font-family: 'Cabinet Grotesk', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    transition: all 0.15s;
+    position: relative;
+    bottom: -1px;
+  }
+  .nb:hover { color: var(--text); }
+  .nb.active { color: #fff; }
+
+  /* ── PAGES ── */
+  .page { display: none; padding: 36px 48px; max-width: 1120px; }
+  .page.active { display: block; }
+
+  @media(max-width:700px) {
+    .header, .nav, .page { padding-left: 18px; padding-right: 18px; }
+    .header { padding-top: 32px; padding-bottom: 28px; }
+    .page { padding-top: 24px; }
+    .g2,.g3 { grid-template-columns: 1fr !important; }
+  }
+
+  /* ── LAYOUT ── */
+  .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .full { grid-column: 1/-1; }
+
+  /* ── TRIGGER CARD ── */
+  .tcard {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+  .tcard-head {
+    padding: 18px 22px 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+  .tcard-head::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    border-radius: 0 2px 2px 0;
+  }
+  .tcard-icon { font-size: 26px; flex-shrink: 0; line-height: 1; }
+  .tcard-meta { flex: 1; }
+  .tcard-name {
+    font-size: 16px;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1.2;
+    margin-bottom: 4px;
+  }
+  .tcard-cond {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .tcard-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 3px 9px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    align-self: flex-start;
+    margin-top: 2px;
+  }
+  .tcard-body { padding: 14px 22px 18px; }
+
+  /* ── ROWS ── */
+  .trow {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .trow:last-child { border-bottom: none; }
+  .trow-label { flex: 1; font-size: 13px; font-weight: 600; color: var(--text); }
+  .trow-label small { display: block; font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; margin-top: 2px; font-weight: 400; }
+  .trow-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 5px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .v-up3 { background: rgba(16,185,129,0.12); color: #6ee7b7; }
+  .v-up2 { background: rgba(16,185,129,0.08); color: #86efac; }
+  .v-up1 { background: rgba(16,185,129,0.06); color: #a7f3d0; }
+  .v-dn1 { background: rgba(239,68,68,0.07); color: #fca5a5; }
+  .v-dn2 { background: rgba(239,68,68,0.12); color: #f87171; }
+  .v-dn3 { background: rgba(239,68,68,0.18); color: #ef4444; font-weight: 800; }
+  .v-neu { background: rgba(255,255,255,0.04); color: var(--muted); }
+  .v-warn { background: rgba(245,158,11,0.1); color: #fbbf24; }
+
+  .trow-dur {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--dim);
+    white-space: nowrap;
+    align-self: center;
+    min-width: 70px;
+    text-align: right;
+  }
+
+  /* ── SECTION HEAD ── */
+  .sh { margin-bottom: 20px; }
+  .sh-eye {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--dim);
+    margin-bottom: 6px;
+  }
+  .sh-title {
+    font-size: 22px;
+    font-weight: 900;
+    color: #fff;
+    margin-bottom: 5px;
+  }
+  .sh-desc { color: var(--muted); font-size: 13px; margin-bottom: 22px; }
+
+  /* ── CALENDAR TABLE ── */
+  .cal-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 24px;
+  }
+  table.cal {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 800px;
+  }
+  table.cal thead tr { background: var(--surface2); }
+  table.cal th {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--border2);
+  }
+  table.cal td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    vertical-align: top;
+  }
+  table.cal tr:last-child td { border-bottom: none; }
+  table.cal tr:hover td { background: rgba(255,255,255,0.015); }
+  .cal-date {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 500;
+    color: #fff;
+    white-space: nowrap;
+  }
+  .cal-name { font-weight: 700; color: #fff; }
+  .cal-name small { display: block; font-size: 11px; color: var(--muted); font-weight: 400; font-family: 'JetBrains Mono', monospace; margin-top: 2px; }
+  .cal-lead {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--cal);
+    white-space: nowrap;
+  }
+  .impact-dots {
+    display: flex;
+    gap: 3px;
+    flex-wrap: wrap;
+  }
+  .idot {
+    font-size: 11px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    white-space: nowrap;
+    border: 1px solid;
+  }
+  tr.cal-group td {
+    background: var(--bg);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--dim);
+    padding: 7px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ── SCORE TABLE ── */
+  .score-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+  @media(max-width:700px) { .score-grid { grid-template-columns: 1fr; } }
+  .score-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+  }
+  .score-num {
+    font-size: 40px;
+    font-weight: 900;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .score-label { font-size: 12px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+
+  /* ── PRIORITY MATRIX ── */
+  .matrix-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 24px;
+  }
+  table.mx {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 700px;
+  }
+  table.mx thead tr { background: var(--surface2); }
+  table.mx th {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border2);
+    text-align: left;
+  }
+  table.mx td {
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    vertical-align: top;
+  }
+  table.mx tr:last-child td { border-bottom: none; }
+  table.mx td:first-child { font-weight: 700; color: #fff; font-size: 14px; }
+
+  /* ── PROMPT ── */
+  .pblock {
+    background: #0a0b0d;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px 28px;
+    margin-bottom: 20px;
+  }
+  .plabel {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 14px;
+  }
+  .ptext {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 1.9;
+    color: #6b7a8a;
+  }
+  .ptext .k { color: #79c0ff; }
+  .ptext .v { color: #fbbf24; }
+  .ptext .s { color: #a5d6a7; }
+  .ptext .c { color: #2d3748; }
+  .ptext strong { color: #c9d1d9; font-weight: 500; }
+  .ptext em { font-style: normal; color: var(--cal); }
+
+  /* ── NOTE ── */
+  .note {
+    border-radius: 8px;
+    padding: 13px 17px;
+    font-size: 12.5px;
+    line-height: 1.7;
+    margin-bottom: 18px;
+  }
+  .note-amber { background: rgba(245,158,11,0.07); border: 1px solid rgba(245,158,11,0.2); color: #fcd34d; }
+  .note-red { background: rgba(239,68,68,0.07); border: 1px solid rgba(239,68,68,0.2); color: #fca5a5; }
+  .note-green { background: rgba(16,185,129,0.07); border: 1px solid rgba(16,185,129,0.2); color: #6ee7b7; }
+  .note-blue { background: rgba(59,130,246,0.07); border: 1px solid rgba(59,130,246,0.2); color: #93c5fd; }
+
+  hr.div { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="h-eyebrow">Агент Аналітик — Система тригерів / Версія 2.0</div>
+  <h1>Всі тригери <em>агента</em>:<br>10 типів, 80+ подій</h1>
+  <p class="header-desc">Повна бібліотека сигналів, на які агент реагує проактивно. Кожен тригер → алерт → рекомендована дія. Погода — лише один з десяти блоків.</p>
+  <div class="trigger-type-row">
+    <div class="tt-pill" style="background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.3);color:var(--cal);">
+      <div class="tt-dot" style="background:var(--cal);"></div>📅 Календар & Свята
+    </div>
+    <div class="tt-pill" style="background:rgba(16,185,129,0.1);border-color:rgba(16,185,129,0.3);color:var(--eco);">
+      <div class="tt-dot" style="background:var(--eco);"></div>💸 Економіка
+    </div>
+    <div class="tt-pill" style="background:rgba(139,92,246,0.1);border-color:rgba(139,92,246,0.3);color:var(--soc);">
+      <div class="tt-dot" style="background:var(--soc);"></div>📱 Соцмережі & Вірал
+    </div>
+    <div class="tt-pill" style="background:rgba(239,68,68,0.1);border-color:rgba(239,68,68,0.3);color:var(--com);">
+      <div class="tt-dot" style="background:var(--com);"></div>🏪 Конкуренти
+    </div>
+    <div class="tt-pill" style="background:rgba(59,130,246,0.1);border-color:rgba(59,130,246,0.3);color:var(--int);">
+      <div class="tt-dot" style="background:var(--int);"></div>📦 Внутрішні
+    </div>
+    <div class="tt-pill" style="background:rgba(249,115,22,0.1);border-color:rgba(249,115,22,0.3);color:var(--sup);">
+      <div class="tt-dot" style="background:var(--sup);"></div>🚚 Ланцюг постачання
+    </div>
+    <div class="tt-pill" style="background:rgba(107,114,128,0.1);border-color:rgba(107,114,128,0.3);color:#9ca3af;">
+      <div class="tt-dot" style="background:#9ca3af;"></div>⚠️ Форс-мажор
+    </div>
+    <div class="tt-pill" style="background:rgba(236,72,153,0.1);border-color:rgba(236,72,153,0.3);color:var(--beh);">
+      <div class="tt-dot" style="background:var(--beh);"></div>🛒 Поведінкові
+    </div>
+    <div class="tt-pill" style="background:rgba(20,184,166,0.1);border-color:rgba(20,184,166,0.3);color:var(--med);">
+      <div class="tt-dot" style="background:var(--med);"></div>📺 Медіа & PR
+    </div>
+    <div class="tt-pill" style="background:rgba(96,165,250,0.1);border-color:rgba(96,165,250,0.3);color:var(--wea);">
+      <div class="tt-dot" style="background:var(--wea);"></div>🌦 Погода (вже є)
+    </div>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav class="nav">
+  <button class="nb active" data-tab="calendar" style="--c:var(--cal)">📅 Календар</button>
+  <button class="nb" data-tab="economic" style="--c:var(--eco)">💸 Економіка</button>
+  <button class="nb" data-tab="social" style="--c:var(--soc)">📱 Соцмережі</button>
+  <button class="nb" data-tab="competitive" style="--c:var(--com)">🏪 Конкуренти</button>
+  <button class="nb" data-tab="internal" style="--c:var(--int)">📦 Внутрішні</button>
+  <button class="nb" data-tab="supply" style="--c:var(--sup)">🚚 Постачання</button>
+  <button class="nb" data-tab="force" style="--c:#9ca3af">⚠️ Форс-мажор</button>
+  <button class="nb" data-tab="behavioral" style="--c:var(--beh)">🛒 Поведінкові</button>
+  <button class="nb" data-tab="media" style="--c:var(--med)">📺 Медіа</button>
+  <button class="nb" data-tab="system" style="--c:#fff">🧠 Система</button>
+</nav>
+
+
+<!-- ═══════════════ CALENDAR ═══════════════ -->
+<div id="calendar" class="page active">
+  <div class="sh">
+    <div class="sh-eye">Тип 1 — Календарні тригери</div>
+    <div class="sh-title">Свята, події, сезони</div>
+    <p class="sh-desc">Передбачувані події з чітким графіком. Агент готується заздалегідь — за 2–6 тижнів. Найнадійніший тип тригерів.</p>
+  </div>
+
+  <div class="cal-wrap">
+    <table class="cal">
+      <thead><tr>
+        <th>Дата</th>
+        <th>Подія</th>
+        <th>За скільки готуватись</th>
+        <th>Категорії зі spike</th>
+        <th>Категорії з падінням</th>
+      </tr></thead>
+      <tbody>
+        <tr class="cal-group"><td colspan="5">❄️ ГРУДЕНЬ–СІЧЕНЬ</td></tr>
+        <tr>
+          <td class="cal-date">25 Гру</td>
+          <td class="cal-name">Різдво (католицьке)<small>Зростаючий тренд в UA</small></td>
+          <td class="cal-lead">−3 тижні</td>
+          <td><div class="impact-dots">
+            <span class="idot" style="background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.3);color:var(--cal);">Подарунки</span>
+            <span class="idot" style="background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.3);color:var(--cal);">Свічки</span>
+            <span class="idot" style="background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.3);color:var(--cal);">Ювелірка</span>
+          </div></td>
+          <td><span style="color:var(--muted);font-size:12px;">Щоденні базові</span></td>
+        </tr>
+        <tr>
+          <td class="cal-date">31 Гру → 1 Січ</td>
+          <td class="cal-name">Новий рік 🎄<small>Найбільший подарунковий пік UA</small></td>
+          <td class="cal-lead">−4 тижні</td>
+          <td><div class="impact-dots">
+            <span class="idot" style="background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.3);color:var(--cal);">Парфуми ×1.8</span>
+            <span class="idot" style="background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.3);color:var(--cal);">Ювелірка ×1.6</span>
+            <span class="idot" style="background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.3);color:var(--cal);">Піжами ×1.5</span>
+            <span class="idot" style="background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.3);color:var(--cal);">Щоденники ×1.4</span>
+          </div></td>
+          <td><span style="color:var(--muted);font-size:12px;">Базовий одяг ×0.6</span></td>
+        </tr>
+        <tr>
+          <td class="cal-date">1–2 Січ</td>
+          <td class="cal-name">Post-НР сейл + Resolution<small>Спорт-тригер: люди ставлять цілі</small></td>
+          <td class="cal-lead">−1 тиждень</td>
+          <td><div class="impact-dots">
+            <span class="idot" style="background:rgba(16,185,129,0.1);border-color:rgba(16,185,129,0.3);color:var(--eco);">Спорт-одяг ×1.5</span>
+            <span class="idot" style="background:rgba(16,185,129,0.1);border-color:rgba(16,185,129,0.3);color:var(--eco);">Килимки ×1.4</span>
+            <span class="idot" style="background:rgba(16,185,129,0.1);border-color:rgba(16,185,129,0.3);color:var(--eco);">Планери ×1.8</span>
+          </div></td>
+          <td><span style="color:var(--muted);font-size:12px;">Все не-спорт</span></td>
+        </tr>
+        <tr>
+          <td class="cal-date">7 Січ</td>
+          <td class="cal-name">Різдво (православне)</td>
+          <td class="cal-lead">−2 тижні</td>
+          <td><div class="impact-dots">
+            <span class="idot" style="background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.3);color:var(--cal);">Подарунки +30%</span>
+            <span class="idot" style="background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.3);color:var(--cal);">Свічки +25%</span>
+          </div></td>
+          <td><span style="color:var(--muted);font-size:12px;">Незначно</span></td>
+        </tr>
+
+        <tr class="cal-group"><td colspan="5">💕 ЛЮТИЙ</td></tr>
+        <tr>
+          <td class="cal-date">14 Лют</td>
+          <td class="cal-name">День закоханих 💕<small>Подвійний пік: він→їй та вона→нього</small></td>
+          <td class="cal-lead">−2 тижні</td>
+          <td><div class="impact-dots">
+            <span class="idot" style="background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.3);color:var(--cal);">Білизна sexy ×1.8</span>
+            <span class="idot" style="background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.3);color:var(--cal);">Парфуми ×1.5</span>
+            <span class="idot" style="background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.3);color:var(--cal);">Ювелірка ×1.4</span>
+            <span class="idot" style="background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.3);color:var(--cal);">Loungewear ×1.3</span>
+          </div></td>
+          <td><span style="color:var(--muted);font-size:12px;">Базові категорії</span></td>
+        </tr>
+
+        <tr class="cal-group"><td colspan="5">🌸 БЕРЕЗЕНЬ</td></tr>
+        <tr>
+          <td class="cal-date">8 Бер</td>
+          <td class="cal-name">8 березня 🌸<small>Найбільший пік продажів в Україні</small></td>
+          <td class="cal-lead">−4 тижні ⚡</td>
+          <td><div class="impact-dots">
+            <span class="idot" style="background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.3);color:var(--cal);">Парфуми ×2.0</span>
+            <span class="idot" style="background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.3);color:var(--cal);">Ювелірка ×1.8</span>
+            <span class="idot" style="background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.3);color:var(--cal);">Нарядні сукні ×1.7</span>
+            <span class="idot" style="background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.3);color:var(--cal);">Свічки ×1.6</span>
+            <span class="idot" style="background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.3);color:var(--cal);">Вази ×1.8</span>
+          </div></td>
+          <td><span style="color:var(--muted);font-size:12px;">Чоловічі товари</span></td>
+        </tr>
+
+        <tr class="cal-group"><td colspan="5">🐣 КВІТЕНЬ (ВЕЛИКДЕНЬ — ЗМІННА ДАТА)</td></tr>
+        <tr>
+          <td class="cal-date">Квіт/Трав</td>
+          <td class="cal-name">Великдень 🐣<small>Дата змінна. Агент отримує з API</small></td>
+          <td class="cal-lead">−3 тижні</td>
+          <td><div class="impact-dots">
+            <span class="idot" style="background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.3);color:var(--cal);">Святк. одяг +40%</span>
+            <span class="idot" style="background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.3);color:var(--cal);">Декор столу +35%</span>
+            <span class="idot" style="background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.3);color:var(--cal);">Текстиль дому +20%</span>
+          </div></td>
+          <td><span style="color:var(--muted);font-size:12px;">Спортивні</span></td>
+        </tr>
+
+        <tr class="cal-group"><td colspan="5">☀️ ЧЕРВЕНЬ–СЕРПЕНЬ</td></tr>
+        <tr>
+          <td class="cal-date">Чер–Лип</td>
+          <td class="cal-name">Сезонний сейл SS<small>Розпродаж весна-літо колекції</small></td>
+          <td class="cal-lead">−3 тижні план</td>
+          <td><div class="impact-dots">
+            <span class="idot" style="background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.3);color:var(--cal);">Все SS −20–50%</span>
+          </div></td>
+          <td><span style="color:var(--muted);font-size:12px;">Новинки AW ще не вийшли</span></td>
+        </tr>
+        <tr>
+          <td class="cal-date">Лип–Сер</td>
+          <td class="cal-name">Back-to-School 🎒<small>Один з найчіткіших календарних піків</small></td>
+          <td class="cal-lead">−4 тижні</td>
+          <td><div class="impact-dots">
+            <span class="idot" style="background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.3);color:var(--cal);">Рюкзаки ×1.9</span>
+            <span class="idot" style="background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.3);color:var(--cal);">Канцелярія ×1.7</span>
+            <span class="idot" style="background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.3);color:var(--cal);">Дит. оправи ×1.6</span>
+            <span class="idot" style="background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.3);color:var(--cal);">Спорт взуття ×1.4</span>
+          </div></td>
+          <td><span style="color:var(--muted);font-size:12px;">Нарядний одяг</span></td>
+        </tr>
+
+        <tr class="cal-group"><td colspan="5">🍂 ЛИСТОПАД</td></tr>
+        <tr>
+          <td class="cal-date">4-та П'ятн. Лис</td>
+          <td class="cal-name">Чорна п'ятниця ⭐<small>Найбільший день онлайн-продажів UA</small></td>
+          <td class="cal-lead">−6 тижнів ⚡⚡</td>
+          <td><div class="impact-dots">
+            <span class="idot" style="background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.3);color:var(--cal);">Все ×1.5–3.0</span>
+            <span class="idot" style="background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.3);color:var(--cal);">Онлайн ×3–5</span>
+          </div></td>
+          <td><span style="color:var(--muted);font-size:12px;">Немає. Все росте.</span></td>
+        </tr>
+        <tr>
+          <td class="cal-date">Понед. після ЧП</td>
+          <td class="cal-name">Cyber Monday</td>
+          <td class="cal-lead">Разом з ЧП</td>
+          <td><div class="impact-dots">
+            <span class="idot" style="background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.3);color:var(--cal);">Онлайн ×2.5</span>
+            <span class="idot" style="background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.3);color:var(--cal);">Аксесуари ×2.0</span>
+          </div></td>
+          <td><span style="color:var(--muted);font-size:12px;">—</span></td>
+        </tr>
+
+        <tr class="cal-group"><td colspan="5">📅 РЕГУЛЯРНІ ТИЖНЕВІ</td></tr>
+        <tr>
+          <td class="cal-date">Пт–Нд щотижня</td>
+          <td class="cal-name">Вихідні<small>Офлайн-пік, спонтанні покупки</small></td>
+          <td class="cal-lead">Щотижня</td>
+          <td><div class="impact-dots">
+            <span class="idot" style="background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.3);color:var(--cal);">Офлайн +30–40%</span>
+            <span class="idot" style="background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.3);color:var(--cal);">Нарядний +25%</span>
+          </div></td>
+          <td><span style="color:var(--muted);font-size:12px;">Онлайн −5%</span></td>
+        </tr>
+        <tr>
+          <td class="cal-date">Пн–Вт щотижня</td>
+          <td class="cal-name">Початок тижня<small>Онлайн-пік, планові покупки</small></td>
+          <td class="cal-lead">Щотижня</td>
+          <td><div class="impact-dots">
+            <span class="idot" style="background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.3);color:var(--cal);">Онлайн +20%</span>
+            <span class="idot" style="background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.3);color:var(--cal);">Повернення +15%</span>
+          </div></td>
+          <td><span style="color:var(--muted);font-size:12px;">Офлайн −10%</span></td>
+        </tr>
+        <tr>
+          <td class="cal-date">15–20 числа</td>
+          <td class="cal-name">Після зарплати<small>Пік платоспроможності в UA</small></td>
+          <td class="cal-lead">Щомісяця</td>
+          <td><div class="impact-dots">
+            <span class="idot" style="background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.3);color:var(--cal);">Преміум +25%</span>
+            <span class="idot" style="background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.3);color:var(--cal);">Нова колекція +20%</span>
+          </div></td>
+          <td><span style="color:var(--muted);font-size:12px;">1–5 числа (до зп)</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+<!-- ═══════════════ ECONOMIC ═══════════════ -->
+<div id="economic" class="page">
+  <div class="sh">
+    <div class="sh-eye">Тип 2 — Економічні тригери</div>
+    <div class="sh-title">Курс, інфляція, зарплати</div>
+    <p class="sh-desc">Зовнішні економічні сигнали, що змінюють купівельну спроможність та поведінку. Специфічні для UA.</p>
+  </div>
+
+  <div class="g2">
+    <div class="tcard">
+      <div class="tcard-head" style="border-left: 3px solid var(--eco);">
+        <div class="tcard-icon">💴</div>
+        <div class="tcard-meta">
+          <div class="tcard-name">Різке знецінення гривні</div>
+          <div class="tcard-cond">Тригер: UAH/USD або UAH/EUR змінився &gt;5% за тиждень</div>
+        </div>
+        <span class="tcard-badge" style="background:rgba(16,185,129,0.1);color:var(--eco);">ЕКОНОМІКА</span>
+      </div>
+      <div class="tcard-body">
+        <div class="trow"><div class="trow-label">Імпортні бренди (EUR/USD товар)<small>Люди купують "поки дешевше"</small></div><span class="trow-val v-up3">+40–80%</span><span class="trow-dur">1–3 дні</span></div>
+        <div class="trow"><div class="trow-label">Преміум-сегмент<small>Захист капіталу в речах</small></div><span class="trow-val v-up2">+30–50%</span><span class="trow-dur">1 тиждень</span></div>
+        <div class="trow"><div class="trow-label">Масс-маркет базовий<small>Відкладають несрочне</small></div><span class="trow-val v-dn1">−15–25%</span><span class="trow-dur">2–4 тижні</span></div>
+        <div class="trow"><div class="trow-label">Онлайн-замовлення загалом<small>Зниження середнього чека</small></div><span class="trow-val v-dn1">−10–20%</span><span class="trow-dur">Поки нестаб.</span></div>
+        <div class="note note-amber" style="margin-top:12px;margin-bottom:0;">⚡ Агент рекомендує: перегляд роздрібних цін на імпортні товари. Перерахунок закупівельної собівартості.</div>
+      </div>
+    </div>
+
+    <div class="tcard">
+      <div class="tcard-head" style="border-left: 3px solid var(--eco);">
+        <div class="tcard-icon">📈</div>
+        <div class="tcard-meta">
+          <div class="tcard-name">Зміцнення гривні</div>
+          <div class="tcard-cond">Тригер: UAH зміцнився &gt;3% за 2 тижні</div>
+        </div>
+        <span class="tcard-badge" style="background:rgba(16,185,129,0.1);color:var(--eco);">ЕКОНОМІКА</span>
+      </div>
+      <div class="tcard-body">
+        <div class="trow"><div class="trow-label">Загальний попит<small>Зростає купівельна спроможність</small></div><span class="trow-val v-up1">+10–15%</span><span class="trow-dur">1–2 тижні</span></div>
+        <div class="trow"><div class="trow-label">Імпортні товари<small>Стають відносно дешевші</small></div><span class="trow-val v-up1">+15–20%</span><span class="trow-dur">—</span></div>
+        <div class="trow"><div class="trow-label">Закупівельна вартість<small>Можливість оновити запаси дешевше</small></div><span class="trow-val v-warn">Перерахунок</span><span class="trow-dur">Негайно</span></div>
+      </div>
+    </div>
+
+    <div class="tcard">
+      <div class="tcard-head" style="border-left: 3px solid var(--eco);">
+        <div class="tcard-icon">💳</div>
+        <div class="tcard-meta">
+          <div class="tcard-name">День виплати зарплат</div>
+          <div class="tcard-cond">Тригер: 15–20 числа кожного місяця — пік платоспроможності UA</div>
+        </div>
+        <span class="tcard-badge" style="background:rgba(16,185,129,0.1);color:var(--eco);">ЩОМІСЯЦЯ</span>
+      </div>
+      <div class="tcard-body">
+        <div class="trow"><div class="trow-label">Преміум та середній+ сегмент</div><span class="trow-val v-up2">+20–30%</span><span class="trow-dur">15–22 число</span></div>
+        <div class="trow"><div class="trow-label">Нові надходження / новинки</div><span class="trow-val v-up2">+25–35%</span><span class="trow-dur">—</span></div>
+        <div class="trow"><div class="trow-label">Кінець місяця (28–31)</div><span class="trow-val v-dn1">−15–20%</span><span class="trow-dur">До наступної зп</span></div>
+        <div class="note note-green" style="margin-top:12px;margin-bottom:0;">💡 Агент рекомендує: запускати промо нових надходжень та преміум-товарів 14–18 числа.</div>
+      </div>
+    </div>
+
+    <div class="tcard">
+      <div class="tcard-head" style="border-left: 3px solid var(--eco);">
+        <div class="tcard-icon">🏦</div>
+        <div class="tcard-meta">
+          <div class="tcard-name">Зміна облікової ставки НБУ</div>
+          <div class="tcard-cond">Тригер: НБУ змінює ставку — впливає на споживче кредитування</div>
+        </div>
+        <span class="tcard-badge" style="background:rgba(16,185,129,0.1);color:var(--eco);">МАКРО</span>
+      </div>
+      <div class="tcard-body">
+        <div class="trow"><div class="trow-label">Ставка ↓ → кредити дешевші<small>Зростає попит на дорогі товари</small></div><span class="trow-val v-up1">+10–20%</span><span class="trow-dur">1–3 місяці</span></div>
+        <div class="trow"><div class="trow-label">Ставка ↑ → кредити дорожчі<small>Обережніші великі покупки</small></div><span class="trow-val v-dn1">−10–15%</span><span class="trow-dur">1–2 місяці</span></div>
+        <div class="note note-amber" style="margin-top:12px;margin-bottom:0;">Агент відстежує рішення НБУ через RSS-новини або API Minfin.com.ua</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════ SOCIAL ═══════════════ -->
+<div id="social" class="page">
+  <div class="sh">
+    <div class="sh-eye">Тип 3 — Соціальні & Вірусні тригери</div>
+    <div class="sh-title">Тренди, інфлюенсери, вірал</div>
+    <p class="sh-desc">Найшвидші та найнепередбачуваніші тригери. Можуть подвоїти продажі артикула за 24–48 годин.</p>
+  </div>
+
+  <div class="g2">
+    <div class="tcard">
+      <div class="tcard-head" style="border-left: 3px solid var(--soc);">
+        <div class="tcard-icon">🎬</div>
+        <div class="tcard-meta">
+          <div class="tcard-name">TikTok / Reels вірал</div>
+          <div class="tcard-cond">Тригер: відео з вашим товаром набирає 100K+ переглядів за 24г</div>
+        </div>
+        <span class="tcard-badge" style="background:rgba(139,92,246,0.1);color:var(--soc);">ВІРАЛ</span>
+      </div>
+      <div class="tcard-body">
+        <div class="trow"><div class="trow-label">Конкретний артикул<small>«Той самий товар з TikTok»</small></div><span class="trow-val v-up3">×3–10</span><span class="trow-dur">2–7 днів</span></div>
+        <div class="trow"><div class="trow-label">Вся категорія<small>Хайп поширюється</small></div><span class="trow-val v-up2">+40–80%</span><span class="trow-dur">1–2 тижні</span></div>
+        <div class="trow"><div class="trow-label">Пошуковий трафік<small>Google: «купити [назва товару]»</small></div><span class="trow-val v-up3">×5–20</span><span class="trow-dur">3–5 днів</span></div>
+        <div class="note note-blue" style="margin-top:12px;margin-bottom:0;">🔍 Агент моніторить: Google Trends API по назвах товарів. Spike &gt;500% за 48г = вірал-тригер.</div>
+      </div>
+    </div>
+
+    <div class="tcard">
+      <div class="tcard-head" style="border-left: 3px solid var(--soc);">
+        <div class="tcard-icon">⭐</div>
+        <div class="tcard-meta">
+          <div class="tcard-name">Велика UA-знаменитість у вашому товарі</div>
+          <div class="tcard-cond">Тригер: публічна особа (500K+ фол.) публікує фото з вашим брендом/схожим</div>
+        </div>
+        <span class="tcard-badge" style="background:rgba(139,92,246,0.1);color:var(--soc);">ІНФЛЮЕНСЕР</span>
+      </div>
+      <div class="tcard-body">
+        <div class="trow"><div class="trow-label">Топ-інфлюенсер (1М+)<small>Офіційна колаборація або органічна</small></div><span class="trow-val v-up3">×2–5</span><span class="trow-dur">3–10 днів</span></div>
+        <div class="trow"><div class="trow-label">Мідл-інфлюенсер (100–500K)</div><span class="trow-val v-up2">+50–150%</span><span class="trow-dur">2–5 днів</span></div>
+        <div class="trow"><div class="trow-label">Нано-інфлюенсер (10–50K)<small>Висока довіра, вузька аудиторія</small></div><span class="trow-val v-up1">+20–50%</span><span class="trow-dur">1–3 дні</span></div>
+      </div>
+    </div>
+
+    <div class="tcard">
+      <div class="tcard-head" style="border-left: 3px solid var(--soc);">
+        <div class="tcard-icon">🎭</div>
+        <div class="tcard-meta">
+          <div class="tcard-name">Серіал / Фільм / Шоу-ефект</div>
+          <div class="tcard-cond">Тригер: популярний UA/світовий контент виходить — персонаж у певному стилі</div>
+        </div>
+        <span class="tcard-badge" style="background:rgba(139,92,246,0.1);color:var(--soc);">КУЛЬТУРА</span>
+      </div>
+      <div class="tcard-body">
+        <div class="trow"><div class="trow-label">«Emily in Paris» → французький стиль<small>Реальний кейс: попит на берети +200%</small></div><span class="trow-val v-up3">+100–300%</span><span class="trow-dur">2–4 тижні</span></div>
+        <div class="trow"><div class="trow-label">UA-серіали (Квартал 95, Studio Kvartal)<small>Спонсорство або органічне</small></div><span class="trow-val v-up2">+40–80%</span><span class="trow-dur">1–2 тижні</span></div>
+        <div class="trow"><div class="trow-label">Музикант у специфічному образі<small>Євробачення — великий момент для UA</small></div><span class="trow-val v-up2">+30–100%</span><span class="trow-dur">1 тиждень</span></div>
+      </div>
+    </div>
+
+    <div class="tcard">
+      <div class="tcard-head" style="border-left: 3px solid var(--soc);">
+        <div class="tcard-icon">📊</div>
+        <div class="tcard-meta">
+          <div class="tcard-name">Google Trends spike</div>
+          <div class="tcard-cond">Тригер: пошуковий запит по категорії/бренду зріс &gt;200% за 48г</div>
+        </div>
+        <span class="tcard-badge" style="background:rgba(139,92,246,0.1);color:var(--soc);">ПОШУК</span>
+      </div>
+      <div class="tcard-body">
+        <div class="trow"><div class="trow-label">Запит по бренду клієнта</div><span class="trow-val v-up2">Конвертувати трафік</span><span class="trow-dur">Негайно</span></div>
+        <div class="trow"><div class="trow-label">Запит по категорії<small>Наприклад «купити пуховик Київ»</small></div><span class="trow-val v-up1">+30–60%</span><span class="trow-dur">3–5 днів</span></div>
+        <div class="note note-blue" style="margin-top:12px;margin-bottom:0;">API: trends.google.com/trends/api — безкоштовно. Підключається до агента.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════ COMPETITIVE ═══════════════ -->
+<div id="competitive" class="page">
+  <div class="sh">
+    <div class="sh-eye">Тип 4 — Конкурентні тригери</div>
+    <div class="sh-title">Дії конкурентів → твоя реакція</div>
+    <p class="sh-desc">Агент моніторить конкурентів і виявляє можливості або загрози. Важливо: реагувати швидко, але обдумано.</p>
+  </div>
+
+  <div class="g2">
+    <div class="tcard">
+      <div class="tcard-head" style="border-left: 3px solid var(--com);">
+        <div class="tcard-icon">🔴</div>
+        <div class="tcard-meta">
+          <div class="tcard-name">Конкурент запустив великий сейл</div>
+          <div class="tcard-cond">Тригер: конкурент оголосив акцію −30%+ на пересічні категорії</div>
+        </div>
+        <span class="tcard-badge" style="background:rgba(239,68,68,0.1);color:var(--com);">КОНКУРЕНТ</span>
+      </div>
+      <div class="tcard-body">
+        <div class="trow"><div class="trow-label">Твій трафік на пересічні категорії<small>Покупці йдуть до конкурента</small></div><span class="trow-val v-dn2">−20–40%</span><span class="trow-dur">Час акції</span></div>
+        <div class="trow"><div class="trow-label">Стратегія 1: відповідний сейл<small>Тримаєш ринкову долю</small></div><span class="trow-val v-warn">Аналіз маржі</span><span class="trow-dur">Рішення за 24г</span></div>
+        <div class="trow"><div class="trow-label">Стратегія 2: не знижувати, підсилити контент<small>Якщо є унікальне позиціонування</small></div><span class="trow-val v-neu">Утримання</span><span class="trow-dur">—</span></div>
+        <div class="note note-amber" style="margin-top:12px;margin-bottom:0;">Агент аналізує: чи є у тебе унікальний товар або аудиторія, яка не піде до конкурента? Якщо так — не знижуй.</div>
+      </div>
+    </div>
+
+    <div class="tcard">
+      <div class="tcard-head" style="border-left: 3px solid var(--com);">
+        <div class="tcard-icon">🏪</div>
+        <div class="tcard-meta">
+          <div class="tcard-name">Конкурент закрився / пішов з ринку</div>
+          <div class="tcard-cond">Тригер: відомий конкурент оголосив про закриття або паузу</div>
+        </div>
+        <span class="tcard-badge" style="background:rgba(239,68,68,0.1);color:var(--com);">МОЖЛИВІСТЬ</span>
+      </div>
+      <div class="tcard-body">
+        <div class="trow"><div class="trow-label">Попит на пересічні категорії<small>Звільнена ринкова ніша</small></div><span class="trow-val v-up3">+30–80%</span><span class="trow-dur">1–4 тижні</span></div>
+        <div class="trow"><div class="trow-label">Рекомендація: збільшити запас<small>Попит прийде до тебе</small></div><span class="trow-val v-up2">Дозамовлення</span><span class="trow-dur">Терміново</span></div>
+        <div class="trow"><div class="trow-label">Рекомендація: посилити рекламу<small>Захопити аудиторію конкурента</small></div><span class="trow-val v-up2">Бюджет ↑</span><span class="trow-dur">Зараз</span></div>
+      </div>
+    </div>
+
+    <div class="tcard">
+      <div class="tcard-head" style="border-left: 3px solid var(--com);">
+        <div class="tcard-icon">🆕</div>
+        <div class="tcard-meta">
+          <div class="tcard-name">Конкурент вийшов на твій ринок</div>
+          <div class="tcard-cond">Тригер: новий гравець відкрився в твоєму місті / ніші</div>
+        </div>
+        <span class="tcard-badge" style="background:rgba(239,68,68,0.1);color:var(--com);">ЗАГРОЗА</span>
+      </div>
+      <div class="tcard-body">
+        <div class="trow"><div class="trow-label">Трафік в перші 4–8 тижнів<small>Клієнти йдуть «з цікавості»</small></div><span class="trow-val v-dn1">−10–20%</span><span class="trow-dur">1–2 місяці</span></div>
+        <div class="trow"><div class="trow-label">Рекомендація: програма лояльності<small>Утримати наявну аудиторію</small></div><span class="trow-val v-warn">Запустити</span><span class="trow-dur">Негайно</span></div>
+        <div class="trow"><div class="trow-label">Рекомендація: аналіз пересічного товару<small>Що є у них і немає у тебе?</small></div><span class="trow-val v-neu">Аудит</span><span class="trow-dur">1 тиждень</span></div>
+      </div>
+    </div>
+
+    <div class="tcard">
+      <div class="tcard-head" style="border-left: 3px solid var(--com);">
+        <div class="tcard-icon">💰</div>
+        <div class="tcard-meta">
+          <div class="tcard-name">Конкурент змінив ціни</div>
+          <div class="tcard-cond">Тригер: ціни конкурента на пересічні SKU змінились &gt;10%</div>
+        </div>
+        <span class="tcard-badge" style="background:rgba(239,68,68,0.1);color:var(--com);">ЦІНИ</span>
+      </div>
+      <div class="tcard-body">
+        <div class="trow"><div class="trow-label">Конкурент підняв ціни<small>Твій товар став відносно вигіднішим</small></div><span class="trow-val v-up1">+10–20%</span><span class="trow-dur">2–4 тижні</span></div>
+        <div class="trow"><div class="trow-label">Конкурент знизив ціни<small>Ризик відтоку цінових покупців</small></div><span class="trow-val v-dn1">−5–15%</span><span class="trow-dur">—</span></div>
+        <div class="note note-amber" style="margin-top:12px;margin-bottom:0;">Агент порівнює ціни конкурентів через моніторинг сайтів або ручний ввід даних від клієнта.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════ INTERNAL ═══════════════ -->
+<div id="internal" class="page">
+  <div class="sh">
+    <div class="sh-eye">Тип 5 — Внутрішні бізнес-тригери</div>
+    <div class="sh-title">Сигнали всередині магазину</div>
+    <p class="sh-desc">Ці тригери агент виявляє сам, аналізуючи дані клієнта. Найкерованіший тип — повністю у руках бізнесу.</p>
+  </div>
+
+  <div class="g2">
+    <div class="tcard">
+      <div class="tcard-head" style="border-left: 3px solid var(--int);">
+        <div class="tcard-icon">🔥</div>
+        <div class="tcard-meta">
+          <div class="tcard-name">Артикул став хітом</div>
+          <div class="tcard-cond">Тригер: продажі SKU зросли &gt;30% до rolling avg за 7 днів + 2+ тижні поспіль</div>
+        </div>
+        <span class="tcard-badge" style="background:rgba(59,130,246,0.1);color:var(--int);">ВНУТРІШНІЙ</span>
+      </div>
+      <div class="tcard-body">
+        <div class="trow"><div class="trow-label">Залишок при поточній швидкості<small>Скільки днів до стокауту</small></div><span class="trow-val v-warn">Розрахунок</span><span class="trow-dur">Негайно</span></div>
+        <div class="trow"><div class="trow-label">Дія: дозамовлення (якщо можливо)<small>Перевіряємо: достатньо часу до кінця сезону?</small></div><span class="trow-val v-up2">Рекомендувати</span><span class="trow-dur">Зараз</span></div>
+        <div class="trow"><div class="trow-label">Дія: посилити рекламу хіта<small>Монетизувати органічний тренд</small></div><span class="trow-val v-up2">Бюджет ↑</span><span class="trow-dur">Зараз</span></div>
+      </div>
+    </div>
+
+    <div class="tcard">
+      <div class="tcard-head" style="border-left: 3px solid var(--int);">
+        <div class="tcard-icon">📉</div>
+        <div class="tcard-meta">
+          <div class="tcard-name">Артикул — слоу-мувер</div>
+          <div class="tcard-cond">Тригер: продажі SKU нижче прогнозу &gt;25% протягом 3 тижнів (поза warm-up фазою)</div>
+        </div>
+        <span class="tcard-badge" style="background:rgba(59,130,246,0.1);color:var(--int);">ВНУТРІШНІЙ</span>
+      </div>
+      <div class="tcard-body">
+        <div class="trow"><div class="trow-label">Розрахунок: чи встигне продатись до сейлу?</div><span class="trow-val v-warn">Прогноз</span><span class="trow-dur">Зараз</span></div>
+        <div class="trow"><div class="trow-label">Якщо залишок &gt; 40 днів до сейлу → промо зараз</div><span class="trow-val v-dn1">Знижка −15%</span><span class="trow-dur">Цього тижня</span></div>
+        <div class="trow"><div class="trow-label">Якщо залишок &lt; 20 днів → чекати сейлу</div><span class="trow-val v-neu">Без змін</span><span class="trow-dur">—</span></div>
+        <div class="trow"><div class="trow-label">Альтернатива: бандл з хітом</div><span class="trow-val v-up1">Спробувати</span><span class="trow-dur">2 тижні</span></div>
+      </div>
+    </div>
+
+    <div class="tcard">
+      <div class="tcard-head" style="border-left: 3px solid var(--int);">
+        <div class="tcard-icon">🚨</div>
+        <div class="tcard-meta">
+          <div class="tcard-name">Стокаут ризик</div>
+          <div class="tcard-cond">Тригер: залишок &lt; (lead_time × avg_daily_sales × 1.5)</div>
+        </div>
+        <span class="tcard-badge" style="background:rgba(239,68,68,0.15);color:#f87171;">КРИТИЧНО</span>
+      </div>
+      <div class="tcard-body">
+        <div class="trow"><div class="trow-label">Пріоритет URGENT<small>Стокаут = втрачений продаж + шкода іміджу</small></div><span class="trow-val v-dn3">АЛЕРТ</span><span class="trow-dur">Зараз</span></div>
+        <div class="trow"><div class="trow-label">Перевірити: чи є товар в пути (відкритий PO)?</div><span class="trow-val v-warn">Перевірка</span><span class="trow-dur">—</span></div>
+        <div class="trow"><div class="trow-label">Якщо немає → термінове замовлення</div><span class="trow-val v-dn2">Замовити</span><span class="trow-dur">Сьогодні</span></div>
+        <div class="trow"><div class="trow-label">Тимчасово: знизити рекламу на цей SKU<small>Не продавати те, чого немає</small></div><span class="trow-val v-warn">Пауза реклами</span><span class="trow-dur">До приходу</span></div>
+      </div>
+    </div>
+
+    <div class="tcard">
+      <div class="tcard-head" style="border-left: 3px solid var(--int);">
+        <div class="tcard-icon">📦</div>
+        <div class="tcard-meta">
+          <div class="tcard-name">Надійшла нова партія товару</div>
+          <div class="tcard-cond">Тригер: нові SKU або дозамовлення оприбутковано на складі</div>
+        </div>
+        <span class="tcard-badge" style="background:rgba(59,130,246,0.1);color:var(--int);">НАДХОДЖЕННЯ</span>
+      </div>
+      <div class="tcard-body">
+        <div class="trow"><div class="trow-label">Нові артикули: запустити «launch» контент<small>Перші 2 тижні = найбільша увага</small></div><span class="trow-val v-up2">Контент зараз</span><span class="trow-dur">День приходу</span></div>
+        <div class="trow"><div class="trow-label">Дозамовлення хіта: відновити рекламу<small>Товар знову в наявності</small></div><span class="trow-val v-up2">Реклама ↑</span><span class="trow-dur">—</span></div>
+        <div class="trow"><div class="trow-label">Оновити прогноз sell-through<small>З урахуванням нового залишку</small></div><span class="trow-val v-neu">Перерахунок</span><span class="trow-dur">—</span></div>
+      </div>
+    </div>
+
+    <div class="tcard">
+      <div class="tcard-head" style="border-left: 3px solid var(--int);">
+        <div class="tcard-icon">↩️</div>
+        <div class="tcard-meta">
+          <div class="tcard-name">Аномально високий відсоток повернень</div>
+          <div class="tcard-cond">Тригер: повернення по SKU &gt;15% від продажів за 14 днів</div>
+        </div>
+        <span class="tcard-badge" style="background:rgba(59,130,246,0.1);color:var(--int);">ЯКІСТЬ</span>
+      </div>
+      <div class="tcard-body">
+        <div class="trow"><div class="trow-label">Причина 1: проблема з якістю партії<small>Потребує перевірки складу</small></div><span class="trow-val v-dn2">Перевірити</span><span class="trow-dur">Терміново</span></div>
+        <div class="trow"><div class="trow-label">Причина 2: невідповідність розміру/опису<small>Проблема картки товару</small></div><span class="trow-val v-warn">Оновити картку</span><span class="trow-dur">—</span></div>
+        <div class="trow"><div class="trow-label">Дія: зупинити рекламу до з'ясування</div><span class="trow-val v-dn1">Пауза</span><span class="trow-dur">Зараз</span></div>
+      </div>
+    </div>
+
+    <div class="tcard">
+      <div class="tcard-head" style="border-left: 3px solid var(--int);">
+        <div class="tcard-icon">💤</div>
+        <div class="tcard-meta">
+          <div class="tcard-name">Зависший товар (Deadstock)</div>
+          <div class="tcard-cond">Тригер: залишок не рухається 30+ днів і до сейлу &lt;6 тижнів</div>
+        </div>
+        <span class="tcard-badge" style="background:rgba(59,130,246,0.1);color:var(--int);">DEADSTOCK</span>
+      </div>
+      <div class="tcard-body">
+        <div class="trow"><div class="trow-label">Ліквідаційна стратегія<small>Краще −40% зараз, ніж 0 після сейлу</small></div><span class="trow-val v-dn2">−30–50%</span><span class="trow-dur">Зараз</span></div>
+        <div class="trow"><div class="trow-label">Передати баєру: стоп-замовлення<small>Не повторювати помилку</small></div><span class="trow-val v-warn">СТОП</span><span class="trow-dur">—</span></div>
+        <div class="trow"><div class="trow-label">Альтернатива: подарунок при покупці<small>Розвантажити без явної знижки</small></div><span class="trow-val v-up1">Спробувати</span><span class="trow-dur">2 тижні</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════ SUPPLY ═══════════════ -->
+<div id="supply" class="page">
+  <div class="sh">
+    <div class="sh-eye">Тип 6 — Ланцюг постачання</div>
+    <div class="sh-title">Постачальники, логістика, митниця</div>
+    <p class="sh-desc">Зовнішні перебої в поставках — одні з найнебезпечніших для UA-бізнесу. Агент відстежує і сигналізує заздалегідь.</p>
+  </div>
+
+  <div class="g2">
+    <div class="tcard">
+      <div class="tcard-head" style="border-left: 3px solid var(--sup);">
+        <div class="tcard-icon">⏱</div>
+        <div class="tcard-meta">
+          <div class="tcard-name">Затримка поставки (PO прострочений)</div>
+          <div class="tcard-cond">Тригер: PO не прийшов у заявлений термін + 3 дні</div>
+        </div>
+        <span class="tcard-badge" style="background:rgba(249,115,22,0.1);color:var(--sup);">ЛОГІСТИКА</span>
+      </div>
+      <div class="tcard-body">
+        <div class="trow"><div class="trow-label">Перерахунок ризику стокауту<small>З урахуванням нового lead time</small></div><span class="trow-val v-warn">Перерахунок</span><span class="trow-dur">Негайно</span></div>
+        <div class="trow"><div class="trow-label">Якщо хіт під ризиком: знизити рекламу<small>Уникнути продажу відсутнього товару</small></div><span class="trow-val v-dn1">Пауза реклами</span><span class="trow-dur">—</span></div>
+        <div class="trow"><div class="trow-label">Пошук альтернативного постачальника<small>Агент сигналізує власнику</small></div><span class="trow-val v-warn">Алерт</span><span class="trow-dur">—</span></div>
+        <div class="note note-amber" style="margin-top:12px;margin-bottom:0;">🇺🇦 UA-специфіка: додавай +7–14 днів буфер для будь-якого міжнародного маршруту через нестабільну логістику.</div>
+      </div>
+    </div>
+
+    <div class="tcard">
+      <div class="tcard-head" style="border-left: 3px solid var(--sup);">
+        <div class="tcard-icon">🌍</div>
+        <div class="tcard-meta">
+          <div class="tcard-name">Бренд або постачальник пішов з ринку UA</div>
+          <div class="tcard-cond">Тригер: бренд оголосив про припинення роботи в Україні</div>
+        </div>
+        <span class="tcard-badge" style="background:rgba(249,115,22,0.1);color:var(--sup);">КРИТИЧНО</span>
+      </div>
+      <div class="tcard-body">
+        <div class="trow"><div class="trow-label">Артикули цього бренда<small>Перевести в режим «ліквідація» або «колекційне»</small></div><span class="trow-val v-warn">Рішення</span><span class="trow-dur">Тиждень</span></div>
+        <div class="trow"><div class="trow-label">Зробити фінальне замовлення (якщо ще можна)<small>Останні стоки можуть стати дефіцитом</small></div><span class="trow-val v-up2">Замовити max</span><span class="trow-dur">Зараз</span></div>
+        <div class="trow"><div class="trow-label">Пошук замінника для асортиментної ніші</div><span class="trow-val v-warn">Пошук</span><span class="trow-dur">1–2 тижні</span></div>
+      </div>
+    </div>
+
+    <div class="tcard">
+      <div class="tcard-head" style="border-left: 3px solid var(--sup);">
+        <div class="tcard-icon">📋</div>
+        <div class="tcard-meta">
+          <div class="tcard-name">Митні затримки / нові правила імпорту</div>
+          <div class="tcard-cond">Тригер: зміна митного регулювання або затримка на кордоні &gt;5 днів</div>
+        </div>
+        <span class="tcard-badge" style="background:rgba(249,115,22,0.1);color:var(--sup);">МИТНИЦЯ</span>
+      </div>
+      <div class="tcard-body">
+        <div class="trow"><div class="trow-label">Перерахунок собівартості<small>Нові мита = нова маржа</small></div><span class="trow-val v-warn">Перерахунок</span><span class="trow-dur">Негайно</span></div>
+        <div class="trow"><div class="trow-label">Перегляд роздрібних цін<small>Можливо, підняти щоб зберегти маржу</small></div><span class="trow-val v-warn">Аналіз</span><span class="trow-dur">1 тиждень</span></div>
+        <div class="trow"><div class="trow-label">Збільшити lead time у розрахунках<small>Агент оновлює ROP автоматично</small></div><span class="trow-val v-neu">Оновити</span><span class="trow-dur">—</span></div>
+      </div>
+    </div>
+
+    <div class="tcard">
+      <div class="tcard-head" style="border-left: 3px solid var(--sup);">
+        <div class="tcard-icon">💡</div>
+        <div class="tcard-meta">
+          <div class="tcard-name">EOL — бренд знімає модель</div>
+          <div class="tcard-cond">Тригер: постачальник повідомив або підтверджено що модель знімається</div>
+        </div>
+        <span class="tcard-badge" style="background:rgba(249,115,22,0.1);color:var(--sup);">EOL</span>
+      </div>
+      <div class="tcard-body">
+        <div class="trow"><div class="trow-label">Зробити фінальне замовлення<small>Розраховується: 4–6 місяців запасу</small></div><span class="trow-val v-up1">Замовити</span><span class="trow-dur">Скоро</span></div>
+        <div class="trow"><div class="trow-label">Підвищити ціну (дефіцитний товар)<small>Можна заробити більше на «останніх»</small></div><span class="trow-val v-up2">Ціна ↑</span><span class="trow-dur">—</span></div>
+        <div class="trow"><div class="trow-label">Замовити заміну в асортименті</div><span class="trow-val v-warn">Баєр</span><span class="trow-dur">—</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════ FORCE MAJEURE ═══════════════ -->
+<div id="force" class="page">
+  <div class="sh">
+    <div class="sh-eye">Тип 7 — Форс-мажор (специфіка UA)</div>
+    <div class="sh-title">Сигнали повітряної тривоги, блекаути, воєнний стан</div>
+    <p class="sh-desc">Унікальний тип тригерів для українського ринку. Агент адаптує рекомендації з урахуванням реалій воєнного часу.</p>
+  </div>
+
+  <div class="note note-red">⚠️ <strong>Специфіка UA-ринку:</strong> Ці тригери не існують у жодній іншій системі аналітики. Агент враховує їх як обов'язковий контекст при аналізі аномалій продажів.</div>
+
+  <div class="g2">
+    <div class="tcard">
+      <div class="tcard-head" style="border-left: 3px solid #6b7280;">
+        <div class="tcard-icon">⚡</div>
+        <div class="tcard-meta">
+          <div class="tcard-name">Масовані блекаути (планові відключення)</div>
+          <div class="tcard-cond">Тригер: обласні відключення 4+ годин на добу, 3+ дні поспіль</div>
+        </div>
+        <span class="tcard-badge" style="background:rgba(107,114,128,0.1);color:#9ca3af;">UA-СПЕЦИФІКА</span>
+      </div>
+      <div class="tcard-body">
+        <div class="trow"><div class="trow-label">Офлайн-трафік (залежно від графіку)<small>Якщо відключення вдень — падіння трафіку ТЦ</small></div><span class="trow-val v-dn2">−20–40%</span><span class="trow-dur">Весь блекаут</span></div>
+        <div class="trow"><div class="trow-label">Онлайн-замовлення<small>Люди планують покупки «поки є світло»</small></div><span class="trow-val v-up1">+15–30%</span><span class="trow-dur">—</span></div>
+        <div class="trow"><div class="trow-label">Категорії: павербанки, ліхтарі, свічки<small>Не фешн, але суміжний попит</small></div><span class="trow-val v-up3">×3–5</span><span class="trow-dur">—</span></div>
+        <div class="trow"><div class="trow-label">Агент враховує у прогнозі як «зниження норми»<small>Не вважає падіння аномалією</small></div><span class="trow-val v-neu">Коригування</span><span class="trow-dur">—</span></div>
+      </div>
+    </div>
+
+    <div class="tcard">
+      <div class="tcard-head" style="border-left: 3px solid #6b7280;">
+        <div class="tcard-icon">🚨</div>
+        <div class="tcard-meta">
+          <div class="tcard-name">Повітряна тривога (масові ракетні удари)</div>
+          <div class="tcard-cond">Тригер: тривалі тривоги 3+ годин або масований удар по регіону</div>
+        </div>
+        <span class="tcard-badge" style="background:rgba(107,114,128,0.1);color:#9ca3af;">UA-СПЕЦИФІКА</span>
+      </div>
+      <div class="tcard-body">
+        <div class="trow"><div class="trow-label">Офлайн в день удару<small>ТЦ закриваються, люди вдома</small></div><span class="trow-val v-dn3">−70–90%</span><span class="trow-dur">1–2 дні</span></div>
+        <div class="trow"><div class="trow-label">Онлайн в день удару</div><span class="trow-val v-dn2">−30–50%</span><span class="trow-dur">—</span></div>
+        <div class="trow"><div class="trow-label">Відновлення (2–5 днів потому)<small>«Ефект відкладеного попиту»</small></div><span class="trow-val v-up1">+10–20%</span><span class="trow-dur">3–7 днів</span></div>
+        <div class="note note-amber" style="margin-top:12px;margin-bottom:0;">Агент НЕ рахує цей спад як аномалію і не ставить тривогу. Просто коригує прогноз місяця.</div>
+      </div>
+    </div>
+
+    <div class="tcard">
+      <div class="tcard-head" style="border-left: 3px solid #6b7280;">
+        <div class="tcard-icon">🏃</div>
+        <div class="tcard-meta">
+          <div class="tcard-name">Мобілізаційна хвиля</div>
+          <div class="tcard-cond">Тригер: медіа-контекст підвищеної мобілізаційної активності</div>
+        </div>
+        <span class="tcard-badge" style="background:rgba(107,114,128,0.1);color:#9ca3af;">UA-СПЕЦИФІКА</span>
+      </div>
+      <div class="tcard-body">
+        <div class="trow"><div class="trow-label">Чоловічий сегмент<small>Падіння покупок — аудиторія змінюється</small></div><span class="trow-val v-dn2">−20–35%</span><span class="trow-dur">—</span></div>
+        <div class="trow"><div class="trow-label">Жіночий сегмент<small>Не суттєво змінюється</small></div><span class="trow-val v-neu">±5%</span><span class="trow-dur">—</span></div>
+        <div class="trow"><div class="trow-label">Практичний одяг / Берці / Термо<small>Нова потреба ринку</small></div><span class="trow-val v-up2">+30–60%</span><span class="trow-dur">—</span></div>
+      </div>
+    </div>
+
+    <div class="tcard">
+      <div class="tcard-head" style="border-left: 3px solid #6b7280;">
+        <div class="tcard-icon">🙏</div>
+        <div class="tcard-meta">
+          <div class="tcard-name">Великі перемоги або трагедії (медіа-контекст)</div>
+          <div class="tcard-cond">Тригер: значна подія впливає на настрій суспільства</div>
+        </div>
+        <span class="tcard-badge" style="background:rgba(107,114,128,0.1);color:#9ca3af;">UA-СПЕЦИФІКА</span>
+      </div>
+      <div class="tcard-body">
+        <div class="trow"><div class="trow-label">Негативна подія (велика трагедія)<small>Споживчий «заморозок» 1–3 дні</small></div><span class="trow-val v-dn2">−30–50%</span><span class="trow-dur">1–3 дні</span></div>
+        <div class="trow"><div class="trow-label">Позитивна подія (перемога, деокупація)<small>Короткий підйом настрою = покупки</small></div><span class="trow-val v-up1">+10–20%</span><span class="trow-dur">2–5 днів</span></div>
+        <div class="note note-red" style="margin-top:12px;margin-bottom:0;">Агент не прогнозує ці події, але враховує їх як пояснення аномалій у ретроспективі.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════ BEHAVIORAL ═══════════════ -->
+<div id="behavioral" class="page">
+  <div class="sh">
+    <div class="sh-eye">Тип 8 — Поведінкові тригери</div>
+    <div class="sh-title">Сигнали з поведінки покупців</div>
+    <p class="sh-desc">Агент аналізує патерни поведінки на сайті та в магазині, щоб виявити приховані можливості.</p>
+  </div>
+
+  <div class="g2">
+    <div class="tcard">
+      <div class="tcard-head" style="border-left: 3px solid var(--beh);">
+        <div class="tcard-icon">🛒</div>
+        <div class="tcard-meta">
+          <div class="tcard-name">Зростання кинутих кошиків</div>
+          <div class="tcard-cond">Тригер: % abandoned cart по категорії зріс &gt;15% за 7 днів</div>
+        </div>
+        <span class="tcard-badge" style="background:rgba(236,72,153,0.1);color:var(--beh);">ПОВЕДІНКОВИЙ</span>
+      </div>
+      <div class="tcard-body">
+        <div class="trow"><div class="trow-label">Причина 1: ціна занадто висока<small>Покупець порівнює, йде до конкурента</small></div><span class="trow-val v-warn">Аналіз цін</span><span class="trow-dur">—</span></div>
+        <div class="trow"><div class="trow-label">Причина 2: немає потрібного розміру/кольору</div><span class="trow-val v-warn">Аудит асортименту</span><span class="trow-dur">—</span></div>
+        <div class="trow"><div class="trow-label">Причина 3: дорога доставка<small>UA-специфіка: люди чутливі до доставки</small></div><span class="trow-val v-warn">Перегляд умов</span><span class="trow-dur">—</span></div>
+        <div class="trow"><div class="trow-label">Дія: ретаргетинг з нагадуванням</div><span class="trow-val v-up1">+15–25% повернень</span><span class="trow-dur">48г</span></div>
+      </div>
+    </div>
+
+    <div class="tcard">
+      <div class="tcard-head" style="border-left: 3px solid var(--beh);">
+        <div class="tcard-icon">👀</div>
+        <div class="tcard-meta">
+          <div class="tcard-name">Висока переглядність — нуль продажів</div>
+          <div class="tcard-cond">Тригер: товар в топ-10 переглядів, але конверсія &lt;0.5%</div>
+        </div>
+        <span class="tcard-badge" style="background:rgba(236,72,153,0.1);color:var(--beh);">КОНВЕРСІЯ</span>
+      </div>
+      <div class="tcard-body">
+        <div class="trow"><div class="trow-label">Проблема: погані фото або опис<small>Хочуть, але не довіряють</small></div><span class="trow-val v-warn">Оновити контент</span><span class="trow-dur">—</span></div>
+        <div class="trow"><div class="trow-label">Проблема: ціна не відповідає сприйнятій цінності</div><span class="trow-val v-warn">Перегляд ціни</span><span class="trow-dur">—</span></div>
+        <div class="trow"><div class="trow-label">Проблема: немає відгуків / мало довіри</div><span class="trow-val v-warn">UGC-контент</span><span class="trow-dur">—</span></div>
+      </div>
+    </div>
+
+    <div class="tcard">
+      <div class="tcard-head" style="border-left: 3px solid var(--beh);">
+        <div class="tcard-icon">🔍</div>
+        <div class="tcard-meta">
+          <div class="tcard-name">Зростання пошуку по нульових позиціях</div>
+          <div class="tcard-cond">Тригер: внутрішній пошук на сайті шукає товар, якого немає</div>
+        </div>
+        <span class="tcard-badge" style="background:rgba(236,72,153,0.1);color:var(--beh);">ЗАПИТ</span>
+      </div>
+      <div class="tcard-body">
+        <div class="trow"><div class="trow-label">Покупці шукають товар якого немає<small>Незадоволений попит = можливість</small></div><span class="trow-val v-up2">Додати в асортимент</span><span class="trow-dur">—</span></div>
+        <div class="trow"><div class="trow-label">Аналіз: скільки разів шукали за місяць?<small>Якщо 50+ — точно варто замовити</small></div><span class="trow-val v-warn">Аналіз попиту</span><span class="trow-dur">—</span></div>
+        <div class="note note-green" style="margin-top:12px;margin-bottom:0;">💡 Це безкоштовна ринкова аналітика. Внутрішній пошук = голос клієнтів.</div>
+      </div>
+    </div>
+
+    <div class="tcard">
+      <div class="tcard-head" style="border-left: 3px solid var(--beh);">
+        <div class="tcard-icon">⭐</div>
+        <div class="tcard-meta">
+          <div class="tcard-name">Падіння середнього рейтингу</div>
+          <div class="tcard-cond">Тригер: середній рейтинг SKU впав нижче 4.0 за останні 30 відгуків</div>
+        </div>
+        <span class="tcard-badge" style="background:rgba(236,72,153,0.1);color:var(--beh);">РЕПУТАЦІЯ</span>
+      </div>
+      <div class="tcard-body">
+        <div class="trow"><div class="trow-label">Конверсія товару<small>Кожна зірка нижче 4.0 = −15% конверсії</small></div><span class="trow-val v-dn2">−15–30%</span><span class="trow-dur">Постійно</span></div>
+        <div class="trow"><div class="trow-label">Зупинити або знизити рекламу<small>Не платити за трафік на поганий товар</small></div><span class="trow-val v-warn">Пауза реклами</span><span class="trow-dur">Зараз</span></div>
+        <div class="trow"><div class="trow-label">Дослідити причину та виправити</div><span class="trow-val v-warn">Аналіз відгуків</span><span class="trow-dur">—</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════ MEDIA ═══════════════ -->
+<div id="media" class="page">
+  <div class="sh">
+    <div class="sh-eye">Тип 9 — Медіа & PR тригери</div>
+    <div class="sh-title">Новини, скандали, тренди в медіа</div>
+    <p class="sh-desc">Публічні події, що формують культурний контекст і змінюють попит на категорії.</p>
+  </div>
+
+  <div class="g2">
+    <div class="tcard">
+      <div class="tcard-head" style="border-left: 3px solid var(--med);">
+        <div class="tcard-icon">📺</div>
+        <div class="tcard-meta">
+          <div class="tcard-name">Велика подія в медіа (UA або світ)</div>
+          <div class="tcard-cond">Тригер: подія охоплення 1М+ за добу формує новий культурний момент</div>
+        </div>
+        <span class="tcard-badge" style="background:rgba(20,184,166,0.1);color:var(--med);">МЕДІА</span>
+      </div>
+      <div class="tcard-body">
+        <div class="trow"><div class="trow-label">Євробачення (UA перемагає або хостить)<small>Величезний патріотичний + стиль момент</small></div><span class="trow-val v-up3">UA-бренди ×2–3</span><span class="trow-dur">2–4 тижні</span></div>
+        <div class="trow"><div class="trow-label">Великий спортивний успіх UA<small>Олімпіада, Євро — патріотичний попит</small></div><span class="trow-val v-up2">UA-символіка ×2</span><span class="trow-dur">1–2 тижні</span></div>
+        <div class="trow"><div class="trow-label">Світовий fashion week<small>Тренди з подіуму → запит у масмаркеті за 2–4 тижні</small></div><span class="trow-val v-up1">Тренд-категорії +20%</span><span class="trow-dur">2–6 тижнів</span></div>
+      </div>
+    </div>
+
+    <div class="tcard">
+      <div class="tcard-head" style="border-left: 3px solid var(--med);">
+        <div class="tcard-icon">🚫</div>
+        <div class="tcard-meta">
+          <div class="tcard-name">Скандал навколо бренду / категорії</div>
+          <div class="tcard-cond">Тригер: негативна новина про бренд або категорію набирає 100K+ охоплення</div>
+        </div>
+        <span class="tcard-badge" style="background:rgba(239,68,68,0.1);color:var(--com);">РЕПУТАЦІЯ</span>
+      </div>
+      <div class="tcard-body">
+        <div class="trow"><div class="trow-label">Скандал прямо про твій бренд<small>Продажі падають різко</small></div><span class="trow-val v-dn3">−30–70%</span><span class="trow-dur">2–4 тижні</span></div>
+        <div class="trow"><div class="trow-label">Скандал про конкурента<small>Аудиторія шукає альтернативу</small></div><span class="trow-val v-up2">+20–40%</span><span class="trow-dur">1–2 тижні</span></div>
+        <div class="trow"><div class="trow-label">Бойкот «рашистського» бренду<small>UA-специфіка: активна громадянська позиція</small></div><span class="trow-val v-dn3">−80–100%</span><span class="trow-dur">Постійно</span></div>
+        <div class="note note-red" style="margin-top:12px;margin-bottom:0;">🇺🇦 UA-специфіка: споживачі активно бойкотують бренди, пов'язані з рф. Агент відстежує списки та попереджає.</div>
+      </div>
+    </div>
+
+    <div class="tcard">
+      <div class="tcard-head" style="border-left: 3px solid var(--med);">
+        <div class="tcard-icon">🎨</div>
+        <div class="tcard-meta">
+          <div class="tcard-name">Колір / Матеріал сезону (Pantone та ін.)</div>
+          <div class="tcard-cond">Тригер: Pantone або провідні медіа оголошують «колір / матеріал року»</div>
+        </div>
+        <span class="tcard-badge" style="background:rgba(20,184,166,0.1);color:var(--med);">ТРЕНД</span>
+      </div>
+      <div class="tcard-body">
+        <div class="trow"><div class="trow-label">Колір сезону в асортименті<small>«Peach Fuzz 2024» → персикові відтінки</small></div><span class="trow-val v-up2">+25–50%</span><span class="trow-dur">Весь сезон</span></div>
+        <div class="trow"><div class="trow-label">Матеріал тренду (Quiet Luxury — касемір)<small>Категорія зростає на тренді</small></div><span class="trow-val v-up2">+20–40%</span><span class="trow-dur">1–2 сезони</span></div>
+        <div class="trow"><div class="trow-label">Рекомендація: підсвітити артикули в тренд-кольорі<small>Контент + реклама акцент</small></div><span class="trow-val v-up1">Пріоритет</span><span class="trow-dur">—</span></div>
+      </div>
+    </div>
+
+    <div class="tcard">
+      <div class="tcard-head" style="border-left: 3px solid var(--med);">
+        <div class="tcard-icon">💊</div>
+        <div class="tcard-meta">
+          <div class="tcard-name">Здоровий спосіб життя / Wellness-тренд</div>
+          <div class="tcard-cond">Тригер: «Новорічні резолюції» або wellness-хвиля в медіа</div>
+        </div>
+        <span class="tcard-badge" style="background:rgba(20,184,166,0.1);color:var(--med);">LIFESYLE</span>
+      </div>
+      <div class="tcard-body">
+        <div class="trow"><div class="trow-label">Спортивний одяг та аксесуари<small>Січень — пік «нового я»</small></div><span class="trow-val v-up2">+30–50%</span><span class="trow-dur">Лют–Лют</span></div>
+        <div class="trow"><div class="trow-label">Athleisure (зручний стиль)<small>Тривалий тренд, не тільки Січень</small></div><span class="trow-val v-up1">+15–25%</span><span class="trow-dur">Весь рік</span></div>
+        <div class="trow"><div class="trow-label">Аромати / свічки для медитації<small>Mindfulness тренд</small></div><span class="trow-val v-up1">+10–20%</span><span class="trow-dur">—</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════ SYSTEM ═══════════════ -->
+<div id="system" class="page">
+  <div class="sh">
+    <div class="sh-eye">Пріоритизація та System Prompt</div>
+    <div class="sh-title">Як агент обробляє всі 10 типів тригерів</div>
+    <p class="sh-desc">Матриця пріоритетів, час реакції та готовий блок для System Prompt.</p>
+  </div>
+
+  <div class="matrix-wrap">
+    <table class="mx">
+      <thead><tr>
+        <th>Тип тригера</th>
+        <th>Пріоритет</th>
+        <th>Час реакції агента</th>
+        <th>Джерело даних</th>
+        <th>Тип алерту</th>
+      </tr></thead>
+      <tbody>
+        <tr><td>🚨 Стокаут ризик (внутр.)</td><td><span class="trow-val v-dn3" style="padding:3px 8px;">КРИТИЧНО</span></td><td>Негайно, щогодини</td><td>Дані складу клієнта</td><td>Push у Telegram</td></tr>
+        <tr><td>📦 Затримка PO (постачання)</td><td><span class="trow-val v-dn2" style="padding:3px 8px;">ТЕРМІНОВО</span></td><td>&lt; 4 годин</td><td>Лог PO клієнта</td><td>Push + dashboard</td></tr>
+        <tr><td>💴 Курс UAH (економіка)</td><td><span class="trow-val v-dn2" style="padding:3px 8px;">ТЕРМІНОВО</span></td><td>&lt; 4 годин</td><td>Minfin API</td><td>Push + рекомендація</td></tr>
+        <tr><td>🎬 Вірал TikTok (соцмережі)</td><td><span class="trow-val v-dn2" style="padding:3px 8px;">ТЕРМІНОВО</span></td><td>&lt; 6 годин</td><td>Google Trends API</td><td>Push + рекомендація</td></tr>
+        <tr><td>⚡ Блекаут / тривога (UA)</td><td><span class="trow-val v-warn" style="padding:3px 8px;">ВАЖЛИВО</span></td><td>&lt; 12 годин</td><td>Alerts UA API / RSS</td><td>Коригування прогнозу</td></tr>
+        <tr><td>🌨 Погодний тригер</td><td><span class="trow-val v-warn" style="padding:3px 8px;">ВАЖЛИВО</span></td><td>Щодня (прогноз 7 днів)</td><td>Weather API</td><td>Превентивний алерт</td></tr>
+        <tr><td>📅 Календарна подія</td><td><span class="trow-val v-warn" style="padding:3px 8px;">ВАЖЛИВО</span></td><td>−4 тижні до події</td><td>Внутрішній календар</td><td>Планова підготовка</td></tr>
+        <tr><td>🏪 Дії конкурентів</td><td><span class="trow-val v-up1" style="padding:3px 8px;">СЕРЕДНЄ</span></td><td>&lt; 24 годин</td><td>Ручний ввід / парсинг</td><td>Рекомендація</td></tr>
+        <tr><td>🛒 Поведінкові сигнали</td><td><span class="trow-val v-up1" style="padding:3px 8px;">СЕРЕДНЄ</span></td><td>Щотижня</td><td>Аналітика сайту</td><td>Тижневий звіт</td></tr>
+        <tr><td>📺 Медіа / PR тренди</td><td><span class="trow-val v-neu" style="padding:3px 8px;">ІНФОРМАЦІЯ</span></td><td>&lt; 48 годин</td><td>RSS медіа / Google</td><td>Рекомендація</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pblock">
+    <div class="plabel" style="color:var(--cal);">System Prompt — Блок Trigger System</div>
+    <div class="ptext">
+<span class="c">## СИСТЕМА ТРИГЕРІВ АГЕНТА</span><br><br>
+
+<strong>Щогодини перевіряй:</strong><br>
+<span class="k">CHECK</span> залишки всіх SKU → стокаут-ризик (залишок &lt; lead_time × avg_sales × <span class="v">1.5</span>)<br>
+<span class="k">CHECK</span> статус всіх відкритих PO → прострочені &gt; <span class="v">3</span> дні<br>
+<span class="k">CHECK</span> курс UAH/USD через Minfin API → зміна &gt;<span class="v">3%</span> за 24г<br><br>
+
+<strong>Щодня о 7:00 перевіряй:</strong><br>
+<span class="k">CHECK</span> прогноз погоди на 7 днів → погодні тригери<br>
+<span class="k">CHECK</span> календар подій → чи є подія в наступні <span class="v">30</span> днів<br>
+<span class="k">CHECK</span> Google Trends по топ-категоріях → spike &gt;<span class="v">200%</span><br>
+<span class="k">CHECK</span> хіти → продажі зросли &gt;<span class="v">30%</span> rolling avg за 7 днів<br>
+<span class="k">CHECK</span> слоу-мувери → продажі нижче прогнозу &gt;<span class="v">25%</span> × 3 тижні<br><br>
+
+<strong>Щотижня:</strong><br>
+<span class="k">CHECK</span> % повернень по SKU → аномалія &gt;<span class="v">15%</span><br>
+<span class="k">CHECK</span> конкурентний моніторинг (якщо є дані від клієнта)<br>
+<span class="k">CHECK</span> поведінкові метрики → кинуті кошики, конверсія<br><br>
+
+<strong>Правило пріоритизації:</strong><br>
+<em>КРИТИЧНО</em> → Telegram push миттєво<br>
+<em>ТЕРМІНОВО</em> → Telegram push + дашборд за 4г<br>
+<em>ВАЖЛИВО</em> → дашборд наступного ранку<br>
+<em>СЕРЕДНЄ / ІНФО</em> → тижневий дайджест<br><br>
+
+<strong>UA-специфіка:</strong><br>
+— Блекаути / тривоги: <em>не вважай аномалією</em>, коригуй прогноз<br>
+— Курс UAH: при зміні &gt;3% → автоматичний перерахунок собівартості<br>
+— Бойкот-листи: якщо бренд в списку → негайний алерт власнику<br><br>
+
+<strong>Алерт завжди містить:</strong><br>
+1. Що сталось (тригер + тип)<br>
+2. На що вплине (категорія/SKU + % зміна)<br>
+3. Рекомендовану дію (одна чітка дія)<br>
+4. Дедлайн прийняття рішення
+    </div>
+  </div>
+</div>
+
+<script>
+  const nbs = document.querySelectorAll('.nb');
+  const pages = document.querySelectorAll('.page');
+  const colors = {
+    calendar:'var(--cal)', economic:'var(--eco)', social:'var(--soc)',
+    competitive:'var(--com)', internal:'var(--int)', supply:'var(--sup)',
+    force:'#9ca3af', behavioral:'var(--beh)', media:'var(--med)', system:'#ffffff'
+  };
+
+  nbs.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tab = btn.dataset.tab;
+      nbs.forEach(b => b.classList.remove('active'));
+      pages.forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      btn.style.color = '#fff';
+      btn.style.borderBottomColor = colors[tab] || '#fff';
+      document.getElementById(tab).classList.add('active');
+      // reset others
+      nbs.forEach(b => {
+        if (b !== btn) { b.style.color = ''; b.style.borderBottomColor = ''; }
+      });
+    });
+  });
+</script>
+</body>
+</html>

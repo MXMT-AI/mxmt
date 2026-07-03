@@ -1,0 +1,71 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Theme tokens ─────────────────────────────────────────── */
+:root {
+  --bg:           #080c10;
+  --surface:      #0f1419;
+  --surface2:     #161d26;
+  --row:          #0a0d13;
+  --border:       rgba(255,255,255,0.07);
+  --border-faint: rgba(255,255,255,0.04);
+  --text:         #e8ecf0;
+  --muted:        #6b7a8d;
+  --subtle:       #484f58;
+  --accent:       #00e5c4;
+  --input-bg:     rgba(255,255,255,0.04);
+  --input-hover:  rgba(255,255,255,0.08);
+}
+
+html.light {
+  --bg:           #f0f4f8;
+  --surface:      #ffffff;
+  --surface2:     #f1f5f9;
+  --row:          #f8fafc;
+  --border:       rgba(0,0,0,0.09);
+  --border-faint: rgba(0,0,0,0.05);
+  --text:         #0f172a;
+  --muted:        #64748b;
+  --subtle:       #94a3b8;
+  --accent:       #00b89e;
+  --input-bg:     rgba(0,0,0,0.04);
+  --input-hover:  rgba(0,0,0,0.07);
+}
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* ── Light-mode overrides for Tailwind utilities ─────────── */
+html.light .text-white { color: var(--text); }
+html.light .hover\:text-white:hover { color: var(--text); }
+
+html.light .bg-white\/\[0\.04\] { background-color: var(--input-bg); }
+html.light .bg-white\/\[0\.08\] { background-color: var(--input-hover); }
+html.light .hover\:bg-white\/\[0\.04\]:hover { background-color: var(--input-bg); }
+html.light .hover\:bg-white\/\[0\.08\]:hover { background-color: var(--input-hover); }
+
+/* Scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.1) transparent;
+}
+html.light * {
+  scrollbar-color: rgba(0,0,0,0.15) transparent;
+}
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.1);
+  border-radius: 3px;
+}
+html.light ::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.15);
+}
+
+/* Mono helper */
+.font-mono {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+}

@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TOP-аналіз товарів — Агент Аналітик</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,700;0,9..144,900;1,9..144,400;1,9..144,700&family=DM+Mono:wght@300;400;500&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f5f3ef;
+  --surface: #ffffff;
+  --s2: #edeae3;
+  --s3: #e4e0d8;
+  --border: #d8d4cb;
+  --ink: #1c1a17;
+  --muted: #86806f;
+  --dim: #b8b3a8;
+
+  --gold: #c9920a;
+  --gold-bg: #fdf8ed;
+  --gold-border: #f0d88a;
+
+  --teal: #0e7d6a;
+  --teal-bg: #edfaf6;
+  --teal-border: #9ee5d4;
+
+  --blue: #1554a8;
+  --blue-bg: #edf3fc;
+  --blue-border: #9fc3f5;
+
+  --purple: #6d28d9;
+  --purple-bg: #f5f0ff;
+  --purple-border: #c4b0fa;
+
+  --coral: #c23e1a;
+  --coral-bg: #fef2ee;
+  --coral-border: #f5b8a4;
+
+  --rank1: #c9920a;
+  --rank2: #8a8a8a;
+  --rank3: #a0623a;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Instrument Sans', sans-serif;
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+
+/* HEADER */
+.header {
+  background: var(--ink);
+  padding: 44px 48px 36px;
+  position: relative;
+  overflow: hidden;
+}
+.header::before {
+  content: 'TOP';
+  position: absolute;
+  right: -20px; bottom: -30px;
+  font-family: 'Fraunces', serif;
+  font-size: 220px;
+  font-weight: 900;
+  color: rgba(255,255,255,0.025);
+  line-height: 1;
+  pointer-events: none;
+  letter-spacing: -10px;
+}
+.h-eye {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: rgba(255,255,255,0.3);
+  text-transform: uppercase;
+  letter-spacing: 2.5px;
+  margin-bottom: 12px;
+}
+.header h1 {
+  font-family: 'Fraunces', serif;
+  font-size: clamp(24px, 4vw, 44px);
+  font-weight: 900;
+  color: #fff;
+  line-height: 1.1;
+}
+.header h1 em { font-style: italic; color: #f0c040; }
+.h-desc {
+  margin-top: 10px;
+  color: rgba(255,255,255,0.4);
+  font-size: 13px;
+  max-width: 580px;
+  line-height: 1.7;
+}
+
+/* TOOLBAR */
+.toolbar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 48px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.tb-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  white-space: nowrap;
+}
+.tb-seg {
+  display: flex;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  overflow: hidden;
+}
+.tb-seg button {
+  padding: 6px 14px;
+  border: none;
+  background: none;
+  font-family: 'Instrument Sans', sans-serif;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.tb-seg button.active {
+  background: var(--ink);
+  color: #fff;
+  border-radius: 5px;
+}
+.tb-select {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  font-family: 'Instrument Sans', sans-serif;
+  font-size: 12.5px;
+  color: var(--ink);
+  outline: none;
+  cursor: pointer;
+}
+.tb-divider { width:1px; height:28px; background:var(--border); flex-shrink:0; }
+.tb-number {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 0 6px;
+}
+.tb-number button {
+  background: none;
+  border: none;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 4px 6px;
+}
+.tb-number button:hover { color: var(--ink); }
+.tb-number span {
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+  min-width: 28px;
+  text-align: center;
+}
+.tb-hint {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--dim);
+  white-space: nowrap;
+}
+
+/* MAIN */
+.main { padding: 28px 48px; max-width: 1140px; }
+
+@media(max-width:720px) {
+  .header, .toolbar, .main { padding-left: 16px; padding-right: 16px; }
+  .g2, .g3 { grid-template-columns: 1fr !important; }
+}
+
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.g4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; }
+.full { grid-column: 1/-1; }
+
+/* SECTION HEAD */
+.sh {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  margin-top: 4px;
+  padding-bottom: 10px;
+  border-bottom: 1.5px solid var(--ink);
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.sh-left { display: flex; align-items: baseline; gap: 10px; }
+.sh h2 {
+  font-family: 'Fraunces', serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.sh-sub { font-size: 12px; color: var(--muted); font-family: 'DM Mono', monospace; }
+.sh-actions { display: flex; gap: 6px; }
+.sh-btn {
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--surface);
+  font-size: 11.5px;
+  color: var(--muted);
+  cursor: pointer;
+  font-family: 'Instrument Sans', sans-serif;
+  transition: all 0.15s;
+}
+.sh-btn:hover, .sh-btn.active { border-color: var(--ink); color: var(--ink); }
+
+/* TOP TABLE */
+.top-table-wrap {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+table.top-table { width: 100%; border-collapse: collapse; }
+table.top-table thead tr { background: var(--ink); }
+table.top-table th {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: rgba(255,255,255,0.45);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 9px 14px;
+  text-align: left;
+  white-space: nowrap;
+}
+table.top-table th.r { text-align: right; }
+table.top-table th.c { text-align: center; }
+table.top-table td {
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  vertical-align: middle;
+}
+table.top-table tr:last-child td { border-bottom: none; }
+table.top-table tr:hover td { background: rgba(0,0,0,0.015); }
+table.top-table td.r { text-align: right; font-family: 'DM Mono', monospace; }
+table.top-table td.c { text-align: center; }
+
+.rank-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.rank-num {
+  font-family: 'Fraunces', serif;
+  font-size: 18px;
+  font-weight: 900;
+  min-width: 28px;
+  line-height: 1;
+}
+.rank-1 { color: var(--rank1); }
+.rank-2 { color: var(--rank2); }
+.rank-3 { color: var(--rank3); }
+.rank-other { color: var(--dim); font-size: 14px; }
+
+.sku-name { font-weight: 700; color: var(--ink); line-height: 1.2; }
+.sku-meta { font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; margin-top: 2px; }
+
+/* BAR CELL */
+.bar-cell { display: flex; align-items: center; gap: 8px; }
+.bar-track {
+  flex: 1;
+  min-width: 60px;
+  height: 6px;
+  background: var(--s3);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.bar-fill { height: 100%; border-radius: 3px; }
+.bar-val {
+  font-family: 'DM Mono', monospace;
+  font-size: 11.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  min-width: 70px;
+  text-align: right;
+}
+
+/* TREND BADGE */
+.trend {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.trend-up { background: var(--teal-bg); color: var(--teal); border: 1px solid var(--teal-border); }
+.trend-dn { background: var(--coral-bg); color: var(--coral); border: 1px solid var(--coral-border); }
+.trend-flat { background: var(--s2); color: var(--muted); border: 1px solid var(--border); }
+
+/* TYPE BADGE */
+.type-badge {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid;
+  white-space: nowrap;
+}
+.type-hit { background: var(--teal-bg); color: var(--teal); border-color: var(--teal-border); }
+.type-stable { background: var(--s2); color: var(--muted); border-color: var(--border); }
+.type-slow { background: var(--gold-bg); color: var(--gold); border-color: var(--gold-border); }
+.type-new { background: var(--blue-bg); color: var(--blue); border-color: var(--blue-border); }
+.type-promo { background: var(--purple-bg); color: var(--purple); border-color: var(--purple-border); }
+
+/* ABC BADGE */
+.abc-a { background: #fef3cd; color: #8a5700; border-radius: 4px; padding: 1px 7px; font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500; border: 1px solid #f0d878; }
+.abc-b { background: #e8f0fa; color: #1554a8; border-radius: 4px; padding: 1px 7px; font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500; border: 1px solid #9fc3f5; }
+.abc-c { background: var(--s2); color: var(--muted); border-radius: 4px; padding: 1px 7px; font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500; border: 1px solid var(--border); }
+
+/* CATEGORY CARD */
+.cat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+.cat-card-head {
+  padding: 14px 18px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  gap: 10px;
+  flex-wrap: wrap;
+  cursor: pointer;
+}
+.cat-card-head:hover { background: var(--s2); }
+.cat-head-left { display: flex; align-items: center; gap: 10px; }
+.cat-icon { font-size: 20px; line-height: 1; }
+.cat-name { font-size: 15px; font-weight: 700; color: var(--ink); }
+.cat-share { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); }
+.cat-head-right { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.cat-stat {
+  text-align: right;
+}
+.cat-stat-val {
+  font-family: 'Fraunces', serif;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+  display: block;
+}
+.cat-stat-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.cat-chevron { font-size: 14px; color: var(--dim); transition: transform 0.2s; }
+.cat-chevron.open { transform: rotate(90deg); }
+.cat-body { padding: 14px 18px; display: none; }
+.cat-body.open { display: block; }
+
+/* DRILL TABS */
+.drill-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.drill-tab {
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  font-size: 11.5px;
+  cursor: pointer;
+  color: var(--muted);
+  background: var(--bg);
+  transition: all 0.15s;
+}
+.drill-tab.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+/* BRAND CARD */
+.brand-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.brand-row:last-child { border-bottom: none; }
+.brand-row:hover { background: var(--s2); }
+.brand-rank { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 900; min-width: 30px; }
+.brand-info { flex: 1; min-width: 0; }
+.brand-name { font-weight: 700; font-size: 14px; color: var(--ink); }
+.brand-cats { font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; margin-top: 2px; }
+.brand-bars { flex: 2; min-width: 120px; }
+.brand-stat { text-align: right; min-width: 80px; }
+.brand-stat-val { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 700; display: block; line-height: 1; }
+.brand-stat-lbl { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); text-transform: uppercase; }
+
+/* METRIC TILES */
+.metric-tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+@media(max-width:700px) { .metric-tiles { grid-template-columns: 1fr 1fr; } }
+.metric-tile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+.metric-tile-val {
+  font-family: 'Fraunces', serif;
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.metric-tile-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.metric-tile-change {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  margin-top: 6px;
+}
+
+/* INSIGHT BOX */
+.insight-box {
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+  border: 1px solid;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.insight-box.gold { background: var(--gold-bg); border-color: var(--gold-border); color: #6b4a00; }
+.insight-box.teal { background: var(--teal-bg); border-color: var(--teal-border); color: #054d3e; }
+.insight-box.blue { background: var(--blue-bg); border-color: var(--blue-border); color: #0c3672; }
+.insight-box strong { font-weight: 700; }
+
+/* ABC SUMMARY */
+.abc-row { display: flex; gap: 0; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 20px; }
+.abc-seg {
+  flex: 1;
+  padding: 12px 14px;
+  border-right: 1px solid var(--border);
+  text-align: center;
+}
+.abc-seg:last-child { border-right: none; }
+.abc-seg-letter { font-family: 'Fraunces', serif; font-size: 28px; font-weight: 900; line-height: 1; }
+.abc-seg-desc { font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; margin-top: 3px; }
+
+/* VELOCITY BADGE */
+.vel { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); }
+.vel strong { color: var(--ink); }
+
+/* TABS */
+.page-tabs {
+  display: flex;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 0 48px;
+}
+.page-tabs::-webkit-scrollbar { display: none; }
+.pt {
+  padding: 13px 18px 11px;
+  border: none;
+  background: none;
+  font-family: 'Instrument Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  transition: all 0.15s;
+  position: relative;
+  bottom: -1px;
+}
+.pt:hover { color: var(--ink); }
+.pt.active { color: var(--ink); border-bottom-color: var(--ink); }
+
+.page { display: none; }
+.page.active { display: block; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="h-eye">Агент Аналітик — TOP-аналіз товарів</div>
+  <h1>Рейтинги товарів:<br><em>штуки, оборот, бренди, категорії</em></h1>
+  <p class="h-desc">Повна система TOP-аналізу: загальний рейтинг → категорія → підкатегорія → бренд. ABC-аналіз, тренди, velocity та інсайти агента.</p>
+</div>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <span class="tb-label">Тип:</span>
+  <div class="tb-seg" id="typeToggle">
+    <button class="active" onclick="setType('units',this)">📦 Штуки</button>
+    <button onclick="setType('revenue',this)">💰 Оборот</button>
+    <button onclick="setType('margin',this)">📊 Маржа</button>
+    <button onclick="setType('velocity',this)">⚡ Velocity</button>
+  </div>
+  <div class="tb-divider"></div>
+  <span class="tb-label">Модель:</span>
+  <select class="tb-select" onchange="setMode(this.value)">
+    <option value="mono">Монобренд</option>
+    <option value="multi">Мультибренд</option>
+  </select>
+  <div class="tb-divider"></div>
+  <span class="tb-label">TOP:</span>
+  <div class="tb-number">
+    <button onclick="changeTop(-5)">−</button>
+    <span id="topN">20</span>
+    <button onclick="changeTop(5)">+</button>
+  </div>
+  <span class="tb-hint" id="topHint">Рекомендовано для ~200 SKU</span>
+  <div class="tb-divider"></div>
+  <span class="tb-label">Порівняти з:</span>
+  <div class="tb-seg" id="periodToggle">
+    <button class="active" onclick="setPeriod('week',this)">Тиждень</button>
+    <button onclick="setPeriod('month',this)">Місяць</button>
+    <button onclick="setPeriod('season',this)">Сезон</button>
+  </div>
+</div>
+
+<!-- PAGE TABS -->
+<div class="page-tabs">
+  <button class="pt active" onclick="switchPage('overview',this)">📊 Загальний TOP</button>
+  <button class="pt" onclick="switchPage('categories',this)">🗂 По категоріях</button>
+  <button class="pt" id="brandsTab" onclick="switchPage('brands',this)">🏷 По брендах</button>
+  <button class="pt" onclick="switchPage('abc',this)">🔬 ABC-аналіз</button>
+  <button class="pt" onclick="switchPage('new',this)">🆕 Нові надходження</button>
+  <button class="pt" onclick="switchPage('insights',this)">🧠 Інсайти агента</button>
+</div>
+
+<div class="main">
+
+<!-- ════ OVERVIEW ════ -->
+<div id="page-overview" class="page active">
+
+  <div class="metric-tiles">
+    <div class="metric-tile">
+      <div class="metric-tile-val" style="color:var(--teal);">847</div>
+      <div class="metric-tile-label">Всього SKU</div>
+      <div class="metric-tile-change" style="color:var(--muted);">Активних: 634</div>
+    </div>
+    <div class="metric-tile">
+      <div class="metric-tile-val">TOP 20</div>
+      <div class="metric-tile-label">генерують оборот</div>
+      <div class="metric-tile-change" style="color:var(--teal);">63% від загального</div>
+    </div>
+    <div class="metric-tile">
+      <div class="metric-tile-val" style="color:var(--gold);">↑12%</div>
+      <div class="metric-tile-label">Зростання TOP vs пер.</div>
+      <div class="metric-tile-change" style="color:var(--muted);">Місяць до місяця</div>
+    </div>
+    <div class="metric-tile">
+      <div class="metric-tile-val" style="color:var(--coral);">8</div>
+      <div class="metric-tile-label">Нових у TOP 20</div>
+      <div class="metric-tile-change" style="color:var(--muted);">Замінили попередні</div>
+    </div>
+  </div>
+
+  <div class="insight-box gold">
+    <strong>🧠 Інсайт агента:</strong> Топ-3 позиції генерують <strong>28% всього обороту</strong> при 0.3% від кількості SKU — класична концентрація Парето. Футболка TSH-042-WH увійшла до TOP цього місяця з нуля та вже №2 по штуках — <strong>підтверджений хіт, рекомендується дозамовлення.</strong> Позиція #8 (Жакет жіночий бежевий) впала з #3 місяця тому — вивчіть причину.
+  </div>
+
+  <div class="sh">
+    <div class="sh-left">
+      <h2>TOP 20 — всі категорії</h2>
+      <span class="sh-sub" id="metricLabel">за штуками</span>
+    </div>
+    <div class="sh-actions">
+      <button class="sh-btn active">Таблиця</button>
+      <button class="sh-btn">Діаграма</button>
+      <button class="sh-btn">Експорт</button>
+    </div>
+  </div>
+
+  <div class="top-table-wrap">
+    <table class="top-table" id="mainTopTable">
+      <thead><tr>
+        <th style="width:40px;" class="c">#</th>
+        <th>Товар</th>
+        <th>Категорія</th>
+        <th class="r">Штуки</th>
+        <th style="min-width:140px;">Частка</th>
+        <th class="r">Оборот</th>
+        <th class="r">Маржа</th>
+        <th>Тренд</th>
+        <th>ABC</th>
+        <th>Тип</th>
+      </tr></thead>
+      <tbody id="mainTopBody"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<!-- ════ CATEGORIES ════ -->
+<div id="page-categories" class="page">
+
+  <div class="insight-box blue">
+    <strong>🧠 Структура продажів:</strong> Одяг генерує <strong>52% штук</strong>, але Аксесуари дають <strong>38% маржі</strong> при 18% обороту — найвища маржинальність. Зверніть увагу: категорія «Білизна» показує зростання +34% — нова зірка портфеля.
+  </div>
+
+  <div class="sh">
+    <div class="sh-left"><h2>По категоріях</h2><span class="sh-sub">кліки для деталей</span></div>
+    <div class="sh-actions">
+      <button class="sh-btn active" onclick="expandAll()">Розгорнути всі</button>
+      <button class="sh-btn" onclick="collapseAll()">Згорнути</button>
+    </div>
+  </div>
+
+  <div id="categoriesContainer"></div>
+
+</div>
+
+<!-- ════ BRANDS ════ -->
+<div id="page-brands" class="page">
+
+  <div class="insight-box teal">
+    <strong>🧠 Аналіз по брендах:</strong> Бренд <strong>OFF-WHITE</strong> дає 23% обороту при 8% від кількості SKU — найвища ефективність портфеля. Бренд <strong>BaseCollect</strong> — найбільший за штуками, але маржа нижча середньої. Рекомендується: розглянути збільшення частки OFF-WHITE в закупівлі.
+  </div>
+
+  <div class="sh">
+    <div class="sh-left"><h2>TOP по брендах</h2><span class="sh-sub">для мультибренду</span></div>
+    <div class="sh-actions">
+      <button class="sh-btn active" onclick="setBrandView('overview')">Огляд</button>
+      <button class="sh-btn" onclick="setBrandView('detail')">З деталями</button>
+    </div>
+  </div>
+
+  <div class="top-table-wrap">
+    <table class="top-table">
+      <thead><tr>
+        <th class="c">#</th>
+        <th>Бренд</th>
+        <th>Категорії</th>
+        <th class="r">SKU</th>
+        <th style="min-width:120px;">Частка обороту</th>
+        <th class="r">Оборот</th>
+        <th class="r">Маржа %</th>
+        <th class="r">Avg чек</th>
+        <th>Тренд</th>
+        <th>Ефект.</th>
+      </tr></thead>
+      <tbody id="brandTableBody"></tbody>
+    </table>
+  </div>
+
+  <div class="sh" style="margin-top:24px;">
+    <div class="sh-left"><h2>TOP 5 товарів по кожному бренду</h2><span class="sh-sub">деталізація</span></div>
+  </div>
+
+  <div id="brandDetailContainer"></div>
+
+</div>
+
+<!-- ════ ABC ════ -->
+<div id="page-abc" class="page">
+
+  <div class="insight-box gold">
+    <strong>🧠 ABC-аналіз:</strong> Класична модель Парето підтверджена — <strong>A-товари (20% SKU)</strong> генерують 78% обороту. У вас <strong>127 A-товарів</strong> — їхній контроль стоку критичний. C-товари займають 44% полиці та дають лише 6% — кандидати на виведення.
+  </div>
+
+  <div class="abc-row">
+    <div class="abc-seg" style="background:var(--gold-bg);border-right: 1px solid var(--gold-border);">
+      <div class="abc-seg-letter" style="color:var(--gold);">A</div>
+      <div style="font-family:'DM Mono',monospace;font-size:22px;font-weight:700;color:var(--ink);">127 SKU</div>
+      <div class="abc-seg-desc">20% асортименту</div>
+      <div style="font-size:13px;font-weight:700;color:var(--gold);margin-top:6px;">78% обороту</div>
+      <div class="abc-seg-desc" style="margin-top:4px;">Контроль щодня</div>
+    </div>
+    <div class="abc-seg" style="background:var(--blue-bg);border-right: 1px solid var(--blue-border);">
+      <div class="abc-seg-letter" style="color:var(--blue);">B</div>
+      <div style="font-family:'DM Mono',monospace;font-size:22px;font-weight:700;color:var(--ink);">228 SKU</div>
+      <div class="abc-seg-desc">36% асортименту</div>
+      <div style="font-size:13px;font-weight:700;color:var(--blue);margin-top:6px;">16% обороту</div>
+      <div class="abc-seg-desc" style="margin-top:4px;">Щотижневий моніторинг</div>
+    </div>
+    <div class="abc-seg" style="background:var(--s2);">
+      <div class="abc-seg-letter" style="color:var(--dim);">C</div>
+      <div style="font-family:'DM Mono',monospace;font-size:22px;font-weight:700;color:var(--ink);">279 SKU</div>
+      <div class="abc-seg-desc">44% асортименту</div>
+      <div style="font-size:13px;font-weight:700;color:var(--muted);margin-top:6px;">6% обороту</div>
+      <div class="abc-seg-desc" style="margin-top:4px;">Щомісячний огляд</div>
+    </div>
+  </div>
+
+  <div class="g2">
+    <div>
+      <div class="sh"><div class="sh-left"><h2>A-товари (TOP)</h2><span class="sh-sub">127 позицій</span></div></div>
+      <div class="top-table-wrap">
+        <table class="top-table">
+          <thead><tr><th class="c">#</th><th>Товар</th><th class="r">Оборот</th><th class="r">% від заг.</th><th>Наростаючим</th></tr></thead>
+          <tbody id="abcABody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div>
+      <div class="sh"><div class="sh-left"><h2>C-товари — вивести?</h2><span class="sh-sub">кандидати на виведення</span></div></div>
+      <div class="insight-box gold" style="font-size:12px;margin-bottom:12px;">
+        <strong>Критерій виведення:</strong> C-товар + слоу-мувер + ≤2% margin share + не сезонний = кандидат на виведення з асортименту.
+      </div>
+      <div class="top-table-wrap">
+        <table class="top-table">
+          <thead><tr><th>Товар</th><th class="r">Частка</th><th>Рішення</th></tr></thead>
+          <tbody id="abcCBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ════ NEW ════ -->
+<div id="page-new" class="page">
+
+  <div class="insight-box blue">
+    <strong>🧠 Нові надходження:</strong> З 34 нових артикулів цього сезону <strong>8 вже в TOP-20</strong>. Середній час виходу в TOP: <strong>3.2 тижні</strong>. TSH-042-WH — найшвидший старт за 6 місяців. 12 позицій ще у warm-up фазі — не оцінювати як слоу-мувери.
+  </div>
+
+  <div class="sh"><div class="sh-left"><h2>Нові артикули цього сезону</h2><span class="sh-sub">перші 8 тижнів після надходження</span></div></div>
+
+  <div class="top-table-wrap">
+    <table class="top-table">
+      <thead><tr>
+        <th class="c">#</th>
+        <th>Товар</th>
+        <th>Категорія</th>
+        <th>Надійшов</th>
+        <th>Тижнів у продажу</th>
+        <th style="min-width:120px;">Старт продажів</th>
+        <th class="r">Sold</th>
+        <th class="r">STR%</th>
+        <th>Фаза</th>
+        <th>Прогноз</th>
+      </tr></thead>
+      <tbody id="newArrivalsBody"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<!-- ════ INSIGHTS ════ -->
+<div id="page-insights" class="page">
+
+  <div class="sh"><div class="sh-left"><h2>Інсайти агента по TOP-аналізу</h2><span class="sh-sub">7 блоків аналізу</span></div></div>
+
+  <div class="g2" id="insightsContainer"></div>
+
+</div>
+
+</div><!-- /main -->
+
+<script>
+let currentType = 'units';
+let currentMode = 'mono';
+let topN = 20;
+let currentPeriod = 'month';
+
+const PRODUCTS = [
+  { rank:1, sku:'JKT-AW-088', name:'Куртка стьобана чорна', cat:'Верхній одяг', subcat:'Демісезон', brand:'Studio A', units:124, revenue:'186,000₴', margin:'62%', trend:'+28%', trendDir:'up', abc:'A', type:'hit', vel:'4.4/дн' },
+  { rank:2, sku:'TSH-042-WH', name:'Футболка оверсайз біла', cat:'Одяг', subcat:'Футболки', brand:'Studio A', units:118, revenue:'106,200₴', margin:'71%', trend:'+67%', trendDir:'up', abc:'A', type:'hit', vel:'4.2/дн' },
+  { rank:3, sku:'DNS-210-BG', name:'Сукня міді бежева', cat:'Одяг', subcat:'Сукні', brand:'Studio A', units:97, revenue:'145,500₴', margin:'65%', trend:'+12%', trendDir:'up', abc:'A', type:'stable', vel:'3.5/дн' },
+  { rank:4, sku:'JNS-AW-031', name:'Джинси прямі індиго', cat:'Одяг', subcat:'Джинси', brand:'Studio A', units:89, revenue:'124,600₴', margin:'58%', trend:'+5%', trendDir:'up', abc:'A', type:'stable', vel:'3.2/дн' },
+  { rank:5, sku:'SGL-220-BL', name:'Сонцезахисні окуляри Aviator', cat:'Аксесуари', subcat:'Окуляри', brand:'Studio A', units:84, revenue:'168,000₴', margin:'74%', trend:'+140%', trendDir:'up', abc:'A', type:'hit', vel:'6.0/дн' },
+  { rank:6, sku:'KRD-058-CR', name:'Кардиган оверсайз карамель', cat:'Одяг', subcat:'Светри', brand:'Studio A', units:76, revenue:'106,400₴', margin:'63%', trend:'+8%', trendDir:'up', abc:'A', type:'stable', vel:'2.7/дн' },
+  { rank:7, sku:'BLS-088-PL', name:'Блуза шовкова пудра', cat:'Одяг', subcat:'Блузки', brand:'Studio A', units:68, revenue:'95,200₴', margin:'68%', trend:'+22%', trendDir:'up', abc:'A', type:'hit', vel:'2.4/дн' },
+  { rank:8, sku:'JKT-DEN-022', name:'Жакет жіночий бежевий', cat:'Одяг', subcat:'Жакети', brand:'Studio A', units:61, revenue:'91,500₴', margin:'60%', trend:'−18%', trendDir:'dn', abc:'A', type:'slow', vel:'2.2/дн' },
+  { rank:9, sku:'TRS-AW-044', name:'Штани карго хакі', cat:'Одяг', subcat:'Штани', brand:'Studio A', units:58, revenue:'81,200₴', margin:'57%', trend:'+3%', trendDir:'flat', abc:'A', type:'stable', vel:'2.1/дн' },
+  { rank:10, sku:'SCF-WL-018', name:'Шарф вовняний молоко', cat:'Аксесуари', subcat:'Шарфи', brand:'Studio A', units:54, revenue:'48,600₴', margin:'72%', trend:'+14%', trendDir:'up', abc:'A', type:'stable', vel:'1.9/дн' },
+  { rank:11, sku:'HDE-088-GR', name:'Худі оверсайз графіт', cat:'Одяг', subcat:'Худі', brand:'Studio A', units:52, revenue:'72,800₴', margin:'64%', trend:'−5%', trendDir:'dn', abc:'A', type:'stable', vel:'1.9/дн' },
+  { rank:12, sku:'BRA-SLK-042', name:'Бралет шовковий екрю', cat:'Білизна', subcat:'Бра', brand:'Studio A', units:48, revenue:'38,400₴', margin:'76%', trend:'+52%', trendDir:'up', abc:'A', type:'hit', vel:'1.7/дн' },
+  { rank:13, sku:'TRS-LIN-019', name:'Штани лляні пісок', cat:'Одяг', subcat:'Штани', brand:'Studio A', units:46, revenue:'64,400₴', margin:'62%', trend:'+18%', trendDir:'up', abc:'A', type:'new', vel:'1.6/дн' },
+  { rank:14, sku:'HAT-SUM-034', name:'Панама бежева structured', cat:'Аксесуари', subcat:'Капелюхи', brand:'Studio A', units:44, revenue:'35,200₴', margin:'78%', trend:'+88%', trendDir:'up', abc:'A', type:'hit', vel:'3.1/дн' },
+  { rank:15, sku:'CLT-WH-008', name:'Клатч шкіряний білий', cat:'Сумки', subcat:'Клатчі', brand:'Studio A', units:41, revenue:'82,000₴', margin:'70%', trend:'+11%', trendDir:'up', abc:'A', type:'stable', vel:'1.5/дн' },
+  { rank:16, sku:'JMP-KNT-066', name:'Джемпер в\'язаний крем', cat:'Одяг', subcat:'Светри', brand:'Studio A', units:38, revenue:'53,200₴', margin:'59%', trend:'−12%', trendDir:'dn', abc:'B', type:'slow', vel:'1.4/дн' },
+  { rank:17, sku:'SKT-PLT-021', name:'Спідниця плісе зелена', cat:'Одяг', subcat:'Спідниці', brand:'Studio A', units:36, revenue:'50,400₴', margin:'65%', trend:'+7%', trendDir:'up', abc:'B', type:'stable', vel:'1.3/дн' },
+  { rank:18, sku:'BLZ-STR-055', name:'Блейзер структурований', cat:'Одяг', subcat:'Жакети', brand:'Studio A', units:34, revenue:'68,000₴', margin:'61%', trend:'+2%', trendDir:'flat', abc:'B', type:'stable', vel:'1.2/дн' },
+  { rank:19, sku:'BAG-TOT-078', name:'Шоппер полотняний чорний', cat:'Сумки', subcat:'Шоппери', brand:'Studio A', units:32, revenue:'32,000₴', margin:'73%', trend:'+33%', trendDir:'up', abc:'B', type:'new', vel:'1.1/дн' },
+  { rank:20, sku:'JNS-WID-044', name:'Джинси wide-leg синій', cat:'Одяг', subcat:'Джинси', brand:'Studio A', units:30, revenue:'48,000₴', margin:'55%', trend:'−8%', trendDir:'dn', abc:'B', type:'slow', vel:'1.1/дн' },
+];
+
+const BRANDS = [
+  { rank:1, name:'OFF-WHITE', cats:'Одяг, Аксесуари', sku:48, share:23, revenue:'348,000₴', margin:'72%', avgCheck:'2,400₴', trend:'+18%', trendDir:'up', eff:'★★★' },
+  { rank:2, name:'Studio A', cats:'Одяг (full range)', sku:124, share:31, revenue:'469,200₴', margin:'63%', avgCheck:'890₴', trend:'+12%', trendDir:'up', eff:'★★☆' },
+  { rank:3, name:'BaseCollect', cats:'Базовий одяг, Білизна', sku:88, share:19, revenue:'287,400₴', margin:'58%', avgCheck:'640₴', trend:'+5%', trendDir:'up', eff:'★★☆' },
+  { rank:4, name:'AquaModa', cats:'Купальники, Пляж', sku:34, share:12, revenue:'181,600₴', margin:'68%', avgCheck:'1,050₴', trend:'+41%', trendDir:'up', eff:'★★★' },
+  { rank:5, name:'CityBag', cats:'Сумки, Гаманці', sku:56, share:9, revenue:'136,200₴', margin:'70%', avgCheck:'1,200₴', trend:'+7%', trendDir:'up', eff:'★★☆' },
+  { rank:6, name:'EyeStyle', cats:'Окуляри, Оправи', sku:42, share:6, revenue:'90,800₴', margin:'74%', avgCheck:'1,480₴', trend:'+88%', trendDir:'up', eff:'★★★' },
+];
+
+const CATEGORIES = [
+  { icon:'👗', name:'Одяг', share:'52%', units:'712', revenue:'996,800₴', trend:'+14%', trendDir:'up', subs:[
+    { name:'Футболки & Топи', top:[ ['TSH-042-WH', '+67%', 'up'], ['TSH-084-BK', '+12%', 'up'], ['TPL-010-WH', '+5%', 'up'], ['TSH-066-GR', '−8%', 'dn'], ['TSH-022-RD', '+3%', 'flat'] ] },
+    { name:'Сукні', top:[ ['DNS-210-BG', '+12%', 'up'], ['DNS-088-WH', '+8%', 'up'], ['DNS-104-BK', '+22%', 'up'], ['DNS-034-PK', '−5%', 'dn'], ['DNS-076-GR', '+15%', 'up'] ] },
+    { name:'Джинси', top:[ ['JNS-AW-031', '+5%', 'up'], ['JNS-WID-044', '−8%', 'dn'], ['JNS-SKN-022', '+2%', 'flat'], ['JNS-BGG-011', '+18%', 'up'], ['JNS-MOM-055', '+7%', 'up'] ] },
+    { name:'Светри & Кардигани', top:[ ['KRD-058-CR', '+8%', 'up'], ['JMP-KNT-066', '−12%', 'dn'], ['SWT-CRW-044', '+3%', 'flat'], ['PLL-ANG-022', '+25%', 'up'], ['KRD-STR-088', '−4%', 'dn'] ] },
+  ]},
+  { icon:'👟', name:'Взуття', share:'14%', units:'190', revenue:'342,000₴', trend:'+6%', trendDir:'up', subs:[
+    { name:'Кросівки', top:[ ['SNK-LTH-044', '+22%', 'up'], ['SNK-MSH-088', '+45%', 'up'], ['SNK-CLN-022', '+8%', 'up'], ['SNK-BAS-011', '−3%', 'dn'], ['SNK-HKI-066', '+12%', 'up'] ] },
+    { name:'Черевики', top:[ ['BOT-CHE-066', '+14%', 'up'], ['BOT-ANK-044', '+5%', 'up'], ['BOT-LOA-022', '−8%', 'dn'], ['BOT-MAR-088', '+18%', 'up'], ['BOT-COW-011', '+2%', 'flat'] ] },
+  ]},
+  { icon:'👜', name:'Сумки', share:'11%', units:'150', revenue:'300,000₴', trend:'+9%', trendDir:'up', subs:[
+    { name:'Шоппери', top:[ ['BAG-TOT-078', '+33%', 'up'], ['BAG-TOT-044', '+7%', 'up'], ['BAG-TOT-022', '+2%', 'flat'], ['BAG-TOT-088', '+14%', 'up'], ['BAG-TOT-011', '−5%', 'dn'] ] },
+    { name:'Клатчі', top:[ ['CLT-WH-008', '+11%', 'up'], ['CLT-BK-022', '+18%', 'up'], ['CLT-TN-044', '+3%', 'flat'], ['CLT-GD-011', '+25%', 'up'], ['CLT-PK-033', '−2%', 'dn'] ] },
+  ]},
+  { icon:'✨', name:'Аксесуари', share:'18%', units:'246', revenue:'360,000₴', trend:'+34%', trendDir:'up', subs:[
+    { name:'Окуляри', top:[ ['SGL-220-BL', '+140%', 'up'], ['SGL-RND-088', '+85%', 'up'], ['SGL-OVL-044', '+22%', 'up'], ['OPT-SQ-022', '+8%', 'up'], ['SGL-CAT-011', '+45%', 'up'] ] },
+    { name:'Капелюхи', top:[ ['HAT-SUM-034', '+88%', 'up'], ['HAT-BCK-022', '+44%', 'up'], ['HAT-STR-044', '+12%', 'up'], ['HAT-FED-011', '+5%', 'up'], ['CAP-BSB-088', '+22%', 'up'] ] },
+    { name:'Шарфи', top:[ ['SCF-WL-018', '+14%', 'up'], ['SCF-LIN-044', '+7%', 'up'], ['SCF-SLK-022', '+22%', 'up'], ['PLT-SLK-066', '−3%', 'dn'], ['BND-HED-011', '+8%', 'up'] ] },
+  ]},
+  { icon:'👙', name:'Білизна', share:'5%', units:'68', revenue:'68,000₴', trend:'+34%', trendDir:'up', subs:[
+    { name:'Бра', top:[ ['BRA-SLK-042', '+52%', 'up'], ['BRA-BSC-022', '+14%', 'up'], ['BRA-PUS-044', '+28%', 'up'], ['BRA-SPT-011', '+8%', 'up'], ['BRA-SFT-066', '+35%', 'up'] ] },
+  ]},
+];
+
+const NEW_ARRIVALS = [
+  { rank:1, sku:'TSH-042-WH', name:'Футболка оверсайз біла', cat:'Футболки', arrived:'28 бер', weeks:7, sold:118, total:200, str:'59%', phase:'Активна', forecast:'ХІТ 🔥' },
+  { rank:2, sku:'HAT-SUM-034', name:'Панама бежева', cat:'Капелюхи', arrived:'5 квіт', weeks:6, sold:44, total:80, str:'55%', phase:'Активна', forecast:'↑ Зростає' },
+  { rank:3, sku:'TRS-LIN-019', name:'Штани лляні пісок', cat:'Штани', arrived:'10 квіт', weeks:5, sold:46, total:100, str:'46%', phase:'Активна', forecast:'Норма' },
+  { rank:4, sku:'BRA-SLK-042', name:'Бралет шовковий', cat:'Бра', arrived:'1 квіт', weeks:6, sold:48, total:120, str:'40%', phase:'Активна', forecast:'↑ Зростає' },
+  { rank:5, sku:'BAG-TOT-078', name:'Шоппер чорний', cat:'Шоппери', arrived:'15 квіт', weeks:4, sold:32, total:60, str:'53%', phase:'Активна', forecast:'Норма' },
+  { rank:6, sku:'SKT-PLT-088', name:'Спідниця плісе рожева', cat:'Спідниці', arrived:'20 квіт', weeks:3, sold:18, total:80, str:'22%', phase:'Warm-up', forecast:'Чекати' },
+  { rank:7, sku:'JKT-LIN-022', name:'Жакет лляний', cat:'Жакети', arrived:'22 квіт', weeks:3, sold:14, total:60, str:'23%', phase:'Warm-up', forecast:'Чекати' },
+  { rank:8, sku:'DNS-FLR-044', name:'Сукня з принтом', cat:'Сукні', arrived:'25 квіт', weeks:3, sold:12, total:50, str:'24%', phase:'Warm-up', forecast:'Чекати' },
+];
+
+const ABC_A = [
+  { rank:1, sku:'JKT-AW-088', name:'Куртка стьобана чорна', revenue:'186,000₴', pct:'10.2%', cumulative:'10.2%' },
+  { rank:2, sku:'TSH-042-WH', name:'Футболка оверсайз біла', revenue:'106,200₴', pct:'5.8%', cumulative:'16.0%' },
+  { rank:3, sku:'DNS-210-BG', name:'Сукня міді бежева', revenue:'145,500₴', pct:'7.9%', cumulative:'23.9%' },
+  { rank:4, sku:'SGL-220-BL', name:'Сонцезахисні Aviator', revenue:'168,000₴', pct:'9.2%', cumulative:'33.1%' },
+  { rank:5, sku:'JNS-AW-031', name:'Джинси прямі індиго', revenue:'124,600₴', pct:'6.8%', cumulative:'39.9%' },
+];
+
+const ABC_C = [
+  { sku:'BSC-WH-001', name:'Шкарпетки базові білі (пара)', pct:'0.04%', action:'Вивести' },
+  { sku:'PIN-SMB-002', name:'Значок символічний', pct:'0.03%', action:'Вивести' },
+  { sku:'SCF-SYN-003', name:'Шарф синтетичний дешевий', pct:'0.08%', action:'Переглянути' },
+  { sku:'BLT-PLN-004', name:'Ремінь простий коричневий', pct:'0.05%', action:'Переглянути' },
+  { sku:'GLV-CHE-005', name:'Рукавички дешеві чорні', pct:'0.06%', action:'Вивести' },
+];
+
+const INSIGHTS = [
+  { title:'Концентрація обороту', color:'var(--gold)', text:'Топ-20 SKU (2.4% від загального) генерують 63% обороту. Топ-3 окремо — 28%. Критично відстежувати саме ці позиції щодня.', action:'Переглянути TOP-3' },
+  { title:'Новий хіт сезону', color:'var(--teal)', text:'TSH-042-WH за 7 тижнів вийшла на #2 позицію — найшвидший старт цього сезону. Рекомендується терміново дозамовити до стокауту через ~9 днів.', action:'Аналіз стоку →' },
+  { title:'Спайк: Сонцезахисні', color:'var(--purple)', text:'+140% за 4 дні у SGL-220-BL (Aviator). Ймовірна причина: перша спека >25°C. Спайк може бути тимчасовим або перейти в хіт. Рішення потрібне сьогодні.', action:'Аналіз стоку →' },
+  { title:'Падіння: Жакет бежевий', color:'var(--coral)', text:'JKT-DEN-022 впав з #3 до #8 — на 18% нижче норми. Розслідування: зміна тренду сезону або погода? Розглянути промо-активацію.', action:'Деталі' },
+  { title:'Зірка по маржі', color:'var(--gold)', text:'HAT-SUM-034 (Панама) — маржа 78% при зростанні +88%. Найвища комбінація "маржа × ріст" в портфелі. Збільшити маркетинг-тиск.', action:'Деталі' },
+  { title:'Аксесуари > Одяг по маржі', color:'var(--teal)', text:'18% обороту від аксесуарів дають 38% загальної маржі. Рекомендується: розглянути збільшення частки аксесуарів у закупівлі наступного сезону.', action:'ABC-аналіз' },
+  { title:'Білизна — нова зірка', color:'var(--blue)', text:'Категорія Білизна: +34% при базі 5% від штук. Bralette шовковий вже в TOP-15. Рекомендується розширити асортимент категорії.', action:'По категоріях' },
+  { title:'C-товари займають полицю', color:'var(--coral)', text:'279 C-товарів (44% SKU) дають лише 6% обороту. 12 кандидатів на виведення. Вивільнення бюджету дасть ресурс для збільшення A-товарів.', action:'ABC-аналіз' },
+];
+
+function buildBar(pct, color) {
+  return `<div class="bar-cell"><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color};"></div></div><span class="bar-val">${pct}%</span></div>`;
+}
+
+function buildTrend(val, dir) {
+  const cls = dir === 'up' ? 'trend-up' : dir === 'dn' ? 'trend-dn' : 'trend-flat';
+  return `<span class="trend ${cls}">${val}</span>`;
+}
+
+function buildABCBadge(abc) {
+  return `<span class="abc-${abc.toLowerCase()}">${abc}</span>`;
+}
+
+function buildTypeBadge(type) {
+  const labels = { hit:'ХІТ 🔥', stable:'Стабільний', slow:'Слоу-мувер', new:'Новинка 🆕', promo:'Промо' };
+  return `<span class="type-badge type-${type}">${labels[type]||type}</span>`;
+}
+
+function renderMain() {
+  const body = document.getElementById('mainTopBody');
+  const maxUnits = PRODUCTS[0].units;
+  body.innerHTML = PRODUCTS.slice(0, topN).map(p => {
+    const pct = Math.round((p.units / maxUnits) * 100);
+    const rankClass = p.rank <= 3 ? `rank-${p.rank}` : 'rank-other';
+    return `<tr>
+      <td class="c"><span class="rank-num ${rankClass}">${p.rank}</span></td>
+      <td><div class="sku-name">${p.name}</div><div class="sku-meta">${p.sku} · ${p.vel}</div></td>
+      <td><span style="font-size:12px;color:var(--muted);">${p.cat}</span><br><span style="font-size:11px;color:var(--dim);font-family:'DM Mono',monospace;">${p.subcat}</span></td>
+      <td class="r"><strong>${p.units}</strong></td>
+      <td>${buildBar(pct, p.trendDir==='up'?'var(--teal)':p.trendDir==='dn'?'var(--coral)':'var(--dim)')}</td>
+      <td class="r">${p.revenue}</td>
+      <td class="r">${p.margin}</td>
+      <td>${buildTrend(p.trend, p.trendDir)}</td>
+      <td class="c">${buildABCBadge(p.abc)}</td>
+      <td>${buildTypeBadge(p.type)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderCategories() {
+  const container = document.getElementById('categoriesContainer');
+  container.innerHTML = CATEGORIES.map((cat, ci) => {
+    const subHtml = cat.subs.map((sub, si) => `
+      <div class="drill-tab ${si===0?'active':''}" onclick="selectSub(this, ${ci}, ${si})">${sub.name}</div>`).join('');
+
+    const firstSub = cat.subs[0];
+    const tableRows = firstSub.top.map((item, i) => {
+      const rank = i+1;
+      const rankClass = rank <= 3 ? `rank-${rank}` : 'rank-other';
+      const trendDir = item[2];
+      const trendCls = trendDir === 'up' ? 'trend-up' : trendDir === 'dn' ? 'trend-dn' : 'trend-flat';
+      const bar = Math.round((5-i) / 5 * 100);
+      return `<tr>
+        <td class="c" style="width:36px;"><span class="rank-num ${rankClass}" style="font-size:16px;">${rank}</span></td>
+        <td style="font-size:12.5px;">${item[0]}</td>
+        <td style="min-width:100px;"><div class="bar-track" style="height:5px;"><div class="bar-fill" style="width:${bar}%;background:${trendDir==='up'?'var(--teal)':'var(--coral)'};height:100%;"></div></div></td>
+        <td><span class="trend ${trendCls}" style="font-size:10px;">${item[1]}</span></td>
+      </tr>`;
+    }).join('');
+
+    return `<div class="cat-card" id="catCard${ci}">
+      <div class="cat-card-head" onclick="toggleCat(${ci})">
+        <div class="cat-head-left">
+          <span class="cat-icon">${cat.icon}</span>
+          <div>
+            <div class="cat-name">${cat.name}</div>
+            <div class="cat-share">${cat.share} від загальних продажів</div>
+          </div>
+        </div>
+        <div class="cat-head-right">
+          <div class="cat-stat"><span class="cat-stat-val">${cat.units}</span><span class="cat-stat-label">штук</span></div>
+          <div class="cat-stat"><span class="cat-stat-val">${cat.revenue}</span><span class="cat-stat-label">оборот</span></div>
+          ${buildTrend(cat.trend, cat.trendDir)}
+          <span class="cat-chevron" id="chevron${ci}">›</span>
+        </div>
+      </div>
+      <div class="cat-body" id="catBody${ci}">
+        <div class="drill-tabs" id="drillTabs${ci}">${subHtml}</div>
+        <div class="top-table-wrap">
+          <table class="top-table" id="subTable${ci}">
+            <thead><tr><th class="c">#</th><th>Артикул</th><th style="min-width:80px;">Частка</th><th>Тренд</th></tr></thead>
+            <tbody>${tableRows}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleCat(ci) {
+  const body = document.getElementById('catBody'+ci);
+  const chev = document.getElementById('chevron'+ci);
+  body.classList.toggle('open');
+  chev.classList.toggle('open');
+}
+
+function selectSub(el, ci, si) {
+  document.querySelectorAll(`#drillTabs${ci} .drill-tab`).forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  const sub = CATEGORIES[ci].subs[si];
+  const tbody = document.querySelector(`#subTable${ci} tbody`);
+  tbody.innerHTML = sub.top.map((item, i) => {
+    const rank = i+1;
+    const rankClass = rank <= 3 ? `rank-${rank}` : 'rank-other';
+    const trendDir = item[2];
+    const trendCls = trendDir === 'up' ? 'trend-up' : trendDir === 'dn' ? 'trend-dn' : 'trend-flat';
+    const bar = Math.round((5-i) / 5 * 100);
+    return `<tr>
+      <td class="c" style="width:36px;"><span class="rank-num ${rankClass}" style="font-size:16px;">${rank}</span></td>
+      <td style="font-size:12.5px;">${item[0]}</td>
+      <td style="min-width:100px;"><div class="bar-track" style="height:5px;"><div class="bar-fill" style="width:${bar}%;background:${trendDir==='up'?'var(--teal)':'var(--coral)'};height:100%;"></div></div></td>
+      <td><span class="trend ${trendCls}" style="font-size:10px;">${item[1]}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function expandAll() {
+  CATEGORIES.forEach((_, ci) => {
+    document.getElementById('catBody'+ci).classList.add('open');
+    document.getElementById('chevron'+ci).classList.add('open');
+  });
+}
+function collapseAll() {
+  CATEGORIES.forEach((_, ci) => {
+    document.getElementById('catBody'+ci).classList.remove('open');
+    document.getElementById('chevron'+ci).classList.remove('open');
+  });
+}
+
+function renderBrands() {
+  const tbody = document.getElementById('brandTableBody');
+  tbody.innerHTML = BRANDS.map(b => {
+    const bar = b.share;
+    const rankClass = b.rank <= 3 ? `rank-${b.rank}` : 'rank-other';
+    return `<tr>
+      <td class="c"><span class="rank-num ${rankClass}">${b.rank}</span></td>
+      <td><div style="font-weight:700;">${b.name}</div></td>
+      <td><span style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;">${b.cats}</span></td>
+      <td class="r">${b.sku}</td>
+      <td>${buildBar(bar, 'var(--blue)')}</td>
+      <td class="r"><strong>${b.revenue}</strong></td>
+      <td class="r">${b.margin}</td>
+      <td class="r">${b.avgCheck}</td>
+      <td>${buildTrend(b.trend, b.trendDir)}</td>
+      <td class="c"><span style="font-size:14px;">${b.eff}</span></td>
+    </tr>`;
+  }).join('');
+
+  const detail = document.getElementById('brandDetailContainer');
+  detail.innerHTML = `<div class="top-table-wrap">
+    <table class="top-table">
+      <thead><tr><th colspan="5" style="background:var(--s2);color:var(--muted);font-size:12px;text-align:left;">OFF-WHITE — TOP 5 товарів</th></tr><tr><th class="c">#</th><th>Товар</th><th class="r">Штуки</th><th class="r">Оборот</th><th>Тренд</th></tr></thead>
+      <tbody>
+        ${[1,2,3,4,5].map(i => `<tr><td class="c"><span class="rank-num ${i<=3?'rank-'+i:'rank-other'}" style="font-size:15px;">${i}</span></td><td>Товар OFF-WHITE #${i}</td><td class="r">${[88,72,64,48,32][i-1]}</td><td class="r">${['132,000₴','108,000₴','96,000₴','72,000₴','48,000₴'][i-1]}</td><td>${buildTrend(['+24%','+18%','+31%','+8%','−5%'][i-1], ['up','up','up','up','dn'][i-1])}</td></tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+function renderABC() {
+  document.getElementById('abcABody').innerHTML = ABC_A.map(p => {
+    const pct = parseFloat(p.pct);
+    const cum = parseFloat(p.cumulative);
+    return `<tr>
+      <td class="c"><span class="rank-num ${p.rank<=3?'rank-'+p.rank:'rank-other'}" style="font-size:15px;">${p.rank}</span></td>
+      <td><div style="font-size:12.5px;font-weight:600;">${p.name}</div><div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${p.sku}</div></td>
+      <td class="r">${p.revenue}</td>
+      <td class="r"><strong>${p.pct}</strong></td>
+      <td>
+        <div class="bar-track"><div class="bar-fill" style="width:${cum}%;background:var(--gold);"></div></div>
+        <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;">накопич. ${p.cumulative}</div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('abcCBody').innerHTML = ABC_C.map(p => `<tr>
+    <td><div style="font-size:12.5px;font-weight:600;">${p.name}</div><div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${p.sku}</div></td>
+    <td class="r"><span style="color:var(--muted);font-family:'DM Mono',monospace;">${p.pct}</span></td>
+    <td><span class="type-badge ${p.action==='Вивести'?'type-slow':'type-stable'}">${p.action}</span></td>
+  </tr>`).join('');
+}
+
+function renderNewArrivals() {
+  document.getElementById('newArrivalsBody').innerHTML = NEW_ARRIVALS.map(p => {
+    const str = parseInt(p.str);
+    return `<tr>
+      <td class="c"><span class="rank-num ${p.rank<=3?'rank-'+p.rank:'rank-other'}" style="font-size:15px;">${p.rank}</span></td>
+      <td><div style="font-weight:700;font-size:13px;">${p.name}</div><div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${p.sku}</div></td>
+      <td><span style="font-size:12px;color:var(--muted);">${p.cat}</span></td>
+      <td><span style="font-family:'DM Mono',monospace;font-size:11.5px;">${p.arrived}</span></td>
+      <td class="c"><span style="font-family:'DM Mono',monospace;">${p.weeks} тижн.</span></td>
+      <td>
+        <div class="bar-track"><div class="bar-fill" style="width:${str}%;background:${str>50?'var(--teal)':str>30?'var(--gold)':'var(--dim)'};"></div></div>
+      </td>
+      <td class="r">${p.sold}</td>
+      <td class="r"><strong style="color:${str>50?'var(--teal)':str>30?'var(--gold)':'var(--muted)'};">${p.str}</strong></td>
+      <td><span class="type-badge ${p.phase==='Активна'?'type-hit':'type-new'}">${p.phase}</span></td>
+      <td style="font-size:12px;color:var(--teal);font-weight:600;">${p.forecast}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderInsights() {
+  document.getElementById('insightsContainer').innerHTML = INSIGHTS.map(ins => `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px;border-top: 3px solid ${ins.color};">
+      <div style="font-weight:700;font-size:14px;color:var(--ink);margin-bottom:8px;">${ins.title}</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.65;margin-bottom:12px;">${ins.text}</div>
+      <button onclick="window.sendToAgent('${ins.action}')" style="padding:5px 14px;border:1px solid var(--border);border-radius:5px;background:var(--bg);font-size:12px;cursor:pointer;color:var(--ink);font-family:'Instrument Sans',sans-serif;">${ins.action} →</button>
+    </div>`).join('');
+}
+
+window.sendToAgent = (action) => { alert('Агент: ' + action + ' — відкривається відповідний розділ'); };
+
+function setType(type, btn) {
+  currentType = type;
+  document.querySelectorAll('#typeToggle button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const labels = { units:'за штуками', revenue:'за оборотом', margin:'за маржею', velocity:'за velocity (шт/день)' };
+  document.getElementById('metricLabel').textContent = labels[type];
+}
+
+function setMode(mode) {
+  currentMode = mode;
+  document.getElementById('brandsTab').style.opacity = mode === 'multi' ? '1' : '0.4';
+  renderMain();
+}
+
+function changeTop(delta) {
+  topN = Math.max(5, Math.min(50, topN + delta));
+  document.getElementById('topN').textContent = topN;
+  const hints = { 5:'для 20–50 SKU', 10:'для 50–150 SKU', 15:'для 150–250 SKU', 20:'для 200–500 SKU', 25:'для 500–800 SKU', 30:'для 800+ SKU', 50:'для дуже великих магазинів' };
+  const closestKey = [5,10,15,20,25,30,50].reduce((a,b) => Math.abs(b-topN) < Math.abs(a-topN) ? b : a);
+  document.getElementById('topHint').textContent = 'Рекомендовано ' + hints[closestKey];
+  renderMain();
+}
+
+function setPeriod(period, btn) {
+  currentPeriod = period;
+  document.querySelectorAll('#periodToggle button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function switchPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.pt').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+function setBrandView(v) {
+  document.querySelectorAll('.sh-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+// INIT
+renderMain();
+renderCategories();
+renderBrands();
+renderABC();
+renderNewArrivals();
+renderInsights();
+</script>
+</body>
+</html>

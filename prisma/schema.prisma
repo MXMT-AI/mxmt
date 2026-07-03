@@ -1,0 +1,283 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── TENANT ───────────────────────────────────────────────────────────────────
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  plan      String   @default("free")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users              User[]
+  brands             Brand[]
+  skus               Sku[]
+  salesRecords       SalesRecord[]
+  inventorySnapshots InventorySnapshot[]
+  promoEvents        PromoEvent[]
+  onboarding         OnboardingBrief?
+  driveSyncs         GoogleDriveSync[]
+  catalogUploads     CatalogUpload[]
+  catalogItems       CatalogItem[]
+  plannerCart        PlannerCart?
+  marketingEvents    MarketingEvent[]
+  agentRuns          AgentRun[]
+}
+
+// ─── USER ─────────────────────────────────────────────────────────────────────
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         Role     @default(VIEWER)
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  refreshToken String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([tenantId])
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  ANALYST
+  VIEWER
+}
+
+// ─── ONBOARDING ───────────────────────────────────────────────────────────────
+model OnboardingBrief {
+  id            String        @id @default(cuid())
+  tenantId      String        @unique
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  businessModel BusinessModel
+  answers       Json
+  completedAt   DateTime      @default(now())
+}
+
+enum BusinessModel {
+  SEASONAL
+  CARRYOVER
+  HYBRID
+}
+
+// ─── BRAND / SUPPLIER ─────────────────────────────────────────────────────────
+model Brand {
+  id           String  @id @default(cuid())
+  tenantId     String
+  tenant       Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name         String
+  leadTimeDays Int     @default(14)
+  moq          Int     @default(1)
+  currency     String  @default("EUR")
+  country      String?
+  contact      String?
+  // Planner-specific
+  budget       Float   @default(0)
+  paymentDays  Int     @default(30)
+
+  skus           Sku[]
+  catalogUploads CatalogUpload[]
+  catalogItems   CatalogItem[]
+
+  @@index([tenantId])
+}
+
+// ─── INVENTORY SKU ────────────────────────────────────────────────────────────
+model Sku {
+  id            String    @id @default(cuid())
+  tenantId      String
+  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  brandId       String?
+  brand         Brand?    @relation(fields: [brandId], references: [id])
+  sku           String
+  name          String
+  category      String
+  subcategory   String?
+  priceRetail   Float
+  pricePurchase Float
+  season        String?
+  status        SkuStatus @default(ACTIVE)
+  dateAdded     DateTime  @default(now())
+  dateEol       DateTime?
+  tags          String[]  @default([])
+
+  salesRecords       SalesRecord[]
+  inventorySnapshots InventorySnapshot[]
+
+  @@unique([tenantId, sku])
+  @@index([tenantId])
+  @@index([tenantId, category])
+}
+
+enum SkuStatus {
+  ACTIVE
+  ARCHIVE
+  NEW
+  EOL
+}
+
+// ─── SALES ────────────────────────────────────────────────────────────────────
+model SalesRecord {
+  id       String   @id @default(cuid())
+  tenantId String
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  skuId    String
+  sku      Sku      @relation(fields: [skuId], references: [id], onDelete: Cascade)
+  date     DateTime @db.Date
+  qtySold  Int
+  revenue  Float
+  channel  String   @default("offline")
+  isPromo  Boolean  @default(false)
+  returns  Int      @default(0)
+
+  @@index([tenantId, date])
+  @@index([skuId])
+}
+
+// ─── INVENTORY ────────────────────────────────────────────────────────────────
+model InventorySnapshot {
+  id           String   @id @default(cuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  skuId        String
+  sku          Sku      @relation(fields: [skuId], references: [id], onDelete: Cascade)
+  qtyOnHand    Int
+  qtyReserved  Int      @default(0)
+  qtyInTransit Int      @default(0)
+  snapshotDate DateTime @db.Date
+
+  @@index([tenantId, snapshotDate])
+  @@index([skuId])
+}
+
+// ─── PROMO ────────────────────────────────────────────────────────────────────
+model PromoEvent {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name        String
+  dateStart   DateTime @db.Date
+  dateEnd     DateTime @db.Date
+  discountPct Float
+  mechanic    String
+  channel     String   @default("both")
+  skuIds      String[] @default([])
+
+  @@index([tenantId])
+}
+
+// ─── GOOGLE DRIVE ─────────────────────────────────────────────────────────────
+model GoogleDriveSync {
+  id           String    @id @default(cuid())
+  tenantId     String
+  tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  driveFileId  String
+  fileType     String    @default("xlsx")
+  lastSyncAt   DateTime?
+  syncStatus   String    @default("pending")
+  errorMessage String?
+  createdAt    DateTime  @default(now())
+
+  @@index([tenantId])
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ASSORTMENT PLANNER
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ─── CATALOG UPLOAD (one per brand per season) ────────────────────────────────
+model CatalogUpload {
+  id         String        @id @default(cuid())
+  tenantId   String
+  tenant     Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  brandId    String
+  brand      Brand         @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  season     String        // e.g. "SS25", "AW25"
+  fileName   String?
+  itemCount  Int           @default(0)
+  uploadedAt DateTime      @default(now())
+
+  items CatalogItem[]
+
+  @@index([tenantId])
+  @@index([brandId])
+}
+
+// ─── CATALOG ITEM (individual line in a brand's wholesale catalog) ─────────────
+model CatalogItem {
+  id            String        @id @default(cuid())
+  tenantId      String
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  catalogId     String
+  catalog       CatalogUpload @relation(fields: [catalogId], references: [id], onDelete: Cascade)
+  brandId       String
+  brand         Brand         @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  sku           String
+  name          String
+  category      String
+  color         String?
+  style         String?
+  material      String?
+  priceWholesale Float
+  priceRetail   Float?
+  minOrder      Int           @default(1)
+  stockAvail    Int           @default(0)
+  leadTimeDays  Int           @default(28)
+  tags          String[]      @default([])
+
+  @@index([tenantId, catalogId])
+  @@index([tenantId, category])
+}
+
+// ─── MARKETING CALENDAR EVENTS ────────────────────────────────────────────────
+model MarketingEvent {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  weekKey   String   // "w14", "w15", ...
+  rowKey    String   // "accent", "promo", "ban1", ...
+  type      String   // promo | holiday | agent | warn | sale | event | stock
+  label     String
+  source    String   @default("user") // user | agent | system
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([tenantId, weekKey])
+}
+
+// ─── AGENT RUNS ──────────────────────────────────────────────────────────────
+model AgentRun {
+  id         String    @id @default(cuid())
+  tenantId   String
+  tenant     Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  agentType  String    // "inventory_analyst" | "repricing" | "reordering" | ...
+  entityId   String    @default("all") // brandId or "all"
+  status     String    @default("idle") // "running" | "done" | "error"
+  input      Json      @default("{}")
+  output     Json?
+  errorMsg   String?
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+
+  @@index([tenantId, agentType])
+  @@index([tenantId])
+}
+
+// ─── PLANNER CART (draft purchase order — one per tenant) ─────────────────────
+model PlannerCart {
+  id        String   @id @default(cuid())
+  tenantId  String   @unique
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  items     Json     @default("[]") // CartItem[]
+  updatedAt DateTime @updatedAt
+}

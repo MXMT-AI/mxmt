@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Акції та вплив на маржу — Агент Аналітик</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=DM+Mono:wght@300;400;500&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f6f4f0;
+  --s1: #ffffff;
+  --s2: #edeae3;
+  --s3: #e3dfd7;
+  --border: #d8d3c8;
+  --border2: #c8c3b8;
+  --ink: #1c1914;
+  --muted: #7a7568;
+  --dim: #b0ab9f;
+
+  --vol: #c0392b; --vol-bg: #fdf0ef; --vol-border: #f5c0bb;
+  --aov: #1a5276; --aov-bg: #edf3fb; --aov-border: #a9ccee;
+  --ret: #1e8449; --ret-bg: #edfaf3; --ret-border: #9fe3be;
+  --inv: #7d3c98; --inv-bg: #f5f0fb; --inv-border: #d2aff0;
+  --gam: #b7770d; --gam-bg: #fdf6e8; --gam-border: #f0d490;
+  --soc: #117a65; --soc-bg: #eafaf7; --soc-border: #9fe8d8;
+  --eco: #2e7d32; --eco-bg: #edf8ee; --eco-border: #a5d6a7;
+  --auto: #1565c0; --auto-bg: #e8f1fd; --auto-border: #90b8f0;
+
+  --good: #1e8449; --good-bg: #edfaf3; --good-border: #9fe3be;
+  --warn: #b7770d; --warn-bg: #fdf6e8; --warn-border: #f0d490;
+  --bad: #c0392b; --bad-bg: #fdf0ef; --bad-border: #f5c0bb;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--ink); font-family:'Plus Jakarta Sans',sans-serif; font-size:13.5px; line-height:1.6; }
+
+/* HEADER */
+.header { background:var(--ink); padding:48px 48px 36px; position:relative; overflow:hidden; }
+.header::after {
+  content:'%'; position:absolute; right:-20px; top:-40px;
+  font-family:'Playfair Display',serif; font-size:300px; font-weight:900;
+  color:rgba(255,255,255,0.025); line-height:1; pointer-events:none;
+}
+.h-eye { font-family:'DM Mono',monospace; font-size:10px; color:rgba(255,255,255,0.3); text-transform:uppercase; letter-spacing:2.5px; margin-bottom:12px; }
+.header h1 { font-family:'Playfair Display',serif; font-size:clamp(26px,4vw,48px); font-weight:900; color:#fff; line-height:1.1; }
+.header h1 em { font-style:italic; color:#f0c040; }
+.header-desc { margin-top:10px; color:rgba(255,255,255,0.4); font-size:13px; max-width:600px; line-height:1.7; }
+
+/* NAV */
+.nav { background:var(--s1); border-bottom:1px solid var(--border); display:flex; overflow-x:auto; scrollbar-width:none; padding:0 48px; }
+.nav::-webkit-scrollbar { display:none; }
+.nb { padding:13px 16px 11px; border:none; background:none; font-family:'Plus Jakarta Sans',sans-serif; font-size:12.5px; font-weight:700; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; white-space:nowrap; transition:all 0.15s; position:relative; bottom:-1px; }
+.nb:hover { color:var(--ink); }
+.nb.active { color:var(--ink); border-bottom-color:var(--ink); }
+
+/* PAGES */
+.page { display:none; padding:32px 48px; max-width:1160px; }
+.page.active { display:block; }
+
+@media(max-width:720px) {
+  .header,.nav,.page { padding-left:16px; padding-right:16px; }
+  .g2,.g3,.g4 { grid-template-columns:1fr !important; }
+}
+
+.g2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.g3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+.full { grid-column:1/-1; }
+
+/* SECTION */
+.sh { margin-bottom:18px; padding-bottom:12px; border-bottom:1.5px solid var(--ink); display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:8px; }
+.sh-l { display:flex; align-items:baseline; gap:10px; }
+.sh h2 { font-family:'Playfair Display',serif; font-size:22px; font-weight:700; color:var(--ink); }
+.sh-sub { font-family:'DM Mono',monospace; font-size:11px; color:var(--muted); }
+
+/* NOTE */
+.note { border-radius:8px; padding:12px 16px; font-size:12.5px; line-height:1.7; margin-bottom:16px; border:1px solid; }
+.note-amber { background:var(--warn-bg); border-color:var(--warn-border); color:#7a4f00; }
+.note-green { background:var(--good-bg); border-color:var(--good-border); color:#0d5c30; }
+.note-red { background:var(--bad-bg); border-color:var(--bad-border); color:#7a1f14; }
+.note strong { font-weight:700; }
+
+/* CATEGORY FILTER */
+.cat-filters { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:20px; }
+.cf { padding:6px 14px; border:1px solid var(--border); border-radius:20px; font-size:12px; font-weight:700; cursor:pointer; transition:all 0.15s; background:var(--s1); color:var(--muted); }
+.cf:hover { border-color:var(--ink); color:var(--ink); }
+.cf.active { background:var(--ink); color:#fff; border-color:var(--ink); }
+
+/* PROMO CARDS GRID */
+.promo-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+@media(max-width:900px) { .promo-grid { grid-template-columns:1fr 1fr; } }
+@media(max-width:600px) { .promo-grid { grid-template-columns:1fr; } }
+
+.pcard {
+  background:var(--s1); border:1px solid var(--border); border-radius:14px;
+  overflow:hidden; cursor:pointer; transition:transform 0.15s, box-shadow 0.15s;
+  position:relative;
+}
+.pcard:hover { transform:translateY(-2px); box-shadow:0 6px 24px rgba(0,0,0,0.08); }
+.pcard-stripe { height:4px; }
+.pcard-head { padding:16px 18px 12px; border-bottom:1px solid var(--border); }
+.pcard-cat { font-family:'DM Mono',monospace; font-size:9px; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:6px; font-weight:500; }
+.pcard-name { font-family:'Playfair Display',serif; font-size:17px; font-weight:700; color:var(--ink); line-height:1.2; margin-bottom:4px; }
+.pcard-mech { font-size:12px; color:var(--muted); line-height:1.5; }
+.pcard-body { padding:14px 18px; }
+.pcard-metrics { display:flex; gap:14px; margin-bottom:10px; }
+.pm-item { flex:1; text-align:center; }
+.pm-val { font-family:'Playfair Display',serif; font-size:20px; font-weight:700; line-height:1; display:block; }
+.pm-lbl { font-family:'DM Mono',monospace; font-size:9px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); margin-top:2px; }
+.pcard-tags { display:flex; flex-wrap:wrap; gap:5px; }
+.ptag { font-family:'DM Mono',monospace; font-size:9px; padding:2px 7px; border-radius:4px; border:1px solid; }
+
+/* IMPACT BADGE */
+.impact { font-family:'DM Mono',monospace; font-size:10px; padding:2px 7px; border-radius:4px; border:1px solid; text-transform:uppercase; letter-spacing:0.5px; }
+.impact-high { background:var(--bad-bg); color:var(--bad); border-color:var(--bad-border); }
+.impact-mid { background:var(--warn-bg); color:var(--warn); border-color:var(--warn-border); }
+.impact-low { background:var(--good-bg); color:var(--good); border-color:var(--good-border); }
+.impact-pos { background:var(--good-bg); color:var(--good); border-color:var(--good-border); }
+
+/* CALCULATOR */
+.calc-wrap { background:var(--s1); border:1px solid var(--border); border-radius:14px; overflow:hidden; }
+.calc-head { padding:18px 22px 14px; background:var(--s2); border-bottom:1px solid var(--border); }
+.calc-head h3 { font-family:'Playfair Display',serif; font-size:18px; font-weight:700; color:var(--ink); margin-bottom:4px; }
+.calc-body { padding:20px 22px; }
+
+.inp-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
+.inp-label { font-size:12.5px; color:var(--muted); min-width:170px; font-weight:600; }
+.inp { padding:8px 12px; background:var(--s2); border:1px solid var(--border); border-radius:7px; color:var(--ink); font-family:'DM Mono',monospace; font-size:13px; outline:none; transition:border-color 0.15s; }
+.inp:focus { border-color:var(--ink); }
+.inp-unit { font-family:'DM Mono',monospace; font-size:12px; color:var(--muted); }
+
+.mech-select { display:flex; flex-wrap:wrap; gap:6px; margin:14px 0; }
+.ms-btn { padding:6px 14px; border:1px solid var(--border); border-radius:7px; font-family:'Plus Jakarta Sans',sans-serif; font-size:12px; font-weight:700; cursor:pointer; background:var(--bg); color:var(--muted); transition:all 0.15s; }
+.ms-btn:hover { border-color:var(--ink); color:var(--ink); }
+.ms-btn.active { background:var(--ink); color:#fff; border-color:var(--ink); }
+
+.result-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:16px; }
+@media(max-width:700px) { .result-grid { grid-template-columns:1fr 1fr; } }
+.res-box { border-radius:10px; padding:14px 16px; border:1px solid; text-align:center; }
+.res-val { font-family:'Playfair Display',serif; font-size:26px; font-weight:700; line-height:1; display:block; margin-bottom:4px; }
+.res-lbl { font-family:'DM Mono',monospace; font-size:9px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); }
+
+/* COMPARISON TABLE */
+.comp-wrap { overflow-x:auto; border:1px solid var(--border); border-radius:12px; margin-bottom:20px; }
+table.comp { width:100%; border-collapse:collapse; min-width:700px; }
+table.comp thead tr { background:var(--ink); }
+table.comp th { font-family:'DM Mono',monospace; font-size:10px; color:rgba(255,255,255,0.45); text-transform:uppercase; letter-spacing:1px; padding:10px 14px; text-align:left; white-space:nowrap; }
+table.comp th.r { text-align:right; }
+table.comp td { padding:9px 14px; border-bottom:1px solid var(--border); font-size:13px; vertical-align:middle; }
+table.comp tr:last-child td { border-bottom:none; }
+table.comp tr:hover td { background:rgba(0,0,0,0.015); }
+table.comp td.r { text-align:right; font-family:'DM Mono',monospace; }
+table.comp td.c { text-align:center; }
+tr.group-r td { background:var(--s2); font-family:'DM Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:1.5px; color:var(--muted); padding:7px 14px; border-bottom:1px solid var(--border); }
+
+/* MARGIN BAR */
+.mbar { display:flex; align-items:center; gap:8px; }
+.mbar-track { flex:1; height:7px; background:var(--s3); border-radius:4px; min-width:60px; overflow:hidden; }
+.mbar-fill { height:100%; border-radius:4px; }
+
+/* SCENARIO */
+.scenario-tabs { display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap; }
+.stab { padding:6px 14px; border:1px solid var(--border); border-radius:7px; font-size:12px; font-weight:700; cursor:pointer; background:var(--s1); color:var(--muted); transition:all 0.15s; }
+.stab:hover { border-color:var(--ink); color:var(--ink); }
+.stab.active { background:var(--ink); color:#fff; border-color:var(--ink); }
+
+/* PROMPT */
+.pblock { background:var(--ink); border-radius:12px; padding:22px 26px; margin-bottom:16px; }
+.pl { font-family:'DM Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:2px; color:#f0c040; margin-bottom:12px; }
+.pc { font-family:'DM Mono',monospace; font-size:12px; line-height:1.9; color:#6b7a8a; }
+.pc .k { color:#79c0ff; } .pc .v { color:#fbbf24; } .pc .s { color:#a5d6a7; }
+.pc .c { color:#2d3748; } .pc strong { color:#c9d1d9; font-weight:500; }
+
+/* MATRIX */
+.matrix { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px; }
+@media(max-width:700px) { .matrix { grid-template-columns:1fr; } }
+.mx-card { background:var(--s1); border:1px solid var(--border); border-radius:10px; padding:16px 18px; }
+.mx-cat { font-family:'DM Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:8px; }
+.mx-name { font-size:14px; font-weight:800; color:var(--ink); margin-bottom:4px; }
+.mx-row { display:flex; justify-content:space-between; align-items:center; padding:4px 0; border-bottom:1px solid var(--border); font-size:12px; }
+.mx-row:last-child { border-bottom:none; }
+.mx-lbl { color:var(--muted); }
+.mx-val { font-family:'DM Mono',monospace; font-weight:500; }
+
+hr.div { border:none; border-top:1px solid var(--border); margin:20px 0; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="h-eye">Агент Аналітик — Блок Акції та Маржа</div>
+  <h1>Акції, механіки<br><em>та вплив на маржу</em></h1>
+  <p class="header-desc">32 промо-механіки з розрахунком впливу на маржу, виручку та середній чек. Агент підбирає механіку під ситуацію зі стоком та сезоном.</p>
+</div>
+
+<nav class="nav">
+  <button class="nb active" data-tab="catalog">📋 Каталог механік</button>
+  <button class="nb" data-tab="calculator">🧮 Калькулятор акції</button>
+  <button class="nb" data-tab="comparison">📊 Порівняння</button>
+  <button class="nb" data-tab="scenarios">🎯 Сценарії агента</button>
+  <button class="nb" data-tab="prompt">🧠 Промпт блок</button>
+</nav>
+
+<!-- ════ CATALOG ════ -->
+<div id="tab-catalog" class="page active">
+
+  <div class="sh"><div class="sh-l"><h2>Каталог промо-механік</h2><span class="sh-sub" id="catalogCount">32 механіки</span></div></div>
+
+  <div class="cat-filters" id="catFilters"></div>
+
+  <div class="promo-grid" id="promoGrid"></div>
+</div>
+
+<!-- ════ CALCULATOR ════ -->
+<div id="tab-calculator" class="page">
+
+  <div class="sh"><div class="sh-l"><h2>Калькулятор акції</h2><span class="sh-sub">вплив механіки на маржу та виручку</span></div></div>
+
+  <div class="g2">
+    <div class="calc-wrap">
+      <div class="calc-head">
+        <h3>Параметри товару</h3>
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-top:4px;">Базові дані для розрахунку</div>
+      </div>
+      <div class="calc-body">
+        <div class="inp-row"><span class="inp-label">Роздрібна ціна (RRP)</span><input class="inp" id="cRetail" type="number" value="3990" style="width:120px;" oninput="calcPromo()"><span class="inp-unit">₴</span></div>
+        <div class="inp-row"><span class="inp-label">Собівартість (landed)</span><input class="inp" id="cCost" type="number" value="1400" style="width:120px;" oninput="calcPromo()"><span class="inp-unit">₴</span></div>
+        <div class="inp-row"><span class="inp-label">Кількість одиниць</span><input class="inp" id="cQty" type="number" value="30" style="width:80px;" oninput="calcPromo()"><span class="inp-unit">шт</span></div>
+        <div class="inp-row"><span class="inp-label">Середній чек без акції</span><input class="inp" id="cAOV" type="number" value="4200" style="width:120px;" oninput="calcPromo()"><span class="inp-unit">₴</span></div>
+        <div class="inp-row"><span class="inp-label">Прогноз продажів/тижд.</span><input class="inp" id="cSales" type="number" value="5" style="width:80px;" oninput="calcPromo()"><span class="inp-unit">шт</span></div>
+      </div>
+    </div>
+
+    <div class="calc-wrap">
+      <div class="calc-head"><h3>Механіка акції</h3><div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-top:4px;">Оберіть тип та параметри</div></div>
+      <div class="calc-body">
+        <div class="mech-select" id="mechSelect"></div>
+        <div id="mechParams"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="result-grid" id="calcResults"></div>
+
+  <div id="calcInsight" class="note note-amber" style="margin-top:14px;"></div>
+
+  <hr class="div">
+
+  <div class="sh" style="margin-top:8px;"><div class="sh-l"><h2>Сценарне порівняння</h2><span class="sh-sub">без акції vs з акцією</span></div></div>
+  <div class="comp-wrap"><table class="comp"><thead><tr><th>Показник</th><th class="r">Без акції</th><th class="r">З акцією</th><th class="r">Різниця</th><th>Вплив</th></tr></thead><tbody id="compareBody"></tbody></table></div>
+</div>
+
+<!-- ════ COMPARISON ════ -->
+<div id="tab-comparison" class="page">
+
+  <div class="sh"><div class="sh-l"><h2>Порівняння всіх механік за маржею</h2><span class="sh-sub">ранжування від кращого до гіршого для маржинальності</span></div></div>
+
+  <div class="note note-amber">
+    <strong>Як читати:</strong> Вплив на маржу розрахований при базовій маржі 65% та стандартних параметрах. Реальний вплив залежить від вашої собівартості — використай Калькулятор для точного розрахунку.
+  </div>
+
+  <div class="scenario-tabs" id="sortTabs">
+    <button class="stab active" onclick="sortTable('margin',this)">По марже ↓</button>
+    <button class="stab" onclick="sortTable('aov',this)">По AOV ↑</button>
+    <button class="stab" onclick="sortTable('speed',this)">По швидкості</button>
+    <button class="stab" onclick="sortTable('risk',this)">По ризику</button>
+  </div>
+
+  <div class="comp-wrap"><table class="comp"><thead><tr>
+    <th>Механіка</th><th>Категорія</th>
+    <th class="r">Вплив на маржу</th>
+    <th class="r">Вплив на AOV</th>
+    <th class="r">Швидкість продажу</th>
+    <th>Маржа-ризик</th>
+    <th>Ідеальна ситуація</th>
+  </tr></thead><tbody id="compTableBody"></tbody></table></div>
+</div>
+
+<!-- ════ SCENARIOS ════ -->
+<div id="tab-scenarios" class="page">
+
+  <div class="sh"><div class="sh-l"><h2>Агент підбирає механіку</h2><span class="sh-sub">під ситуацію зі стоком</span></div></div>
+
+  <div class="note note-green">
+    <strong>Логіка агента:</strong> Отримавши класифікацію товару (хіт / слоу-мувер / deadstock / end-of-season), агент підбирає оптимальну промо-механіку з урахуванням: маржа-флор клієнта, кількість днів до сейлу, наявність маркетплейс-каналу, тип асортименту.
+  </div>
+
+  <div class="scenario-tabs" id="scenTabs">
+    <button class="stab active" onclick="showScen('hit',this)">🔥 Хіт (стокаут ризик)</button>
+    <button class="stab" onclick="showScen('slow',this)">📉 Слоу-мувер</button>
+    <button class="stab" onclick="showScen('end',this)">⬇️ Кінець сезону</button>
+    <button class="stab" onclick="showScen('dead',this)">💤 Deadstock</button>
+    <button class="stab" onclick="showScen('new',this)">🆕 Нова колекція</button>
+    <button class="stab" onclick="showScen('loyal',this)">💎 Лояльність</button>
+  </div>
+
+  <div id="scenContent"></div>
+</div>
+
+<!-- ════ PROMPT ════ -->
+<div id="tab-prompt" class="page">
+
+  <div class="sh"><div class="sh-l"><h2>System Prompt — Блок Акцій</h2><span class="sh-sub">готовий блок для Master Prompt агента</span></div></div>
+
+  <div class="pblock">
+    <div class="pl">Блок 1 — Логіка підбору механіки</div>
+    <div class="pc">
+<strong>## ПІДБІР ПРОМО-МЕХАНІКИ</strong><br><br>
+При рекомендації акції агент завжди:<br>
+1. Визначає <span class="k">СИТУАЦІЮ</span>: hit / slow / end_season / dead / new_launch / retention<br>
+2. Перевіряє <span class="k">МАРЖА-ФЛОР</span>: чи не опуститься маржа нижче margin_floor клієнта<br>
+3. Враховує <span class="k">КАНАЛ</span>: офлайн / онлайн / маркетплейс (додає комісію)<br>
+4. Пропонує <span class="k">3 МЕХАНІКИ</span> різного ризику + пояснення<br><br>
+<span class="c"># Ніколи не рекомендуй механіку якщо вона опускає маржу нижче флору без попередження</span><br>
+<span class="c"># Для deadstock — дозволено йти нижче флору, але тільки явно сказавши про це</span>
+    </div>
+  </div>
+
+  <div class="pblock">
+    <div class="pl">Блок 2 — Розрахунок впливу</div>
+    <div class="pc">
+<strong>## РОЗРАХУНОК МАРЖІ ПІД ЧАС АКЦІЇ</strong><br><br>
+<span class="c"># Пряма знижка (Seasonal Sale, Flash Sale, Last Chance):</span><br>
+<span class="k">promo_price</span> = retail × (1 - discount/100)<br>
+<span class="k">promo_margin</span> = (promo_price - cost) / promo_price × 100<br>
+<span class="k">margin_loss_pct</span> = margin_base - promo_margin<br>
+<span class="k">volume_uplift_needed</span> = margin_loss_pct / promo_margin × 100 <span class="c"># скільки треба додатково продати</span><br><br>
+<span class="c"># Прогресивна знижка (Progressive Discount):</span><br>
+<span class="k">avg_discount</span> = weighted_avg([10,20,30], expected_basket_dist)<br>
+<span class="c"># expected_basket_dist = [% клієнтів з 1 вещ, % з 2, % з 3+]</span><br><br>
+<span class="c"># Бандл (Bundle):</span><br>
+<span class="k">bundle_revenue</span> = sum(item_prices) × (1 - bundle_disc/100)<br>
+<span class="k">bundle_margin</span> = (bundle_revenue - sum(item_costs)) / bundle_revenue × 100<br><br>
+<span class="c"># GWP (подарунок при покупці):</span><br>
+<span class="k">effective_cost</span> = cost_main + cost_gift<br>
+<span class="k">gwp_margin</span> = (retail_main - effective_cost) / retail_main × 100<br>
+<span class="k">aov_needed</span> = gwp_trigger_amount <span class="c"># клієнт має купити більше щоб отримати подарунок</span><br><br>
+<span class="c"># BOGO (1+1=3):</span><br>
+<span class="k">bogo_margin</span> = (retail + retail/2 - cost × 2) / (retail + retail/2) × 100<br><br>
+<span class="c"># Лояльність (Loyalty Points Multiplier):</span><br>
+<span class="k">points_cost</span> = multiplier × base_points_value × avg_redemption_rate<br>
+<span class="k">loyalty_margin_impact</span> = points_cost / retail × 100 <span class="c"># зазвичай 1.5–3%</span>
+    </div>
+  </div>
+
+  <div class="pblock">
+    <div class="pl">Блок 3 — Матриця ситуація → механіка</div>
+    <div class="pc">
+<strong>## МАТРИЦЯ ПІДБОРУ</strong><br><br>
+СИТУАЦІЯ → РЕКОМЕНДОВАНІ МЕХАНІКИ (в порядку пріоритету):<br><br>
+<span class="k">hit_stockout_risk</span>:<br>
+&nbsp;&nbsp;→ <span class="s">Loyalty Points Multiplier</span> <span class="c">(не знижуємо ціну хіта)</span><br>
+&nbsp;&nbsp;→ <span class="s">Bundle</span> <span class="c">(продаємо з менш популярними)</span><br>
+&nbsp;&nbsp;→ <span class="s">Early Bird</span> <span class="c">(для нового дропу)</span><br><br>
+<span class="k">slow_mover</span>:<br>
+&nbsp;&nbsp;→ <span class="s">Progressive Discount</span> <span class="c">(стимул взяти більше)</span><br>
+&nbsp;&nbsp;→ <span class="s">Bundle</span> або <span class="s">GWP</span> <span class="c">(без явної знижки)</span><br>
+&nbsp;&nbsp;→ <span class="s">Flash Sale</span> <span class="c">(якщо решта не спрацювала)</span><br><br>
+<span class="k">end_season</span>:<br>
+&nbsp;&nbsp;→ <span class="s">VIP Pre-sale</span> → <span class="s">Seasonal Sale −30%</span> → <span class="s">Seasonal Sale −50%</span><br>
+&nbsp;&nbsp;→ <span class="s">BOGO</span> <span class="c">(для дешевих позицій)</span><br>
+&nbsp;&nbsp;→ <span class="s">Last Chance/Last Size</span> <span class="c">(для одиночних залишків)</span><br><br>
+<span class="k">deadstock</span>:<br>
+&nbsp;&nbsp;→ <span class="s">Archive Sale</span> або <span class="s">Sample Sale</span><br>
+&nbsp;&nbsp;→ <span class="s">GWP</span> <span class="c">(використати як подарунок)</span><br>
+&nbsp;&nbsp;→ <span class="s">BOGO</span> або <span class="s">Bundle</span> <span class="c">(розвантажити без явного сейлу)</span><br><br>
+<span class="k">new_launch</span>:<br>
+&nbsp;&nbsp;→ <span class="s">Early Bird</span> → <span class="s">Gift With Purchase</span> → <span class="s">MGM</span><br><br>
+<span class="k">retention</span>:<br>
+&nbsp;&nbsp;→ <span class="s">VIP Pre-sale</span> → <span class="s">Birthday Promo</span> → <span class="s">Loyalty Points Multiplier</span>
+    </div>
+  </div>
+
+  <div class="pblock">
+    <div class="pl">Блок 4 — Правила агента</div>
+    <div class="pc">
+<strong>## ПРАВИЛА ПРИ РЕКОМЕНДАЦІЇ АКЦІЙ</strong><br><br>
+<span class="v">ЗАБОРОНЕНО</span> (без явного підтвердження клієнта):<br>
+— Рекомендувати знижку якщо promo_margin &lt; margin_floor<br>
+— Flash Sale на хіт з ризиком стокауту<br>
+— BOGO якщо cost_item &gt; retail/3 <span class="c">(BOGO стає збитковим)</span><br>
+— Seasonal Sale &gt;50% якщо до кінця сезону &gt;8 тижнів<br><br>
+<span class="v">ОБОВ'ЯЗКОВО</span> при будь-якій рекомендації:<br>
+— Показати: нова ціна / нова маржа / прибуток з залишку<br>
+— Попередити якщо маркетплейс-комісія робить акцію збитковою<br>
+— Вказати скільки додатково треба продати щоб компенсувати знижку в маржі<br>
+— Зазначити ідеальну тривалість акції<br><br>
+<span class="v">BREAKEVEN LOGIC</span>:<br>
+volume_uplift_needed = (margin_base - promo_margin) / promo_margin × 100<br>
+<span class="c"># Якщо uplift_needed &gt; 50% — акція ризикована, попередь клієнта</span><br>
+<span class="c"># Якщо uplift_needed &lt; 20% — акція ефективна</span>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── NAV ──
+document.querySelectorAll('.nb').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.nb').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ── DATA ──
+const CATS = [
+  { id:'vol', label:'📈 Об\'єм продажів', color:'var(--vol)' },
+  { id:'aov', label:'🛒 Середній чек', color:'var(--aov)' },
+  { id:'ret', label:'💎 Лояльність', color:'var(--ret)' },
+  { id:'inv', label:'📦 Очистка складу', color:'var(--inv)' },
+  { id:'gam', label:'🎮 Геймификація', color:'var(--gam)' },
+  { id:'soc', label:'📱 Соціальні', color:'var(--soc)' },
+  { id:'eco', label:'🌿 Еко / ESG', color:'var(--eco)' },
+  { id:'auto', label:'🤖 Авто-тригери', color:'var(--auto)' },
+];
+
+const PROMOS = [
+  // VOL
+  { id:'seasonal_sale', cat:'vol', name:'Seasonal Sale', mech:'Поступове зниження цін: −30% → −50% → −70%', goal:'Звільнення місця під нову колекцію', marginImpact:-22, aovImpact:0, speedImpact:90, risk:'high', duration:'4–8 тижнів', bestFor:'end_season', tags:['Сезонний','Глибока знижка'], formula:'progressive_discount' },
+  { id:'mid_season', cat:'vol', name:'Mid-Season Sale', mech:'Знижки −15–25% у міжсезоння', goal:'Підтримка продажів у «тихий» період', marginImpact:-12, aovImpact:-5, speedImpact:50, risk:'mid', duration:'1–2 тижні', bestFor:'slow', tags:['Міжсезоння'], formula:'flat_discount' },
+  { id:'flash_sale', cat:'vol', name:'Flash Sale', mech:'Глибока знижка −30–50% на 3–24 год', goal:'Ажіотаж і швидка ліквідність', marginImpact:-28, aovImpact:-10, speedImpact:95, risk:'high', duration:'3–24 год', bestFor:'dead', tags:['Ургентно','Короткий'], formula:'flat_discount' },
+  { id:'night_shopping', cat:'vol', name:'Night Shopping', mech:'Знижки тільки в нічний час (онлайн)', goal:'Конверсія «холодного» нічного трафіку', marginImpact:-10, aovImpact:+5, speedImpact:40, risk:'low', duration:'Щотижня', bestFor:'slow', tags:['Онлайн','Нічний'], formula:'flat_discount' },
+  // AOV
+  { id:'progressive', cat:'aov', name:'Progressive Discount', mech:'1 реч — 10%, 2 реч — 20%, 3 реч — 30%', goal:'Глибина чека, стимул брати більше', marginImpact:-8, aovImpact:+40, speedImpact:60, risk:'low', duration:'1–4 тижні', bestFor:'slow', tags:['Чек','Глибина'], formula:'progressive' },
+  { id:'tiered_offer', cat:'aov', name:'Tiered Offer', mech:'Знижка 500₴ при покупці від 3000₴', goal:'М\'яко підштовхує добрати до суми', marginImpact:-5, aovImpact:+25, speedImpact:45, risk:'low', duration:'Постійно', bestFor:'loyal', tags:['Поріг','М\'який'], formula:'threshold' },
+  { id:'bogo', cat:'aov', name:'BOGO (1+1=3)', mech:'Друга річ за півціни або безкоштовно', goal:'Очистка дешевих позицій (футболки, шкарпетки)', marginImpact:-20, aovImpact:+50, speedImpact:80, risk:'high', duration:'1–2 тижні', bestFor:'dead', tags:['Очистка','2 позиції'], formula:'bogo' },
+  { id:'bundle', cat:'aov', name:'Bundle (Total Look)', mech:'Знижка −10–20% на готовий комплект', goal:'Продаж готового рішення, більше позицій', marginImpact:-8, aovImpact:+60, speedImpact:55, risk:'low', duration:'Весь сезон', bestFor:'slow', tags:['Комплект','Лук'], formula:'bundle' },
+  // RETENTION
+  { id:'vip_presale', cat:'ret', name:'VIP Pre-sale', mech:'Доступ до сейлу на 2–3 дні раніше', goal:'Привілейованість постійних клієнтів', marginImpact:-5, aovImpact:+15, speedImpact:70, risk:'low', duration:'2–3 дні', bestFor:'loyal', tags:['VIP','Ексклюзив'], formula:'flat_discount' },
+  { id:'birthday', cat:'ret', name:'Birthday Promo', mech:'Персональна знижка в місяць народження', goal:'Емоційна прив\'язка, гарантована покупка', marginImpact:-10, aovImpact:+10, speedImpact:65, risk:'low', duration:'Місяць нар.', bestFor:'loyal', tags:['Персональна','Щорічна'], formula:'flat_discount' },
+  { id:'loyalty_mult', cat:'ret', name:'Loyalty Points Multiplier', mech:'×3 балів за покупку нової колекції', goal:'Стимул без прямої знижки', marginImpact:-2, aovImpact:+8, speedImpact:30, risk:'low', duration:'Вихідні', bestFor:'hit', tags:['Безкоштовна','Без знижки'], formula:'loyalty' },
+  { id:'winback', cat:'ret', name:'Win-back / Churn', mech:'−20% для тих хто не купував 3–6 міс', goal:'Повернення відтікаючих клієнтів', marginImpact:-12, aovImpact:+5, speedImpact:40, risk:'mid', duration:'Разово', bestFor:'loyal', tags:['Реактивація','Email'], formula:'flat_discount' },
+  // INVENTORY
+  { id:'archive_sale', cat:'inv', name:'Archive Sale', mech:'Розпродаж залишків минулих колекцій', goal:'Продаж зависшого неактуального товару', marginImpact:-35, aovImpact:-15, speedImpact:70, risk:'high', duration:'2–4 тижні', bestFor:'dead', tags:['Архів','Минулі сезони'], formula:'flat_discount' },
+  { id:'last_chance', cat:'inv', name:'Last Chance / Last Size', mech:'Знижка на останній розмір в лінійці', goal:'Закриття розмірних рядів', marginImpact:-15, aovImpact:0, speedImpact:75, risk:'mid', duration:'1–2 тижні', bestFor:'dead', tags:['Останній розмір','Ліквідація'], formula:'flat_discount' },
+  { id:'sample_sale', cat:'inv', name:'Sample Sale', mech:'Продаж зразків або речей з дефектами', goal:'Утилізація некондиції з прибутком', marginImpact:-40, aovImpact:-20, speedImpact:85, risk:'high', duration:'1–3 дні', bestFor:'dead', tags:['Некондиція','Зразки'], formula:'flat_discount' },
+  // GAMIFICATION
+  { id:'mystery', cat:'gam', name:'Mystery Offer', mech:'«Дізнайся свою знижку в кошику»', goal:'CTR і залученість', marginImpact:-12, aovImpact:+20, speedImpact:65, risk:'mid', duration:'1–2 тижні', bestFor:'new', tags:['Геймификація','Сюрприз'], formula:'random_discount' },
+  { id:'gwp', cat:'gam', name:'Gift With Purchase (GWP)', mech:'Подарунок при покупці на суму X', goal:'AOV без прямої знижки на основний товар', marginImpact:-4, aovImpact:+30, speedImpact:45, risk:'low', duration:'Постійно', bestFor:'loyal', tags:['Подарунок','AOV'], formula:'gwp' },
+  { id:'early_bird', cat:'gam', name:'Early Bird', mech:'Найнижча ціна в перший час релізу', goal:'FOMO, покупки в перші хвилини', marginImpact:-8, aovImpact:+5, speedImpact:90, risk:'low', duration:'1–6 год', bestFor:'new', tags:['FOMO','Реліз'], formula:'flat_discount' },
+  { id:'happy_hours', cat:'gam', name:'Happy Hours', mech:'Знижка тільки в певні години', goal:'Продажі у «мертві» години магазину', marginImpact:-10, aovImpact:0, speedImpact:50, risk:'low', duration:'Щодня/тиж', bestFor:'slow', tags:['Часові','Трафік'], formula:'flat_discount' },
+  // SOCIAL
+  { id:'mgm', cat:'soc', name:'MGM (Member Get Member)', mech:'«Приведи подругу — обидві по 500₴»', goal:'Зниження CAC через рекомендації', marginImpact:-5, aovImpact:+8, speedImpact:30, risk:'low', duration:'Постійно', bestFor:'loyal', tags:['Реферал','CAC'], formula:'referral' },
+  { id:'ugc_discount', cat:'soc', name:'UGC Discount', mech:'Знижка за відмітку в сторіс або відгук', goal:'Безкоштовний контент і охвати', marginImpact:-5, aovImpact:0, speedImpact:20, risk:'low', duration:'Постійно', bestFor:'new', tags:['Контент','UGC'], formula:'flat_discount' },
+  { id:'influencer_code', cat:'soc', name:'Influencer-only Code', mech:'Іменні промокоди блогерів з трекінгом', goal:'Аналіз ROI роботи з інфлюенсерами', marginImpact:-10, aovImpact:+5, speedImpact:60, risk:'mid', duration:'По кампанії', bestFor:'new', tags:['Інфлюенсер','Трекінг'], formula:'flat_discount' },
+  // ECO
+  { id:'tradein', cat:'eco', name:'Trade-in / Recycling', mech:'Принеси стару річ — −15% на нову', goal:'Циклічна мода, повернення клієнтів', marginImpact:-7, aovImpact:+10, speedImpact:35, risk:'low', duration:'Постійно', bestFor:'loyal', tags:['Еко','Повернення'], formula:'flat_discount' },
+  { id:'charity', cat:'eco', name:'Charity-linked', mech:'5% від покупки в благодійний фонд', goal:'Соціальний імідж бренду', marginImpact:-5, aovImpact:+12, speedImpact:20, risk:'low', duration:'Постійно', bestFor:'loyal', tags:['Соціальна','Фонд'], formula:'charity' },
+  // AUTO
+  { id:'cart_abandon', cat:'auto', name:'Cart Abandonment', mech:'Лист: «Ви забули у кошику + безкоштовна доставка»', goal:'Повернення упущеної виручки', marginImpact:-3, aovImpact:+5, speedImpact:55, risk:'low', duration:'Авто/24 год', bestFor:'loyal', tags:['Email','Авто'], formula:'free_delivery' },
+  { id:'price_drop', cat:'auto', name:'Price Drop Alert', mech:'«Товар з вашого списку став дешевшим!»', goal:'Реактивація тих хто чекав розпродажу', marginImpact:-15, aovImpact:0, speedImpact:70, risk:'mid', duration:'Авто', bestFor:'slow', tags:['Push','Авто'], formula:'flat_discount' },
+  // ADDITIONAL (added by agent)
+  { id:'personal_rec', cat:'auto', name:'Персональна рекомендація', mech:'«На основі ваших покупок — ми підібрали для вас»', goal:'Підвищення конверсії через персоналізацію', marginImpact:0, aovImpact:+20, speedImpact:40, risk:'low', duration:'Авто', bestFor:'loyal', tags:['AI','Персональна'], formula:'no_discount' },
+  { id:'wishlist_promo', cat:'auto', name:'Wishlist Sale', mech:'Акція тільки на товари зі списку бажань', goal:'Гіперперсоналізована пропозиція', marginImpact:-10, aovImpact:+15, speedImpact:65, risk:'low', duration:'Авто', bestFor:'loyal', tags:['Персональна','Push'], formula:'flat_discount' },
+  { id:'restock_alert', cat:'auto', name:'Back in Stock Alert', mech:'Повідомлення коли товар знову є в наявності', goal:'Продажі без знижки для чекаючих', marginImpact:0, aovImpact:0, speedImpact:80, risk:'low', duration:'Авто', bestFor:'hit', tags:['Авто','Push'], formula:'no_discount' },
+  { id:'preorder', cat:'gam', name:'Pre-order / Deposit', mech:'Бронювання нової колекції з передоплатою', goal:'Прогнозований попит, фінансування закупівлі', marginImpact:0, aovImpact:+10, speedImpact:50, risk:'low', duration:'До релізу', bestFor:'new', tags:['Передзамовлення','Фінансування'], formula:'no_discount' },
+  { id:'set_discount', cat:'aov', name:'«Повний образ» Set', mech:'Знижка −10% якщо береш верх + низ + аксесуар', goal:'Продаж трьох позицій замість одної', marginImpact:-5, aovImpact:+80, speedImpact:50, risk:'low', duration:'Весь сезон', bestFor:'slow', tags:['Комплект','Максимальний AOV'], formula:'bundle' },
+  { id:'subscription', cat:'ret', name:'Subscription Box', mech:'Щомісячна підписка — вибір куратора зі знижкою', goal:'Передбачуваний регулярний дохід', marginImpact:-8, aovImpact:+35, speedImpact:30, risk:'low', duration:'Постійно', bestFor:'loyal', tags:['Підписка','Retention'], formula:'flat_discount' },
+];
+
+const CAT_MAP = {};
+CATS.forEach(c => CAT_MAP[c.id] = c);
+
+// ── FILTERS ──
+let activeFilter = 'all';
+const filtersEl = document.getElementById('catFilters');
+filtersEl.innerHTML = `<button class="cf active" onclick="filterPromos('all',this)">Всі</button>` +
+  CATS.map(c => `<button class="cf" onclick="filterPromos('${c.id}',this)" style="--cc:${c.color}">${c.label}</button>`).join('');
+
+function filterPromos(cat, btn) {
+  activeFilter = cat;
+  document.querySelectorAll('.cf').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderPromoGrid();
+}
+
+function renderPromoGrid() {
+  const items = activeFilter === 'all' ? PROMOS : PROMOS.filter(p => p.cat === activeFilter);
+  document.getElementById('catalogCount').textContent = items.length + ' механік';
+  document.getElementById('promoGrid').innerHTML = items.map(p => {
+    const cat = CAT_MAP[p.cat];
+    const riskCls = p.risk === 'high' ? 'impact-high' : p.risk === 'mid' ? 'impact-mid' : 'impact-low';
+    const riskLbl = p.risk === 'high' ? 'Висока' : p.risk === 'mid' ? 'Середня' : 'Низька';
+    const marginColor = p.marginImpact < -20 ? 'var(--bad)' : p.marginImpact < -8 ? 'var(--warn)' : 'var(--good)';
+    const aovColor = p.aovImpact > 30 ? 'var(--good)' : p.aovImpact > 0 ? 'var(--warn)' : 'var(--muted)';
+    return `<div class="pcard" onclick="openPromoCalc('${p.id}')">
+      <div class="pcard-stripe" style="background:${cat.color};"></div>
+      <div class="pcard-head">
+        <div class="pcard-cat" style="color:${cat.color};">${cat.label}</div>
+        <div class="pcard-name">${p.name}</div>
+        <div class="pcard-mech">${p.mech}</div>
+      </div>
+      <div class="pcard-body">
+        <div class="pcard-metrics">
+          <div class="pm-item">
+            <span class="pm-val" style="color:${marginColor};">${p.marginImpact > 0 ? '+' : ''}${p.marginImpact}%</span>
+            <span class="pm-lbl">маржа</span>
+          </div>
+          <div class="pm-item">
+            <span class="pm-val" style="color:${aovColor};">${p.aovImpact > 0 ? '+' : ''}${p.aovImpact}%</span>
+            <span class="pm-lbl">AOV</span>
+          </div>
+          <div class="pm-item">
+            <span class="pm-val" style="color:var(--ink);">${p.speedImpact}%</span>
+            <span class="pm-lbl">швидкість</span>
+          </div>
+        </div>
+        <div class="pcard-tags">
+          <span class="ptag impact ${riskCls}" style="border-color:transparent;">Ризик маржі: ${riskLbl}</span>
+          ${p.tags.slice(0,2).map(t => `<span class="ptag" style="background:var(--s2);border-color:var(--border);color:var(--muted);">${t}</span>`).join('')}
+        </div>
+        <div style="margin-top:8px;font-family:'DM Mono',monospace;font-size:10px;color:var(--dim);">⏱ ${p.duration} · ${p.goal}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+renderPromoGrid();
+
+// ── CALCULATOR ──
+const MECHS_CALC = [
+  { id:'flat_discount', label:'Пряма знижка', params:[{ id:'disc', label:'Знижка', unit:'%', default:20 }] },
+  { id:'progressive', label:'Прогресивна', params:[{ id:'d1', label:'За 1 річ', unit:'%', default:10 }, { id:'d2', label:'За 2 речі', unit:'%', default:20 }, { id:'d3', label:'За 3+ речей', unit:'%', default:30 }] },
+  { id:'bogo', label:'BOGO (1+1=3)', params:[] },
+  { id:'bundle', label:'Бандл', params:[{ id:'items', label:'Позицій в комплекті', unit:'шт', default:3 }, { id:'bdisc', label:'Знижка на комплект', unit:'%', default:15 }] },
+  { id:'gwp', label:'GWP (подарунок)', params:[{ id:'giftCost', label:'Собівартість подарунку', unit:'₴', default:200 }, { id:'trigger', label:'Поріг покупки', unit:'₴', default:3000 }] },
+  { id:'loyalty', label:'Loyalty Points ×', params:[{ id:'mult', label:'Множник балів', unit:'×', default:3 }, { id:'ptVal', label:'Вартість 1 бала', unit:'₴', default:0.02 }] },
+  { id:'threshold', label:'Tiered Offer', params:[{ id:'bonusAmt', label:'Розмір бонусу', unit:'₴', default:500 }, { id:'threshAmt', label:'Поріг покупки', unit:'₴', default:3000 }] },
+  { id:'no_discount', label:'Без знижки', params:[] },
+];
+
+const mechSelEl = document.getElementById('mechSelect');
+mechSelEl.innerHTML = MECHS_CALC.map((m,i) => `<button class="ms-btn ${i===0?'active':''}" onclick="selectMech('${m.id}',this)">${m.label}</button>`).join('');
+
+let activeMech = 'flat_discount';
+function selectMech(id, btn) {
+  activeMech = id;
+  document.querySelectorAll('.ms-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderMechParams();
+  calcPromo();
+}
+
+function renderMechParams() {
+  const m = MECHS_CALC.find(x => x.id === activeMech);
+  document.getElementById('mechParams').innerHTML = m.params.map(p =>
+    `<div class="inp-row"><span class="inp-label">${p.label}</span><input class="inp" id="mp_${p.id}" type="number" value="${p.default}" style="width:100px;" oninput="calcPromo()"><span class="inp-unit">${p.unit}</span></div>`
+  ).join('');
+  calcPromo();
+}
+renderMechParams();
+
+function getP(id) { const el = document.getElementById('mp_'+id); return el ? +el.value || 0 : 0; }
+
+function calcPromo() {
+  const retail = +document.getElementById('cRetail').value||3990;
+  const cost = +document.getElementById('cCost').value||1400;
+  const qty = +document.getElementById('cQty').value||30;
+  const baseAOV = +document.getElementById('cAOV').value||4200;
+  const salesWk = +document.getElementById('cSales').value||5;
+
+  const baseMargin = (retail-cost)/retail*100;
+  const baseRevTotal = retail*qty;
+  const baseProfitTotal = (retail-cost)*qty;
+
+  let promoPrice = retail, promoMargin = baseMargin, newAOV = baseAOV;
+  let extraRevNote = '', mechNote = '';
+
+  switch(activeMech) {
+    case 'flat_discount': {
+      const d = getP('disc');
+      promoPrice = retail*(1-d/100);
+      promoMargin = (promoPrice-cost)/promoPrice*100;
+      mechNote = `Знижка −${d}% → Нова ціна ${Math.round(promoPrice).toLocaleString()}₴`;
+      break;
+    }
+    case 'progressive': {
+      const [d1,d2,d3] = [getP('d1'),getP('d2'),getP('d3')];
+      const avgDisc = d1*0.4 + d2*0.3 + d3*0.3;
+      promoPrice = retail*(1-avgDisc/100);
+      promoMargin = (promoPrice-cost)/promoPrice*100;
+      newAOV = baseAOV * 1.35;
+      mechNote = `Середня знижка ~${Math.round(avgDisc)}% з урахуванням розподілу кошиків`;
+      break;
+    }
+    case 'bogo': {
+      promoPrice = (retail + retail*0.5)/2;
+      promoMargin = (retail + retail*0.5 - cost*2)/(retail + retail*0.5)*100;
+      newAOV = retail*1.5;
+      mechNote = `Ефективна ціна за річ: ${Math.round(promoPrice).toLocaleString()}₴. Продаємо 2 одиниці разом.`;
+      break;
+    }
+    case 'bundle': {
+      const items = getP('items')||3;
+      const bdisc = getP('bdisc')||15;
+      const bundleRev = retail*items*(1-bdisc/100);
+      promoMargin = (bundleRev - cost*items)/bundleRev*100;
+      promoPrice = bundleRev/items;
+      newAOV = bundleRev;
+      mechNote = `Комплект ${items} речей зі знижкою ${bdisc}%. Виручка з комплекту: ${Math.round(bundleRev).toLocaleString()}₴`;
+      break;
+    }
+    case 'gwp': {
+      const giftCost = getP('giftCost')||200;
+      promoMargin = (retail - cost - giftCost)/retail*100;
+      promoPrice = retail;
+      newAOV = Math.max(baseAOV, getP('trigger')||3000) * 1.1;
+      mechNote = `Ціна не знижується. Подарунок коштує ${giftCost}₴ — зменшує маржу з одиниці.`;
+      break;
+    }
+    case 'loyalty': {
+      const mult = getP('mult')||3;
+      const ptVal = getP('ptVal')||0.02;
+      const loyaltyCost = retail * mult * ptVal;
+      promoMargin = (retail - cost - loyaltyCost)/retail*100;
+      promoPrice = retail;
+      mechNote = `Бали ×${mult}. Витрати на програму лояльності: ~${Math.round(loyaltyCost).toLocaleString()}₴/шт`;
+      break;
+    }
+    case 'threshold': {
+      const bonus = getP('bonusAmt')||500;
+      const thresh = getP('threshAmt')||3000;
+      const avgOrdersUsing = thresh / retail;
+      const bonusPer = bonus / (thresh/retail);
+      promoMargin = (retail - cost - bonusPer)/retail*100;
+      promoPrice = retail;
+      newAOV = thresh * 1.05;
+      mechNote = `Бонус ${bonus}₴ розподіляється на ~${avgOrdersUsing.toFixed(1)} речей. Вплив на маржу ~${Math.round(bonusPer)}₴/шт`;
+      break;
+    }
+    case 'no_discount': {
+      promoMargin = baseMargin;
+      promoPrice = retail;
+      newAOV = baseAOV * 1.15;
+      mechNote = 'Ціна не змінюється. Зростання завдяки кращій персоналізації чи контенту.';
+      break;
+    }
+  }
+
+  const marginDiff = promoMargin - baseMargin;
+  const profitPer = Math.round(promoPrice - cost);
+  const revTotal = Math.round(promoPrice * qty);
+  const profitTotal = Math.round((promoPrice - cost) * qty);
+  const volNeeded = marginDiff < 0 ? Math.round(Math.abs(marginDiff) / Math.max(1,promoMargin) * 100) : 0;
+
+  const mkColor = (v,good,bad) => v >= good ? 'var(--good)' : v >= bad ? 'var(--warn)' : 'var(--bad)';
+
+  document.getElementById('calcResults').innerHTML = `
+    <div class="res-box" style="background:var(--warn-bg);border-color:var(--warn-border);">
+      <span class="res-val" style="color:${mkColor(promoMargin,50,30)};">${Math.round(promoMargin)}%</span>
+      <span class="res-lbl">Маржа з акцією</span>
+    </div>
+    <div class="res-box" style="background:var(--good-bg);border-color:var(--good-border);">
+      <span class="res-val" style="color:var(--good);">${profitPer.toLocaleString()}₴</span>
+      <span class="res-lbl">Прибуток/шт</span>
+    </div>
+    <div class="res-box" style="background:var(--aov-bg);border-color:var(--aov-border);">
+      <span class="res-val" style="color:var(--aov);">${Math.round(newAOV).toLocaleString()}₴</span>
+      <span class="res-lbl">Прогноз AOV</span>
+    </div>
+    <div class="res-box" style="background:${volNeeded > 50 ? 'var(--bad-bg)' : 'var(--s2)'};border-color:${volNeeded > 50 ? 'var(--bad-border)' : 'var(--border)'};">
+      <span class="res-val" style="color:${volNeeded > 50 ? 'var(--bad)' : volNeeded > 20 ? 'var(--warn)' : 'var(--good)'};">${volNeeded > 0 ? '+'+volNeeded+'%' : '✓'}</span>
+      <span class="res-lbl">Потрібний приріст</span>
+    </div>`;
+
+  const insightColor = volNeeded > 50 ? 'note-red' : volNeeded > 20 ? 'note-amber' : 'note-green';
+  const insightText = volNeeded > 50
+    ? `<strong>⚠️ Ризикована акція:</strong> щоб компенсувати втрату маржі, потрібно продати на +${volNeeded}% більше одиниць. ${mechNote}`
+    : volNeeded > 20
+    ? `<strong>💡 Помірний ризик:</strong> акція ефективна якщо приріст продажів складе хоча б +${volNeeded}%. ${mechNote}`
+    : `<strong>✅ Ефективна акція:</strong> вплив на маржу мінімальний${volNeeded === 0 ? '' : `, потрібен приріст лише +${volNeeded}%`}. ${mechNote}`;
+  document.getElementById('calcInsight').className = `note ${insightColor}`;
+  document.getElementById('calcInsight').innerHTML = insightText;
+
+  document.getElementById('compareBody').innerHTML = `
+    <tr><td>Ціна продажу</td><td class="r">${retail.toLocaleString()}₴</td><td class="r">${Math.round(promoPrice).toLocaleString()}₴</td><td class="r" style="color:${promoPrice<retail?'var(--bad)':'var(--good)'};">${promoPrice < retail ? '−'+(Math.round((retail-promoPrice)).toLocaleString())+'₴' : '='}</td><td></td></tr>
+    <tr><td>Маржа %</td><td class="r">${Math.round(baseMargin)}%</td><td class="r">${Math.round(promoMargin)}%</td><td class="r" style="color:${marginDiff<0?'var(--bad)':'var(--good)'};">${marginDiff > 0?'+':''}${Math.round(marginDiff)}%</td><td><span class="impact ${marginDiff < -15 ? 'impact-high' : marginDiff < -5 ? 'impact-mid' : 'impact-low'}">${Math.abs(marginDiff) < 3 ? 'Мінімальний' : marginDiff < -15 ? 'Суттєве зниження' : 'Помірне зниження'}</span></td></tr>
+    <tr><td>Прибуток/шт</td><td class="r">${Math.round(retail-cost).toLocaleString()}₴</td><td class="r">${profitPer.toLocaleString()}₴</td><td class="r" style="color:${profitPer<retail-cost?'var(--bad)':'var(--good)'};">${((profitPer-(retail-cost))>0?'+':'')+(profitPer-(retail-cost)).toLocaleString()}₴</td><td></td></tr>
+    <tr><td>Виручка з ${qty} шт</td><td class="r">${baseRevTotal.toLocaleString()}₴</td><td class="r">${revTotal.toLocaleString()}₴</td><td class="r" style="color:${revTotal<baseRevTotal?'var(--bad)':'var(--good)'};">${(revTotal-baseRevTotal>0?'+':'')+(revTotal-baseRevTotal).toLocaleString()}₴</td><td></td></tr>
+    <tr><td>Прибуток з ${qty} шт</td><td class="r">${baseProfitTotal.toLocaleString()}₴</td><td class="r">${profitTotal.toLocaleString()}₴</td><td class="r" style="color:${profitTotal<baseProfitTotal?'var(--bad)':'var(--good)'};">${(profitTotal-baseProfitTotal>0?'+':'')+(profitTotal-baseProfitTotal).toLocaleString()}₴</td><td></td></tr>
+    <tr><td>Середній чек (AOV)</td><td class="r">${baseAOV.toLocaleString()}₴</td><td class="r">${Math.round(newAOV).toLocaleString()}₴</td><td class="r" style="color:${newAOV>baseAOV?'var(--good)':'var(--bad)'};">${(newAOV-baseAOV>0?'+':'')+(Math.round(newAOV-baseAOV)).toLocaleString()}₴</td><td><span class="impact ${newAOV > baseAOV*1.2 ? 'impact-pos' : newAOV > baseAOV ? 'impact-low' : 'impact-mid'}">${newAOV > baseAOV*1.2 ? 'Суттєве зростання' : newAOV > baseAOV ? 'Помірне зростання' : 'Зниження'}</span></td></tr>`;
+}
+calcPromo();
+
+function openPromoCalc(id) {
+  document.querySelectorAll('.nb').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelector('[data-tab="calculator"]').classList.add('active');
+  document.getElementById('tab-calculator').classList.add('active');
+}
+
+// ── COMPARISON TABLE ──
+function sortTable(by, btn) {
+  document.querySelectorAll('.stab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const sorted = [...PROMOS].sort((a,b) => {
+    if(by === 'margin') return a.marginImpact - b.marginImpact;
+    if(by === 'aov') return b.aovImpact - a.aovImpact;
+    if(by === 'speed') return b.speedImpact - a.speedImpact;
+    if(by === 'risk') { const r = {low:0,mid:1,high:2}; return r[a.risk] - r[b.risk]; }
+    return 0;
+  });
+  renderCompTable(sorted);
+}
+
+function renderCompTable(items) {
+  document.getElementById('compTableBody').innerHTML = items.map(p => {
+    const cat = CAT_MAP[p.cat];
+    const mColor = p.marginImpact < -20 ? 'var(--bad)' : p.marginImpact < -8 ? 'var(--warn)' : 'var(--good)';
+    const aColor = p.aovImpact > 30 ? 'var(--good)' : p.aovImpact > 0 ? 'var(--warn)' : 'var(--muted)';
+    const riskMap = {high:'impact-high',mid:'impact-mid',low:'impact-low'};
+    const riskLbl = {high:'Висока',mid:'Середня',low:'Низька'};
+    const sBar = `<div class="mbar"><div class="mbar-track"><div class="mbar-fill" style="width:${p.speedImpact}%;background:var(--aov);"></div></div><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);">${p.speedImpact}%</span></div>`;
+    return `<tr>
+      <td><span style="font-weight:700;">${p.name}</span></td>
+      <td><span style="font-family:'DM Mono',monospace;font-size:10px;color:${cat.color};">${cat.label}</span></td>
+      <td class="r"><span style="font-family:'DM Mono',monospace;font-weight:700;color:${mColor};">${p.marginImpact > 0 ? '+' : ''}${p.marginImpact}%</span></td>
+      <td class="r"><span style="font-family:'DM Mono',monospace;color:${aColor};">${p.aovImpact > 0 ? '+' : ''}${p.aovImpact}%</span></td>
+      <td style="min-width:140px;">${sBar}</td>
+      <td><span class="impact ${riskMap[p.risk]}">${riskLbl[p.risk]}</span></td>
+      <td style="font-size:12px;color:var(--muted);">${p.goal}</td>
+    </tr>`;
+  }).join('');
+}
+renderCompTable(PROMOS);
+
+// ── SCENARIOS ──
+const SCENARIOS = {
+  hit: { title:'🔥 Хіт — стокаут ризик', desc:'Товар продається добре, залишок швидко зменшується. ЦІНУ НЕ ЗНИЖУЄМО — навпаки, монетизуємо попит.', mechs:['loyalty_mult','bundle','gwp','early_bird','restock_alert'], rules:'НЕ рекомендувати Flash Sale або Seasonal Sale на хіт. Мета — продати дорожче або підтягнути слоу-мувери.', color:'var(--vol)' },
+  slow: { title:'📉 Слоу-мувер', desc:'Продажі нижче норми 3+ тижні. Потрібен поштовх без сильного знищення маржі.', mechs:['progressive','bundle','happy_hours','gwp','flash_sale','ugc_discount'], rules:'Спочатку спробувати без знижки (bundle, gwp, ugc). Якщо не спрацювало — Flash Sale або Progressive.', color:'var(--inv)' },
+  end: { title:'⬇️ Кінець сезону (6 тижнів)', desc:'До сейлу залишилось 6 тижнів. Потрібно розпродати залишки до кінця сезону.', mechs:['vip_presale','seasonal_sale','bogo','last_chance','mid_season'], rules:'Послідовність: VIP Pre-sale → −30% → −50% → Last Chance. BOGO для дешевих позицій.', color:'var(--gam)' },
+  dead: { title:'💤 Deadstock (зависляк)', desc:'Товар не рухається. Мета — повернути оборотні гроші будь-якою ціною.', mechs:['archive_sale','sample_sale','bogo','gwp','flash_sale'], rules:'Дозволено йти нижче маржа-флору з підтвердженням клієнта. GWP — використати як подарунок до іншого товару.', color:'var(--inv)' },
+  new: { title:'🆕 Новий дроп / Нова колекція', desc:'Нова колекція тільки надійшла. Мета — швидкий старт без знижок.', mechs:['early_bird','gwp','mystery','preorder','ugc_discount','influencer_code'], rules:'НЕ давати знижку на нове — це знецінює продукт. Використати FOMO, GWP, UGC.', color:'var(--soc)' },
+  loyal: { title:'💎 Робота з лояльністю', desc:'Утримання і повернення постійних клієнтів.', mechs:['vip_presale','birthday','loyalty_mult','mgm','tiered_offer','cart_abandon','winback'], rules:'Персоналізовані пропозиції > масові знижки. Loyalty Points краше ніж пряма знижка — зберігає маржу.', color:'var(--ret)' },
+};
+
+function showScen(id, btn) {
+  document.querySelectorAll('.stab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const s = SCENARIOS[id];
+  const mechCards = s.mechs.map(mid => {
+    const p = PROMOS.find(x => x.id === mid);
+    if(!p) return '';
+    const cat = CAT_MAP[p.cat];
+    const mColor = p.marginImpact < -20 ? 'var(--bad)' : p.marginImpact < -8 ? 'var(--warn)' : 'var(--good)';
+    return `<div class="mx-card">
+      <div class="mx-cat" style="color:${cat.color};">${cat.label}</div>
+      <div class="mx-name">${p.name}</div>
+      <div class="mx-row"><span class="mx-lbl">Механіка</span><span class="mx-val" style="font-size:11px;">${p.mech.slice(0,40)}...</span></div>
+      <div class="mx-row"><span class="mx-lbl">Маржа</span><span class="mx-val" style="color:${mColor};">${p.marginImpact > 0 ? '+' : ''}${p.marginImpact}%</span></div>
+      <div class="mx-row"><span class="mx-lbl">AOV</span><span class="mx-val" style="color:${p.aovImpact>0?'var(--good)':'var(--muted)'};">${p.aovImpact > 0 ? '+' : ''}${p.aovImpact}%</span></div>
+      <div class="mx-row"><span class="mx-lbl">Ризик маржі</span><span class="impact ${p.risk==='high'?'impact-high':p.risk==='mid'?'impact-mid':'impact-low'}">${p.risk==='high'?'Висока':p.risk==='mid'?'Середня':'Низька'}</span></div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('scenContent').innerHTML = `
+    <div class="note note-amber" style="border-left:4px solid ${s.color};">
+      <strong style="color:${s.color};">${s.title}</strong><br>${s.desc}<br><br>
+      <strong>⚡ Правило агента:</strong> ${s.rules}
+    </div>
+    <div style="font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--dim);margin-bottom:12px;">Рекомендовані механіки (в порядку пріоритету):</div>
+    <div class="matrix">${mechCards}</div>`;
+}
+
+// init
+document.querySelector('[onclick="showScen(\'hit\',this)"]') && showScen('hit', document.querySelector('[onclick="showScen(\'hit\',this)"]'));
+document.querySelectorAll('[onclick*="showScen"]').forEach((btn,i) => { if(i===0) showScen('hit',btn); });
+</script>
+</body>
+</html>

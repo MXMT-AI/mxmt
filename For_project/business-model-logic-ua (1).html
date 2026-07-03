@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Логіка бізнес-моделей — Агент Аналітик</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=JetBrains+Mono:wght@300;400;500&family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #faf9f7;
+    --surface: #ffffff;
+    --surface2: #f3f1ed;
+    --border: #e5e1d8;
+    --border2: #d0ccc0;
+    --ink: #1c1916;
+    --muted: #8a8278;
+    --dim: #b5b0a8;
+
+    /* Seasonal */
+    --sea: #2a7d4f;
+    --sea-bg: rgba(42,125,79,0.07);
+    --sea-border: rgba(42,125,79,0.2);
+    --sea-light: #e8f4ed;
+
+    /* Carryover */
+    --car: #1d4e89;
+    --car-bg: rgba(29,78,137,0.07);
+    --car-border: rgba(29,78,137,0.2);
+    --car-light: #e3edf8;
+
+    /* Sale / Neutral */
+    --sal: #b85c00;
+    --sal-bg: rgba(184,92,0,0.07);
+    --sal-border: rgba(184,92,0,0.2);
+
+    --warn: #c8401a;
+    --warn-bg: rgba(200,64,26,0.07);
+    --warn-border: rgba(200,64,26,0.2);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Manrope', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* NAV */
+  .nav {
+    position: sticky;
+    top: 0;
+    background: var(--ink);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    padding: 0 40px;
+    gap: 4px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .nav-logo {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: rgba(255,255,255,0.35);
+    padding: 16px 0;
+    margin-right: 24px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .nav-btn {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.45);
+    font-family: 'Manrope', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 16px 16px 14px;
+    border-bottom: 2px solid transparent;
+    position: relative;
+    top: 0;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .nav-btn:hover { color: rgba(255,255,255,0.75); }
+  .nav-btn.active { color: #fff; border-bottom-color: var(--accent-tab, #fff); }
+  .nav-btn[data-tab="brief"] { --accent-tab: #f0c040; }
+  .nav-btn[data-tab="seasonal"] { --accent-tab: var(--sea); }
+  .nav-btn[data-tab="carryover"] { --accent-tab: #6aacf0; }
+  .nav-btn[data-tab="logic"] { --accent-tab: #e88a40; }
+
+  /* CONTENT */
+  .content { display: none; }
+  .content.active { display: block; }
+
+  /* HERO */
+  .hero {
+    background: var(--ink);
+    color: #faf9f7;
+    padding: 56px 48px 48px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    right: 0; top: 0;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.02) 100%);
+    pointer-events: none;
+  }
+  .hero-eye {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 2.5px;
+    color: rgba(255,255,255,0.35);
+    margin-bottom: 14px;
+  }
+  .hero h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(26px, 4vw, 46px);
+    font-weight: 900;
+    line-height: 1.1;
+    color: #fff;
+    max-width: 640px;
+  }
+  .hero h1 em { font-style: italic; color: #f0c040; }
+  .hero-desc {
+    margin-top: 14px;
+    color: rgba(250,249,247,0.5);
+    font-size: 13.5px;
+    max-width: 540px;
+    line-height: 1.75;
+  }
+
+  .model-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-top: 36px;
+    max-width: 700px;
+  }
+  .model-card {
+    border-radius: 12px;
+    padding: 20px 22px;
+    border: 1px solid;
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+  .model-card:hover { transform: translateY(-2px); }
+  .model-card.sea { background: var(--sea-bg); border-color: var(--sea-border); }
+  .model-card.car { background: var(--car-bg); border-color: var(--car-border); }
+  .model-card-icon { font-size: 26px; margin-bottom: 8px; }
+  .model-card-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 4px;
+  }
+  .model-card-desc { font-size: 12px; color: rgba(250,249,247,0.5); line-height: 1.5; }
+  .model-card-example {
+    margin-top: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: inline-block;
+  }
+  .model-card.sea .model-card-example { background: rgba(42,125,79,0.25); color: #7dd3a8; }
+  .model-card.car .model-card-example { background: rgba(29,78,137,0.25); color: #93c5fd; }
+
+  /* MAIN WRAP */
+  .wrap { padding: 40px 48px; max-width: 1080px; }
+  @media(max-width:720px) {
+    .nav { padding: 0 16px; overflow-x: auto; }
+    .hero { padding: 36px 20px 32px; }
+    .wrap { padding: 28px 20px; }
+    .model-cards, .grid-2, .grid-3 { grid-template-columns: 1fr !important; }
+  }
+
+  /* SECTION */
+  .section { margin-bottom: 48px; }
+  .section-eye {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--dim);
+    margin-bottom: 8px;
+  }
+  .section h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 6px;
+    line-height: 1.2;
+  }
+  .section-desc { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
+
+  /* CARD */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px 24px;
+    margin-bottom: 14px;
+  }
+  .card h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+  .card-sub { font-size: 12px; color: var(--muted); margin-bottom: 14px; font-family: 'JetBrains Mono', monospace; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  .full { grid-column: 1 / -1; }
+
+  /* BADGE */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 5px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+  }
+  .badge-sea { background: var(--sea-light); color: var(--sea); border: 1px solid var(--sea-border); }
+  .badge-car { background: var(--car-light); color: var(--car); border: 1px solid var(--car-border); }
+  .badge-sal { background: var(--sal-bg); color: var(--sal); border: 1px solid var(--sal-border); }
+  .badge-warn { background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn-border); }
+  .badge-neu { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+
+  /* LIST */
+  .clist { list-style: none; }
+  .clist li {
+    display: flex; gap: 10px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    align-items: flex-start;
+  }
+  .clist li:last-child { border-bottom: none; }
+  .clist li::before { content: '→'; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--dim); flex-shrink: 0; padding-top: 2px; }
+  .clist li small { display: block; font-size: 11px; color: var(--muted); margin-top: 2px; font-family: 'JetBrains Mono', monospace; }
+
+  /* TIMELINE */
+  .timeline { display: flex; gap: 0; overflow-x: auto; padding-bottom: 8px; margin-top: 10px; }
+  .tl-month {
+    min-width: 80px;
+    flex: 1;
+    border-right: 1px solid var(--border);
+    padding: 10px 8px;
+    text-align: center;
+    position: relative;
+  }
+  .tl-month:last-child { border-right: none; }
+  .tl-month-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+  }
+  .tl-bar {
+    height: 28px;
+    border-radius: 4px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    font-weight: 500;
+  }
+  .tl-event {
+    font-size: 10px;
+    line-height: 1.3;
+    color: var(--muted);
+  }
+
+  /* LIFECYCLE PHASES */
+  .phase-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+  .phase {
+    flex: 1;
+    min-width: 130px;
+    border-radius: 10px;
+    padding: 14px 16px;
+    border: 1px solid;
+  }
+  .phase-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    margin-bottom: 6px;
+  }
+  .phase h4 { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+  .phase p { font-size: 12px; line-height: 1.5; }
+
+  /* CODE */
+  .code {
+    background: #1c1916;
+    border-radius: 8px;
+    padding: 18px 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 1.85;
+    color: #8a8278;
+    margin-top: 12px;
+    overflow-x: auto;
+  }
+  .code .k { color: #7dd3a8; }
+  .code .v { color: #fbbf24; }
+  .code .s { color: #93c5fd; }
+  .code .c { color: #3d3a35; }
+  .code .r { color: #fca5a5; }
+  .code .g { color: #86efac; }
+  .code .o { color: #fdba74; }
+
+  /* PROMPT */
+  .prompt {
+    border-radius: 10px;
+    padding: 20px 22px;
+    margin-top: 12px;
+    border: 1px solid;
+  }
+  .prompt.sea { background: var(--sea-bg); border-color: var(--sea-border); }
+  .prompt.car { background: var(--car-bg); border-color: var(--car-border); }
+  .prompt.sal { background: var(--sal-bg); border-color: var(--sal-border); }
+  .prompt-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 10px;
+  }
+  .prompt-label.sea { color: var(--sea); }
+  .prompt-label.car { color: var(--car); }
+  .prompt-label.sal { color: var(--sal); }
+  .prompt-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 1.9;
+    color: var(--muted);
+  }
+  .prompt-text strong { color: var(--ink); font-weight: 600; }
+  .prompt-text em { font-style: normal; color: var(--sea); }
+  .prompt-text .cb { color: var(--car); }
+
+  /* BRIEF FORM */
+  .brief-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 14px;
+  }
+  .brief-section h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 14px;
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .q-item {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+  }
+  .q-item:last-child { border-bottom: none; }
+  .q-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--dim);
+    min-width: 24px;
+    padding-top: 2px;
+  }
+  .q-body { flex: 1; }
+  .q-text { font-size: 13.5px; font-weight: 600; color: var(--ink); margin-bottom: 6px; }
+  .q-options { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .q-option {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 5px 12px;
+    font-size: 12px;
+    color: var(--muted);
+    background: var(--bg);
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .q-option:hover { border-color: var(--border2); color: var(--ink); background: var(--surface2); }
+  .q-option.active-sea { background: var(--sea-light); border-color: var(--sea-border); color: var(--sea); }
+  .q-option.active-car { background: var(--car-light); border-color: var(--car-border); color: var(--car); }
+  .q-note { font-size: 11px; color: var(--dim); margin-top: 6px; font-family: 'JetBrains Mono', monospace; }
+  .q-critical::after {
+    content: '← визначає логіку';
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: #b85c00;
+    background: var(--sal-bg);
+    border: 1px solid var(--sal-border);
+    border-radius: 4px;
+    padding: 2px 7px;
+    margin-left: 8px;
+  }
+
+  /* DIVIDER */
+  hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+
+  /* TABLE */
+  .t { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  .t th {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 2px solid var(--border2);
+    white-space: nowrap;
+  }
+  .t td {
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    vertical-align: top;
+  }
+  .t tr:last-child td { border-bottom: none; }
+  .t td:first-child { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+
+  /* DECISION TREE */
+  .dtree {
+    background: #1c1916;
+    border-radius: 12px;
+    padding: 28px 32px;
+    color: #faf9f7;
+    margin-top: 10px;
+  }
+  .dt-node {
+    border-left: 2px solid rgba(255,255,255,0.1);
+    padding-left: 16px;
+    margin-top: 12px;
+  }
+  .dt-node:first-child { margin-top: 0; border-left: none; padding-left: 0; }
+  .dt-q {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: #fbbf24;
+    margin-bottom: 8px;
+  }
+  .dt-branch { margin-left: 16px; margin-top: 6px; }
+  .dt-yes { color: #86efac; font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+  .dt-no { color: #fca5a5; font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+  .dt-result {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    margin-top: 6px;
+    margin-left: 12px;
+  }
+  .dt-result.sea { background: rgba(42,125,79,0.2); color: #7dd3a8; border: 1px solid rgba(42,125,79,0.3); }
+  .dt-result.car { background: rgba(29,78,137,0.2); color: #93c5fd; border: 1px solid rgba(29,78,137,0.3); }
+  .dt-result.mix { background: rgba(184,92,0,0.2); color: #fdba74; border: 1px solid rgba(184,92,0,0.3); }
+
+  /* UA BENCHMARKS */
+  .ua-note {
+    background: #fff8f0;
+    border: 1px solid #f0d5b0;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 12.5px;
+    color: #7a5c30;
+    line-height: 1.65;
+    margin-bottom: 14px;
+  }
+  .ua-note strong { color: #5a3e18; }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-logo">Analyst Agent</div>
+  <button class="nav-btn active" data-tab="brief">📋 Бриф клієнта</button>
+  <button class="nav-btn" data-tab="seasonal">🌿 Сезонна модель</button>
+  <button class="nav-btn" data-tab="carryover">♻️ Керіовер</button>
+  <button class="nav-btn" data-tab="logic">🧠 Логіка агента</button>
+</nav>
+
+<!-- ==================== HERO ==================== -->
+<div class="hero" id="hero">
+  <div class="hero-eye">Агент Аналітик — Логіка бізнес-моделей / Україна</div>
+  <h1>Дві моделі бізнесу —<br><em>два підходи</em> аналізу</h1>
+  <p class="hero-desc">
+    Агент визначає модель клієнта через бриф при онбордингу і перемикає логіку аналізу: сезонні колекції або постійний асортимент з дозамовленнями.
+  </p>
+  <div class="model-cards">
+    <div class="model-card sea">
+      <div class="model-card-icon">🌿</div>
+      <div class="model-card-title">Сезонна модель</div>
+      <div class="model-card-desc">Нові артикули кожен сезон. Мета — продати в 0 до кінця сезону. Дозамовлення хітів можливе.</div>
+      <span class="model-card-example">Монобренд / мультибренд fashion</span>
+    </div>
+    <div class="model-card car">
+      <div class="model-card-icon">♻️</div>
+      <div class="model-card-title">Керіовер</div>
+      <div class="model-card-desc">Ті самі артикули з року в рік. Мета — безперервний запас. Дозамовлення по мірі розпродажу.</div>
+      <span class="model-card-example">Годинники, ювелірка, базові аксесуари</span>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== БРИФ ==================== -->
+<div id="brief" class="content active">
+<div class="wrap">
+
+  <div class="section">
+    <div class="section-eye">Крок 1 — Онбординг</div>
+    <h2>Бриф клієнта — визначаємо модель і логіку роботи</h2>
+    <p class="section-desc">Агент ставить ці питання при першому запуску. Відповіді визначають всю подальшу логіку аналізу та рекомендацій.</p>
+
+    <div class="ua-note">
+      <strong>🇺🇦 Контекст ринку:</strong> Бриф адаптований під реалії українського ритейлу: сезонність пов'язана з календарем UA (Новий рік, 8 березня, День закоханих, осінній back-to-school), особливостями роботи з постачальниками під час воєнного стану (логістичні затримки, курсові ризики, обмежена доступність брендів).
+    </div>
+
+    <!-- БЛОК 1: БАЗОВИЙ -->
+    <div class="brief-section">
+      <h3>🏪 Блок 1 — Базова інформація про бізнес</h3>
+
+      <div class="q-item">
+        <div class="q-num">01</div>
+        <div class="q-body">
+          <div class="q-text q-critical">Яка модель асортименту у вашому бізнесі?</div>
+          <div class="q-options">
+            <div class="q-option active-sea">🌿 Сезонні колекції (нові артикули кожен сезон)</div>
+            <div class="q-option active-car">♻️ Постійний асортимент (ті самі моделі роками)</div>
+            <div class="q-option">🔀 Змішана (є і сезонні, і постійні)</div>
+          </div>
+          <div class="q-note">⚡ Це питання визначає всю логіку роботи агента</div>
+        </div>
+      </div>
+
+      <div class="q-item">
+        <div class="q-num">02</div>
+        <div class="q-body">
+          <div class="q-text">Тип магазину</div>
+          <div class="q-options">
+            <div class="q-option">Монобренд (один бренд)</div>
+            <div class="q-option">Мультибренд (кілька брендів)</div>
+            <div class="q-option">Власне виробництво</div>
+            <div class="q-option">Мікс</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="q-item">
+        <div class="q-num">03</div>
+        <div class="q-body">
+          <div class="q-text">Категорії товарів</div>
+          <div class="q-options">
+            <div class="q-option">Одяг</div>
+            <div class="q-option">Взуття</div>
+            <div class="q-option">Аксесуари</div>
+            <div class="q-option">Годинники / ювелірка</div>
+            <div class="q-option">Сумки</div>
+            <div class="q-option">Мікс</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="q-item">
+        <div class="q-num">04</div>
+        <div class="q-body">
+          <div class="q-text">Канали продажів</div>
+          <div class="q-options">
+            <div class="q-option">Офлайн-магазин</div>
+            <div class="q-option">Власний сайт</div>
+            <div class="q-option">Instagram / TikTok shop</div>
+            <div class="q-option">Rozetka / Prom</div>
+            <div class="q-option">Мікс</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="q-item">
+        <div class="q-num">05</div>
+        <div class="q-body">
+          <div class="q-text">Місто / регіон (для сезонності та подій)</div>
+          <div class="q-options">
+            <div class="q-option">Київ</div>
+            <div class="q-option">Львів</div>
+            <div class="q-option">Харків</div>
+            <div class="q-option">Одеса</div>
+            <div class="q-option">Дніпро</div>
+            <div class="q-option">Інше</div>
+          </div>
+          <div class="q-note">Регіон впливає на сезонні коефіцієнти та активність споживачів</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- БЛОК 2: СЕЗОННА ЛОГІКА -->
+    <div class="brief-section" style="border-left: 3px solid var(--sea);">
+      <h3>🌿 Блок 2 — Сезонна модель (якщо обрано)</h3>
+
+      <div class="q-item">
+        <div class="q-num">06</div>
+        <div class="q-body">
+          <div class="q-text q-critical">Скільки сезонів на рік?</div>
+          <div class="q-options">
+            <div class="q-option">2 сезони (SS + AW)</div>
+            <div class="q-option">4 сезони (SS / Resort / AW / Pre-Fall)</div>
+            <div class="q-option">Безперервні дропи (кожні 4–8 тижнів)</div>
+          </div>
+          <div class="q-note">Визначає горизонт планування та частоту оновлення прогнозу</div>
+        </div>
+      </div>
+
+      <div class="q-item">
+        <div class="q-num">07</div>
+        <div class="q-body">
+          <div class="q-text">Коли зазвичай приходить перша партія сезону SS (весна-літо)?</div>
+          <div class="q-options">
+            <div class="q-option">Грудень–Січень</div>
+            <div class="q-option">Лютий</div>
+            <div class="q-option">Березень</div>
+          </div>
+          <div class="q-note">Важливо для розрахунку sell-through до кінця сезону</div>
+        </div>
+      </div>
+
+      <div class="q-item">
+        <div class="q-num">08</div>
+        <div class="q-body">
+          <div class="q-text q-critical">Коли відкривається сейл і яка мета?</div>
+          <div class="q-options">
+            <div class="q-option">Кінець сезону (Червень–Липень для SS)</div>
+            <div class="q-option">Чорна п'ятниця (Листопад)</div>
+            <div class="q-option">Постійний rolling sale</div>
+          </div>
+          <div class="q-note">⚡ Агент розраховує lifecycle кожного артикула до дати сейлу</div>
+        </div>
+      </div>
+
+      <div class="q-item">
+        <div class="q-num">09</div>
+        <div class="q-body">
+          <div class="q-text">Чи можливе дозамовлення хітів у постачальника?</div>
+          <div class="q-options">
+            <div class="q-option">Так — бренд дозволяє дозамовлення</div>
+            <div class="q-option">Ні — замкнений обсяг на сезон</div>
+            <div class="q-option">Частково — деякі хіти можна дозамовити</div>
+          </div>
+          <div class="q-note">Якщо «Так» — агент активує логіку відстеження хітів для дозамовлення</div>
+        </div>
+      </div>
+
+      <div class="q-item">
+        <div class="q-num">10</div>
+        <div class="q-body">
+          <div class="q-text">Скільки партій зазвичай приходить протягом сезону?</div>
+          <div class="q-options">
+            <div class="q-option">1 партія (весь обсяг одразу)</div>
+            <div class="q-option">2–3 партії (поетапне надходження)</div>
+            <div class="q-option">4+ партій (безперервні дропи)</div>
+          </div>
+          <div class="q-note">Агент враховує, що кожна нова партія — нові артикули зі своїм lifecycle</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- БЛОК 3: КЕРІОВЕР -->
+    <div class="brief-section" style="border-left: 3px solid var(--car);">
+      <h3>♻️ Блок 3 — Керіовер (якщо обрано)</h3>
+
+      <div class="q-item">
+        <div class="q-num">11</div>
+        <div class="q-body">
+          <div class="q-text q-critical">Як відбувається поповнення запасів?</div>
+          <div class="q-options">
+            <div class="q-option">Дозамовляємо коли падає до мінімального залишку</div>
+            <div class="q-option">Фіксований графік (раз на місяць / квартал)</div>
+            <div class="q-option">За запитом покупців (pre-order модель)</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="q-item">
+        <div class="q-num">12</div>
+        <div class="q-body">
+          <div class="q-text">Lead time від замовлення до отримання товару</div>
+          <div class="q-options">
+            <div class="q-option">До 2 тижнів (UA-постачальник)</div>
+            <div class="q-option">2–4 тижні (Туреччина / Польща / Прибалтика)</div>
+            <div class="q-option">4–6 тижнів (Італія / інша Європа)</div>
+            <div class="q-option">6–10 тижнів (Азія)</div>
+          </div>
+          <div class="q-note">Критично для розрахунку точки дозамовлення (ROP)</div>
+        </div>
+      </div>
+
+      <div class="q-item">
+        <div class="q-num">13</div>
+        <div class="q-body">
+          <div class="q-text">Чи буває що модель знімається з виробництва?</div>
+          <div class="q-options">
+            <div class="q-option">Так — бренд регулярно оновлює лінійку</div>
+            <div class="q-option">Рідко — базові класичні моделі стабільні роками</div>
+            <div class="q-option">Ні — постійний асортимент без змін</div>
+          </div>
+          <div class="q-note">Агент відстежує EOL (end of life) артикулів і рекомендує фінальний запас</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- БЛОК 4: ФІНАНСОВІ ПАРАМЕТРИ -->
+    <div class="brief-section">
+      <h3>💰 Блок 4 — Фінансові параметри та ризики</h3>
+
+      <div class="q-item">
+        <div class="q-num">14</div>
+        <div class="q-body">
+          <div class="q-text">Мінімальна прийнятна маржа на товар (після знижок)</div>
+          <div class="q-options">
+            <div class="q-option">Від 30%</div>
+            <div class="q-option">Від 40%</div>
+            <div class="q-option">Від 50%</div>
+            <div class="q-option">Встановлю індивідуально</div>
+          </div>
+          <div class="q-note">Агент не рекомендує уцінку нижче цього порогу без підтвердження</div>
+        </div>
+      </div>
+
+      <div class="q-item">
+        <div class="q-num">15</div>
+        <div class="q-body">
+          <div class="q-text">Чи враховувати курсові ризики (UAH/EUR, UAH/USD)?</div>
+          <div class="q-options">
+            <div class="q-option">Так — закуповуємо у валюті</div>
+            <div class="q-option">Ні — постачальник виставляє рахунки в гривні</div>
+          </div>
+          <div class="q-note">🇺🇦 Актуально для імпортних брендів — агент враховує валютний ризик у прогнозі закупок</div>
+        </div>
+      </div>
+
+      <div class="q-item">
+        <div class="q-num">16</div>
+        <div class="q-body">
+          <div class="q-text">Наявні логістичні обмеження (воєнний стан)</div>
+          <div class="q-options">
+            <div class="q-option">Є затримки з конкретних напрямків</div>
+            <div class="q-option">Логістика стабільна</div>
+            <div class="q-option">Частина складу в іншому місті / за кордоном</div>
+          </div>
+          <div class="q-note">Агент додає буфер до lead time при нестабільній логістиці</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ==================== СЕЗОННА МОДЕЛЬ ==================== -->
+<div id="seasonal" class="content">
+<div class="wrap">
+
+  <div class="section">
+    <div class="section-eye">Модель 1 — Сезонна логіка</div>
+    <h2>Lifecycle товару в сезонній моделі</h2>
+    <p class="section-desc">Кожен артикул має свій часовий коридор від надходження до нульового залишку. Агент відстежує кожну фазу.</p>
+
+    <!-- SS TIMELINE -->
+    <div class="card full">
+      <h3>Приклад: Сезон SS (Весна-Літо) — футболка, артикул F-042</h3>
+      <div class="card-sub">Прийшла в январі → пік у квітні → сейл у червні → нуль у серпні</div>
+      <div class="timeline">
+        <div class="tl-month">
+          <div class="tl-month-name">Груд</div>
+          <div class="tl-bar" style="background:#f3f1ed;color:#b5b0a8;">замов.</div>
+          <div class="tl-event">Замовлення у бренда</div>
+        </div>
+        <div class="tl-month">
+          <div class="tl-month-name">Січ</div>
+          <div class="tl-bar" style="background:#e8f4ed;color:var(--sea);">прихід</div>
+          <div class="tl-event">📦 Надходження партії 1</div>
+        </div>
+        <div class="tl-month">
+          <div class="tl-month-name">Лют</div>
+          <div class="tl-bar" style="background:#e8f4ed;color:var(--sea);opacity:0.6;">повіл.</div>
+          <div class="tl-event">Повільний старт, 20% норми</div>
+        </div>
+        <div class="tl-month">
+          <div class="tl-month-name">Бер</div>
+          <div class="tl-bar" style="background:var(--sea);color:#fff;">8 бер</div>
+          <div class="tl-event">🌸 8 березня — перший пік</div>
+        </div>
+        <div class="tl-month">
+          <div class="tl-month-name">Квіт</div>
+          <div class="tl-bar" style="background:var(--sea);color:#fff;">ПІК 🔥</div>
+          <div class="tl-event">Максимальні продажі сезону</div>
+        </div>
+        <div class="tl-month">
+          <div class="tl-month-name">Трав</div>
+          <div class="tl-bar" style="background:var(--sea);color:#fff;">висок.</div>
+          <div class="tl-event">Залишаються продажі ≈ пік</div>
+        </div>
+        <div class="tl-month">
+          <div class="tl-month-name">Черв</div>
+          <div class="tl-bar" style="background:#fef3c7;color:#b45309;">SALE</div>
+          <div class="tl-event">⬇️ Сейл -20–40%, розпродаж</div>
+        </div>
+        <div class="tl-month">
+          <div class="tl-month-name">Лип</div>
+          <div class="tl-bar" style="background:#fef3c7;color:#b45309;">-30%</div>
+          <div class="tl-event">Агресивне зниження ціни</div>
+        </div>
+        <div class="tl-month">
+          <div class="tl-month-name">Серп</div>
+          <div class="tl-bar" style="background:#fee2e2;color:#991b1b;">→ 0</div>
+          <div class="tl-event">🎯 Мета: нульовий залишок</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PHASES -->
+    <div class="section-eye" style="margin-top:24px;">Фази lifecycle артикула</div>
+    <div class="phase-row">
+      <div class="phase" style="background:var(--surface2);border-color:var(--border);">
+        <div class="phase-num" style="color:var(--dim);">ФАЗА 0</div>
+        <h4 style="color:var(--ink);">Pre-arrival</h4>
+        <p style="color:var(--muted);">Товар замовлений, ще в дорозі. Агент відстежує дату надходження і готує полицю.</p>
+      </div>
+      <div class="phase" style="background:var(--sea-bg);border-color:var(--sea-border);">
+        <div class="phase-num" style="color:var(--sea);">ФАЗА 1</div>
+        <h4 style="color:var(--sea);">Warm-up (прогрів)</h4>
+        <p style="color:var(--muted);">Перші 2–6 тижнів. Продажі нижче норми — товар "теплий" сезон ще не настав. Агент не б'є тривогу.</p>
+      </div>
+      <div class="phase" style="background:#e8f4ed;border-color:var(--sea-border);">
+        <div class="phase-num" style="color:var(--sea);">ФАЗА 2</div>
+        <h4 style="color:var(--sea);">Active selling</h4>
+        <p style="color:var(--muted);">Пік сезону. Агент відстежує хіти для дозамовлення та слоу-муверів для корекції.</p>
+      </div>
+      <div class="phase" style="background:#fff8e6;border-color:#f0d080;">
+        <div class="phase-num" style="color:#b45309;">ФАЗА 3</div>
+        <h4 style="color:#b45309;">Pre-sale planning</h4>
+        <p style="color:var(--muted);">За 4–6 тижнів до сейлу. Агент розраховує: чи встигнемо продати залишок без знижки?</p>
+      </div>
+      <div class="phase" style="background:#fee2e2;border-color:#fca5a5;">
+        <div class="phase-num" style="color:#991b1b;">ФАЗА 4</div>
+        <h4 style="color:#991b1b)">Sale & clearance</h4>
+        <p style="color:var(--muted);">Фінальний розпродаж. Агент рекомендує глибину знижки для досягнення нульового залишку.</p>
+      </div>
+    </div>
+
+    <!-- DELIVERY WAVES -->
+    <div class="card full">
+      <h3>Логіка поетапного надходження партій</h3>
+      <div class="card-sub">Кожна партія — нові артикули зі своїм lifecycle. Агент веде їх паралельно.</div>
+      <table class="t">
+        <thead>
+          <tr>
+            <th>Партія</th>
+            <th>Дата надходження</th>
+            <th>Що містить</th>
+            <th>Активний сезон</th>
+            <th>Дата сейлу</th>
+            <th>Ціль агента</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Партія 1</td>
+            <td>Січень</td>
+            <td>Базові SS: футболки, легкі блузки</td>
+            <td>Лютий–Травень</td>
+            <td>Червень</td>
+            <td>Sell-through &gt;80% до сейлу</td>
+          </tr>
+          <tr>
+            <td>Партія 2</td>
+            <td>Лютий–Березень</td>
+            <td>Нові артикули: сукні, брюки</td>
+            <td>Березень–Червень</td>
+            <td>Липень</td>
+            <td>Sell-through &gt;75% до сейлу</td>
+          </tr>
+          <tr>
+            <td>Партія 3</td>
+            <td>Квітень</td>
+            <td>Resort / літні новинки</td>
+            <td>Квітень–Серпень</td>
+            <td>Серпень</td>
+            <td>Sell-through &gt;70% до кінця літа</td>
+          </tr>
+          <tr>
+            <td>Дозамовлення хітів</td>
+            <td>За потреби</td>
+            <td>Ті самі артикули що розлетілись</td>
+            <td>Поточний сезон</td>
+            <td>Разом з основним сейлом</td>
+            <td>Не допустити стокаут хіта</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- HIT REORDER LOGIC -->
+    <div class="grid-2">
+      <div class="card" style="border-left: 3px solid var(--sea);">
+        <span class="badge badge-sea">🔥 Логіка дозамовлення хіта</span>
+        <h3>Коли агент рекомендує дозамовити</h3>
+        <ul class="clist">
+          <li>Продажі зросли &gt;30% від rolling average за 7 днів<small>Підтверджений хіт, не випадковий сплеск</small></li>
+          <li>Залишок менший за 2× lead_time в днях<small>Наприклад: lead time 21 день → залишок &lt;42 днів запасу</small></li>
+          <li>До кінця активного сезону більше 6 тижнів<small>Якщо менше — дозамовлення вже не окупиться</small></li>
+          <li>Бренд підтвердив доступність артикула<small>Агент запитує про це явно</small></li>
+        </ul>
+        <div class="prompt sea" style="margin-top:14px;">
+          <div class="prompt-label sea">Рекомендація агента</div>
+          <div class="prompt-text">
+            <strong>Футболка F-042 — підтверджений ХІТ 🔥</strong><br>
+            Продажі: <em>+47%</em> за 7 днів. Залишок: <em>18 шт (9 днів запасу)</em>.<br>
+            Lead time бренда: 21 день. До сейлу: 11 тижнів.<br><br>
+            Рекомендую дозамовити: <em>48 одиниць</em><br>
+            <span style="color:var(--dim);">Обґрунтування: прогноз продажів × (11 тижнів - lead time) - залишок</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="border-left: 3px solid #b45309;">
+        <span class="badge badge-sal">📉 Логіка слоу-мувера в сезоні</span>
+        <h3>Що робить агент з товаром, що не продається</h3>
+        <ul class="clist">
+          <li>Продажі нижче прогнозу на &gt;25% протягом 3 тижнів<small>З урахуванням фази — в warm-up це нормально</small></li>
+          <li>Розраховує: чи встигне розпродатись до сейлу без знижки<small>Якщо ні — рекомендує ранню промо-активацію</small></li>
+          <li>Пропонує механіку: знижка / бандл / посилення контенту<small>Залежно від залишку і часу до сейлу</small></li>
+          <li>Якщо до сейлу &lt;4 тижнів і залишок критичний — рекомендує агресивний sale<small>Краще 30% маржі, ніж 0%</small></li>
+        </ul>
+        <div class="prompt sal" style="margin-top:14px;">
+          <div class="prompt-label sal">Рекомендація агента</div>
+          <div class="prompt-text" style="color:var(--muted);">
+            <strong>Блузка B-019 — СЛОУ-МУВЕР ⚠️</strong><br>
+            Продажі: <span style="color:#b45309;">-38%</span> від прогнозу. Залишок: 34 шт (68 днів запасу).<br>
+            До сейлу: 7 тижнів. При поточній швидкості: <span style="color:#991b1b;">залишиться ~22 шт</span><br><br>
+            Рекомендую: зараз знижка <strong>-15%</strong> + контентна активація.<br>
+            Альтернатива: додати в бандл з хітом F-042.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ==================== КЕРІОВЕР ==================== -->
+<div id="carryover" class="content">
+<div class="wrap">
+
+  <div class="section">
+    <div class="section-eye">Модель 2 — Carryover логіка</div>
+    <h2>Постійний асортимент з дозамовленнями</h2>
+    <p class="section-desc">Годинники D1 Milano, класичні сумки, базові аксесуари — одні й ті самі артикули продаються роками. Мета: безперервний запас без надлишку.</p>
+
+    <div class="grid-2">
+      <div class="card" style="border-left: 3px solid var(--car);">
+        <span class="badge badge-car">♻️ Модель дозамовлення</span>
+        <h3>Коли агент ініціює дозамовлення</h3>
+        <ul class="clist">
+          <li>Залишок досяг точки перезамовлення (ROP)<small>ROP = avg_daily_sales × lead_time + safety_stock</small></li>
+          <li>Прогнозний дефіцит через &lt; (lead_time + 7 днів)<small>Буфер на логістичні затримки</small></li>
+          <li>Постачальник оголосив про підвищення цін<small>Агент рекомендує завчасний запас</small></li>
+          <li>Артикул накопичив достатньо статистики (&gt;30 продажів)<small>До цього — консервативний прогноз</small></li>
+        </ul>
+      </div>
+
+      <div class="card" style="border-left: 3px solid var(--car);">
+        <span class="badge badge-car">📊 EOL — кінець життя моделі</span>
+        <h3>Якщо бренд знімає модель</h3>
+        <ul class="clist">
+          <li>Агент відстежує сигнали EOL від клієнта або новини бренда</li>
+          <li>Розраховує "останній оптимальний замовлення"<small>Скільки взяти, щоб продати без залишку</small></li>
+          <li>Рекомендує не дозамовляти понад прогноз на 6 місяців<small>Ризик зависання після знімання</small></li>
+          <li>Переключає логіку на clearance при EOL-підтвердженні</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card full">
+      <h3>Приклад: D1 Milano — годинник, арт. D1M-TRK-44</h3>
+      <div class="card-sub">Мультибренд магазин. Модель продається 3 роки. Дозамовлення по мірі розпродажу.</div>
+      <table class="t">
+        <thead>
+          <tr><th>Показник</th><th>Значення</th><th>Що робить агент</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>avg_daily_sales</td>
+            <td>0.4 шт/день (≈ 12/міс)</td>
+            <td>Розраховує на основі 90-денного rolling avg</td>
+          </tr>
+          <tr>
+            <td>lead_time</td>
+            <td>28 днів (Мілан → Київ)</td>
+            <td>+7 днів буфер для UA логістики → 35 днів</td>
+          </tr>
+          <tr>
+            <td>ROP (точка перезамовлення)</td>
+            <td>0.4 × 35 = 14 шт</td>
+            <td>Алерт коли залишок ≤ 14 шт</td>
+          </tr>
+          <tr>
+            <td>Safety stock</td>
+            <td>7 днів = 3 шт</td>
+            <td>Мінімальний буфер</td>
+          </tr>
+          <tr>
+            <td>Optimal order qty</td>
+            <td>≈ 24 шт (2 місяці запасу)</td>
+            <td>Розраховує з урахуванням MOQ бренда</td>
+          </tr>
+          <tr>
+            <td>Сезонний пік</td>
+            <td>Жовтень–Листопад (подарунки) + Лютий (14 лют)</td>
+            <td>Підвищує замовлення перед піком ×1.4</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="prompt car" style="margin-top:16px;">
+        <div class="prompt-label car">Автоматичний алерт агента</div>
+        <div class="prompt-text">
+          <strong>D1 Milano TRK-44 — Точка дозамовлення досягнута ♻️</strong><br>
+          Залишок: <span class="cb">12 шт</span> → нижче ROP (14 шт).<br>
+          При поточній швидкості продажів — дефіцит через <span class="cb">30 днів</span>.<br>
+          Lead time з буфером: 35 днів. Ризик стокауту: <span style="color:#b45309;">СЕРЕДНІЙ</span><br><br>
+          Рекомендую замовити: <em>24 одиниці</em> (стандартна партія)<br>
+          <span style="color:var(--dim);">Увага: наближається пік Жовтень-Листопад. Розглянути збільшення до 36 шт.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ==================== ЛОГІКА АГЕНТА ==================== -->
+<div id="logic" class="content">
+<div class="wrap">
+
+  <div class="section">
+    <div class="section-eye">Алгоритм прийняття рішень</div>
+    <h2>Decision Tree — як агент визначає модель і діє</h2>
+    <p class="section-desc">Повна логіка від першого брифу до щоденних рекомендацій</p>
+
+    <div class="dtree">
+      <div class="dt-node">
+        <div class="dt-q">? Який тип асортименту вказав клієнт у брифі?</div>
+
+        <div class="dt-branch">
+          <div class="dt-yes">✓ Сезонні колекції (нові артикули кожен сезон)</div>
+          <div class="dt-result sea">→ РЕЖИМ: SEASONAL</div>
+          <div class="dt-branch" style="margin-top:10px;">
+            <div class="dt-q">? Скільки партій надходить за сезон?</div>
+            <div class="dt-branch">
+              <div class="dt-yes">✓ 1 партія</div>
+              <span class="dt-result sea">→ Один lifecycle на весь сезон</span>
+            </div>
+            <div class="dt-branch">
+              <div class="dt-yes">✓ 2–4 партії</div>
+              <span class="dt-result sea">→ Паралельні lifecycle для кожної партії</span>
+            </div>
+            <div class="dt-q" style="margin-top:10px;">? Чи можливе дозамовлення хітів?</div>
+            <div class="dt-branch">
+              <div class="dt-yes">✓ Так</div>
+              <span class="dt-result sea">→ Активується Hit Reorder Monitor</span>
+            </div>
+            <div class="dt-branch">
+              <div class="dt-no">✗ Ні</div>
+              <span class="dt-result" style="background:rgba(107,114,128,0.15);color:#9ca3af;border-color:rgba(107,114,128,0.3);">→ Тільки sell-through оптимізація</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="dt-branch" style="margin-top:14px;">
+          <div class="dt-yes">✓ Постійний асортимент (керіовер)</div>
+          <div class="dt-result car">→ РЕЖИМ: CARRYOVER</div>
+          <div class="dt-branch" style="margin-top:10px;">
+            <div class="dt-q">? Як відбувається поповнення?</div>
+            <div class="dt-branch">
+              <div class="dt-yes">✓ По досягненню ROP</div>
+              <span class="dt-result car">→ Автоматичний ROP-моніторинг</span>
+            </div>
+            <div class="dt-branch">
+              <div class="dt-yes">✓ Фіксований графік</div>
+              <span class="dt-result car">→ Календарний режим + відхилення</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="dt-branch" style="margin-top:14px;">
+          <div class="dt-yes">✓ Змішана модель</div>
+          <div class="dt-result mix">→ РЕЖИМ: HYBRID</div>
+          <div class="dt-branch">
+            <div class="dt-yes">→ Seasonal logic для fashion-категорій</div>
+            <div class="dt-yes">→ Carryover logic для базових / evergreen SKU</div>
+            <div class="dt-yes">→ Ідентифікація типу по тегу артикула в брифі</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- UKRAINE SEASONAL BENCHMARKS -->
+    <div class="section-eye" style="margin-top:32px;">Українські бенчмарки сезонності</div>
+    <div class="card full">
+      <h3>Сезонні коефіцієнти для fashion retail в Україні</h3>
+      <div class="card-sub">Адаптовано під календар UA + поведінку споживача під час воєнного стану</div>
+
+      <div class="ua-note">
+        <strong>Важлива поправка:</strong> З 2022 поведінкова сезонність змінилась. Онлайн-канали зросли, пікові дні (8 березня, Новий рік) залишаються актуальними, але загальний трафік в офлайні нерівномірний залежно від регіону та безпекової ситуації. Агент використовує ці коефіцієнти як базові з можливістю ручного коригування.
+      </div>
+
+      <table class="t">
+        <thead>
+          <tr><th>Місяць</th><th>Коеф. SS (одяг)</th><th>Коеф. AW (одяг)</th><th>Ключові події UA</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Січень</td><td style="color:var(--muted);">0.5</td><td style="color:var(--muted);">0.7</td><td>Пост-святковий спад, прихід SS-колекцій на склад</td></tr>
+          <tr><td>Лютий</td><td>0.8</td><td>0.8</td><td>14 лютого (День закоханих) — пік подарунків</td></tr>
+          <tr><td>Березень</td><td style="color:var(--sea);font-weight:600;">1.3</td><td>0.6</td><td>🌸 8 березня — найбільший пік продажів в Україні</td></tr>
+          <tr><td>Квітень</td><td style="color:var(--sea);font-weight:600;">1.2</td><td style="color:var(--muted);">0.4</td><td>Великдень (змінна дата), весняне оновлення</td></tr>
+          <tr><td>Травень</td><td>1.1</td><td style="color:var(--muted);">0.3</td><td>Активна весна, пікові продажі SS</td></tr>
+          <tr><td>Червень</td><td>0.9</td><td style="color:var(--muted);">0.2</td><td>Старт сейлу SS, back-to-school підготовка</td></tr>
+          <tr><td>Липень</td><td style="color:var(--muted);">0.6</td><td style="color:var(--muted);">0.3</td><td>Сейл SS, надходження AW на склад</td></tr>
+          <tr><td>Серпень</td><td style="color:var(--muted);">0.5</td><td>0.7</td><td>Back-to-school, старт AW</td></tr>
+          <tr><td>Вересень</td><td style="color:var(--muted);">0.3</td><td style="color:var(--sea);font-weight:600;">1.3</td><td>🍂 Осінній пік — найактивніший сезон AW</td></tr>
+          <tr><td>Жовтень</td><td style="color:var(--muted);">0.2</td><td style="color:var(--sea);font-weight:600;">1.4</td><td>Пік AW, підготовка до Чорної п'ятниці</td></tr>
+          <tr><td>Листопад</td><td style="color:var(--muted);">0.2</td><td style="color:var(--sea);font-weight:600;">1.5</td><td>⭐ Чорна п'ятниця (найвищий коеф. року)</td></tr>
+          <tr><td>Грудень</td><td style="color:var(--muted);">0.3</td><td style="color:var(--sea);">1.2</td><td>Новий рік, подарунки, старт розпродажу AW</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- SYSTEM PROMPT LOGIC -->
+    <div class="section-eye" style="margin-top:28px;">System Prompt — структура для двох режимів</div>
+    <div class="prompt sea">
+      <div class="prompt-label sea">🌿 Режим SEASONAL — блок для System Prompt</div>
+      <div class="prompt-text">
+        <strong>Клієнт працює в СЕЗОННІЙ моделі.</strong> Правила аналізу:<br><br>
+        1. Кожен артикул має <em>дату надходження</em>, <em>дату початку активного сезону</em> та <em>дату сейлу</em><br>
+        2. Класифікуй фазу кожного SKU: Pre-arrival / Warm-up / Active / Pre-sale / Sale<br>
+        3. В фазі Warm-up — не рахуй низькі продажі як аномалію. Порівнюй з <em>прогнозом для цієї фази</em><br>
+        4. Відстежуй sell-through прогрес: чи встигне артикул продатись до сейлу?<br>
+        5. Формула: <em>залишок / avg_daily_sales = дні до нуля</em>. Порівняй з датою сейлу<br>
+        6. Якщо (дні до нуля &gt; дні до сейлу) → рекомендуй промо або ранній сейл<br>
+        7. Якщо артикул — хіт і дозамовлення можливе → розрахуй optimal reorder qty<br>
+        8. Кожна нова партія = окрема група артикулів зі своїм lifecycle. Веди їх паралельно.<br><br>
+        <strong>Мета: 0 залишку сезонного товару після сейлу. Не залишити гроші на полиці.</strong>
+      </div>
+    </div>
+
+    <div class="prompt car" style="margin-top:10px;">
+      <div class="prompt-label car">♻️ Режим CARRYOVER — блок для System Prompt</div>
+      <div class="prompt-text">
+        <strong>Клієнт працює в КЕРІОВЕР моделі.</strong> Правила аналізу:<br><br>
+        1. Артикул не має "кінця сезону" — він продається безперервно<br>
+        2. Відстежуй <span class="cb">ROP (точку перезамовлення)</span>: ROP = avg_daily_sales × (lead_time + buffer_days)<br>
+        3. Buffer для UA логістики: <span class="cb">+7 днів</span> до задекларованого lead time постачальника<br>
+        4. Якщо залишок ≤ ROP → автоматичний алерт на дозамовлення<br>
+        5. Перед сезонними піками (Лютий, Березень, Жовтень–Листопад) → збільшуй замовлення <span class="cb">×1.3–1.5</span><br>
+        6. Якщо артикул не замовлявся 6+ місяців → перевір EOL-ризик у постачальника<br>
+        7. Якщо оголошено EOL → розрахуй фінальне замовлення на 4–6 місяців і переключи в clearance<br><br>
+        <strong>Мета: 0 стокаутів. Жоден клієнт не повинен іти без покупки через відсутність товару.</strong>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+</div>
+
+<script>
+  const navBtns = document.querySelectorAll('.nav-btn');
+  const contents = document.querySelectorAll('.content');
+
+  navBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tab = btn.dataset.tab;
+      navBtns.forEach(b => b.classList.remove('active'));
+      contents.forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(tab).classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
+</script>
+</body>
+</html>

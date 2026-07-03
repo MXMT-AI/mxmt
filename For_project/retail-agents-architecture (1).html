@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Многоагентная система — Архитектура</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&family=Manrope:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080c10;
+    --surface: #0f1419;
+    --surface2: #161d26;
+    --border: rgba(255,255,255,0.07);
+    --accent: #00e5c4;
+    --accent2: #ff6b35;
+    --accent3: #a78bfa;
+    --accent4: #fbbf24;
+    --text: #e8ecf0;
+    --muted: #6b7a8d;
+    --analyst: #00e5c4;
+    --marketer: #ff6b35;
+    --buyer: #a78bfa;
+    --smm: #fbbf24;
+    --dash: #38bdf8;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Manrope', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  .header {
+    padding: 48px 40px 32px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content: '';
+    position: absolute;
+    top: -80px; right: -80px;
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(0,229,196,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .header-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+    opacity: 0.8;
+  }
+  .header h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(26px, 4vw, 42px);
+    font-weight: 800;
+    line-height: 1.1;
+    color: #fff;
+  }
+  .header h1 span { color: var(--accent); }
+  .header-sub {
+    margin-top: 10px;
+    color: var(--muted);
+    font-size: 13px;
+    max-width: 560px;
+  }
+  .inspired-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(0,229,196,0.07);
+    border: 1px solid rgba(0,229,196,0.2);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--accent);
+    margin-top: 16px;
+  }
+
+  /* NAV */
+  .nav {
+    display: flex;
+    gap: 4px;
+    padding: 20px 40px 0;
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .nav::-webkit-scrollbar { display: none; }
+  .nav-btn {
+    padding: 10px 18px 12px;
+    border: none;
+    background: none;
+    color: var(--muted);
+    font-family: 'Manrope', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    transition: all 0.2s;
+    position: relative;
+    bottom: -1px;
+  }
+  .nav-btn:hover { color: var(--text); }
+  .nav-btn.active { color: #fff; border-bottom-color: var(--accent-current, var(--accent)); }
+  .nav-btn[data-tab="analyst"] { --accent-current: var(--analyst); }
+  .nav-btn[data-tab="dashboard"] { --accent-current: var(--dash); }
+  .nav-btn[data-tab="marketer"] { --accent-current: var(--marketer); }
+  .nav-btn[data-tab="buyer"] { --accent-current: var(--buyer); }
+  .nav-btn[data-tab="flow"] { --accent-current: var(--smm); }
+
+  /* CONTENT */
+  .content {
+    padding: 32px 40px;
+    max-width: 1100px;
+  }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* CARDS */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 16px;
+  }
+  .card-accent-analyst { border-left: 3px solid var(--analyst); }
+  .card-accent-marketer { border-left: 3px solid var(--marketer); }
+  .card-accent-buyer { border-left: 3px solid var(--buyer); }
+  .card-accent-dash { border-left: 3px solid var(--dash); }
+  .card-accent-smm { border-left: 3px solid var(--smm); }
+
+  .card h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 14px;
+    color: #fff;
+  }
+  .card h4 {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    margin-bottom: 10px;
+    margin-top: 18px;
+  }
+  .card h4:first-child { margin-top: 0; }
+
+  /* GRID */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  @media (max-width: 700px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    .content { padding: 24px 20px; }
+    .nav { padding: 16px 20px 0; }
+    .header { padding: 32px 20px 24px; }
+  }
+
+  /* TAGS */
+  .tag-list { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .tag.green { background: rgba(0,229,196,0.07); border-color: rgba(0,229,196,0.2); color: var(--analyst); }
+  .tag.orange { background: rgba(255,107,53,0.07); border-color: rgba(255,107,53,0.2); color: var(--marketer); }
+  .tag.purple { background: rgba(167,139,250,0.07); border-color: rgba(167,139,250,0.2); color: var(--buyer); }
+  .tag.yellow { background: rgba(251,191,36,0.07); border-color: rgba(251,191,36,0.2); color: var(--smm); }
+  .tag.blue { background: rgba(56,189,248,0.07); border-color: rgba(56,189,248,0.2); color: var(--dash); }
+
+  /* LIST */
+  .check-list { list-style: none; }
+  .check-list li {
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    color: var(--text);
+    font-size: 13px;
+  }
+  .check-list li:last-child { border-bottom: none; }
+  .check-list li::before {
+    content: '→';
+    color: var(--accent);
+    font-family: 'DM Mono', monospace;
+    flex-shrink: 0;
+    opacity: 0.7;
+  }
+
+  /* CODE BLOCK */
+  .code-block {
+    background: #0a0e14;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    line-height: 1.7;
+    color: #b0bec5;
+    margin-top: 10px;
+    overflow-x: auto;
+  }
+  .code-block .c-key { color: var(--accent); }
+  .code-block .c-val { color: #ffd180; }
+  .code-block .c-str { color: #a5d6a7; }
+  .code-block .c-com { color: #546e7a; }
+
+  /* FLOW */
+  .flow {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .flow-item {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    position: relative;
+  }
+  .flow-item:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: 19px;
+    top: 44px;
+    width: 2px;
+    height: calc(100% - 16px);
+    background: var(--border);
+  }
+  .flow-dot {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    flex-shrink: 0;
+    z-index: 1;
+  }
+  .flow-body {
+    flex: 1;
+    padding: 10px 0 28px;
+  }
+  .flow-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    color: #fff;
+    margin-bottom: 6px;
+  }
+  .flow-desc { color: var(--muted); font-size: 13px; }
+  .flow-tags { margin-top: 10px; }
+
+  /* SECTION TITLE */
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 6px;
+  }
+  .section-sub {
+    color: var(--muted);
+    font-size: 13px;
+    margin-bottom: 24px;
+  }
+
+  /* PROMPT BLOCK */
+  .prompt-block {
+    background: #0a0e14;
+    border: 1px solid rgba(0,229,196,0.15);
+    border-radius: 8px;
+    padding: 18px 20px;
+    margin-top: 12px;
+  }
+  .prompt-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--accent);
+    margin-bottom: 10px;
+    opacity: 0.7;
+  }
+  .prompt-text {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    line-height: 1.8;
+    color: #90a4ae;
+  }
+  .prompt-text strong { color: #b0bec5; font-weight: 500; }
+  .prompt-text em { color: var(--accent); font-style: normal; }
+
+  /* KPI TABLE */
+  .kpi-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  .kpi-table th {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .kpi-table td {
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--text);
+    vertical-align: top;
+  }
+  .kpi-table tr:last-child td { border-bottom: none; }
+  .kpi-table td:first-child { font-family: 'DM Mono', monospace; font-size: 12px; color: #fff; }
+
+  /* BADGE */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+  }
+  .badge-green { background: rgba(0,229,196,0.1); color: var(--analyst); }
+  .badge-orange { background: rgba(255,107,53,0.1); color: var(--marketer); }
+  .badge-yellow { background: rgba(251,191,36,0.1); color: var(--smm); }
+  .badge-red { background: rgba(239,68,68,0.1); color: #f87171; }
+
+  /* DIVIDER */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+  /* AGENT HEADER */
+  .agent-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  .agent-icon {
+    width: 48px; height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+  }
+  .agent-info h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 20px;
+    font-weight: 800;
+    color: #fff;
+  }
+  .agent-info p { color: var(--muted); font-size: 12px; margin-top: 2px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-label">Архитектура системы</div>
+  <h1>Многоагентная система<br><span>управления ритейлом</span></h1>
+  <p class="header-sub">5 агентов — единая экосистема. Аналитика, маркетинг, закупки и контент в одном цикле.</p>
+  <div class="inspired-tag">⚡ Вдохновлено архитектурой Prediko / Pia</div>
+</div>
+
+<nav class="nav">
+  <button class="nav-btn active" data-tab="analyst">🧠 Аналитик</button>
+  <button class="nav-btn" data-tab="dashboard">📊 Dashboard</button>
+  <button class="nav-btn" data-tab="marketer">📢 Маркетолог</button>
+  <button class="nav-btn" data-tab="buyer">📦 Баер</button>
+  <button class="nav-btn" data-tab="flow">🔄 Поток данных</button>
+</nav>
+
+<!-- ============ АНАЛИТИК ============ -->
+<div class="content">
+<div id="analyst" class="tab-content active">
+
+  <div class="agent-header">
+    <div class="agent-icon" style="background:rgba(0,229,196,0.1);">🧠</div>
+    <div class="agent-info">
+      <h2>Агент Аналитик</h2>
+      <p>Мозг системы — собирает данные, выявляет паттерны, ставит диагноз</p>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card card-accent-analyst">
+      <h3>Источники данных</h3>
+      <h4>Внутренние</h4>
+      <div class="tag-list">
+        <span class="tag green">1С / ERP</span>
+        <span class="tag green">Складская система</span>
+        <span class="tag green">Кассовые данные</span>
+        <span class="tag green">История заказов</span>
+        <span class="tag green">Остатки по SKU</span>
+        <span class="tag green">Категории / Бренды</span>
+      </div>
+      <h4>Внешние</h4>
+      <div class="tag-list">
+        <span class="tag">Погода (API)</span>
+        <span class="tag">Локальные события</span>
+        <span class="tag">Конкуренты</span>
+        <span class="tag">Тренды поисковика</span>
+        <span class="tag">Праздники / сезоны</span>
+      </div>
+    </div>
+
+    <div class="card card-accent-analyst">
+      <h3>Что анализирует</h3>
+      <ul class="check-list">
+        <li>Остатки на складе vs прогноз спроса</li>
+        <li>Скорость оборачиваемости по SKU</li>
+        <li>Хиты (рост продаж ↑), слоумуверы (стагнация ↓)</li>
+        <li>Аномалии: резкий скачок или спад без причины</li>
+        <li>Влияние погоды/событий на категории</li>
+        <li>Сравнение с прошлым периодом</li>
+        <li>Товары под риском стокаута</li>
+        <li>Маржинальность по брендам / категориям</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card card-accent-analyst">
+    <h3>Система классификации товаров (как у Prediko)</h3>
+    <table class="kpi-table">
+      <thead>
+        <tr>
+          <th>Флаг</th>
+          <th>Критерий</th>
+          <th>Действие агента</th>
+          <th>Кому передаёт</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>🔥 Хит</td>
+          <td>Продажи выросли на 30%+ за 7 дней, остаток &lt; 14 дней</td>
+          <td>Алерт + рекомендация срочного дозаказа</td>
+          <td>Баер + Dashboard</td>
+        </tr>
+        <tr>
+          <td>⚠️ Аномалия</td>
+          <td>Резкое изменение спроса без видимой причины</td>
+          <td>Расследование: сезон / конкурент / погода</td>
+          <td>Аналитик углубляется → Dashboard</td>
+        </tr>
+        <tr>
+          <td>📉 Слоумувер</td>
+          <td>Продажи упали &gt;20%, остаток растёт</td>
+          <td>Промо-рекомендация или уценка</td>
+          <td>Маркетолог + Баер</td>
+        </tr>
+        <tr>
+          <td>🛑 Стокаут риск</td>
+          <td>При текущей скорости — 0 единиц через &lt;7 дней</td>
+          <td>Экстренный алерт + PO-проект</td>
+          <td>Баер → срочно</td>
+        </tr>
+        <tr>
+          <td>💤 Зависший товар</td>
+          <td>Остаток не движется 30+ дней</td>
+          <td>Ликвидационная стратегия</td>
+          <td>Маркетолог (акция) + Баер (стоп-заказ)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="grid-2">
+    <div class="card card-accent-analyst">
+      <h3>Проактивные алерты (ежедневно)</h3>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:12px;">По образцу Prediko Pia — агент сам инициирует без запроса</p>
+      <ul class="check-list">
+        <li>Топ-5 товаров под угрозой стокаута</li>
+        <li>Топ-5 слоумуверов с рекомендацией</li>
+        <li>Аномалии, требующие внимания сегодня</li>
+        <li>Прогноз точности за прошлую неделю</li>
+        <li>Влияние текущей погоды/события на продажи</li>
+      </ul>
+    </div>
+
+    <div class="card card-accent-analyst">
+      <h3>Диалоговый режим (NL вопросы)</h3>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:12px;">Примеры вопросов к агенту на русском</p>
+      <ul class="check-list">
+        <li>«Почему куртки плохо продаются эту неделю?»</li>
+        <li>«Что нужно заказать до конца месяца?»</li>
+        <li>«Какой бренд показал рост больше всех?»</li>
+        <li>«Есть ли риски на следующей неделе?»</li>
+        <li>«Покажи аномалии по категории обувь»</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card card-accent-analyst">
+    <h3>System Prompt — Агент Аналитик</h3>
+    <div class="prompt-block">
+      <div class="prompt-label">System Prompt</div>
+      <div class="prompt-text">
+        <strong>Ты — Аналитик розничного магазина.</strong> Твоя роль — ежедневно анализировать данные о продажах, остатках и внешнем контексте, выявлять проблемы и возможности, формулировать чёткие рекомендации.<br><br>
+
+        <em>Входные данные:</em><br>
+        - Остатки по каждому SKU на сегодня<br>
+        - Продажи за последние 7/30/90 дней<br>
+        - Прогноз спроса (rolling average + сезонность)<br>
+        - Внешний контекст: погода, события, праздники<br>
+        - История предыдущих рекомендаций и их результаты<br><br>
+
+        <em>Твой вывод всегда содержит:</em><br>
+        1. Классификацию каждого SKU (🔥/⚠️/📉/🛑/💤)<br>
+        2. Топ-3 приоритетных действия на сегодня<br>
+        3. Конкретные числа: остаток / дней запаса / % изменения<br>
+        4. Причину аномалии если есть (погода / конкурент / сезон)<br>
+        5. Кому передать задачу: Баер / Маркетолог / Dashboard<br><br>
+
+        <strong>Отвечай структурированно. Никаких абстракций — только данные и действия.</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="card card-accent-analyst">
+    <h3>KPI агента Аналитика</h3>
+    <div class="grid-3">
+      <div>
+        <div class="badge badge-green">Точность прогноза</div>
+        <p style="margin-top:8px;color:var(--muted);font-size:12px;">MAPE &lt; 15% — целевой показатель точности прогноза спроса</p>
+      </div>
+      <div>
+        <div class="badge badge-orange">Скорость алерта</div>
+        <p style="margin-top:8px;color:var(--muted);font-size:12px;">Алерт о стокауте за 7+ дней до события</p>
+      </div>
+      <div>
+        <div class="badge badge-yellow">Покрытие аномалий</div>
+        <p style="margin-top:8px;color:var(--muted);font-size:12px;">% выявленных аномалий vs реальных отклонений</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============ DASHBOARD ============ -->
+<div id="dashboard" class="tab-content">
+
+  <div class="agent-header">
+    <div class="agent-icon" style="background:rgba(56,189,248,0.1);">📊</div>
+    <div class="agent-info">
+      <h2>Dashboard</h2>
+      <p>Визуализация инсайтов аналитика — единое окно принятия решений</p>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card card-accent-dash">
+      <h3>Блоки Dashboard</h3>
+      <ul class="check-list">
+        <li>Сводка дня: топ-алерты от аналитика</li>
+        <li>Карточки товаров с флагами 🔥⚠️📉🛑💤</li>
+        <li>График трендов продаж (7/30/90 дней)</li>
+        <li>Остатки vs прогноз по категориям</li>
+        <li>Активные рекомендации с кнопками действий</li>
+        <li>Статус PO-заказов (ожидание / в пути / получено)</li>
+        <li>ROI запущенных кампаний (от Таргетолога)</li>
+        <li>Лента активности агентов</li>
+      </ul>
+    </div>
+
+    <div class="card card-accent-dash">
+      <h3>Фильтры (100+ как у Prediko)</h3>
+      <h4>По товару</h4>
+      <div class="tag-list">
+        <span class="tag blue">Категория</span>
+        <span class="tag blue">Бренд</span>
+        <span class="tag blue">SKU</span>
+        <span class="tag blue">Флаг товара</span>
+        <span class="tag blue">Ценовой сегмент</span>
+      </div>
+      <h4>По времени</h4>
+      <div class="tag-list">
+        <span class="tag">Сегодня</span>
+        <span class="tag">7 дней</span>
+        <span class="tag">Месяц</span>
+        <span class="tag">Квартал</span>
+        <span class="tag">Кастомный</span>
+      </div>
+      <h4>По складу</h4>
+      <div class="tag-list">
+        <span class="tag">Склад 1</span>
+        <span class="tag">Склад 2</span>
+        <span class="tag">В пути</span>
+        <span class="tag">Резерв</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card card-accent-dash">
+    <h3>Рекомендательные карточки (Action Cards)</h3>
+    <p style="color:var(--muted);font-size:13px;margin-bottom:16px;">Каждая карточка содержит инсайт + причину + кнопку действия — как в Prediko Pia</p>
+    <div class="grid-3">
+      <div style="background:var(--surface2);border-radius:8px;padding:14px;border:1px solid rgba(239,68,68,0.2);">
+        <div class="badge badge-red" style="margin-bottom:8px;">🛑 Стокаут риск</div>
+        <p style="font-size:13px;color:#fff;margin-bottom:4px;font-weight:600;">Куртка зимняя, арт. 1042</p>
+        <p style="font-size:12px;color:var(--muted);">Остаток 12 шт. При текущей скорости — 0 через <strong style="color:#f87171;">5 дней</strong></p>
+        <div style="margin-top:10px;padding:6px 10px;background:rgba(239,68,68,0.1);border-radius:5px;font-size:11px;color:#fca5a5;font-family:'DM Mono',monospace;">→ Создать PO</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:14px;border:1px solid rgba(251,191,36,0.2);">
+        <div class="badge badge-yellow" style="margin-bottom:8px;">📉 Слоумувер</div>
+        <p style="font-size:13px;color:#fff;margin-bottom:4px;font-weight:600;">Футболка базовая, арт. 0881</p>
+        <p style="font-size:12px;color:var(--muted);">Продажи упали на <strong style="color:#fbbf24;">-34%</strong> за 14 дней. Запас на 68 дней</p>
+        <div style="margin-top:10px;padding:6px 10px;background:rgba(251,191,36,0.1);border-radius:5px;font-size:11px;color:#fde68a;font-family:'DM Mono',monospace;">→ Запустить промо</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:14px;border:1px solid rgba(0,229,196,0.2);">
+        <div class="badge badge-green" style="margin-bottom:8px;">🔥 Хит</div>
+        <p style="font-size:13px;color:#fff;margin-bottom:4px;font-weight:600;">Парфюм, бренд X, арт. 2210</p>
+        <p style="font-size:12px;color:var(--muted);">Рост +67% за неделю. Остаток на <strong style="color:#6ee7b7;">9 дней</strong></p>
+        <div style="margin-top:10px;padding:6px 10px;background:rgba(0,229,196,0.1);border-radius:5px;font-size:11px;color:#99f6e4;font-family:'DM Mono',monospace;">→ Срочный дозаказ</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card card-accent-dash">
+    <h3>Доставка обновлений</h3>
+    <div class="grid-3">
+      <div>
+        <div class="badge badge-green">📱 В приложении</div>
+        <p style="margin-top:8px;color:var(--muted);font-size:12px;">Dashboard обновляется в реальном времени</p>
+      </div>
+      <div>
+        <div class="badge badge-orange">💬 Telegram</div>
+        <p style="margin-top:8px;color:var(--muted);font-size:12px;">Ежедневный дайджест + алерты критических событий</p>
+      </div>
+      <div>
+        <div class="badge badge-yellow">📧 Email</div>
+        <p style="margin-top:8px;color:var(--muted);font-size:12px;">Еженедельный отчёт с трендами и итогами</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============ МАРКЕТОЛОГ ============ -->
+<div id="marketer" class="tab-content">
+
+  <div class="agent-header">
+    <div class="agent-icon" style="background:rgba(255,107,53,0.1);">📢</div>
+    <div class="agent-info">
+      <h2>Агент Маркетолог</h2>
+      <p>Получает инсайты → ставит задачи → координирует Таргетолога и СММ</p>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card card-accent-marketer">
+      <h3>Входные данные (от Аналитика)</h3>
+      <ul class="check-list">
+        <li>Список слоумуверов с остатками</li>
+        <li>Список хитов с дефицитом</li>
+        <li>Аномалии: что не работает и почему</li>
+        <li>Бюджет на промо (от Баера)</li>
+        <li>История эффективности прошлых кампаний</li>
+      </ul>
+    </div>
+
+    <div class="card card-accent-marketer">
+      <h3>Что генерирует</h3>
+      <ul class="check-list">
+        <li>Приоритет задач для Таргетолога (ROAS &gt; X)</li>
+        <li>Бриф для СММ: какой товар / месседж / канал</li>
+        <li>Промо-стратегию: скидка / бандл / подарок</li>
+        <li>Контент-план вокруг аномалий (погода, события)</li>
+        <li>Рекомендации по цене (уценка зависших)</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card card-accent-marketer">
+    <h3>System Prompt — Агент Маркетолог</h3>
+    <div class="prompt-block">
+      <div class="prompt-label">System Prompt</div>
+      <div class="prompt-text">
+        <strong>Ты — Маркетолог розничного магазина.</strong> Получаешь аналитику об инвентаре и формируешь маркетинговые задачи для Таргетолога и СММ.<br><br>
+
+        <em>При получении данных от Аналитика:</em><br>
+        — Для слоумуверов: определи оптимальную промо-механику (скидка %, бандл, подарок) с учётом маржи<br>
+        — Для хитов с дефицитом: рекомендуй снизить рекламный бюджет, пока не придёт поставка<br>
+        — Для аномалий: предложи контентную реакцию (погода → «сезонная подборка», событие → привязка)<br><br>
+
+        <em>Формат задачи для исполнителей:</em><br>
+        - Товар / SKU<br>
+        - Цель кампании (продажи / трафик / узнаваемость)<br>
+        - Бюджет и срок<br>
+        - Канал (Яндекс / VK / TG / IG)<br>
+        - KPI (ROAS / CPO / охват)<br><br>
+
+        <strong>Всегда обосновывай задачу данными от Аналитика.</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="card card-accent-marketer">
+    <h3>Таргетолог + СММ — зоны ответственности</h3>
+    <table class="kpi-table">
+      <thead><tr><th>Роль</th><th>Канал</th><th>Задача</th><th>KPI</th></tr></thead>
+      <tbody>
+        <tr><td>Таргетолог</td><td>Яндекс Директ</td><td>Продажа слоумуверов, ремаркетинг</td><td>ROAS &gt; 3x</td></tr>
+        <tr><td>Таргетолог</td><td>VK / myTarget</td><td>Охватные кампании, новые аудитории</td><td>CPM, CTR</td></tr>
+        <tr><td>СММ</td><td>Instagram / TG</td><td>Контент под хиты, сезонные подборки</td><td>Охват, ER</td></tr>
+        <tr><td>СММ</td><td>TikTok</td><td>Вирусный контент для новых коллекций</td><td>Просмотры, переходы</td></tr>
+        <tr><td>СММ</td><td>Email</td><td>Рассылка по промо-акциям</td><td>Open rate, конверсия</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<!-- ============ БАЕР ============ -->
+<div id="buyer" class="tab-content">
+
+  <div class="agent-header">
+    <div class="agent-icon" style="background:rgba(167,139,250,0.1);">📦</div>
+    <div class="agent-info">
+      <h2>Агент Баер (Procurement)</h2>
+      <p>Закупки на основе данных — что, сколько и когда заказывать</p>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card card-accent-buyer">
+      <h3>Входные данные</h3>
+      <ul class="check-list">
+        <li>Текущие остатки по SKU</li>
+        <li>Прогноз спроса от Аналитика (30/60/90 дней)</li>
+        <li>Lead time поставщиков (дни доставки)</li>
+        <li>Минимальный заказ (MOQ)</li>
+        <li>Бюджет на закупки (ограничения)</li>
+        <li>История PO и % выполнения</li>
+        <li>Список зависших товаров (стоп-заказ)</li>
+      </ul>
+    </div>
+
+    <div class="card card-accent-buyer">
+      <h3>Что генерирует</h3>
+      <ul class="check-list">
+        <li>Рекомендации What / When / How much (как Prediko)</li>
+        <li>Draft PO с приоритетами</li>
+        <li>12-месячный календарь заказов</li>
+        <li>Флаги товаров для стоп-заказа</li>
+        <li>Оптимизация бюджета закупок</li>
+        <li>Алерты по просроченным PO</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card card-accent-buyer">
+    <h3>Формула расчёта заказа</h3>
+    <div class="code-block">
+<span class="c-com"># Базовая логика расчёта количества к заказу</span>
+
+<span class="c-key">days_of_stock</span> = current_inventory / avg_daily_sales
+
+<span class="c-com"># Точка перезаказа (Reorder Point)</span>
+<span class="c-key">ROP</span> = avg_daily_sales × lead_time_days + safety_stock
+
+<span class="c-com"># Рекомендуемое к заказу количество</span>
+<span class="c-key">order_qty</span> = (target_days_of_stock × forecast_demand) - current_inventory - on_order
+
+<span class="c-com"># Safety stock с учётом вариативности</span>
+<span class="c-key">safety_stock</span> = z_score × std_deviation_demand × sqrt(lead_time)
+
+<span class="c-com"># Приоритет заказа</span>
+<span class="c-key">priority</span> = <span class="c-str">"URGENT"</span> <span class="c-key">if</span> days_of_stock < lead_time_days
+             <span class="c-key">else</span> <span class="c-str">"NORMAL"</span>
+    </div>
+  </div>
+
+  <div class="card card-accent-buyer">
+    <h3>System Prompt — Агент Баер</h3>
+    <div class="prompt-block">
+      <div class="prompt-label">System Prompt</div>
+      <div class="prompt-text">
+        <strong>Ты — Баер розничного магазина.</strong> Принимаешь решения о закупках на основе аналитики спроса, текущих остатков и бюджетных ограничений.<br><br>
+
+        <em>Логика работы:</em><br>
+        1. Проверь остатки каждого SKU — есть ли риск стокаута в горизонте lead_time<br>
+        2. Сравни с прогнозом спроса от Аналитика<br>
+        3. Рассчитай оптимальное количество к заказу (с учётом MOQ и бюджета)<br>
+        4. Если товар в категории «зависший» — рекомендуй стоп-заказ<br>
+        5. Для новых коллекций — консервативный заказ (70% от прогноза) на первую поставку<br><br>
+
+        <em>Формат вывода:</em><br>
+        - SKU | Остаток | Дней запаса | Рекомендация | Количество | Срочность<br>
+        - Итоговая стоимость PO<br>
+        - Флаги: СРОЧНО / ПЛАНОВЫЙ / СТОП<br><br>
+
+        <strong>Приоритет: предотвратить стокаут хитов, не замораживать деньги в слоумуверах.</strong>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============ ПОТОК ДАННЫХ ============ -->
+<div id="flow" class="tab-content">
+
+  <div class="section-title">Поток данных и взаимодействие агентов</div>
+  <div class="section-sub">Как информация движется по системе — от сырых данных до действия</div>
+
+  <div class="flow">
+    <div class="flow-item">
+      <div class="flow-dot" style="background:rgba(56,189,248,0.15);color:var(--dash);">1</div>
+      <div class="flow-body">
+        <div class="flow-title">Сбор данных</div>
+        <div class="flow-desc">Система агрегирует данные из всех источников в единый Data Layer</div>
+        <div class="flow-tags tag-list" style="margin-top:10px;">
+          <span class="tag">1C / ERP</span>
+          <span class="tag">Склад (WMS)</span>
+          <span class="tag">Кассы</span>
+          <span class="tag">Погода API</span>
+          <span class="tag">Тренды</span>
+          <span class="tag">Конкуренты</span>
+        </div>
+        <div class="code-block" style="margin-top:12px;">
+<span class="c-com"># Триггер сбора</span>
+<span class="c-key">schedule</span>: каждый час (остатки/продажи) + ежедневно (внешний контекст)
+<span class="c-key">format</span>: JSON → {sku, qty, sales_7d, sales_30d, forecast, context}
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-item">
+      <div class="flow-dot" style="background:rgba(0,229,196,0.15);color:var(--analyst);">2</div>
+      <div class="flow-body">
+        <div class="flow-title">🧠 Аналитик анализирует</div>
+        <div class="flow-desc">Классифицирует товары, выявляет аномалии, строит прогнозы, учитывает внешний контекст</div>
+        <div class="flow-tags tag-list" style="margin-top:10px;">
+          <span class="tag green">Классификация SKU</span>
+          <span class="tag green">Прогноз спроса</span>
+          <span class="tag green">Аномалии</span>
+          <span class="tag green">Контекст (погода/события)</span>
+        </div>
+        <div style="margin-top:10px;font-size:12px;color:var(--muted);">⏱ Цикл: каждый час / проактивный дейли-дайджест в 8:00</div>
+      </div>
+    </div>
+
+    <div class="flow-item">
+      <div class="flow-dot" style="background:rgba(56,189,248,0.15);color:var(--dash);">3</div>
+      <div class="flow-body">
+        <div class="flow-title">📊 Dashboard обновляется</div>
+        <div class="flow-desc">Инсайты аналитика визуализируются. Action Cards появляются с кнопками действий</div>
+        <div class="flow-tags tag-list" style="margin-top:10px;">
+          <span class="tag blue">Флаги товаров</span>
+          <span class="tag blue">Тренды</span>
+          <span class="tag blue">Рекомендации</span>
+          <span class="tag blue">Алерты</span>
+        </div>
+        <div style="margin-top:10px;font-size:12px;color:var(--muted);">📱 Также: push в Telegram для критических событий</div>
+      </div>
+    </div>
+
+    <div class="flow-item">
+      <div class="flow-dot" style="background:rgba(255,107,53,0.15);color:var(--marketer);">4</div>
+      <div class="flow-body">
+        <div class="flow-title">📢 Маркетолог ставит задачи</div>
+        <div class="flow-desc">Получает инсайты, формирует брифы для Таргетолога и СММ</div>
+        <div class="grid-2" style="margin-top:12px;gap:10px;">
+          <div style="background:var(--surface2);padding:12px;border-radius:8px;">
+            <div class="badge badge-orange" style="margin-bottom:8px;">🎯 Таргетолог</div>
+            <p style="font-size:12px;color:var(--muted);">Запуск платных кампаний под слоумуверы, оптимизация ROAS хитов</p>
+          </div>
+          <div style="background:var(--surface2);padding:12px;border-radius:8px;">
+            <div class="badge badge-yellow" style="margin-bottom:8px;">✍️ СММ</div>
+            <p style="font-size:12px;color:var(--muted);">Контент-план: посты, reels, подборки под аналитику</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-item">
+      <div class="flow-dot" style="background:rgba(167,139,250,0.15);color:var(--buyer);">5</div>
+      <div class="flow-body">
+        <div class="flow-title">📦 Баер пополняет остатки</div>
+        <div class="flow-desc">Получает список приоритетов, формирует draft PO, обновляет Calendar заказов</div>
+        <div class="flow-tags tag-list" style="margin-top:10px;">
+          <span class="tag purple">Срочный дозаказ хитов</span>
+          <span class="tag purple">Стоп-заказ зависших</span>
+          <span class="tag purple">Плановые PO</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-item">
+      <div class="flow-dot" style="background:rgba(0,229,196,0.15);color:var(--analyst);">↻</div>
+      <div class="flow-body">
+        <div class="flow-title">Цикл повторяется</div>
+        <div class="flow-desc">Результаты кампаний и новых поставок возвращаются в Data Layer → Аналитик пересчитывает прогноз → система обучается</div>
+        <div style="margin-top:10px;padding:12px 16px;background:var(--surface2);border-radius:8px;border:1px solid rgba(0,229,196,0.1);">
+          <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);margin-bottom:6px;">FEEDBACK LOOP</div>
+          <p style="font-size:12px;color:var(--muted);">Каждое действие (реклама, заказ, промо) становится данными для следующего цикла. Прогнозы становятся точнее с каждой итерацией.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:24px;background:var(--surface2);border-color:rgba(0,229,196,0.15);">
+    <h3>Отличие от Prediko — что добавляем</h3>
+    <table class="kpi-table">
+      <thead><tr><th>Prediko делает</th><th>Ваша система добавляет</th></tr></thead>
+      <tbody>
+        <tr><td>Инвентарь + прогноз спроса</td><td>+ Внешний контекст (погода, события, конкуренты)</td></tr>
+        <tr><td>Алерты в Slack</td><td>Алерты в Telegram + email дайджест</td></tr>
+        <tr><td>Один агент (Pia)</td><td>5 специализированных агентов в связке</td></tr>
+        <tr><td>Только инвентарь</td><td>Инвентарь → Маркетинг → Закупки → Контент</td></tr>
+        <tr><td>Shopify-ориентирован</td><td>1C / ERP — ориентирован на офлайн-ритейл</td></tr>
+        <tr><td>Нет маркетингового агента</td><td>Маркетолог ставит задачи Таргетологу и СММ</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+</div>
+
+<script>
+  const tabs = document.querySelectorAll('.nav-btn');
+  const contents = document.querySelectorAll('.tab-content');
+
+  tabs.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = btn.dataset.tab;
+      tabs.forEach(b => b.classList.remove('active'));
+      contents.forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(target).classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>
