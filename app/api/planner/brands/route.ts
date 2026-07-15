@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { requireApiUser } from "@/lib/server-auth";
 
 export async function GET() {
-  const h = await headers();
-  const tenantId = h.get("x-tenant-id")!;
+  const { user, response } = await requireApiUser();
+  if (response) return response;
+  const { tenantId } = user;
 
   const brands = await prisma.brand.findMany({
     where: { tenantId },
@@ -18,8 +19,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const h = await headers();
-  const tenantId = h.get("x-tenant-id")!;
+  const { user, response } = await requireApiUser();
+  if (response) return response;
+  const { tenantId } = user;
 
   const body = await request.json();
   const { name, budget, paymentDays, currency, country, contact, leadTimeDays, moq } = body;

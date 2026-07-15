@@ -1,4 +1,5 @@
 import { cookies, headers } from "next/headers";
+import { NextResponse } from "next/server";
 import { verifyAccessToken } from "@/lib/auth";
 
 export interface CurrentUser {
@@ -83,4 +84,31 @@ export async function requireCurrentUser(requiredRole?: RequiredRole): Promise<C
   }
 
   return user;
+}
+
+export async function requireApiUser(requiredRole?: RequiredRole): Promise<
+  | { user: CurrentUser; response: null }
+  | { user: null; response: NextResponse }
+> {
+  try {
+    return { user: await requireCurrentUser(requiredRole), response: null };
+  } catch (error) {
+    if (error instanceof AuthError || error instanceof ForbiddenError) {
+      return {
+        user: null,
+        response: NextResponse.json(
+          { error: error.message, code: error.code },
+          { status: error.status }
+        ),
+      };
+    }
+
+    return {
+      user: null,
+      response: NextResponse.json(
+        { error: "Authentication failed", code: "AUTH_ERROR" },
+        { status: 500 }
+      ),
+    };
+  }
 }

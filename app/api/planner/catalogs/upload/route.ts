@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import * as XLSX from "xlsx";
+import { requireApiUser } from "@/lib/server-auth";
 
 export async function POST(request: NextRequest) {
-  const h = await headers();
-  const tenantId = h.get("x-tenant-id")!;
+  const { user, response } = await requireApiUser();
+  if (response) return response;
+  const { tenantId } = user;
 
   try {
     const formData = await request.formData();
