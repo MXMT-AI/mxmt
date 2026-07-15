@@ -5,7 +5,7 @@ const ACCESS_SECRET = new TextEncoder().encode(
   process.env.JWT_ACCESS_SECRET ?? "dev-access-secret-change-in-production"
 );
 
-const PUBLIC_PATHS = ["/login", "/register", "/api/auth"];
+const PUBLIC_PATHS = ["/login", "/register", "/api/auth", "/api/health"];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
