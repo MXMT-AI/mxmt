@@ -4,7 +4,7 @@ import { syncFromDrive, isDriveConfigured, getDriveMode } from "@/lib/gdrive";
 import { requireApiUser } from "@/lib/server-auth";
 
 export async function POST() {
-  const { user, response } = await requireApiUser();
+  const { user, response } = await requireApiUser("ADMIN");
   if (response) return response;
   const { tenantId } = user;
 

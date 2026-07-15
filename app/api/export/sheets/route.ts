@@ -6,7 +6,7 @@ import { requireApiUser } from "@/lib/server-auth";
 // Універсальний експорт 2D-масиву в нову Google-таблицю.
 
 export async function POST(req: NextRequest) {
-  const { user: currentUser, response } = await requireApiUser();
+  const { user: currentUser, response } = await requireApiUser("ANALYST");
   if (response) return response;
   const { tenantId, userId } = currentUser;
 

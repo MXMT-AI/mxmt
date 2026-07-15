@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { chat } from "@/lib/ai";
+import { requireApiUser } from "@/lib/server-auth";
 
 function isoWeekNumber(d: Date): number {
   const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
@@ -54,9 +54,9 @@ const SYSTEM_PROMPT = `Ты помощник маркетолога, котор�
 - priority=high: нужно на этой неделе`;
 
 export async function POST(req: NextRequest) {
-  const h = await headers();
-  const tenantId = h.get("x-tenant-id");
-  if (!tenantId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { user, response } = await requireApiUser("ANALYST");
+  if (response) return response;
+  const { tenantId } = user;
 
   const body = await req.json().catch(() => ({}));
   const providerOverride: string | undefined = body.provider ?? undefined;

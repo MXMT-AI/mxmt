@@ -19,7 +19,7 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const { user, response } = await requireApiUser();
+  const { user, response } = await requireApiUser("ANALYST");
   if (response) return response;
   const { tenantId } = user;
 

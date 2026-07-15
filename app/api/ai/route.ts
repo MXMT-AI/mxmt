@@ -1,15 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { headers, cookies } from "next/headers";
+import { cookies } from "next/headers";
 import { chat, type ChatMessage } from "@/lib/ai";
+import { requireApiUser } from "@/lib/server-auth";
 
 export async function POST(request: NextRequest) {
   try {
-    const h = await headers();
-    const tenantId = h.get("x-tenant-id");
-
-    if (!tenantId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const { response } = await requireApiUser("ANALYST");
+    if (response) return response;
 
     const body = await request.json();
     const messages: ChatMessage[] = body.messages;

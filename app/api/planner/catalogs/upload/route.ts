@@ -4,7 +4,7 @@ import * as XLSX from "xlsx";
 import { requireApiUser } from "@/lib/server-auth";
 
 export async function POST(request: NextRequest) {
-  const { user, response } = await requireApiUser();
+  const { user, response } = await requireApiUser("ANALYST");
   if (response) return response;
   const { tenantId } = user;
 

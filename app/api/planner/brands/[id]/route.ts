@@ -6,7 +6,7 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { user, response } = await requireApiUser();
+  const { user, response } = await requireApiUser("ANALYST");
   if (response) return response;
   const { tenantId } = user;
   const { id } = await params;
@@ -36,7 +36,7 @@ export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { user, response } = await requireApiUser();
+  const { user, response } = await requireApiUser("ADMIN");
   if (response) return response;
   const { tenantId } = user;
   const { id } = await params;

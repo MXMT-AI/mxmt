@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { getBrandMetrics } from "@/lib/brand-metrics";
 import { chat } from "@/lib/ai";
+import { requireApiUser } from "@/lib/server-auth";
 
 const THRESHOLDS = {
   woh_red: 60,
@@ -46,9 +46,9 @@ EXCELLENT: WOH < 20 И тренд >+20% | ИЛИ STR > expected×1.5
 suggested_actions: "repricing" | "reordering" | "clearance" | "visibility"`;
 
 export async function POST(req: NextRequest) {
-  const h = await headers();
-  const tenantId = h.get("x-tenant-id");
-  if (!tenantId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { user, response } = await requireApiUser("ANALYST");
+  if (response) return response;
+  const { tenantId } = user;
 
   const body = await req.json().catch(() => ({}));
   const providerOverride: string | undefined = body.provider ?? undefined;
@@ -157,9 +157,9 @@ ${metrics
 }
 
 export async function GET() {
-  const h = await headers();
-  const tenantId = h.get("x-tenant-id");
-  if (!tenantId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { user, response } = await requireApiUser();
+  if (response) return response;
+  const { tenantId } = user;
 
   // Return last run for each agent type
   const agentTypes = [
