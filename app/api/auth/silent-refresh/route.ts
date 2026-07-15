@@ -4,10 +4,17 @@ import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from "@/lib/auth";
 
+function safeRedirectPath(value: string | null): string {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) {
+    return "/dashboard";
+  }
+  return value;
+}
+
 // Called by middleware when access token is expired but refresh token exists.
 // Refreshes tokens, sets cookies, then redirects back to the original page.
 export async function GET(request: NextRequest) {
-  const next = request.nextUrl.searchParams.get("next") ?? "/dashboard";
+  const next = safeRedirectPath(request.nextUrl.searchParams.get("next"));
 
   try {
     const cookieStore = await cookies();
