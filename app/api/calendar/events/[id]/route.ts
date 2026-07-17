@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiUser } from "@/lib/server-auth";
+import { isRecord, parseJsonBody, stringField, validationError } from "@/lib/api-contracts";
 
 export async function DELETE(
   _req: NextRequest,
@@ -30,12 +31,30 @@ export async function PATCH(
   const event = await prisma.marketingEvent.findFirst({ where: { id, tenantId } });
   if (!event) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const body = await req.json();
+  const { data, response: parseResponse } = await parseJsonBody(req);
+  if (parseResponse) return parseResponse;
+
+  if (!isRecord(data)) {
+    return validationError(["body must be an object"]);
+  }
+
+  const issues: string[] = [];
+  const type = stringField(data, "type", issues, { maxLength: 40 });
+  const label = stringField(data, "label", issues, { maxLength: 160 });
+
+  if (!type && !label) {
+    issues.push("at least one of type or label is required");
+  }
+
+  if (issues.length > 0) {
+    return validationError(issues);
+  }
+
   const updated = await prisma.marketingEvent.update({
     where: { id },
     data: {
-      ...(body.type ? { type: body.type } : {}),
-      ...(body.label ? { label: body.label } : {}),
+      ...(type ? { type } : {}),
+      ...(label ? { label } : {}),
     },
   });
 
