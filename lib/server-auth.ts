@@ -1,6 +1,7 @@
 import { cookies, headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { verifyAccessToken } from "@/lib/auth";
+import { apiError } from "@/lib/api-contracts";
 
 export interface CurrentUser {
   userId: string;
@@ -96,19 +97,13 @@ export async function requireApiUser(requiredRole?: RequiredRole): Promise<
     if (error instanceof AuthError || error instanceof ForbiddenError) {
       return {
         user: null,
-        response: NextResponse.json(
-          { error: error.message, code: error.code },
-          { status: error.status }
-        ),
+        response: apiError(error.message, error.status, error.code),
       };
     }
 
     return {
       user: null,
-      response: NextResponse.json(
-        { error: "Authentication failed", code: "AUTH_ERROR" },
-        { status: 500 }
-      ),
+      response: apiError("Authentication failed", 500, "AUTH_ERROR"),
     };
   }
 }

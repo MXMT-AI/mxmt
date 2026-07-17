@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { chat, type ChatMessage } from "@/lib/ai";
 import { requireApiUser } from "@/lib/server-auth";
-import { isRecord, parseJsonBody, stringField, validationError } from "@/lib/api-contracts";
+import { isRecord, parseJsonBody, serverError, stringField, validationError } from "@/lib/api-contracts";
 
 const MESSAGE_ROLES = new Set(["user", "assistant", "system"]);
 
@@ -59,6 +59,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ content });
   } catch (err) {
     console.error("[ai]", err);
-    return NextResponse.json({ error: "AI request failed" }, { status: 500 });
+    return serverError("AI request failed");
   }
 }

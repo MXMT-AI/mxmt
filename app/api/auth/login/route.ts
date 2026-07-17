@@ -3,16 +3,14 @@ import { compare, hash } from "bcryptjs";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { signAccessToken, signRefreshToken } from "@/lib/auth";
+import { apiError, serverError } from "@/lib/api-contracts";
 
 export async function POST(request: NextRequest) {
   try {
     const { email, password } = await request.json();
 
     if (!email || !password) {
-      return NextResponse.json(
-        { error: "Email and password are required" },
-        { status: 400 }
-      );
+      return apiError("Email and password are required", 400, "VALIDATION_ERROR");
     }
 
     const user = await prisma.user.findUnique({
@@ -22,10 +20,7 @@ export async function POST(request: NextRequest) {
 
     // Constant-time check to prevent user enumeration
     if (!user || !(await compare(password, user.passwordHash))) {
-      return NextResponse.json(
-        { error: "Invalid credentials" },
-        { status: 401 }
-      );
+      return apiError("Invalid credentials", 401, "INVALID_CREDENTIALS");
     }
 
     const tokenPayload = {
@@ -67,9 +62,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (err) {
     console.error("[login]", err);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return serverError();
   }
 }

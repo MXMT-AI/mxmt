@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { syncFromDrive, isDriveConfigured, getDriveMode } from "@/lib/gdrive";
 import { requireApiUser } from "@/lib/server-auth";
+import { apiError, serverError } from "@/lib/api-contracts";
 
 export async function POST() {
   const { user, response } = await requireApiUser("ADMIN");
@@ -9,9 +10,10 @@ export async function POST() {
   const { tenantId } = user;
 
   if (!isDriveConfigured()) {
-    return NextResponse.json(
-      { error: "Google Drive not configured. Set GOOGLE_DRIVE_FILE_ID (and optionally GOOGLE_SERVICE_ACCOUNT_KEY)." },
-      { status: 400 }
+    return apiError(
+      "Google Drive not configured. Set GOOGLE_DRIVE_FILE_ID (and optionally GOOGLE_SERVICE_ACCOUNT_KEY).",
+      400,
+      "DRIVE_NOT_CONFIGURED"
     );
   }
 
@@ -52,6 +54,6 @@ export async function POST() {
       where: { id },
       data: { syncStatus: "error", errorMessage: msg },
     });
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return serverError(msg);
   }
 }

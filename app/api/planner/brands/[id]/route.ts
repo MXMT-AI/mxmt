@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiUser } from "@/lib/server-auth";
-import { isRecord, numberField, parseJsonBody, stringField, validationError } from "@/lib/api-contracts";
+import { apiError, isRecord, numberField, parseJsonBody, stringField, validationError } from "@/lib/api-contracts";
 
 export async function PUT(
   request: NextRequest,
@@ -13,7 +13,7 @@ export async function PUT(
   const { id } = await params;
 
   const brand = await prisma.brand.findFirst({ where: { id, tenantId } });
-  if (!brand) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!brand) return apiError("Not found", 404, "NOT_FOUND");
 
   const { data, response: parseResponse } = await parseJsonBody(request);
   if (parseResponse) return parseResponse;
@@ -63,7 +63,7 @@ export async function DELETE(
   const { id } = await params;
 
   const brand = await prisma.brand.findFirst({ where: { id, tenantId } });
-  if (!brand) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!brand) return apiError("Not found", 404, "NOT_FOUND");
 
   await prisma.brand.delete({ where: { id } });
   return NextResponse.json({ ok: true });

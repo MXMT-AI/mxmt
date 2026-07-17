@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getAttributeMetrics } from "@/lib/attribute-metrics";
 import { chat } from "@/lib/ai";
 import { requireApiUser } from "@/lib/server-auth";
+import { serverError } from "@/lib/api-contracts";
 
 const SYSTEM_PROMPT = `Ты аналитик ассортимента в fashion retail.
 
@@ -142,6 +143,6 @@ ${
       where: { id: run.id },
       data: { status: "error", errorMsg: msg, finishedAt: new Date() },
     });
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return serverError(msg);
   }
 }

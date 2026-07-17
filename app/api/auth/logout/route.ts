@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { verifyAccessToken } from "@/lib/auth";
+import { serverError } from "@/lib/api-contracts";
 
 export async function POST(_request: NextRequest) {
   try {
@@ -27,9 +28,6 @@ export async function POST(_request: NextRequest) {
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[logout]", err);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return serverError();
   }
 }

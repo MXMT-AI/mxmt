@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getBrandMetrics } from "@/lib/brand-metrics";
 import { chat } from "@/lib/ai";
 import { requireApiUser } from "@/lib/server-auth";
+import { serverError } from "@/lib/api-contracts";
 
 const SYSTEM_PROMPT = `Ты коммерческий маркетолог в fashion retail.
 
@@ -200,6 +201,6 @@ ${decisions.map((d) => `• ${d.brand_name} (id: ${d.brand_id}): ${d.label} (т�
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     await prisma.agentRun.update({ where: { id: run.id }, data: { status: "error", errorMsg: msg, finishedAt: new Date() } });
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return serverError(msg);
   }
 }

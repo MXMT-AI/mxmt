@@ -207,13 +207,13 @@ ${holidaysByWeek.map((w) => {
     // Extract JSON from response
     const jsonMatch = raw.match(/\[[\s\S]*\]/);
     if (!jsonMatch) {
-      return NextResponse.json({ chips: [], error: "No JSON in response" });
+      return NextResponse.json({ chips: [], error: "No JSON in response", code: "AI_INVALID_RESPONSE" });
     }
 
     const chips: AiPlanChip[] = JSON.parse(jsonMatch[0]);
     return NextResponse.json({ chips });
   } catch (err) {
     console.error("[ai-plan]", err);
-    return NextResponse.json({ chips: [], error: "AI request failed" }, { status: 500 });
+    return NextResponse.json({ chips: [], error: "AI request failed", code: "INTERNAL_SERVER_ERROR" }, { status: 500 });
   }
 }

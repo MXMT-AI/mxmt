@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createSpreadsheet } from "@/lib/gsheets";
 import { requireApiUser } from "@/lib/server-auth";
-import { isRecord, parseJsonBody, stringField, validationError } from "@/lib/api-contracts";
+import { isRecord, parseJsonBody, serverError, stringField, validationError } from "@/lib/api-contracts";
 
 // Універсальний експорт 2D-масиву в нову Google-таблицю.
 
@@ -48,6 +48,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(sheet);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return serverError(msg);
   }
 }

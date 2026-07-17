@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { simulateReorder } from "@/lib/reorder-calc";
 import { requireApiUser } from "@/lib/server-auth";
-import { isRecord, numberField, optionalDate, parseJsonBody, stringField, validationError } from "@/lib/api-contracts";
+import { isRecord, numberField, optionalDate, parseJsonBody, serverError, stringField, validationError } from "@/lib/api-contracts";
 
 // Детермінований розрахунок дозамовлення по SKU бренда — без AI.
 // Параметри сценарію (множник обʼєму) приходять з виводу Reordering-агента.
@@ -39,6 +39,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(result);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return serverError(msg);
   }
 }
