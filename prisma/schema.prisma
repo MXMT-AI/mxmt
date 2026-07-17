@@ -89,6 +89,7 @@ model Brand {
   catalogUploads CatalogUpload[]
   catalogItems   CatalogItem[]
 
+  @@unique([tenantId, name])
   @@index([tenantId])
 }
 
@@ -142,6 +143,7 @@ model SalesRecord {
 
   @@index([tenantId, date])
   @@index([skuId])
+  @@unique([tenantId, skuId, date, channel])
 }
 
 // ─── INVENTORY ────────────────────────────────────────────────────────────────
@@ -158,6 +160,7 @@ model InventorySnapshot {
 
   @@index([tenantId, snapshotDate])
   @@index([skuId])
+  @@unique([tenantId, skuId, snapshotDate])
 }
 
 // ─── PROMO ────────────────────────────────────────────────────────────────────
@@ -211,6 +214,7 @@ model CatalogUpload {
 
   @@index([tenantId])
   @@index([brandId])
+  @@unique([tenantId, brandId, season])
 }
 
 // ─── CATALOG ITEM (individual line in a brand's wholesale catalog) ─────────────
@@ -237,6 +241,7 @@ model CatalogItem {
 
   @@index([tenantId, catalogId])
   @@index([tenantId, category])
+  @@unique([tenantId, catalogId, sku])
 }
 
 // ─── MARKETING CALENDAR EVENTS ────────────────────────────────────────────────
