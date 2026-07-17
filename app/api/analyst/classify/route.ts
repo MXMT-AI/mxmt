@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import type { SkuFlag, ClassifiedSku } from "@/lib/analyst-types";
 import { classify, getThresholds } from "@/lib/classify";
+import { requireApiUser } from "@/lib/server-auth";
 
 export type { SkuFlag, ClassifiedSku };
 
 const FLAG_ORDER: Record<SkuFlag, number> = { hit: 0, stockout: 1, slow: 2, dead: 3, ok: 4 };
 
 export async function GET(request: NextRequest) {
-  const h = await headers();
-  const tenantId = h.get("x-tenant-id")!;
+  const { user, response } = await requireApiUser();
+  if (response) return response;
+  const { tenantId } = user;
 
   const { searchParams } = new URL(request.url);
   const filterFlag = searchParams.get("flag");

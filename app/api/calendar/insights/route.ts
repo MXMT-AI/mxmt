@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import type { SkuFlag } from "@/lib/analyst-types";
 import { classify, getThresholds } from "@/lib/classify";
+import { requireApiUser } from "@/lib/server-auth";
 
 
 export interface CalendarInsight {
@@ -26,8 +26,9 @@ function currentISOWeek(): number {
 }
 
 export async function GET() {
-  const h = await headers();
-  const tenantId = h.get("x-tenant-id")!;
+  const { user, response } = await requireApiUser();
+  if (response) return response;
+  const { tenantId } = user;
 
   const since30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const since7 = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);

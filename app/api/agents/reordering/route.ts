@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { getBrandMetrics } from "@/lib/brand-metrics";
 import { chat } from "@/lib/ai";
+import { requireApiUser } from "@/lib/server-auth";
 
 const WOH_REORDER_THRESHOLD = 30; // trigger reorder analysis when WOH < 30 days
 
@@ -57,9 +57,9 @@ const SYSTEM_PROMPT = `Ты стратег по закупкам в fashion reta
 - woh_after — примерная оценка WOH после дозаказа на основе текущей скорости продаж`;
 
 export async function POST(req: NextRequest) {
-  const h = await headers();
-  const tenantId = h.get("x-tenant-id");
-  if (!tenantId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { user, response } = await requireApiUser("ANALYST");
+  if (response) return response;
+  const { tenantId } = user;
 
   const body = await req.json().catch(() => ({}));
   const providerOverride: string | undefined = body.provider ?? undefined;

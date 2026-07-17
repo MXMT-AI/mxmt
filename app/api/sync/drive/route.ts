@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
-import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { syncFromDrive, isDriveConfigured, getDriveMode } from "@/lib/gdrive";
+import { requireApiUser } from "@/lib/server-auth";
 
 export async function POST() {
-  const h = await headers();
-  const tenantId = h.get("x-tenant-id")!;
+  const { user, response } = await requireApiUser("ADMIN");
+  if (response) return response;
+  const { tenantId } = user;
 
   if (!isDriveConfigured()) {
     return NextResponse.json(

@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { createSpreadsheet } from "@/lib/gsheets";
+import { requireApiUser } from "@/lib/server-auth";
 
 // Універсальний експорт 2D-масиву в нову Google-таблицю.
 
 export async function POST(req: NextRequest) {
-  const h = await headers();
-  const tenantId = h.get("x-tenant-id");
-  const userId = h.get("x-user-id");
-  if (!tenantId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { user: currentUser, response } = await requireApiUser("ANALYST");
+  if (response) return response;
+  const { tenantId, userId } = currentUser;
 
   const body = await req.json().catch(() => ({}));
   const title: string | undefined = body.title;

@@ -1,12 +1,17 @@
 import { SignJWT, jwtVerify } from "jose";
 
-// Fallback to dev secrets so the app still boots locally without .env
-const ACCESS_SECRET = new TextEncoder().encode(
-  process.env.JWT_ACCESS_SECRET ?? "dev-access-secret-change-in-production"
-);
-const REFRESH_SECRET = new TextEncoder().encode(
-  process.env.JWT_REFRESH_SECRET ?? "dev-refresh-secret-change-in-production"
-);
+function getJwtSecret(envName: "JWT_ACCESS_SECRET" | "JWT_REFRESH_SECRET", fallback: string): Uint8Array {
+  const value = process.env[envName];
+
+  if (!value && process.env.NODE_ENV === "production") {
+    throw new Error(`${envName} is required in production`);
+  }
+
+  return new TextEncoder().encode(value ?? fallback);
+}
+
+const ACCESS_SECRET = getJwtSecret("JWT_ACCESS_SECRET", "dev-access-secret-change-in-production");
+const REFRESH_SECRET = getJwtSecret("JWT_REFRESH_SECRET", "dev-refresh-secret-change-in-production");
 
 export interface TokenPayload {
   sub: string;      // userId
