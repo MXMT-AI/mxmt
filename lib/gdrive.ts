@@ -19,6 +19,16 @@ export interface SyncResult {
 }
 
 type Row = Record<string, unknown>;
+type SalesRecordInput = {
+  tenantId: string;
+  skuId: string;
+  date: Date;
+  qtySold: number;
+  revenue: number;
+  channel: string;
+  isPromo?: boolean;
+  returns?: number;
+};
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -54,6 +64,52 @@ function num(row: Row, ...keys: string[]): number {
 
 function int(row: Row, ...keys: string[]): number {
   return Math.round(num(row, ...keys));
+}
+
+function dateKey(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+async function upsertInventorySnapshot(
+  tenantId: string,
+  skuId: string,
+  snapshotDate: Date,
+  qtyOnHand: number
+): Promise<void> {
+  await prisma.inventorySnapshot.upsert({
+    where: { tenantId_skuId_snapshotDate: { tenantId, skuId, snapshotDate } },
+    create: { tenantId, skuId, qtyOnHand, snapshotDate },
+    update: { qtyOnHand },
+  });
+}
+
+async function upsertSalesRecord(input: SalesRecordInput): Promise<void> {
+  await prisma.salesRecord.upsert({
+    where: {
+      tenantId_skuId_date_channel: {
+        tenantId: input.tenantId,
+        skuId: input.skuId,
+        date: input.date,
+        channel: input.channel,
+      },
+    },
+    create: {
+      tenantId: input.tenantId,
+      skuId: input.skuId,
+      date: input.date,
+      qtySold: input.qtySold,
+      revenue: input.revenue,
+      channel: input.channel,
+      isPromo: input.isPromo ?? false,
+      returns: input.returns ?? 0,
+    },
+    update: {
+      qtySold: input.qtySold,
+      revenue: input.revenue,
+      isPromo: input.isPromo ?? false,
+      returns: input.returns ?? 0,
+    },
+  });
 }
 
 // Handles: DD.MM.YYYY | YYYY-MM-DD | ISO string | JS Date object (from XLSX cellDates)
@@ -248,8 +304,7 @@ async function importArticleReport(
                         num(row, "Retail Price", "RRP", "Price", "price");
     const pricePurchase = num(row, "Cost Price", "cost price", "Cost", "cost");
 
-    // Upsert SKU
-    await prisma.sku.upsert({
+    const sku = await prisma.sku.upsert({
       where: { tenantId_sku: { tenantId, sku: skuCode } },
       create: {
         tenantId, brandId, sku: skuCode, name,
@@ -259,15 +314,9 @@ async function importArticleReport(
     });
     skuCount++;
 
-    const sku = await prisma.sku.findUnique({ where: { tenantId_sku: { tenantId, sku: skuCode } } });
-    if (!sku) continue;
-
     // Import inventory snapshot from "Stock units"
     const stockQty = int(row, "Stock units", "stock units", "Stock", "stock", "Залишок", "залишок");
-    await prisma.inventorySnapshot.deleteMany({ where: { skuId: sku.id, snapshotDate: today } });
-    await prisma.inventorySnapshot.create({
-      data: { tenantId, skuId: sku.id, qtyOnHand: stockQty, snapshotDate: today },
-    });
+    await upsertInventorySnapshot(tenantId, sku.id, today, stockQty);
     invCount++;
 
     // Import monthly sales columns (1-12) as individual month records
@@ -278,29 +327,29 @@ async function importArticleReport(
       const monthlySales = int(row, String(m));
       if (monthlySales <= 0) continue;
       const monthDate = new Date(currentYear, m - 1, 1);
-      const existing = await prisma.salesRecord.findFirst({
-        where: { tenantId, skuId: sku.id, date: monthDate },
+      await upsertSalesRecord({
+        tenantId,
+        skuId: sku.id,
+        date: monthDate,
+        qtySold: monthlySales,
+        revenue: monthlySales * (sku.priceRetail ?? 0),
+        channel: "offline",
       });
-      if (!existing) {
-        await prisma.salesRecord.create({
-          data: { tenantId, skuId: sku.id, date: monthDate, qtySold: monthlySales, revenue: monthlySales * (sku.priceRetail ?? 0) },
-        });
-        salesCount++;
-      }
+      salesCount++;
     }
 
     // Also import "Sales Last week" as a weekly record
     const lastWeekSales = int(row, "Sales Last week", "sales last week", "Sales last week");
     if (lastWeekSales > 0) {
-      const existing = await prisma.salesRecord.findFirst({
-        where: { tenantId, skuId: sku.id, date: lastMonday },
+      await upsertSalesRecord({
+        tenantId,
+        skuId: sku.id,
+        date: lastMonday,
+        qtySold: lastWeekSales,
+        revenue: lastWeekSales * (sku.priceRetail ?? 0),
+        channel: "offline",
       });
-      if (!existing) {
-        await prisma.salesRecord.create({
-          data: { tenantId, skuId: sku.id, date: lastMonday, qtySold: lastWeekSales, revenue: lastWeekSales * (sku.priceRetail ?? 0) },
-        });
-        salesCount++;
-      }
+      salesCount++;
     }
 
     // Collect for catalog sync (only branded items — CatalogItem requires brandId)
@@ -320,14 +369,11 @@ async function importArticleReport(
     if (items.length === 0) continue;
 
     // Find or create the "Drive" CatalogUpload for this brand+season
-    let upload = await prisma.catalogUpload.findFirst({
-      where: { tenantId, brandId, season: currentSeason },
+    const upload = await prisma.catalogUpload.upsert({
+      where: { tenantId_brandId_season: { tenantId, brandId, season: currentSeason } },
+      create: { tenantId, brandId, season: currentSeason, itemCount: 0 },
+      update: {},
     });
-    if (!upload) {
-      upload = await prisma.catalogUpload.create({
-        data: { tenantId, brandId, season: currentSeason, itemCount: 0 },
-      });
-    }
 
     // Replace all items for this upload (full refresh on each sync)
     await prisma.catalogItem.deleteMany({ where: { catalogId: upload.id } });
@@ -356,7 +402,7 @@ async function importArticleReport(
 // Handles order export sheets with columns: orderTime, product.sku, product.amount, etc.
 
 async function importZavodApi(tenantId: string, rows: Row[]): Promise<number> {
-  let count = 0;
+  const aggregates = new Map<string, { skuCode: string; date: Date; qtySold: number; revenue: number }>();
 
   for (const row of rows) {
     const skuCode = str(row, "product.sku");
@@ -372,25 +418,28 @@ async function importZavodApi(tenantId: string, rows: Row[]): Promise<number> {
     // Normalize to midnight UTC
     date.setUTCHours(0, 0, 0, 0);
 
-    const sku = await prisma.sku.findUnique({ where: { tenantId_sku: { tenantId, sku: skuCode } } });
-    if (!sku) continue;
-
     const revenue = num(row, "ProductPaymentAmount", "product.price", "paymentAmount");
-
-    const existing = await prisma.salesRecord.findFirst({ where: { tenantId, skuId: sku.id, date } });
-    if (existing) {
-      await prisma.salesRecord.update({
-        where: { id: existing.id },
-        data: { qtySold: existing.qtySold + qty, revenue: existing.revenue + revenue },
-      });
-    } else {
-      await prisma.salesRecord.create({
-        data: { tenantId, skuId: sku.id, date, qtySold: qty, revenue, channel: "online" },
-      });
-    }
-    count++;
+    const key = `${skuCode}|${dateKey(date)}`;
+    const aggregate = aggregates.get(key) ?? { skuCode, date, qtySold: 0, revenue: 0 };
+    aggregate.qtySold += qty;
+    aggregate.revenue += revenue;
+    aggregates.set(key, aggregate);
   }
 
+  let count = 0;
+  for (const aggregate of aggregates.values()) {
+    const sku = await prisma.sku.findUnique({ where: { tenantId_sku: { tenantId, sku: aggregate.skuCode } } });
+    if (!sku) continue;
+    await upsertSalesRecord({
+      tenantId,
+      skuId: sku.id,
+      date: aggregate.date,
+      qtySold: aggregate.qtySold,
+      revenue: aggregate.revenue,
+      channel: "online",
+    });
+    count++;
+  }
   return count;
 }
 
@@ -435,10 +484,7 @@ async function importInventory(tenantId: string, rows: Row[]): Promise<number> {
     if (!skuCode) continue;
     const sku = await prisma.sku.findUnique({ where: { tenantId_sku: { tenantId, sku: skuCode } } });
     if (!sku) continue;
-    await prisma.inventorySnapshot.deleteMany({ where: { skuId: sku.id, snapshotDate: today } });
-    await prisma.inventorySnapshot.create({
-      data: { tenantId, skuId: sku.id, qtyOnHand: qty, snapshotDate: today },
-    });
+    await upsertInventorySnapshot(tenantId, sku.id, today, qty);
     count++;
   }
   return count;
@@ -455,11 +501,7 @@ async function importSales(tenantId: string, rows: Row[]): Promise<number> {
     if (!date) continue;
     const sku = await prisma.sku.findUnique({ where: { tenantId_sku: { tenantId, sku: skuCode } } });
     if (!sku) continue;
-    const existing = await prisma.salesRecord.findFirst({ where: { tenantId, skuId: sku.id, date } });
-    if (existing) continue;
-    await prisma.salesRecord.create({
-      data: { tenantId, skuId: sku.id, date, qtySold: qty, revenue, channel: "offline" },
-    });
+    await upsertSalesRecord({ tenantId, skuId: sku.id, date, qtySold: qty, revenue, channel: "offline" });
     count++;
   }
   return count;

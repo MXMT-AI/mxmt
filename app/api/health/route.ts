@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getDataHealthReport } from "@/lib/data-health";
 
 export const dynamic = "force-dynamic";
 
@@ -8,13 +9,15 @@ export async function GET() {
 
   try {
     await prisma.$queryRaw`SELECT 1`;
+    const data = await getDataHealthReport();
 
     return NextResponse.json({
       ok: true,
-      status: "healthy",
+      status: data.status === "ok" ? "healthy" : "degraded",
       checks: {
         app: "ok",
         database: "ok",
+        data,
       },
       durationMs: Date.now() - startedAt,
       timestamp: new Date().toISOString(),

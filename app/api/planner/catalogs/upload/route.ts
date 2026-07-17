@@ -3,6 +3,34 @@ import { prisma } from "@/lib/prisma";
 import * as XLSX from "xlsx";
 import { requireApiUser } from "@/lib/server-auth";
 
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+
+type CatalogRow = Record<string, unknown>;
+
+function cell(row: CatalogRow, ...keys: string[]): string {
+  for (const key of keys) {
+    const value = row[key] ?? row[key.toLowerCase()] ?? row[key.toUpperCase()];
+    if (value !== undefined && value !== null && String(value).trim() !== "") {
+      return String(value).trim();
+    }
+  }
+  return "";
+}
+
+function numberCell(row: CatalogRow, fallback: number, ...keys: string[]): number {
+  for (const key of keys) {
+    const raw = row[key] ?? row[key.toLowerCase()] ?? row[key.toUpperCase()];
+    const value = Number.parseFloat(String(raw ?? "").replace(/\s/g, "").replace(",", "."));
+    if (Number.isFinite(value)) return value;
+  }
+  return fallback;
+}
+
+function intCell(row: CatalogRow, fallback: number, ...keys: string[]): number {
+  const value = Math.round(numberCell(row, fallback, ...keys));
+  return Number.isFinite(value) ? value : fallback;
+}
+
 export async function POST(request: NextRequest) {
   const { user, response } = await requireApiUser("ANALYST");
   if (response) return response;
@@ -21,6 +49,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (file.size === 0 || file.size > MAX_UPLOAD_BYTES) {
+      return NextResponse.json(
+        { error: "File must be between 1 byte and 10 MB" },
+        { status: 400 }
+      );
+    }
+
     // Verify brand belongs to tenant
     const brand = await prisma.brand.findFirst({ where: { id: brandId, tenantId } });
     if (!brand) {
@@ -30,42 +65,91 @@ export async function POST(request: NextRequest) {
     // Parse Excel / CSV
     const buffer = await file.arrayBuffer();
     const wb = XLSX.read(buffer, { type: "buffer" });
-    const ws = wb.Sheets[wb.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws);
+    const firstSheetName = wb.SheetNames[0];
+    if (!firstSheetName) {
+      return NextResponse.json({ error: "Workbook has no sheets" }, { status: 400 });
+    }
+
+    const ws = wb.Sheets[firstSheetName];
+    const rows = XLSX.utils.sheet_to_json<CatalogRow>(ws, { defval: "" });
 
     if (rows.length === 0) {
       return NextResponse.json({ error: "File is empty" }, { status: 400 });
     }
 
+    const dedupedItems = new Map<string, {
+      skuCode: string;
+      name: string;
+      category: string;
+      color: string | null;
+      style: string | null;
+      material: string | null;
+      priceWholesale: number;
+      priceRetail: number | null;
+      minOrder: number;
+      stockAvail: number;
+      leadTimeDays: number;
+      tags: string[];
+    }>();
+    let skippedRows = 0;
+
+    for (const row of rows) {
+      const skuCode = cell(row, "SKU", "sku", "Артикул");
+      const name = cell(row, "Name", "name", "Назва", "Наименование");
+
+      if (!skuCode || !name) {
+        skippedRows++;
+        continue;
+      }
+
+      const priceWholesale = Math.max(0, numberCell(row, 0, "Price", "price", "Ціна"));
+      const retailValue = numberCell(row, Number.NaN, "Retail", "retail", "RRP", "rrp");
+
+      dedupedItems.set(skuCode, {
+        skuCode,
+        name,
+        category: cell(row, "Category", "category", "Категорія", "Категория") || "Other",
+        color: cell(row, "Color", "color") || null,
+        style: cell(row, "Style", "style") || null,
+        material: cell(row, "Material", "material") || null,
+        priceWholesale,
+        priceRetail: Number.isFinite(retailValue) ? Math.max(0, retailValue) : null,
+        minOrder: Math.max(1, intCell(row, 1, "MinOrder", "minOrder", "МінЗамовлення")),
+        stockAvail: Math.max(0, intCell(row, 0, "Stock", "stock", "Залишок")),
+        leadTimeDays: Math.max(1, intCell(row, brand.leadTimeDays, "LeadTime", "leadTime")),
+        tags: cell(row, "Tags", "tags")
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter(Boolean),
+      });
+    }
+
+    const parsedItems = [...dedupedItems.values()];
+    if (parsedItems.length === 0) {
+      return NextResponse.json(
+        { error: "No valid catalog rows found" },
+        { status: 400 }
+      );
+    }
+
     // Create catalog upload record + items, and upsert Sku records for analytics
     const upload = await prisma.$transaction(async (tx) => {
-      const parsedItems = rows.map((row) => ({
-        skuCode: String(row["SKU"] ?? row["sku"] ?? row["Артикул"] ?? "").trim(),
-        name: String(row["Name"] ?? row["name"] ?? row["Назва"] ?? row["Наименование"] ?? "").trim(),
-        category: String(row["Category"] ?? row["category"] ?? row["Категорія"] ?? row["Категория"] ?? "Other").trim(),
-        color: row["Color"] ? String(row["Color"]) : null,
-        style: row["Style"] ? String(row["Style"]) : null,
-        material: row["Material"] ? String(row["Material"]) : null,
-        priceWholesale: parseFloat(String(row["Price"] ?? row["price"] ?? row["Ціна"] ?? 0)) || 0,
-        priceRetail: row["Retail"] ? parseFloat(String(row["Retail"])) : null,
-        minOrder: parseInt(String(row["MinOrder"] ?? row["minOrder"] ?? row["МінЗамовлення"] ?? 1)) || 1,
-        stockAvail: parseInt(String(row["Stock"] ?? row["stock"] ?? row["Залишок"] ?? 0)) || 0,
-        leadTimeDays: parseInt(String(row["LeadTime"] ?? row["leadTime"] ?? brand.leadTimeDays)) || brand.leadTimeDays,
-        tags: row["Tags"]
-          ? String(row["Tags"]).split(",").map((t) => t.trim()).filter(Boolean)
-          : [],
-      })).filter((r) => r.skuCode !== "");
-
-      const upload = await tx.catalogUpload.create({
-        data: {
+      const upload = await tx.catalogUpload.upsert({
+        where: { tenantId_brandId_season: { tenantId, brandId, season } },
+        create: {
           tenantId,
           brandId,
           season,
           fileName: file.name,
           itemCount: parsedItems.length,
         },
+        update: {
+          fileName: file.name,
+          itemCount: parsedItems.length,
+        },
       });
 
+      await tx.catalogItem.deleteMany({ where: { catalogId: upload.id } });
       await tx.catalogItem.createMany({
         data: parsedItems.map((r) => ({
           tenantId,
@@ -117,7 +201,7 @@ export async function POST(request: NextRequest) {
       return { upload, count: parsedItems.length };
     });
 
-    return NextResponse.json({ uploadId: upload.upload.id, itemCount: upload.count });
+    return NextResponse.json({ uploadId: upload.upload.id, itemCount: upload.count, skippedRows });
   } catch (err) {
     console.error("[catalog/upload]", err);
     return NextResponse.json({ error: "Upload failed" }, { status: 500 });
