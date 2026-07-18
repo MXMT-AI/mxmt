@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getBrandMetrics } from "@/lib/brand-metrics";
 import { chat } from "@/lib/ai";
 import { requireApiUser } from "@/lib/server-auth";
+import { serverError } from "@/lib/api-contracts";
 
 const WOH_RED = 60;
 const WOH_YELLOW = 45;
@@ -167,6 +168,6 @@ ${candidates
       where: { id: run.id },
       data: { status: "error", errorMsg: msg, finishedAt: new Date() },
     });
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return serverError(msg);
   }
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import * as XLSX from "xlsx";
 import { requireApiUser } from "@/lib/server-auth";
+import { apiError, serverError } from "@/lib/api-contracts";
 
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
@@ -43,23 +44,17 @@ export async function POST(request: NextRequest) {
     const season = (formData.get("season") as string) || "SS25";
 
     if (!file || !brandId) {
-      return NextResponse.json(
-        { error: "file and brandId are required" },
-        { status: 400 }
-      );
+      return apiError("file and brandId are required", 400, "VALIDATION_ERROR");
     }
 
     if (file.size === 0 || file.size > MAX_UPLOAD_BYTES) {
-      return NextResponse.json(
-        { error: "File must be between 1 byte and 10 MB" },
-        { status: 400 }
-      );
+      return apiError("File must be between 1 byte and 10 MB", 400, "VALIDATION_ERROR");
     }
 
     // Verify brand belongs to tenant
     const brand = await prisma.brand.findFirst({ where: { id: brandId, tenantId } });
     if (!brand) {
-      return NextResponse.json({ error: "Brand not found" }, { status: 404 });
+      return apiError("Brand not found", 404, "NOT_FOUND");
     }
 
     // Parse Excel / CSV
@@ -67,14 +62,14 @@ export async function POST(request: NextRequest) {
     const wb = XLSX.read(buffer, { type: "buffer" });
     const firstSheetName = wb.SheetNames[0];
     if (!firstSheetName) {
-      return NextResponse.json({ error: "Workbook has no sheets" }, { status: 400 });
+      return apiError("Workbook has no sheets", 400, "VALIDATION_ERROR");
     }
 
     const ws = wb.Sheets[firstSheetName];
     const rows = XLSX.utils.sheet_to_json<CatalogRow>(ws, { defval: "" });
 
     if (rows.length === 0) {
-      return NextResponse.json({ error: "File is empty" }, { status: 400 });
+      return apiError("File is empty", 400, "VALIDATION_ERROR");
     }
 
     const dedupedItems = new Map<string, {
@@ -126,10 +121,7 @@ export async function POST(request: NextRequest) {
 
     const parsedItems = [...dedupedItems.values()];
     if (parsedItems.length === 0) {
-      return NextResponse.json(
-        { error: "No valid catalog rows found" },
-        { status: 400 }
-      );
+      return apiError("No valid catalog rows found", 400, "VALIDATION_ERROR");
     }
 
     // Create catalog upload record + items, and upsert Sku records for analytics
@@ -204,6 +196,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ uploadId: upload.upload.id, itemCount: upload.count, skippedRows });
   } catch (err) {
     console.error("[catalog/upload]", err);
-    return NextResponse.json({ error: "Upload failed" }, { status: 500 });
+    return serverError("Upload failed");
   }
 }

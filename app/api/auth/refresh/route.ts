@@ -3,6 +3,7 @@ import { compare, hash } from "bcryptjs";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from "@/lib/auth";
+import { apiError, serverError } from "@/lib/api-contracts";
 
 export async function POST(_request: NextRequest) {
   try {
@@ -10,30 +11,24 @@ export async function POST(_request: NextRequest) {
     const refreshToken = cookieStore.get("refresh_token")?.value;
 
     if (!refreshToken) {
-      return NextResponse.json({ error: "No refresh token" }, { status: 401 });
+      return apiError("No refresh token", 401, "NO_REFRESH_TOKEN");
     }
 
     let payload;
     try {
       payload = await verifyRefreshToken(refreshToken);
     } catch {
-      return NextResponse.json(
-        { error: "Invalid refresh token" },
-        { status: 401 }
-      );
+      return apiError("Invalid refresh token", 401, "INVALID_REFRESH_TOKEN");
     }
 
     const user = await prisma.user.findUnique({ where: { id: payload.sub } });
     if (!user?.refreshToken) {
-      return NextResponse.json({ error: "Session revoked" }, { status: 401 });
+      return apiError("Session revoked", 401, "SESSION_REVOKED");
     }
 
     const valid = await compare(refreshToken, user.refreshToken);
     if (!valid) {
-      return NextResponse.json(
-        { error: "Refresh token mismatch" },
-        { status: 401 }
-      );
+      return apiError("Refresh token mismatch", 401, "REFRESH_TOKEN_MISMATCH");
     }
 
     // Rotate both tokens
@@ -68,9 +63,6 @@ export async function POST(_request: NextRequest) {
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[refresh]", err);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return serverError();
   }
 }

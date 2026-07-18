@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createSpreadsheet } from "@/lib/gsheets";
 import { requireApiUser } from "@/lib/server-auth";
+import { isRecord, parseJsonBody, serverError, stringField, validationError } from "@/lib/api-contracts";
 
 // Універсальний експорт 2D-масиву в нову Google-таблицю.
 
@@ -10,12 +11,26 @@ export async function POST(req: NextRequest) {
   if (response) return response;
   const { tenantId, userId } = currentUser;
 
-  const body = await req.json().catch(() => ({}));
-  const title: string | undefined = body.title;
-  const values: (string | number)[][] | undefined = body.values;
+  const { data, response: parseResponse } = await parseJsonBody(req);
+  if (parseResponse) return parseResponse;
 
-  if (!title || !Array.isArray(values) || values.length === 0) {
-    return NextResponse.json({ error: "Потрібні title і values" }, { status: 400 });
+  if (!isRecord(data)) {
+    return validationError(["body must be an object"]);
+  }
+
+  const issues: string[] = [];
+  const title = stringField(data, "title", issues, { required: true, maxLength: 120 });
+  const sheetName = stringField(data, "sheetName", issues, { maxLength: 80 }) ?? "Sheet1";
+  const values = data.values;
+
+  if (!Array.isArray(values) || values.length === 0) {
+    issues.push("values must be a non-empty 2D array");
+  } else if (!values.every((row) => Array.isArray(row) && row.every((cell) => typeof cell === "string" || typeof cell === "number" || cell === null))) {
+    issues.push("values rows must contain only strings, numbers, or null");
+  }
+
+  if (issues.length > 0) {
+    return validationError(issues);
   }
 
   try {
@@ -29,10 +44,10 @@ export async function POST(req: NextRequest) {
       email = user?.email ?? null;
     }
 
-    const sheet = await createSpreadsheet(title, values, email, body.sheetName ?? "Sheet1");
+    const sheet = await createSpreadsheet(title!, values as (string | number)[][], email, sheetName);
     return NextResponse.json(sheet);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return serverError(msg);
   }
 }

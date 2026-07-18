@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { chat } from "@/lib/ai";
 import { requireApiUser } from "@/lib/server-auth";
+import { serverError } from "@/lib/api-contracts";
 
 function isoWeekNumber(d: Date): number {
   const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
@@ -155,6 +156,6 @@ ${briefsSummary}
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     await prisma.agentRun.update({ where: { id: run.id }, data: { status: "error", errorMsg: msg, finishedAt: new Date() } });
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return serverError(msg);
   }
 }

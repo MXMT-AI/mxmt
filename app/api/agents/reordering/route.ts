@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getBrandMetrics } from "@/lib/brand-metrics";
 import { chat } from "@/lib/ai";
 import { requireApiUser } from "@/lib/server-auth";
+import { serverError } from "@/lib/api-contracts";
 
 const WOH_REORDER_THRESHOLD = 30; // trigger reorder analysis when WOH < 30 days
 
@@ -161,6 +162,6 @@ ${candidates
       where: { id: run.id },
       data: { status: "error", errorMsg: msg, finishedAt: new Date() },
     });
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return serverError(msg);
   }
 }

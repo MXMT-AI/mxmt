@@ -4,31 +4,23 @@ import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { signAccessToken, signRefreshToken } from "@/lib/auth";
 import { slugify } from "@/lib/utils";
+import { apiError, serverError } from "@/lib/api-contracts";
 
 export async function POST(request: NextRequest) {
   try {
     const { businessName, name, email, password } = await request.json();
 
     if (!businessName || !name || !email || !password) {
-      return NextResponse.json(
-        { error: "All fields are required" },
-        { status: 400 }
-      );
+      return apiError("All fields are required", 400, "VALIDATION_ERROR");
     }
 
     if (password.length < 8) {
-      return NextResponse.json(
-        { error: "Password must be at least 8 characters" },
-        { status: 400 }
-      );
+      return apiError("Password must be at least 8 characters", 400, "VALIDATION_ERROR");
     }
 
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
-      return NextResponse.json(
-        { error: "Email already registered" },
-        { status: 409 }
-      );
+      return apiError("Email already registered", 409, "EMAIL_ALREADY_REGISTERED");
     }
 
     const slug =
@@ -80,9 +72,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (err) {
     console.error("[register]", err);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return serverError();
   }
 }
