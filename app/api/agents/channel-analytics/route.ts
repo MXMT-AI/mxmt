@@ -4,6 +4,7 @@ import { getChannelMetrics } from "@/lib/channel-metrics";
 import { chat } from "@/lib/ai";
 import { requireApiUser } from "@/lib/server-auth";
 import { serverError } from "@/lib/api-contracts";
+import { parseAgentJson } from "@/lib/agent-output";
 
 const SYSTEM_PROMPT = `Ты аналитик каналов продаж в fashion retail.
 
@@ -88,13 +89,7 @@ ${metrics.channels
       providerOverride,
     });
 
-    let parsed: any = null;
-    try {
-      const match = raw.match(/\{[\s\S]*\}/);
-      parsed = match ? JSON.parse(match[0]) : null;
-    } catch {
-      parsed = null;
-    }
+    const { data: parsed, error: parseError } = parseAgentJson<any>(raw, "object");
 
     const output = parsed ?? {
       channels: metrics.channels.map((c) => ({
@@ -114,6 +109,7 @@ ${metrics.channels
       systemPrompt: SYSTEM_PROMPT,
       userPrompt,
       rawResponse: raw,
+      parseError,
       provider: providerOverride ?? "anthropic",
       model: (providerOverride ?? "anthropic") === "openai" ? "gpt-4o" : "claude-sonnet-4-6",
       parsedSuccessfully: parsed !== null,

@@ -4,6 +4,7 @@ import { chat } from "@/lib/ai";
 import { classify, getThresholds } from "@/lib/classify";
 import type { SkuFlag } from "@/lib/analyst-types";
 import { requireApiUser } from "@/lib/server-auth";
+import { parseAgentJson } from "@/lib/agent-output";
 
 function getISOWeek(d: Date): number {
   const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
@@ -204,13 +205,11 @@ ${holidaysByWeek.map((w) => {
       maxTokens: 1500,
     });
 
-    // Extract JSON from response
-    const jsonMatch = raw.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) {
-      return NextResponse.json({ chips: [], error: "No JSON in response", code: "AI_INVALID_RESPONSE" });
+    const { data: chips, error: parseError } = parseAgentJson<AiPlanChip[]>(raw, "array");
+    if (!chips) {
+      return NextResponse.json({ chips: [], error: parseError ?? "No JSON in response", code: "AI_INVALID_RESPONSE" });
     }
 
-    const chips: AiPlanChip[] = JSON.parse(jsonMatch[0]);
     return NextResponse.json({ chips });
   } catch (err) {
     console.error("[ai-plan]", err);
