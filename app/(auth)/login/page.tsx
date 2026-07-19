@@ -50,18 +50,18 @@ export default function LoginPage() {
         <div className="bg-[#161b22] border border-[var(--border)] rounded-2xl p-7">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-[10px] font-mono uppercase tracking-widest text-[var(--muted)] mb-2">{t.auth_email}</label>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email"
+              <label htmlFor="login-email" className="block text-[10px] font-mono uppercase tracking-widest text-[var(--muted)] mb-2">{t.auth_email}</label>
+              <input id="login-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" aria-invalid={error ? "true" : undefined}
                 className="w-full bg-[#0d1117] border border-[var(--border)] rounded-lg px-4 py-2.5 text-white text-sm focus:outline-none focus:border-[#00e5c4]/40 transition-colors placeholder:text-[#3d444d]"
                 placeholder="you@company.com" />
             </div>
             <div>
-              <label className="block text-[10px] font-mono uppercase tracking-widest text-[var(--muted)] mb-2">{t.auth_password}</label>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password"
+              <label htmlFor="login-password" className="block text-[10px] font-mono uppercase tracking-widest text-[var(--muted)] mb-2">{t.auth_password}</label>
+              <input id="login-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" aria-invalid={error ? "true" : undefined}
                 className="w-full bg-[#0d1117] border border-[var(--border)] rounded-lg px-4 py-2.5 text-white text-sm focus:outline-none focus:border-[#00e5c4]/40 transition-colors placeholder:text-[#3d444d]"
                 placeholder="••••••••" />
             </div>
-            {error && <div className="bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2.5 text-red-400 text-sm">{error}</div>}
+            {error && <div role="alert" className="bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2.5 text-red-400 text-sm">{error}</div>}
             <button type="submit" disabled={loading}
               className="w-full bg-[#00e5c4] hover:bg-[#00c9ab] disabled:opacity-50 disabled:cursor-not-allowed text-[#0d1117] font-semibold rounded-lg px-4 py-2.5 text-sm transition-colors mt-2">
               {loading ? t.auth_signing_in : t.auth_sign_in}
