@@ -5,18 +5,29 @@ import { Check, ChevronDown, ChevronUp, Copy } from "lucide-react";
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState(false);
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setCopyError(false);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      setCopied(false);
+      setCopyError(true);
+      setTimeout(() => setCopyError(false), 1500);
+    }
+  }
 
   return (
     <button
-      onClick={() => {
-        navigator.clipboard.writeText(text);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1500);
-      }}
+      type="button"
+      onClick={handleCopy}
       className="flex items-center gap-1 text-[9px] font-mono px-2 py-0.5 rounded border border-[var(--border)] text-[var(--subtle)] hover:text-[var(--text)] hover:bg-[var(--input-bg)] transition-colors flex-shrink-0"
     >
       {copied ? <Check size={9} className="text-[#00e5c4]" /> : <Copy size={9} />}
-      {copied ? "copied" : "copy"}
+      {copied ? "copied" : copyError ? "failed" : "copy"}
     </button>
   );
 }

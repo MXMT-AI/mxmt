@@ -16,16 +16,23 @@ export function useAgentRuns({
 }) {
   const [runs, setRuns] = useState<Record<string, AgentRunInfo>>({});
   const [loading, setLoading] = useState(true);
+  const [statusError, setStatusError] = useState<string | null>(null);
   const isHistoricalDate = analysisDate !== todayStr;
   const hasDateFrom = dateFrom !== "";
 
   const fetchStatus = useCallback(async () => {
     try {
       const res = await fetch("/api/agents/inventory-analyst");
-      if (res.ok) {
-        const data = await res.json();
-        setRuns(data ?? {});
+      if (!res.ok) {
+        setStatusError(`Не вдалося оновити статус агентів (${res.status})`);
+        return;
       }
+
+      const data = await res.json();
+      setRuns(data ?? {});
+      setStatusError(null);
+    } catch (error) {
+      setStatusError(error instanceof Error ? error.message : "Не вдалося оновити статус агентів");
     } finally {
       setLoading(false);
     }
@@ -64,14 +71,10 @@ export function useAgentRuns({
     setRuns((prev) => ({
       ...prev,
       [agentId]: {
-        ...(prev[agentId] ?? {}),
         id: "pending",
         status: "running" as const,
         startedAt: new Date().toISOString(),
-        agentType: agentId,
-        tenantId: "",
-        entityId: "all",
-        input: {},
+        output: prev[agentId]?.output,
       },
     }));
 
@@ -114,5 +117,5 @@ export function useAgentRuns({
     }
   }, [analysisDate, dateFrom, fetchStatus, hasDateFrom, isHistoricalDate]);
 
-  return { runs, loading, fetchStatus, handleRun };
+  return { runs, loading, statusError, fetchStatus, handleRun };
 }

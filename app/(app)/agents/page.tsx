@@ -1709,7 +1709,7 @@ export default function AgentsPage() {
   const [showInfo, setShowInfo] = useState(false);
 
   const todayStr = new Date().toISOString().slice(0, 10);
-  const { runs, loading, fetchStatus, handleRun } = useAgentRuns({ analysisDate, dateFrom, todayStr });
+  const { runs, loading, statusError, fetchStatus, handleRun } = useAgentRuns({ analysisDate, dateFrom, todayStr });
   const isHistoricalDate = analysisDate !== todayStr;
   const hasDateFrom = dateFrom !== "";
   // "Від" має бути щонайменше на день раніше за "До"
@@ -1749,6 +1749,13 @@ export default function AgentsPage() {
           </div>
         </div>
       </div>
+
+      {statusError && (
+        <div className="mb-4 flex items-center gap-2 rounded-xl border border-[#ef4444]/30 bg-[#ef4444]/10 px-4 py-3 text-xs text-[#ef4444]">
+          <AlertTriangle size={14} />
+          <span>{statusError}</span>
+        </div>
+      )}
 
       {/* Date range picker */}
       <div className="mb-4 bg-[var(--surface2)] border border-[var(--border)] rounded-xl p-4">
