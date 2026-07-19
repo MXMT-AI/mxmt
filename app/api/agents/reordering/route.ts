@@ -5,6 +5,7 @@ import { chat } from "@/lib/ai";
 import { requireApiUser } from "@/lib/server-auth";
 import { serverError } from "@/lib/api-contracts";
 import { parseAgentJson } from "@/lib/agent-output";
+import { startAgentRun } from "@/lib/agent-runs";
 
 const WOH_REORDER_THRESHOLD = 30; // trigger reorder analysis when WOH < 30 days
 
@@ -68,14 +69,12 @@ export async function POST(req: NextRequest) {
   const asOf: Date | undefined = body.asOf ? new Date(body.asOf) : undefined;
   const dateFrom: Date | undefined = body.dateFrom ? new Date(body.dateFrom) : undefined;
 
-  const run = await prisma.agentRun.create({
-    data: {
-      tenantId,
-      agentType: "reordering",
-      status: "running",
-      input: { provider: providerOverride ?? "anthropic", asOf: body.asOf ?? null, dateFrom: body.dateFrom ?? null },
-    },
+  const { run, response: runResponse } = await startAgentRun({
+    tenantId,
+    agentType: "reordering",
+    input: { provider: providerOverride ?? "anthropic", asOf: body.asOf ?? null, dateFrom: body.dateFrom ?? null },
   });
+  if (runResponse) return runResponse;
 
   try {
     const allBrands = await getBrandMetrics(tenantId, asOf, dateFrom);

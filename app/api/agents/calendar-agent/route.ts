@@ -4,6 +4,7 @@ import { chat } from "@/lib/ai";
 import { requireApiUser } from "@/lib/server-auth";
 import { serverError } from "@/lib/api-contracts";
 import { parseAgentJson } from "@/lib/agent-output";
+import { startAgentRun } from "@/lib/agent-runs";
 
 function isoWeekNumber(d: Date): number {
   const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
@@ -64,9 +65,12 @@ export async function POST(req: NextRequest) {
   const providerOverride: string | undefined = body.provider ?? undefined;
   const asOf: Date | undefined = body.asOf ? new Date(body.asOf) : undefined;
 
-  const run = await prisma.agentRun.create({
-    data: { tenantId, agentType: "calendar_agent", status: "running", input: { provider: providerOverride ?? "anthropic", asOf: body.asOf ?? null, dateFrom: body.dateFrom ?? null } },
+  const { run, response: runResponse } = await startAgentRun({
+    tenantId,
+    agentType: "calendar_agent",
+    input: { provider: providerOverride ?? "anthropic", asOf: body.asOf ?? null, dateFrom: body.dateFrom ?? null },
   });
+  if (runResponse) return runResponse;
 
   try {
     const now = new Date();
