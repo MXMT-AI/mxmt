@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Play, RefreshCw, AlertTriangle, CheckCircle2, Clock,
   TrendingDown, TrendingUp, Minus, ChevronDown, ChevronUp,
@@ -10,10 +10,11 @@ import {
 import { getAgentProvider } from "@/components/settings/AgentProvidersCard";
 import PromoTableModal, { type PromoSimParams } from "@/components/agents/PromoTableModal";
 import ReorderTableModal, { type ReorderSimParams } from "@/components/agents/ReorderTableModal";
-import { AGENTS, AGENT_ROUTES, BLOCKS, COMING_SOON } from "@/components/agents/agents.config";
+import { AGENTS, AGENT_ROUTES, BLOCKS } from "@/components/agents/agents.config";
 import type { AgentRunInfo, AgentStatus, BrandResult, BrandStatus } from "@/components/agents/agents.types";
 import { buildReorderParams, buildSimParams, duration, fmt, fmtDate, statusColor, statusLabel } from "@/components/agents/agents.utils";
 import DebugSection from "@/components/agents/DebugSection";
+import { useAgentRuns } from "@/components/agents/useAgentRuns";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -1703,13 +1704,12 @@ function PipelineDiagram({ runs }: { runs: Record<string, AgentRunInfo> }) {
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function AgentsPage() {
-  const [runs, setRuns] = useState<Record<string, AgentRunInfo>>({});
-  const [loading, setLoading] = useState(true);
   const [analysisDate, setAnalysisDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [dateFrom, setDateFrom] = useState(""); // "" = стандартне вікно 30 днів
   const [showInfo, setShowInfo] = useState(false);
 
   const todayStr = new Date().toISOString().slice(0, 10);
+  const { runs, loading, fetchStatus, handleRun } = useAgentRuns({ analysisDate, dateFrom, todayStr });
   const isHistoricalDate = analysisDate !== todayStr;
   const hasDateFrom = dateFrom !== "";
   // "Від" має бути щонайменше на день раніше за "До"
@@ -1717,104 +1717,6 @@ export default function AgentsPage() {
   const periodDays = hasDateFrom
     ? Math.max(1, Math.round((new Date(analysisDate).getTime() - new Date(dateFrom).getTime()) / 86400000))
     : 30;
-
-  const fetchStatus = useCallback(async () => {
-    try {
-      const res = await fetch("/api/agents/inventory-analyst");
-      if (res.ok) {
-        const data = await res.json();
-        setRuns(data ?? {});
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchStatus();
-  }, [fetchStatus]);
-
-  // Poll while any agent is running
-  useEffect(() => {
-    const isRunning = Object.values(runs).some((r) => r.status === "running");
-    if (!isRunning) return;
-    const id = setInterval(fetchStatus, 3000);
-    return () => clearInterval(id);
-  }, [runs, fetchStatus]);
-
-  async function handleRun(agentId: string) {
-    const route = AGENT_ROUTES[agentId];
-    if (!route) {
-      const msg = COMING_SOON[agentId] ?? "Агент у розробці.";
-      setRuns((prev) => ({
-        ...prev,
-        [agentId]: {
-          ...(prev[agentId] ?? {}),
-          id: "pending",
-          status: "error" as const,
-          startedAt: new Date().toISOString(),
-          finishedAt: new Date().toISOString(),
-          errorMsg: msg,
-        },
-      }));
-      return;
-    }
-
-    const provider = getAgentProvider(agentId);
-
-    // Optimistic running state
-    setRuns((prev) => ({
-      ...prev,
-      [agentId]: {
-        ...(prev[agentId] ?? {}),
-        id: "pending",
-        status: "running" as const,
-        startedAt: new Date().toISOString(),
-        agentType: agentId,
-        tenantId: "",
-        entityId: "all",
-        input: {},
-      },
-    }));
-
-    try {
-      const res = await fetch(route, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          provider,
-          ...(isHistoricalDate ? { asOf: analysisDate } : {}),
-          ...(hasDateFrom ? { dateFrom } : {}),
-        }),
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        setRuns((prev) => ({
-          ...prev,
-          [agentId]: {
-            ...prev[agentId],
-            status: "error" as const,
-            errorMsg: data.error ?? "Невідома помилка",
-            finishedAt: new Date().toISOString(),
-          },
-        }));
-        return;
-      }
-
-      await fetchStatus();
-    } catch (e) {
-      setRuns((prev) => ({
-        ...prev,
-        [agentId]: {
-          ...prev[agentId],
-          status: "error" as const,
-          errorMsg: String(e),
-          finishedAt: new Date().toISOString(),
-        },
-      }));
-    }
-  }
 
   const totalDone = Object.values(runs).filter((r) => r.status === "done").length;
   const totalError = Object.values(runs).filter((r) => r.status === "error").length;
