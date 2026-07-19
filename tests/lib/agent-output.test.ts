@@ -15,9 +15,10 @@ describe("parseAgentJson", () => {
   });
 
   it("returns a parse error instead of throwing", () => {
-    const result = parseAgentJson("{invalid", "object");
+    const result = parseAgentJson('{"ok":}', "object");
 
     expect(result.data).toBeNull();
-    expect(result.error).toBe("No object JSON found in AI response");
+    expect(result.error).not.toBeNull();
+    expect(result.error).not.toBe("No object JSON found in AI response");
   });
 });

@@ -4,6 +4,11 @@ import { AiConfigurationError, getAiModel, resolveAiProvider } from "@/lib/ai";
 const originalProvider = process.env.AI_PROVIDER;
 
 afterEach(() => {
+  if (originalProvider === undefined) {
+    delete process.env.AI_PROVIDER;
+    return;
+  }
+
   process.env.AI_PROVIDER = originalProvider;
 });
 
