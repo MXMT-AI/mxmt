@@ -4,6 +4,8 @@ import { getBrandMetrics } from "@/lib/brand-metrics";
 import { chat } from "@/lib/ai";
 import { requireApiUser } from "@/lib/server-auth";
 import { serverError } from "@/lib/api-contracts";
+import { parseAgentJson } from "@/lib/agent-output";
+import { startAgentRun } from "@/lib/agent-runs";
 
 const SYSTEM_PROMPT = `Ты коммерческий маркетолог в fashion retail.
 
@@ -85,9 +87,12 @@ export async function POST(req: NextRequest) {
   const asOf: Date | undefined = body.asOf ? new Date(body.asOf) : undefined;
   const dateFrom: Date | undefined = body.dateFrom ? new Date(body.dateFrom) : undefined;
 
-  const run = await prisma.agentRun.create({
-    data: { tenantId, agentType: "commercial_marketer", status: "running", input: { provider: providerOverride ?? "anthropic", asOf: body.asOf ?? null, dateFrom: body.dateFrom ?? null } },
+  const { run, response: runResponse } = await startAgentRun({
+    tenantId,
+    agentType: "commercial_marketer",
+    input: { provider: providerOverride ?? "anthropic", asOf: body.asOf ?? null, dateFrom: body.dateFrom ?? null },
   });
+  if (runResponse) return runResponse;
 
   try {
     // Get recommended actions from latest repricing and reordering runs
@@ -165,11 +170,7 @@ ${decisions.map((d) => `• ${d.brand_name} (id: ${d.brand_id}): ${d.label} (т�
       providerOverride,
     });
 
-    let parsed: any = null;
-    try {
-      const match = raw.match(/\{[\s\S]*\}/);
-      parsed = match ? JSON.parse(match[0]) : null;
-    } catch { parsed = null; }
+    const { data: parsed, error: parseError } = parseAgentJson<any>(raw, "object");
 
     const output = parsed ?? {
       analysis_date: new Date().toISOString().slice(0, 10),
@@ -187,6 +188,7 @@ ${decisions.map((d) => `• ${d.brand_name} (id: ${d.brand_id}): ${d.label} (т�
       systemPrompt: SYSTEM_PROMPT,
       userPrompt,
       rawResponse: raw,
+      parseError,
       provider: providerOverride ?? "anthropic",
       model: (providerOverride ?? "anthropic") === "openai" ? "gpt-4o" : "claude-sonnet-4-6",
       parsedSuccessfully: parsed !== null,

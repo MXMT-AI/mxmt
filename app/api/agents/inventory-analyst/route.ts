@@ -4,6 +4,8 @@ import { getBrandMetrics } from "@/lib/brand-metrics";
 import { chat } from "@/lib/ai";
 import { requireApiUser } from "@/lib/server-auth";
 import { serverError } from "@/lib/api-contracts";
+import { parseAgentJson } from "@/lib/agent-output";
+import { startAgentRun } from "@/lib/agent-runs";
 
 const THRESHOLDS = {
   woh_red: 60,
@@ -56,14 +58,12 @@ export async function POST(req: NextRequest) {
   const asOf: Date | undefined = body.asOf ? new Date(body.asOf) : undefined;
   const dateFrom: Date | undefined = body.dateFrom ? new Date(body.dateFrom) : undefined;
 
-  const run = await prisma.agentRun.create({
-    data: {
-      tenantId,
-      agentType: "inventory_analyst",
-      status: "running",
-      input: { provider: providerOverride ?? "anthropic", asOf: body.asOf ?? null, dateFrom: body.dateFrom ?? null },
-    },
+  const { run, response: runResponse } = await startAgentRun({
+    tenantId,
+    agentType: "inventory_analyst",
+    input: { provider: providerOverride ?? "anthropic", asOf: body.asOf ?? null, dateFrom: body.dateFrom ?? null },
   });
+  if (runResponse) return runResponse;
 
   try {
     const metrics = await getBrandMetrics(tenantId, asOf, dateFrom);
@@ -106,12 +106,8 @@ ${metrics
       providerOverride,
     });
 
-    let parsed: any[] = [];
-    try {
-      const match = raw.match(/\[[\s\S]*\]/);
-      parsed = match ? JSON.parse(match[0]) : [];
-    } catch {
-      parsed = metrics.map((m) => ({
+    const { data: parsedData, error: parseError } = parseAgentJson<any[]>(raw, "array");
+    const parsed = parsedData ?? metrics.map((m) => ({
         brand_id: m.brandId,
         brand_name: m.brandName,
         status: "balanced",
@@ -121,7 +117,6 @@ ${metrics
         suggested_actions: [],
         urgency: "low",
       }));
-    }
 
     // Attach computed metrics to each brand result
     const output = parsed.map((p: any) => {
@@ -133,6 +128,7 @@ ${metrics
       systemPrompt: SYSTEM_PROMPT,
       userPrompt,
       rawResponse: raw,
+      parseError,
       provider: providerOverride ?? "anthropic",
       model: (providerOverride ?? "anthropic") === "openai" ? "gpt-4o" : "claude-sonnet-4-6",
       parsedSuccessfully: parsed.length > 0,

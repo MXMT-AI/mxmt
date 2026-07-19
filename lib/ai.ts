@@ -1,16 +1,58 @@
 import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
 
+export type AiProvider = "anthropic" | "openai";
+
 export interface ChatMessage {
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "system";
   content: string;
 }
+
+type AnthropicChatMessage = Extract<ChatMessage, { role: "user" | "assistant" }>;
 
 interface ChatOptions {
   systemPrompt?: string;
   messages: ChatMessage[];
   maxTokens?: number;
   providerOverride?: string;
+}
+
+const DEFAULT_PROVIDER: AiProvider = "anthropic";
+const PROVIDERS = new Set<AiProvider>(["anthropic", "openai"]);
+const MODEL_BY_PROVIDER: Record<AiProvider, string> = {
+  anthropic: "claude-sonnet-4-6",
+  openai: "gpt-4o",
+};
+
+export class AiConfigurationError extends Error {
+  code = "AI_CONFIGURATION_ERROR";
+
+  constructor(message: string) {
+    super(message);
+    this.name = "AiConfigurationError";
+  }
+}
+
+export function resolveAiProvider(providerOverride?: string): AiProvider {
+  const rawProvider = (providerOverride ?? process.env.AI_PROVIDER ?? DEFAULT_PROVIDER).toLowerCase();
+  if (PROVIDERS.has(rawProvider as AiProvider)) {
+    return rawProvider as AiProvider;
+  }
+
+  return DEFAULT_PROVIDER;
+}
+
+export function getAiModel(provider: AiProvider): string {
+  return MODEL_BY_PROVIDER[provider];
+}
+
+function requireApiKey(provider: AiProvider): string {
+  const key = provider === "openai" ? process.env.OPENAI_API_KEY : process.env.ANTHROPIC_API_KEY;
+  if (!key) {
+    throw new AiConfigurationError(`${provider === "openai" ? "OPENAI_API_KEY" : "ANTHROPIC_API_KEY"} is required`);
+  }
+
+  return key;
 }
 
 /**
@@ -24,12 +66,13 @@ export async function chat({
   maxTokens = 2000,
   providerOverride,
 }: ChatOptions): Promise<string> {
-  const provider = providerOverride ?? process.env.AI_PROVIDER ?? "anthropic";
+  const provider = resolveAiProvider(providerOverride);
+  const model = getAiModel(provider);
 
   if (provider === "openai") {
-    const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const client = new OpenAI({ apiKey: requireApiKey(provider) });
     const res = await client.chat.completions.create({
-      model: "gpt-4o",
+      model,
       max_tokens: maxTokens,
       messages: [
         ...(systemPrompt
@@ -42,16 +85,25 @@ export async function chat({
   }
 
   // Default: Anthropic Claude
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const client = new Anthropic({ apiKey: requireApiKey(provider) });
+  const anthropicMessages = messages.filter(
+    (message): message is AnthropicChatMessage => message.role !== "system"
+  );
+  const systemMessages = messages
+    .filter((message) => message.role === "system")
+    .map((message) => message.content);
   const res = await client.messages.create({
-    model: "claude-sonnet-4-6",
+    model,
     max_tokens: maxTokens,
-    ...(systemPrompt ? { system: systemPrompt } : {}),
-    messages,
+    ...(systemPrompt || systemMessages.length > 0
+      ? { system: [systemPrompt, ...systemMessages].filter(Boolean).join("\n\n") }
+      : {}),
+    messages: anthropicMessages,
   });
   return res.content[0]?.type === "text" ? res.content[0].text : "";
 }
 
 export function getProviderName(): string {
-  return process.env.AI_PROVIDER === "openai" ? "OpenAI GPT-4o" : "Claude Sonnet 4.6";
+  const provider = resolveAiProvider();
+  return provider === "openai" ? "OpenAI GPT-4o" : "Claude Sonnet 4.6";
 }

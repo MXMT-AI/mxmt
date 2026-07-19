@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { chat } from "@/lib/ai";
 import { requireApiUser } from "@/lib/server-auth";
 import { serverError } from "@/lib/api-contracts";
+import { parseAgentJson } from "@/lib/agent-output";
+import { startAgentRun } from "@/lib/agent-runs";
 
 function isoWeekNumber(d: Date): number {
   const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
@@ -65,9 +67,12 @@ export async function POST(req: NextRequest) {
   const providerOverride: string | undefined = body.provider ?? undefined;
   const asOf: Date | undefined = body.asOf ? new Date(body.asOf) : undefined;
 
-  const run = await prisma.agentRun.create({
-    data: { tenantId, agentType: "weekly_report", status: "running", input: { provider: providerOverride ?? "anthropic", asOf: body.asOf ?? null, dateFrom: body.dateFrom ?? null } },
+  const { run, response: runResponse } = await startAgentRun({
+    tenantId,
+    agentType: "weekly_report",
+    input: { provider: providerOverride ?? "anthropic", asOf: body.asOf ?? null, dateFrom: body.dateFrom ?? null },
   });
+  if (runResponse) return runResponse;
 
   try {
     const now = new Date();
@@ -199,11 +204,7 @@ ${sections.join("\n\n")}
       providerOverride,
     });
 
-    let parsed: any = null;
-    try {
-      const match = raw.match(/\{[\s\S]*\}/);
-      parsed = match ? JSON.parse(match[0]) : null;
-    } catch { parsed = null; }
+    const { data: parsed, error: parseError } = parseAgentJson<any>(raw, "object");
 
     const output = parsed ?? {
       report_date: now.toISOString().slice(0, 10),
@@ -223,6 +224,7 @@ ${sections.join("\n\n")}
       systemPrompt: SYSTEM_PROMPT,
       userPrompt,
       rawResponse: raw,
+      parseError,
       provider: providerOverride ?? "anthropic",
       model: (providerOverride ?? "anthropic") === "openai" ? "gpt-4o" : "claude-sonnet-4-6",
       parsedSuccessfully: parsed !== null,
