@@ -57,7 +57,9 @@ export function LangToggle({ className = "" }: { className?: string }) {
   const { lang, setLang } = useLang();
   return (
     <button
+      type="button"
       onClick={() => setLang(lang === "uk" ? "en" : "uk")}
+      aria-label={lang === "uk" ? "Switch to English" : "Перемкнути на українську"}
       className={`flex items-center gap-1.5 px-2 py-1 rounded-lg bg-[var(--input-bg)] border border-[var(--border)] hover:bg-[var(--input-hover)] transition-colors text-xs font-mono text-[var(--muted)] hover:text-[var(--text)] ${className}`}
       title={lang === "uk" ? "Switch to English" : "Перемкнути на українську"}
     >
