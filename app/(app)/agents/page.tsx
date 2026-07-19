@@ -1,208 +1,28 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Play, RefreshCw, AlertTriangle, CheckCircle2, Clock,
   TrendingDown, TrendingUp, Minus, ChevronDown, ChevronUp,
-  Zap, BarChart2, Tag, ShoppingCart, Table2,
-  Megaphone, CalendarDays, LineChart, FileText, X, Eye, Code2, Copy, Check, Info,
+  Zap, Table2,
+  CalendarDays, X, Eye, Code2, Info,
 } from "lucide-react";
 import { getAgentProvider } from "@/components/settings/AgentProvidersCard";
 import PromoTableModal, { type PromoSimParams } from "@/components/agents/PromoTableModal";
 import ReorderTableModal, { type ReorderSimParams } from "@/components/agents/ReorderTableModal";
-
-// Будує параметри симуляції акції з виводу Repricing-агента (бренд + варіант)
-function buildSimParams(brand: any, opt: any, debug?: Record<string, any>): PromoSimParams {
-  return {
-    brandId: brand.brand_id,
-    brandName: brand.brand_name,
-    strategyType: opt.strategy_type ?? "",
-    label: opt.label ?? "",
-    discountPercent: Number(opt.discount_percent ?? 0),
-    durationDays: Number(opt.duration_days ?? 14),
-    unitsToSellPercent: opt.forecast?.units_to_sell_percent ?? null,
-    asOf: debug?.asOf ?? null,
-    dateFrom: debug?.dateFrom ?? null,
-  };
-}
-
-// Будує параметри симуляції дозамовлення з виводу Reordering-агента (бренд + сценарій)
-function buildReorderParams(brand: any, sc: any, debug?: Record<string, any>): ReorderSimParams {
-  return {
-    brandId: brand.brand_id,
-    brandName: brand.brand_name,
-    type: sc.type ?? "",
-    label: sc.label ?? "",
-    qtyMultiplier: Number(sc.qty_multiplier ?? 1),
-    asOf: debug?.asOf ?? null,
-    dateFrom: debug?.dateFrom ?? null,
-  };
-}
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-type AgentStatus = "idle" | "running" | "done" | "error";
-type BrandStatus = "critical" | "warning" | "balanced" | "excellent";
-
-interface BrandResult {
-  brand_id: string;
-  brand_name: string;
-  status: BrandStatus;
-  analysis: string;
-  confidence: number;
-  metrics_evaluation: {
-    woh_status: "red" | "yellow" | "green";
-    str_status: string;
-    trend_status: "falling" | "stable" | "rising";
-    gm_status: string;
-  };
-  suggested_actions: string[];
-  urgency: string;
-  metrics?: {
-    wohDays: number;
-    strPercent: number;
-    trend7dPct: number;
-    gmPercent: number;
-    totalStock: number;
-    salesLast7d: number;
-    salesLast30d: number;
-    frozenCapital: number;
-    skuCount: number;
-  };
-}
-
-interface AgentRunInfo {
-  id: string;
-  status: AgentStatus;
-  startedAt: string;
-  finishedAt?: string;
-  output?: { brands?: BrandResult[]; message?: string; [key: string]: any };
-  errorMsg?: string;
-}
-
-// ─── Agent definitions ────────────────────────────────────────────────────────
-
-const AGENTS = [
-  {
-    id: "inventory_analyst", label: "Inventory Analyst", model: "Sonnet",
-    block: 1, blockLabel: "Core Analytics", desc: "Статус кожного бренда по WOH, STR, GM, Trend",
-    icon: BarChart2, color: "#00e5c4", runnable: true,
-    dependsOn: [] as string[],
-  },
-  {
-    id: "channel_analytics", label: "Channel Analytics", model: "Haiku",
-    block: 1, blockLabel: "Core Analytics", desc: "Порівняння каналів продажів (онлайн / офлайн)",
-    icon: TrendingUp, color: "#00e5c4", runnable: true,
-    dependsOn: [],
-  },
-  {
-    id: "product_attributes", label: "Product Attributes", model: "Haiku",
-    block: 1, blockLabel: "Core Analytics", desc: "Bestsellers vs мертвий сток по категоріях",
-    icon: Tag, color: "#00e5c4", runnable: true,
-    dependsOn: [],
-  },
-  {
-    id: "repricing", label: "Repricing Strategy", model: "Sonnet",
-    block: 2, blockLabel: "Decision Support", desc: "3 варіанти уцінки для брендів з високим WOH",
-    icon: TrendingDown, color: "#a78bfa", runnable: true,
-    dependsOn: ["inventory_analyst"],
-  },
-  {
-    id: "reordering", label: "Reordering Strategy", model: "Sonnet",
-    block: 2, blockLabel: "Decision Support", desc: "3 сценарії дозамовлення для брендів з низьким WOH",
-    icon: ShoppingCart, color: "#a78bfa", runnable: true,
-    dependsOn: ["inventory_analyst"],
-  },
-  {
-    id: "commercial_marketer", label: "Commercial Marketer", model: "Sonnet",
-    block: 3, blockLabel: "Execution", desc: "Брифи по 5 каналах після рішення PM",
-    icon: Megaphone, color: "#fbbf24", runnable: true,
-    dependsOn: ["repricing", "reordering"],
-  },
-  {
-    id: "calendar_agent", label: "Calendar Agent", model: "Haiku",
-    block: 3, blockLabel: "Execution", desc: "Gaps і конфлікти в маркетинговому плані",
-    icon: CalendarDays, color: "#fbbf24", runnable: true,
-    dependsOn: ["commercial_marketer"],
-  },
-  {
-    id: "campaign_analysis", label: "Campaign Analysis", model: "Sonnet",
-    block: 4, blockLabel: "Tracking & Reports", desc: "Трекінг кампаній план vs факт",
-    icon: LineChart, color: "#fb923c", runnable: true,
-    dependsOn: ["commercial_marketer"],
-  },
-  {
-    id: "weekly_report", label: "Weekly Report", model: "Sonnet",
-    block: 4, blockLabel: "Tracking & Reports", desc: "PM Report + Marketing Brief щопʼятниці",
-    icon: FileText, color: "#fb923c", runnable: true,
-    dependsOn: ["campaign_analysis"],
-  },
-];
-
-const BLOCKS = [
-  { id: 1, label: "Core Analytics", color: "#00e5c4", desc: "Автоматично кожного ранку" },
-  { id: 2, label: "Decision Support", color: "#a78bfa", desc: "За запитом PM" },
-  { id: 3, label: "Execution", color: "#fbbf24", desc: "Після вибору PM" },
-  { id: 4, label: "Tracking & Reports", color: "#fb923c", desc: "Авто-трекінг" },
-];
-
-const AGENT_ROUTES: Record<string, string> = {
-  inventory_analyst: "/api/agents/inventory-analyst",
-  channel_analytics: "/api/agents/channel-analytics",
-  product_attributes: "/api/agents/product-attributes",
-  repricing: "/api/agents/repricing",
-  reordering: "/api/agents/reordering",
-  commercial_marketer: "/api/agents/commercial-marketer",
-  calendar_agent: "/api/agents/calendar-agent",
-  campaign_analysis: "/api/agents/campaign-analysis",
-  weekly_report: "/api/agents/weekly-report",
-};
-
-const COMING_SOON: Record<string, string> = {};
+import { AGENTS, AGENT_ROUTES, BLOCKS } from "@/components/agents/agents.config";
+import type { AgentRunInfo, AgentStatus, BrandResult, BrandStatus } from "@/components/agents/agents.types";
+import { buildReorderParams, buildSimParams, duration, fmt, fmtDate, statusColor, statusLabel } from "@/components/agents/agents.utils";
+import DebugSection from "@/components/agents/DebugSection";
+import { useAgentRuns } from "@/components/agents/useAgentRuns";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function statusColor(s: BrandStatus) {
-  if (s === "critical") return "#ef4444";
-  if (s === "warning") return "#fbbf24";
-  if (s === "excellent") return "#00e5c4";
-  return "#6b7a8d";
-}
-
-function statusLabel(s: BrandStatus) {
-  if (s === "critical") return "КРИТИЧНО";
-  if (s === "warning") return "ПОПЕРЕДЖЕННЯ";
-  if (s === "excellent") return "ВІДМІННО";
-  return "НОРМА";
-}
 
 function agentStatusIcon(s: AgentStatus) {
   if (s === "running") return <RefreshCw size={12} className="animate-spin text-[#fbbf24]" />;
   if (s === "done") return <CheckCircle2 size={12} className="text-[#00e5c4]" />;
   if (s === "error") return <AlertTriangle size={12} className="text-[#ef4444]" />;
   return <Clock size={12} className="text-[var(--subtle)]" />;
-}
-
-function fmt(dt?: string) {
-  if (!dt) return "—";
-  const d = new Date(dt);
-  return d.toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-}
-
-function fmtDate(dt?: string) {
-  if (!dt) return null;
-  const d = new Date(dt);
-  const today = new Date();
-  const isToday = d.toDateString() === today.toDateString();
-  if (isToday) return fmt(dt);
-  return d.toLocaleDateString("uk-UA", { day: "numeric", month: "short" }) + " " + fmt(dt);
-}
-
-function duration(run?: AgentRunInfo) {
-  if (!run?.startedAt || !run?.finishedAt) return null;
-  const ms = new Date(run.finishedAt).getTime() - new Date(run.startedAt).getTime();
-  if (ms < 1000) return `${ms}ms`;
-  return `${(ms / 1000).toFixed(1)}s`;
 }
 
 // ─── Full analysis modal ──────────────────────────────────────────────────────
@@ -880,52 +700,6 @@ function InfoModal({ onClose }: { onClose: () => void }) {
 }
 
 // ─── Debug / Trace modal ──────────────────────────────────────────────────────
-
-function CopyBtn({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <button
-      onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
-      className="flex items-center gap-1 text-[9px] font-mono px-2 py-0.5 rounded border border-[var(--border)] text-[var(--subtle)] hover:text-[var(--text)] hover:bg-[var(--input-bg)] transition-colors flex-shrink-0"
-    >
-      {copied ? <Check size={9} className="text-[#00e5c4]" /> : <Copy size={9} />}
-      {copied ? "copied" : "copy"}
-    </button>
-  );
-}
-
-function DebugSection({ title, content, mono = true, defaultOpen = false }: {
-  title: string; content: string; mono?: boolean; defaultOpen?: boolean;
-}) {
-  const [open, setOpen] = useState(defaultOpen);
-  return (
-    <div className="border border-[var(--border)] rounded-xl overflow-hidden">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/[0.02] transition-colors text-left"
-      >
-        <span className="text-[10px] font-mono uppercase tracking-widest text-[var(--subtle)]">{title}</span>
-        <div className="flex items-center gap-2">
-          <span className="text-[9px] font-mono text-[var(--subtle)]">{content.length} chars</span>
-          {open ? <ChevronUp size={12} className="text-[var(--subtle)]" /> : <ChevronDown size={12} className="text-[var(--subtle)]" />}
-        </div>
-      </button>
-      {open && (
-        <div className="border-t border-[var(--border)]">
-          <div className="flex justify-end px-3 py-1.5 bg-[var(--surface2)]">
-            <CopyBtn text={content} />
-          </div>
-          <pre
-            className="px-4 py-3 text-[11px] leading-relaxed text-[var(--text)] overflow-x-auto max-h-72 overflow-y-auto"
-            style={{ fontFamily: mono ? "monospace" : "inherit", whiteSpace: "pre-wrap", wordBreak: "break-word" }}
-          >
-            {content}
-          </pre>
-        </div>
-      )}
-    </div>
-  );
-}
 
 function DebugModal({
   agentLabel,
@@ -1930,13 +1704,12 @@ function PipelineDiagram({ runs }: { runs: Record<string, AgentRunInfo> }) {
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function AgentsPage() {
-  const [runs, setRuns] = useState<Record<string, AgentRunInfo>>({});
-  const [loading, setLoading] = useState(true);
   const [analysisDate, setAnalysisDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [dateFrom, setDateFrom] = useState(""); // "" = стандартне вікно 30 днів
   const [showInfo, setShowInfo] = useState(false);
 
   const todayStr = new Date().toISOString().slice(0, 10);
+  const { runs, loading, statusError, fetchStatus, handleRun } = useAgentRuns({ analysisDate, dateFrom, todayStr });
   const isHistoricalDate = analysisDate !== todayStr;
   const hasDateFrom = dateFrom !== "";
   // "Від" має бути щонайменше на день раніше за "До"
@@ -1944,104 +1717,6 @@ export default function AgentsPage() {
   const periodDays = hasDateFrom
     ? Math.max(1, Math.round((new Date(analysisDate).getTime() - new Date(dateFrom).getTime()) / 86400000))
     : 30;
-
-  const fetchStatus = useCallback(async () => {
-    try {
-      const res = await fetch("/api/agents/inventory-analyst");
-      if (res.ok) {
-        const data = await res.json();
-        setRuns(data ?? {});
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchStatus();
-  }, [fetchStatus]);
-
-  // Poll while any agent is running
-  useEffect(() => {
-    const isRunning = Object.values(runs).some((r) => r.status === "running");
-    if (!isRunning) return;
-    const id = setInterval(fetchStatus, 3000);
-    return () => clearInterval(id);
-  }, [runs, fetchStatus]);
-
-  async function handleRun(agentId: string) {
-    const route = AGENT_ROUTES[agentId];
-    if (!route) {
-      const msg = COMING_SOON[agentId] ?? "Агент у розробці.";
-      setRuns((prev) => ({
-        ...prev,
-        [agentId]: {
-          ...(prev[agentId] ?? {}),
-          id: "pending",
-          status: "error" as const,
-          startedAt: new Date().toISOString(),
-          finishedAt: new Date().toISOString(),
-          errorMsg: msg,
-        },
-      }));
-      return;
-    }
-
-    const provider = getAgentProvider(agentId);
-
-    // Optimistic running state
-    setRuns((prev) => ({
-      ...prev,
-      [agentId]: {
-        ...(prev[agentId] ?? {}),
-        id: "pending",
-        status: "running" as const,
-        startedAt: new Date().toISOString(),
-        agentType: agentId,
-        tenantId: "",
-        entityId: "all",
-        input: {},
-      },
-    }));
-
-    try {
-      const res = await fetch(route, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          provider,
-          ...(isHistoricalDate ? { asOf: analysisDate } : {}),
-          ...(hasDateFrom ? { dateFrom } : {}),
-        }),
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        setRuns((prev) => ({
-          ...prev,
-          [agentId]: {
-            ...prev[agentId],
-            status: "error" as const,
-            errorMsg: data.error ?? "Невідома помилка",
-            finishedAt: new Date().toISOString(),
-          },
-        }));
-        return;
-      }
-
-      await fetchStatus();
-    } catch (e) {
-      setRuns((prev) => ({
-        ...prev,
-        [agentId]: {
-          ...prev[agentId],
-          status: "error" as const,
-          errorMsg: String(e),
-          finishedAt: new Date().toISOString(),
-        },
-      }));
-    }
-  }
 
   const totalDone = Object.values(runs).filter((r) => r.status === "done").length;
   const totalError = Object.values(runs).filter((r) => r.status === "error").length;
@@ -2074,6 +1749,13 @@ export default function AgentsPage() {
           </div>
         </div>
       </div>
+
+      {statusError && (
+        <div className="mb-4 flex items-center gap-2 rounded-xl border border-[#ef4444]/30 bg-[#ef4444]/10 px-4 py-3 text-xs text-[#ef4444]">
+          <AlertTriangle size={14} />
+          <span>{statusError}</span>
+        </div>
+      )}
 
       {/* Date range picker */}
       <div className="mb-4 bg-[var(--surface2)] border border-[var(--border)] rounded-xl p-4">
