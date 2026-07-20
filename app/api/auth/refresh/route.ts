@@ -4,31 +4,34 @@ import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from "@/lib/auth";
 import { apiError, serverError } from "@/lib/api-contracts";
+import { createRequestContext, logError, requestLogContext, withRequestId } from "@/lib/observability";
 
-export async function POST(_request: NextRequest) {
+export async function POST(request: NextRequest) {
+  const context = createRequestContext(request, "api.auth.refresh");
+
   try {
     const cookieStore = await cookies();
     const refreshToken = cookieStore.get("refresh_token")?.value;
 
     if (!refreshToken) {
-      return apiError("No refresh token", 401, "NO_REFRESH_TOKEN");
+      return withRequestId(apiError("No refresh token", 401, "NO_REFRESH_TOKEN"), context.requestId);
     }
 
     let payload;
     try {
       payload = await verifyRefreshToken(refreshToken);
     } catch {
-      return apiError("Invalid refresh token", 401, "INVALID_REFRESH_TOKEN");
+      return withRequestId(apiError("Invalid refresh token", 401, "INVALID_REFRESH_TOKEN"), context.requestId);
     }
 
     const user = await prisma.user.findUnique({ where: { id: payload.sub } });
     if (!user?.refreshToken) {
-      return apiError("Session revoked", 401, "SESSION_REVOKED");
+      return withRequestId(apiError("Session revoked", 401, "SESSION_REVOKED"), context.requestId);
     }
 
     const valid = await compare(refreshToken, user.refreshToken);
     if (!valid) {
-      return apiError("Refresh token mismatch", 401, "REFRESH_TOKEN_MISMATCH");
+      return withRequestId(apiError("Refresh token mismatch", 401, "REFRESH_TOKEN_MISMATCH"), context.requestId);
     }
 
     // Rotate both tokens
@@ -60,9 +63,9 @@ export async function POST(_request: NextRequest) {
       maxAge: 15 * 60,
     });
 
-    return NextResponse.json({ ok: true });
+    return withRequestId(NextResponse.json({ ok: true, requestId: context.requestId }), context.requestId);
   } catch (err) {
-    console.error("[refresh]", err);
-    return serverError();
+    logError("Token refresh failed", err, requestLogContext(context));
+    return withRequestId(serverError("Token refresh failed", context.requestId), context.requestId);
   }
 }

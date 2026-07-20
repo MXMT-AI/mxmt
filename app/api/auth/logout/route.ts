@@ -3,8 +3,11 @@ import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { verifyAccessToken } from "@/lib/auth";
 import { serverError } from "@/lib/api-contracts";
+import { createRequestContext, logError, requestLogContext, withRequestId } from "@/lib/observability";
 
-export async function POST(_request: NextRequest) {
+export async function POST(request: NextRequest) {
+  const context = createRequestContext(request, "api.auth.logout");
+
   try {
     const cookieStore = await cookies();
     const accessToken = cookieStore.get("access_token")?.value;
@@ -25,9 +28,9 @@ export async function POST(_request: NextRequest) {
     cookieStore.delete("access_token");
     cookieStore.delete("refresh_token");
 
-    return NextResponse.json({ ok: true });
+    return withRequestId(NextResponse.json({ ok: true, requestId: context.requestId }), context.requestId);
   } catch (err) {
-    console.error("[logout]", err);
-    return serverError();
+    logError("Logout failed", err, requestLogContext(context));
+    return withRequestId(serverError("Logout failed", context.requestId), context.requestId);
   }
 }

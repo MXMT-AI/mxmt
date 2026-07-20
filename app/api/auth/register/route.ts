@@ -5,22 +5,25 @@ import { prisma } from "@/lib/prisma";
 import { signAccessToken, signRefreshToken } from "@/lib/auth";
 import { slugify } from "@/lib/utils";
 import { apiError, serverError } from "@/lib/api-contracts";
+import { createRequestContext, logError, requestLogContext, withRequestId } from "@/lib/observability";
 
 export async function POST(request: NextRequest) {
+  const context = createRequestContext(request, "api.auth.register");
+
   try {
     const { businessName, name, email, password } = await request.json();
 
     if (!businessName || !name || !email || !password) {
-      return apiError("All fields are required", 400, "VALIDATION_ERROR");
+      return withRequestId(apiError("All fields are required", 400, "VALIDATION_ERROR"), context.requestId);
     }
 
     if (password.length < 8) {
-      return apiError("Password must be at least 8 characters", 400, "VALIDATION_ERROR");
+      return withRequestId(apiError("Password must be at least 8 characters", 400, "VALIDATION_ERROR"), context.requestId);
     }
 
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
-      return apiError("Email already registered", 409, "EMAIL_ALREADY_REGISTERED");
+      return withRequestId(apiError("Email already registered", 409, "EMAIL_ALREADY_REGISTERED"), context.requestId);
     }
 
     const slug =
@@ -66,12 +69,13 @@ export async function POST(request: NextRequest) {
       maxAge: 30 * 24 * 60 * 60,
     });
 
-    return NextResponse.json({
+    return withRequestId(NextResponse.json({
       user: { id: user.id, name: user.name, email: user.email, role: user.role },
       tenant: { id: tenant.id, name: tenant.name },
-    });
+      requestId: context.requestId,
+    }), context.requestId);
   } catch (err) {
-    console.error("[register]", err);
-    return serverError();
+    logError("Registration failed", err, requestLogContext(context));
+    return withRequestId(serverError("Registration failed", context.requestId), context.requestId);
   }
 }

@@ -4,6 +4,7 @@ export interface ApiErrorBody {
   error: string;
   code: string;
   details?: string[];
+  requestId?: string;
 }
 
 export type JsonParseResult<T> =
@@ -14,13 +15,15 @@ export function apiError(
   message: string,
   status = 400,
   code = "BAD_REQUEST",
-  details?: string[]
+  details?: string[],
+  requestId?: string
 ): NextResponse<ApiErrorBody> {
   return NextResponse.json(
     {
       error: message,
       code,
       ...(details && details.length > 0 ? { details } : {}),
+      ...(requestId ? { requestId } : {}),
     },
     { status }
   );
@@ -30,8 +33,8 @@ export function validationError(details: string[]): NextResponse<ApiErrorBody> {
   return apiError("Invalid request body", 400, "VALIDATION_ERROR", details);
 }
 
-export function serverError(message = "Internal server error"): NextResponse<ApiErrorBody> {
-  return apiError(message, 500, "INTERNAL_SERVER_ERROR");
+export function serverError(message = "Internal server error", requestId?: string): NextResponse<ApiErrorBody> {
+  return apiError(message, 500, "INTERNAL_SERVER_ERROR", undefined, requestId);
 }
 
 export async function parseJsonBody<T = unknown>(request: NextRequest): Promise<JsonParseResult<T>> {
