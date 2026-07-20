@@ -24,9 +24,14 @@ export default async function AppLayout({
 
   return (
     <div className="flex min-h-screen bg-[var(--bg)]">
+      <a href="#main-content" className="skip-link">
+        Skip to main content
+      </a>
       <TokenRefreshProvider />
       <Sidebar tenantName={tenant.name} userRole={role ?? "viewer"} />
-      <main className="flex-1 overflow-auto min-w-0">{children}</main>
+      <main id="main-content" className="flex-1 overflow-auto min-w-0" tabIndex={-1}>
+        {children}
+      </main>
     </div>
   );
 }

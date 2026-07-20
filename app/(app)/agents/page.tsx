@@ -19,10 +19,10 @@ import { useAgentRuns } from "@/components/agents/useAgentRuns";
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function agentStatusIcon(s: AgentStatus) {
-  if (s === "running") return <RefreshCw size={12} className="animate-spin text-[#fbbf24]" />;
-  if (s === "done") return <CheckCircle2 size={12} className="text-[#00e5c4]" />;
-  if (s === "error") return <AlertTriangle size={12} className="text-[#ef4444]" />;
-  return <Clock size={12} className="text-[var(--subtle)]" />;
+  if (s === "running") return <RefreshCw size={12} className="animate-spin text-[#fbbf24]" aria-hidden="true" />;
+  if (s === "done") return <CheckCircle2 size={12} className="text-[#00e5c4]" aria-hidden="true" />;
+  if (s === "error") return <AlertTriangle size={12} className="text-[#ef4444]" aria-hidden="true" />;
+  return <Clock size={12} className="text-[var(--subtle)]" aria-hidden="true" />;
 }
 
 // ─── Full analysis modal ──────────────────────────────────────────────────────
@@ -78,6 +78,9 @@ function AnalysisModal({
       onClick={(e) => e.target === overlayRef.current && onClose()}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="analysis-modal-title"
         className="relative w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-2xl border border-[var(--border)] bg-[var(--surface)]"
         style={{ boxShadow: "0 24px 64px rgba(0,0,0,0.5)" }}
       >
@@ -87,13 +90,15 @@ function AnalysisModal({
             <div className="text-[9px] font-mono uppercase tracking-widest text-[var(--subtle)] mb-0.5">
               Повний аналіз
             </div>
-            <h2 className="text-base font-bold text-[var(--text)]">{agentLabel}</h2>
+            <h2 id="analysis-modal-title" className="text-base font-bold text-[var(--text)]">{agentLabel}</h2>
           </div>
           <button
+            type="button"
             onClick={onClose}
+            aria-label="Закрити повний аналіз"
             className="w-8 h-8 rounded-lg border border-[var(--border)] flex items-center justify-center text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)] transition-colors"
           >
-            <X size={14} />
+            <X size={14} aria-hidden="true" />
           </button>
         </div>
 
@@ -284,11 +289,12 @@ function AnalysisModal({
                         )}
                         {opt.discount_percent > 0 && brand.brand_id && (
                           <button
+                            type="button"
                             onClick={() => setSimParams(buildSimParams(brand, opt, output._debug))}
                             className="mt-3 flex items-center gap-1.5 text-[10px] font-mono px-3 py-1.5 rounded-lg border transition-colors"
                             style={{ borderColor: "#a78bfa40", background: "#a78bfa12", color: "#a78bfa" }}
                           >
-                            <Table2 size={11} />
+                            <Table2 size={11} aria-hidden="true" />
                             Переглянути в таблиці
                           </button>
                         )}
@@ -353,11 +359,12 @@ function AnalysisModal({
                           )}
                           {sc.qty_multiplier > 0 && brand.brand_id && (
                             <button
+                              type="button"
                               onClick={() => setReorderParams(buildReorderParams(brand, sc, output._debug))}
                               className="mt-3 flex items-center gap-1.5 text-[10px] font-mono px-3 py-1.5 rounded-lg border transition-colors"
                               style={{ borderColor: "#a78bfa40", background: "#a78bfa12", color: "#a78bfa" }}
                             >
-                              <Table2 size={11} />
+                              <Table2 size={11} aria-hidden="true" />
                               Переглянути в таблиці
                             </button>
                           )}
@@ -589,6 +596,9 @@ function InfoModal({ onClose }: { onClose: () => void }) {
       onClick={(e) => e.target === overlayRef.current && onClose()}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="info-modal-title"
         className="relative w-full max-w-2xl max-h-[88vh] overflow-y-auto rounded-2xl border border-[var(--border)] bg-[var(--surface)]"
         style={{ boxShadow: "0 24px 64px rgba(0,0,0,0.5)" }}
       >
@@ -596,15 +606,17 @@ function InfoModal({ onClose }: { onClose: () => void }) {
         <div className="sticky top-0 bg-[var(--surface)] border-b border-[var(--border)] px-6 py-4 flex items-center justify-between z-10">
           <div className="flex items-center gap-3">
             <div className="w-7 h-7 rounded-lg bg-[#00e5c4]/10 flex items-center justify-center">
-              <Info size={14} className="text-[#00e5c4]" />
+              <Info size={14} className="text-[#00e5c4]" aria-hidden="true" />
             </div>
-            <h2 className="text-base font-bold text-[var(--text)]">Як працює аналіз даних</h2>
+            <h2 id="info-modal-title" className="text-base font-bold text-[var(--text)]">Як працює аналіз даних</h2>
           </div>
           <button
+            type="button"
             onClick={onClose}
+            aria-label="Закрити інформацію"
             className="w-8 h-8 rounded-lg border border-[var(--border)] flex items-center justify-center text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)] transition-colors"
           >
-            <X size={14} />
+            <X size={14} aria-hidden="true" />
           </button>
         </div>
 
@@ -733,6 +745,9 @@ function DebugModal({
       onClick={(e) => e.target === overlayRef.current && onClose()}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="debug-modal-title"
         className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-[var(--border)] bg-[var(--surface)]"
         style={{ boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}
       >
@@ -742,13 +757,15 @@ function DebugModal({
             <div className="text-[9px] font-mono uppercase tracking-widest text-[var(--subtle)] mb-0.5">
               Трасування агента
             </div>
-            <h2 className="text-base font-bold text-[var(--text)]">{agentLabel}</h2>
+            <h2 id="debug-modal-title" className="text-base font-bold text-[var(--text)]">{agentLabel}</h2>
           </div>
           <button
+            type="button"
             onClick={onClose}
+            aria-label="Закрити трасування агента"
             className="w-8 h-8 rounded-lg border border-[var(--border)] flex items-center justify-center text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)] transition-colors"
           >
-            <X size={14} />
+            <X size={14} aria-hidden="true" />
           </button>
         </div>
 
@@ -844,7 +861,9 @@ function BrandCard({ b }: { b: BrandResult }) {
   return (
     <div className="border rounded-lg overflow-hidden" style={{ borderColor: color + "30" }}>
       <button
+        type="button"
         onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
         className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/[0.02] transition-colors text-left"
       >
         <div className="flex items-center gap-3">
@@ -867,17 +886,17 @@ function BrandCard({ b }: { b: BrandResult }) {
               <span>STR <span className="text-[var(--text)]">{b.metrics.strPercent}%</span></span>
               <span>
                 {b.metrics.trend7dPct > 0 ? (
-                  <TrendingUp size={11} className="inline text-[#86efac]" />
+                  <TrendingUp size={11} className="inline text-[#86efac]" aria-hidden="true" />
                 ) : b.metrics.trend7dPct < 0 ? (
-                  <TrendingDown size={11} className="inline text-[#fca5a5]" />
+                  <TrendingDown size={11} className="inline text-[#fca5a5]" aria-hidden="true" />
                 ) : (
-                  <Minus size={11} className="inline text-[var(--subtle)]" />
+                  <Minus size={11} className="inline text-[var(--subtle)]" aria-hidden="true" />
                 )}
                 {" "}{b.metrics.trend7dPct > 0 ? "+" : ""}{b.metrics.trend7dPct}%
               </span>
             </div>
           )}
-          {open ? <ChevronUp size={14} className="text-[var(--subtle)]" /> : <ChevronDown size={14} className="text-[var(--subtle)]" />}
+          {open ? <ChevronUp size={14} className="text-[var(--subtle)]" aria-hidden="true" /> : <ChevronDown size={14} className="text-[var(--subtle)]" aria-hidden="true" />}
         </div>
       </button>
 
@@ -1000,7 +1019,7 @@ function AgentCard({
               className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
               style={{ background: agent.color + "15" }}
             >
-              <Icon size={15} style={{ color: agent.color }} />
+              <Icon size={15} style={{ color: agent.color }} aria-hidden="true" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
@@ -1022,8 +1041,10 @@ function AgentCard({
           <div className="flex items-center gap-2 flex-shrink-0">
             {agentStatusIcon(s)}
             <button
+              type="button"
               onClick={onRun}
               disabled={s === "running"}
+              aria-label={`${s === "running" ? "Агент працює" : "Запустити агента"} ${agent.label}`}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-mono font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               style={{
                 background: agent.color + "18",
@@ -1032,9 +1053,9 @@ function AgentCard({
               }}
             >
               {s === "running" ? (
-                <RefreshCw size={11} className="animate-spin" />
+                <RefreshCw size={11} className="animate-spin" aria-hidden="true" />
               ) : (
-                <Play size={11} />
+                <Play size={11} aria-hidden="true" />
               )}
               {s === "running" ? "Працює…" : "Запустити"}
             </button>
@@ -1085,7 +1106,7 @@ function AgentCard({
                 Все гаразд
               </span>
             )}
-            <button onClick={() => setExpanded((v) => !v)} className="text-[10px] font-mono text-[var(--muted)] hover:text-[var(--text)] ml-auto">
+            <button type="button" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded} className="text-[10px] font-mono text-[var(--muted)] hover:text-[var(--text)] ml-auto">
               {expanded ? "Згорнути ↑" : `Детально (${brands.length} брендів) ↓`}
             </button>
           </div>
@@ -1102,7 +1123,7 @@ function AgentCard({
             <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--input-bg)] border border-[var(--border)] text-[var(--muted)]">
               {channels.length} каналів
             </span>
-            <button onClick={() => setExpanded((v) => !v)} className="text-[10px] font-mono text-[var(--muted)] hover:text-[var(--text)] ml-auto">
+            <button type="button" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded} className="text-[10px] font-mono text-[var(--muted)] hover:text-[var(--text)] ml-auto">
               {expanded ? "Згорнути ↑" : "Детально ↓"}
             </button>
           </div>
@@ -1121,7 +1142,7 @@ function AgentCard({
                 Dead stock: {deadStock.slice(0, 2).join(", ")}
               </span>
             )}
-            <button onClick={() => setExpanded((v) => !v)} className="text-[10px] font-mono text-[var(--muted)] hover:text-[var(--text)] ml-auto">
+            <button type="button" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded} className="text-[10px] font-mono text-[var(--muted)] hover:text-[var(--text)] ml-auto">
               {expanded ? "Згорнути ↑" : `Детально (${byCategory.length} категорій) ↓`}
             </button>
           </div>
@@ -1138,7 +1159,7 @@ function AgentCard({
                 {recommendedCount} рекомендацій готово
               </span>
             )}
-            <button onClick={() => setExpanded((v) => !v)} className="text-[10px] font-mono text-[var(--muted)] hover:text-[var(--text)] ml-auto">
+            <button type="button" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded} className="text-[10px] font-mono text-[var(--muted)] hover:text-[var(--text)] ml-auto">
               {expanded ? "Згорнути ↑" : "Детально ↓"}
             </button>
           </div>
@@ -1155,7 +1176,7 @@ function AgentCard({
                 {marketerBrands.filter((b: any) => b.urgency === "critical" || b.urgency === "high").length} термінових
               </span>
             )}
-            <button onClick={() => setExpanded((v) => !v)} className="text-[10px] font-mono text-[var(--muted)] hover:text-[var(--text)] ml-auto">
+            <button type="button" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded} className="text-[10px] font-mono text-[var(--muted)] hover:text-[var(--text)] ml-auto">
               {expanded ? "Згорнути ↑" : "Детально ↓"}
             </button>
           </div>
@@ -1179,7 +1200,7 @@ function AgentCard({
                 {annotations.length} анотацій
               </span>
             )}
-            <button onClick={() => setExpanded((v) => !v)} className="text-[10px] font-mono text-[var(--muted)] hover:text-[var(--text)] ml-auto">
+            <button type="button" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded} className="text-[10px] font-mono text-[var(--muted)] hover:text-[var(--text)] ml-auto">
               {expanded ? "Згорнути ↑" : "Детально ↓"}
             </button>
           </div>
@@ -1207,7 +1228,7 @@ function AgentCard({
                 {campaignsBehind} відстають
               </span>
             )}
-            <button onClick={() => setExpanded((v) => !v)} className="text-[10px] font-mono text-[var(--muted)] hover:text-[var(--text)] ml-auto">
+            <button type="button" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded} className="text-[10px] font-mono text-[var(--muted)] hover:text-[var(--text)] ml-auto">
               {expanded ? "Згорнути ↑" : "Детально ↓"}
             </button>
           </div>
@@ -1231,7 +1252,7 @@ function AgentCard({
                 {weeklyDecisions.length} рішень PM
               </span>
             )}
-            <button onClick={() => setExpanded((v) => !v)} className="text-[10px] font-mono text-[var(--muted)] hover:text-[var(--text)] ml-auto">
+            <button type="button" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded} className="text-[10px] font-mono text-[var(--muted)] hover:text-[var(--text)] ml-auto">
               {expanded ? "Згорнути ↑" : "Показати звіт ↓"}
             </button>
           </div>
@@ -1254,19 +1275,21 @@ function AgentCard({
         {s === "done" && (output.summary || output.brands?.length || output.channels?.length || output.by_category?.length || decisionBrands.length > 0 || marketerBrands.length > 0 || annotations.length > 0 || campaigns.length > 0 || (isWeeklyReport && output.pm_brief)) && (
           <div className="mt-3 flex items-center gap-2 flex-wrap">
             <button
+              type="button"
               onClick={() => setShowModal(true)}
               className="flex items-center gap-1.5 text-[10px] font-mono text-[var(--muted)] hover:text-[var(--text)] transition-colors border border-[var(--border)] rounded-lg px-3 py-1.5 hover:bg-[var(--input-bg)]"
             >
-              <Eye size={11} />
+              <Eye size={11} aria-hidden="true" />
               Переглянути аналіз
             </button>
             {output._debug && (
               <button
+                type="button"
                 onClick={() => setShowDebug(true)}
                 className="flex items-center gap-1.5 text-[10px] font-mono text-[var(--subtle)] hover:text-[var(--text)] transition-colors border border-[var(--border)] rounded-lg px-3 py-1.5 hover:bg-[var(--input-bg)]"
                 title="Промт, дані та сирий відповідь AI"
               >
-                <Code2 size={11} />
+                <Code2 size={11} aria-hidden="true" />
                 Трасування
               </button>
             )}
@@ -1421,21 +1444,23 @@ function AgentCard({
                         )}
                         {agent.id === "repricing" && item.discount_percent > 0 && brand.brand_id && (
                           <button
+                            type="button"
                             onClick={() => setSimParams(buildSimParams(brand, item, output._debug))}
                             className="mt-2.5 flex items-center gap-1.5 text-[10px] font-mono px-3 py-1.5 rounded-lg border transition-colors"
                             style={{ borderColor: "#a78bfa40", background: "#a78bfa12", color: "#a78bfa" }}
                           >
-                            <Table2 size={11} />
+                            <Table2 size={11} aria-hidden="true" />
                             Переглянути в таблиці
                           </button>
                         )}
                         {agent.id === "reordering" && item.qty_multiplier > 0 && brand.brand_id && (
                           <button
+                            type="button"
                             onClick={() => setReorderParams(buildReorderParams(brand, item, output._debug))}
                             className="mt-2.5 flex items-center gap-1.5 text-[10px] font-mono px-3 py-1.5 rounded-lg border transition-colors"
                             style={{ borderColor: "#a78bfa40", background: "#a78bfa12", color: "#a78bfa" }}
                           >
-                            <Table2 size={11} />
+                            <Table2 size={11} aria-hidden="true" />
                             Переглянути в таблиці
                           </button>
                         )}
@@ -1736,23 +1761,25 @@ export default function AgentsPage() {
           </div>
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1.5 text-[10px] font-mono text-[var(--subtle)]">
-              <Zap size={11} className="text-[#fbbf24]" />
+              <Zap size={11} className="text-[#fbbf24]" aria-hidden="true" />
               Claude Sonnet / Haiku
             </div>
             <button
+              type="button"
               onClick={fetchStatus}
+              aria-label="Оновити статус агентів"
               className="p-1.5 rounded-lg border border-[var(--border)] text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)] transition-colors"
               title="Оновити статус"
             >
-              <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
+              <RefreshCw size={13} className={loading ? "animate-spin" : ""} aria-hidden="true" />
             </button>
           </div>
         </div>
       </div>
 
       {statusError && (
-        <div className="mb-4 flex items-center gap-2 rounded-xl border border-[#ef4444]/30 bg-[#ef4444]/10 px-4 py-3 text-xs text-[#ef4444]">
-          <AlertTriangle size={14} />
+        <div role="alert" className="mb-4 flex items-center gap-2 rounded-xl border border-[#ef4444]/30 bg-[#ef4444]/10 px-4 py-3 text-xs text-[#ef4444]">
+          <AlertTriangle size={14} aria-hidden="true" />
           <span>{statusError}</span>
         </div>
       )}
@@ -1761,26 +1788,32 @@ export default function AgentsPage() {
       <div className="mb-4 bg-[var(--surface2)] border border-[var(--border)] rounded-xl p-4">
         <div className="flex items-center gap-4 flex-wrap">
           <div className="flex items-center gap-3">
-            <CalendarDays size={14} className="text-[var(--subtle)]" />
+            <CalendarDays size={14} className="text-[var(--subtle)]" aria-hidden="true" />
             <span className="text-[10px] font-mono uppercase tracking-widest text-[var(--subtle)]">Період даних</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-mono text-[var(--subtle)]">від</span>
+            <label htmlFor="agents-date-from" className="text-[10px] font-mono text-[var(--subtle)]">від</label>
             <input
+              id="agents-date-from"
+              name="agents-date-from"
               type="date"
               value={dateFrom}
               max={maxFromStr}
+              aria-label="Дата початку періоду"
               onChange={(e) => setDateFrom(e.target.value || "")}
               className="text-[11px] font-mono px-3 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--input-bg)] text-[var(--text)] focus:outline-none focus:border-[#00e5c4]/50"
             />
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-mono text-[var(--subtle)]">до</span>
+            <label htmlFor="agents-date-to" className="text-[10px] font-mono text-[var(--subtle)]">до</label>
             <input
+              id="agents-date-to"
+              name="agents-date-to"
               type="date"
               value={analysisDate}
               min={hasDateFrom ? dateFrom : undefined}
               max={todayStr}
+              aria-label="Дата завершення періоду"
               onChange={(e) => {
                 const v = e.target.value || todayStr;
                 setAnalysisDate(v);
@@ -1792,6 +1825,7 @@ export default function AgentsPage() {
           </div>
           {(isHistoricalDate || hasDateFrom) && (
             <button
+              type="button"
               onClick={() => { setAnalysisDate(todayStr); setDateFrom(""); }}
               className="text-[10px] font-mono px-2.5 py-1 rounded-lg border border-[var(--border)] text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)] transition-colors"
             >
@@ -1805,10 +1839,11 @@ export default function AgentsPage() {
             <span className="text-[10px] font-mono text-[#a78bfa]">Період: {periodDays} дн.</span>
           )}
           <button
+            type="button"
             onClick={() => setShowInfo(true)}
             className="ml-auto flex items-center gap-1.5 text-[10px] font-mono px-2.5 py-1 rounded-lg border border-[var(--border)] text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)] transition-colors"
           >
-            <Info size={11} />
+            <Info size={11} aria-hidden="true" />
             Важлива інформація
           </button>
         </div>
@@ -1816,7 +1851,7 @@ export default function AgentsPage() {
         {/* Warning for custom period */}
         {hasDateFrom && (
           <div className="mt-3 flex items-start gap-2 bg-[#a78bfa]/5 border border-[#a78bfa]/20 rounded-lg px-3 py-2.5">
-            <Info size={12} className="text-[#a78bfa] flex-shrink-0 mt-0.5" />
+            <Info size={12} className="text-[#a78bfa] flex-shrink-0 mt-0.5" aria-hidden="true" />
             <p className="text-[11px] text-[var(--muted)] leading-relaxed">
               <span className="text-[#a78bfa] font-semibold">Власний період ({periodDays} дн.):</span> швидкість продажів і WOH рахуються за весь період <span className="text-[var(--text)]">{dateFrom} — {analysisDate}</span> замість стандартних 30 днів. Тренд = друга половина періоду проти першої. Дані раніше дати «від» агенти не бачать.
             </p>
@@ -1827,19 +1862,19 @@ export default function AgentsPage() {
         {isHistoricalDate && (
           <div className="mt-3 space-y-2">
             <div className="flex items-start gap-2 bg-[#fbbf24]/5 border border-[#fbbf24]/20 rounded-lg px-3 py-2.5">
-              <AlertTriangle size={12} className="text-[#fbbf24] flex-shrink-0 mt-0.5" />
+              <AlertTriangle size={12} className="text-[#fbbf24] flex-shrink-0 mt-0.5" aria-hidden="true" />
               <p className="text-[11px] text-[var(--muted)] leading-relaxed">
                 <span className="text-[#fbbf24] font-semibold">Блоки 1–2:</span> Метрики продажів пораховані {hasDateFrom ? `за період ${dateFrom} — ${analysisDate}` : `за 7/30 днів до ${analysisDate}`}. Залишки на складі — найближчий знімок до дати <span className="text-[var(--text)]">{analysisDate}</span> (якщо щоденні знімки не записувались, будуть використані поточні залишки).
               </p>
             </div>
             <div className="flex items-start gap-2 bg-[#a78bfa]/5 border border-[#a78bfa]/20 rounded-lg px-3 py-2.5">
-              <AlertTriangle size={12} className="text-[#a78bfa] flex-shrink-0 mt-0.5" />
+              <AlertTriangle size={12} className="text-[#a78bfa] flex-shrink-0 mt-0.5" aria-hidden="true" />
               <p className="text-[11px] text-[var(--muted)] leading-relaxed">
                 <span className="text-[#a78bfa] font-semibold">Блок 3 (Execution):</span> Commercial Marketer та Calendar Agent генерують рекомендації на майбутнє — при минулій даті вони будуть ретроспективними, не actionable.
               </p>
             </div>
             <div className="flex items-start gap-2 bg-[#6b7a8d]/5 border border-[#6b7a8d]/20 rounded-lg px-3 py-2.5">
-              <Clock size={12} className="text-[var(--subtle)] flex-shrink-0 mt-0.5" />
+              <Clock size={12} className="text-[var(--subtle)] flex-shrink-0 mt-0.5" aria-hidden="true" />
               <p className="text-[11px] text-[var(--muted)] leading-relaxed">
                 <span className="text-[var(--text)] font-semibold">Блок 4 (Tracking):</span> Campaign Analysis та Weekly Report читають збережені результати інших агентів — обрана дата майже не впливає на їх вивід.
               </p>

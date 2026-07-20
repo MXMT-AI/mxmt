@@ -30,7 +30,7 @@ export default function Sidebar({ tenantName, userRole }: { tenantName: string; 
   }
 
   return (
-    <div className="w-56 min-h-screen bg-[var(--surface)] border-r border-[var(--border)] flex flex-col flex-shrink-0">
+    <aside className="w-56 min-h-screen bg-[var(--surface)] border-r border-[var(--border)] flex flex-col flex-shrink-0">
       {/* Brand header */}
       <div className="p-4 border-b border-[var(--border)]">
         <div className="flex items-center gap-3">
@@ -45,18 +45,19 @@ export default function Sidebar({ tenantName, userRole }: { tenantName: string; 
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-2 space-y-0.5">
+      <nav className="flex-1 p-2 space-y-0.5" aria-label="Primary navigation">
         {NAV.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(href + "/");
           return (
             <Link key={href} href={href}
+              aria-current={active ? "page" : undefined}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                 active
                   ? "bg-[#00e5c4]/10 text-[#00e5c4]"
                   : "text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)]"
               }`}
             >
-              <Icon size={15} />
+              <Icon size={15} aria-hidden="true" />
               {label}
             </Link>
           );
@@ -67,7 +68,7 @@ export default function Sidebar({ tenantName, userRole }: { tenantName: string; 
       <div className="p-2 border-t border-[var(--border)] space-y-1">
         <div className="flex items-center justify-between px-3 py-1.5">
           <div className="flex items-center gap-2">
-            <Zap size={12} className="text-[#fbbf24]" />
+            <Zap size={12} className="text-[#fbbf24]" aria-hidden="true" />
             <span className="text-[10px] font-mono text-[var(--subtle)]">Claude</span>
           </div>
           <div className="flex items-center gap-1.5">
@@ -76,13 +77,13 @@ export default function Sidebar({ tenantName, userRole }: { tenantName: string; 
           </div>
         </div>
 
-        <button onClick={handleLogout}
+        <button type="button" onClick={handleLogout}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)] transition-colors"
         >
-          <LogOut size={15} />
+          <LogOut size={15} aria-hidden="true" />
           {t.nav_logout}
         </button>
       </div>
-    </div>
+    </aside>
   );
 }

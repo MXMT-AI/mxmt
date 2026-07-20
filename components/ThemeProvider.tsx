@@ -41,7 +41,9 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
   const isLight = theme === "light";
   return (
     <button
+      type="button"
       onClick={toggle}
+      aria-label={isLight ? "Switch to dark theme" : "Switch to light theme"}
       className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-all text-xs font-mono ${
         isLight
           ? "bg-[#fbbf24]/10 border-[#fbbf24]/30 text-[#b45309] hover:bg-[#fbbf24]/20"
@@ -49,7 +51,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
       } ${className}`}
       title={isLight ? "Switch to dark" : "Switch to light"}
     >
-      {isLight ? <Moon size={12} /> : <Sun size={12} />}
+      {isLight ? <Moon size={12} aria-hidden="true" /> : <Sun size={12} aria-hidden="true" />}
       {isLight ? "Dark" : "Light"}
     </button>
   );
