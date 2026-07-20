@@ -51,13 +51,13 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label htmlFor="login-email" className="block text-[10px] font-mono uppercase tracking-widest text-[var(--muted)] mb-2">{t.auth_email}</label>
-              <input id="login-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" aria-invalid={error ? "true" : undefined}
+              <input id="login-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email"
                 className="w-full bg-[#0d1117] border border-[var(--border)] rounded-lg px-4 py-2.5 text-white text-sm focus:outline-none focus:border-[#00e5c4]/40 transition-colors placeholder:text-[#3d444d]"
                 placeholder="you@company.com" />
             </div>
             <div>
               <label htmlFor="login-password" className="block text-[10px] font-mono uppercase tracking-widest text-[var(--muted)] mb-2">{t.auth_password}</label>
-              <input id="login-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" aria-invalid={error ? "true" : undefined}
+              <input id="login-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password"
                 className="w-full bg-[#0d1117] border border-[var(--border)] rounded-lg px-4 py-2.5 text-white text-sm focus:outline-none focus:border-[#00e5c4]/40 transition-colors placeholder:text-[#3d444d]"
                 placeholder="••••••••" />
             </div>

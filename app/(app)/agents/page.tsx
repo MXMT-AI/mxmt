@@ -1778,7 +1778,7 @@ export default function AgentsPage() {
       </div>
 
       {statusError && (
-        <div role="status" aria-live="polite" className="mb-4 flex items-center gap-2 rounded-xl border border-[#ef4444]/30 bg-[#ef4444]/10 px-4 py-3 text-xs text-[#ef4444]">
+        <div role="alert" className="mb-4 flex items-center gap-2 rounded-xl border border-[#ef4444]/30 bg-[#ef4444]/10 px-4 py-3 text-xs text-[#ef4444]">
           <AlertTriangle size={14} aria-hidden="true" />
           <span>{statusError}</span>
         </div>
