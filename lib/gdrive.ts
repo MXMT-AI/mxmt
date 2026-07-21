@@ -2,6 +2,7 @@ import { createSign } from "node:crypto";
 import * as XLSX from "xlsx";
 import { prisma } from "@/lib/prisma";
 import { fetchWithTimeout } from "@/lib/server-fetch";
+import { assertDriveRowLimit } from "@/lib/drive-limits";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -11,7 +12,7 @@ interface ServiceAccount {
 }
 
 const MAX_DRIVE_FILE_BYTES = 15 * 1024 * 1024;
-const MAX_DRIVE_ROWS = 2_500;
+const DRIVE_DOWNLOAD_TIMEOUT_MS = 120_000;
 const DB_WRITE_CONCURRENCY = 10;
 
 export interface SyncResult {
@@ -244,7 +245,11 @@ async function downloadPublicFile(fileId: string): Promise<Buffer> {
   let lastError = "";
   for (const url of urls) {
     try {
-      const res = await fetchWithTimeout(url, { redirect: "follow", headers: { "User-Agent": "Mozilla/5.0" } });
+      const res = await fetchWithTimeout(
+        url,
+        { redirect: "follow", headers: { "User-Agent": "Mozilla/5.0" } },
+        DRIVE_DOWNLOAD_TIMEOUT_MS
+      );
       if (!res.ok) { lastError = `${res.status} (${url})`; continue; }
       const ct = res.headers.get("content-type") ?? "";
       if (ct.includes("text/html")) { lastError = `HTML response (${url}) — check file is publicly shared`; continue; }
@@ -607,9 +612,7 @@ export async function syncFromDrive(tenantId: string): Promise<SyncResult> {
     // Use auto-header detection for all sheets
     const rows = parseWithAutoHeader(ws);
     totalRows += rows.length;
-    if (totalRows > MAX_DRIVE_ROWS) {
-      throw new Error(`Google Drive workbook cannot exceed ${MAX_DRIVE_ROWS} total rows`);
-    }
+    assertDriveRowLimit(totalRows);
     if (rows.length === 0) {
       sheets.push({ name: sheetName, rows: 0, imported: "пропущено", skipped: "порожній аркуш" });
       continue;
