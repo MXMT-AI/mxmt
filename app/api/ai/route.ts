@@ -5,6 +5,9 @@ import { requireApiUser } from "@/lib/server-auth";
 import { isRecord, parseJsonBody, serverError, stringField, validationError } from "@/lib/api-contracts";
 import { createRequestContext, logError, requestLogContext, withRequestId } from "@/lib/observability";
 
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
 const MESSAGE_ROLES = new Set(["user", "assistant", "system"]);
 
 export async function POST(request: NextRequest) {

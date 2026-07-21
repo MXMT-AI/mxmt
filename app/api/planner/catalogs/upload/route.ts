@@ -4,9 +4,29 @@ import * as XLSX from "xlsx";
 import { requireApiUser } from "@/lib/server-auth";
 import { apiError, serverError } from "@/lib/api-contracts";
 
-const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
+const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
+const MAX_CATALOG_ROWS = 5_000;
+const SKU_WRITE_CONCURRENCY = 10;
 
 type CatalogRow = Record<string, unknown>;
+
+interface ParsedCatalogItem {
+  skuCode: string;
+  name: string;
+  category: string;
+  color: string | null;
+  style: string | null;
+  material: string | null;
+  priceWholesale: number;
+  priceRetail: number | null;
+  minOrder: number;
+  stockAvail: number;
+  leadTimeDays: number;
+  tags: string[];
+}
 
 function cell(row: CatalogRow, ...keys: string[]): string {
   for (const key of keys) {
@@ -32,6 +52,45 @@ function intCell(row: CatalogRow, fallback: number, ...keys: string[]): number {
   return Number.isFinite(value) ? value : fallback;
 }
 
+async function syncSkus(
+  tenantId: string,
+  brandId: string,
+  season: string,
+  items: ParsedCatalogItem[]
+): Promise<void> {
+  for (let index = 0; index < items.length; index += SKU_WRITE_CONCURRENCY) {
+    const batch = items.slice(index, index + SKU_WRITE_CONCURRENCY);
+    await Promise.all(
+      batch.map((item) =>
+        prisma.sku.upsert({
+          where: { tenantId_sku: { tenantId, sku: item.skuCode } },
+          create: {
+            tenantId,
+            brandId,
+            sku: item.skuCode,
+            name: item.name,
+            category: item.category,
+            priceRetail: item.priceRetail ?? item.priceWholesale,
+            pricePurchase: item.priceWholesale,
+            season,
+            status: "ACTIVE",
+            tags: item.tags,
+          },
+          update: {
+            name: item.name,
+            category: item.category,
+            priceRetail: item.priceRetail ?? item.priceWholesale,
+            pricePurchase: item.priceWholesale,
+            brandId,
+            status: "ACTIVE",
+            tags: item.tags,
+          },
+        })
+      )
+    );
+  }
+}
+
 export async function POST(request: NextRequest) {
   const { user, response } = await requireApiUser("ANALYST");
   if (response) return response;
@@ -48,7 +107,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (file.size === 0 || file.size > MAX_UPLOAD_BYTES) {
-      return apiError("File must be between 1 byte and 10 MB", 400, "VALIDATION_ERROR");
+      return apiError("File must be between 1 byte and 4 MB", 400, "VALIDATION_ERROR");
     }
 
     // Verify brand belongs to tenant
@@ -72,20 +131,11 @@ export async function POST(request: NextRequest) {
       return apiError("File is empty", 400, "VALIDATION_ERROR");
     }
 
-    const dedupedItems = new Map<string, {
-      skuCode: string;
-      name: string;
-      category: string;
-      color: string | null;
-      style: string | null;
-      material: string | null;
-      priceWholesale: number;
-      priceRetail: number | null;
-      minOrder: number;
-      stockAvail: number;
-      leadTimeDays: number;
-      tags: string[];
-    }>();
+    if (rows.length > MAX_CATALOG_ROWS) {
+      return apiError(`Catalog cannot exceed ${MAX_CATALOG_ROWS} rows`, 400, "VALIDATION_ERROR");
+    }
+
+    const dedupedItems = new Map<string, ParsedCatalogItem>();
     let skippedRows = 0;
 
     for (const row of rows) {
@@ -162,36 +212,10 @@ export async function POST(request: NextRequest) {
         })),
       });
 
-      // Upsert Sku records so Analyst Agent and Dashboard see this catalog
-      for (const r of parsedItems) {
-        await tx.sku.upsert({
-          where: { tenantId_sku: { tenantId, sku: r.skuCode } },
-          create: {
-            tenantId,
-            brandId,
-            sku: r.skuCode,
-            name: r.name,
-            category: r.category,
-            priceRetail: r.priceRetail ?? r.priceWholesale,
-            pricePurchase: r.priceWholesale,
-            season,
-            status: "ACTIVE",
-            tags: r.tags,
-          },
-          update: {
-            name: r.name,
-            category: r.category,
-            priceRetail: r.priceRetail ?? r.priceWholesale,
-            pricePurchase: r.priceWholesale,
-            brandId,
-            status: "ACTIVE",
-            tags: r.tags,
-          },
-        });
-      }
-
       return { upload, count: parsedItems.length };
     });
+
+    await syncSkus(tenantId, brandId, season, parsedItems);
 
     return NextResponse.json({ uploadId: upload.upload.id, itemCount: upload.count, skippedRows });
   } catch (err) {

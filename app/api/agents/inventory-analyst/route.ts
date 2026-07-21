@@ -7,6 +7,9 @@ import { serverError } from "@/lib/api-contracts";
 import { parseAgentJson } from "@/lib/agent-output";
 import { startAgentRun } from "@/lib/agent-runs";
 
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
 const THRESHOLDS = {
   woh_red: 60,
   woh_yellow: 45,

@@ -23,6 +23,9 @@ const MODEL_BY_PROVIDER: Record<AiProvider, string> = {
   anthropic: "claude-sonnet-4-6",
   openai: "gpt-4o",
 };
+const DEFAULT_AI_TIMEOUT_MS = 45_000;
+const MIN_AI_TIMEOUT_MS = 5_000;
+const MAX_AI_TIMEOUT_MS = 55_000;
 
 export class AiConfigurationError extends Error {
   code = "AI_CONFIGURATION_ERROR";
@@ -44,6 +47,12 @@ export function resolveAiProvider(providerOverride?: string): AiProvider {
 
 export function getAiModel(provider: AiProvider): string {
   return MODEL_BY_PROVIDER[provider];
+}
+
+export function resolveAiTimeoutMs(): number {
+  const configured = Number.parseInt(process.env.AI_TIMEOUT_MS ?? "", 10);
+  if (!Number.isFinite(configured)) return DEFAULT_AI_TIMEOUT_MS;
+  return Math.min(MAX_AI_TIMEOUT_MS, Math.max(MIN_AI_TIMEOUT_MS, configured));
 }
 
 function requireApiKey(provider: AiProvider): string {
@@ -68,9 +77,10 @@ export async function chat({
 }: ChatOptions): Promise<string> {
   const provider = resolveAiProvider(providerOverride);
   const model = getAiModel(provider);
+  const timeout = resolveAiTimeoutMs();
 
   if (provider === "openai") {
-    const client = new OpenAI({ apiKey: requireApiKey(provider) });
+    const client = new OpenAI({ apiKey: requireApiKey(provider), timeout, maxRetries: 1 });
     const res = await client.chat.completions.create({
       model,
       max_tokens: maxTokens,
@@ -85,7 +95,7 @@ export async function chat({
   }
 
   // Default: Anthropic Claude
-  const client = new Anthropic({ apiKey: requireApiKey(provider) });
+  const client = new Anthropic({ apiKey: requireApiKey(provider), timeout, maxRetries: 1 });
   const anthropicMessages = messages.filter(
     (message): message is AnthropicChatMessage => message.role !== "system"
   );

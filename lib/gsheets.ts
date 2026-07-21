@@ -1,5 +1,6 @@
 import { createSign } from "crypto";
 import * as XLSX from "xlsx";
+import { fetchWithTimeout } from "@/lib/server-fetch";
 
 // Створення Google-таблиці через service account — БЕЗ Google Sheets API.
 // Будуємо .xlsx на сервері і вантажимо в Drive з автоконвертацією в Google Sheets
@@ -21,7 +22,7 @@ function loadServiceAccount(): ServiceAccount {
   const raw = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
   if (!raw) {
     throw new Error(
-      "GOOGLE_SERVICE_ACCOUNT_KEY не налаштовано — серверний експорт недоступний. Використай кнопку «У свій Google Drive» або налаштуй service account у Railway Variables."
+      "GOOGLE_SERVICE_ACCOUNT_KEY не налаштовано — серверний експорт недоступний. Використай кнопку «У свій Google Drive» або налаштуй service account у змінних середовища хостингу."
     );
   }
   return JSON.parse(Buffer.from(raw, "base64").toString("utf-8"));
@@ -54,7 +55,7 @@ function buildJwt(sa: ServiceAccount, scope: string): string {
 }
 
 async function getAccessToken(sa: ServiceAccount): Promise<string> {
-  const res = await fetch("https://oauth2.googleapis.com/token", {
+  const res = await fetchWithTimeout("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
@@ -80,7 +81,7 @@ function translateDriveError(text: string, sa: ServiceAccount, folderId: string 
     return `У Google Cloud проєкті не ввімкнено Google Drive API. Відкрий console.cloud.google.com → APIs & Services → Library → Google Drive API → Enable. (${sa.client_email})`;
   }
   if (folderId && /(notFound|File not found)/i.test(text)) {
-    return `Папку для експорту (${folderId}) не знайдено або вона не розшарена на сервіс-акаунт. Відкрий папку в Google Drive → Поділитися → додай ${sa.client_email} з правом «Редактор». Після зміни змінної в Railway потрібен redeploy.`;
+    return `Папку для експорту (${folderId}) не знайдено або вона не розшарена на сервіс-акаунт. Відкрий папку в Google Drive → Поділитися → додай ${sa.client_email} з правом «Редактор». Після зміни змінної середовища потрібен redeploy.`;
   }
   if (/storageQuota|Service Accounts.*(storage|quota)|cannotAddParent|ownership/i.test(text)) {
     return `Google не дозволяє сервіс-акаунту володіти файлами (квота сховища). Рішення: використай кнопку «У свій Google Drive» (без налаштувань), або створи папку в Shared Drive і розшар її на ${sa.client_email}.`;
@@ -143,7 +144,7 @@ export async function createSpreadsheet(
     Buffer.from(`\r\n--${boundary}--`),
   ]);
 
-  const uploadRes = await fetch(
+  const uploadRes = await fetchWithTimeout(
     "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true",
     {
       method: "POST",
@@ -164,7 +165,7 @@ export async function createSpreadsheet(
   let sharedWith: string | null = null;
   if (!folderId) {
     const share = async (perm: Record<string, string>) => {
-      const res = await fetch(
+      const res = await fetchWithTimeout(
         `https://www.googleapis.com/drive/v3/files/${fileId}/permissions?sendNotificationEmail=false&supportsAllDrives=true`,
         {
           method: "POST",

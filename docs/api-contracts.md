@@ -39,7 +39,7 @@ Validation errors include `details` with field-level messages.
 | `/api/calendar/events/:id` | `PATCH` | at least one of `type` or `label` |
 | `/api/agents/reordering/simulate` | `POST` | `brandId`, positive `qtyMultiplier`, optional dates |
 | `/api/agents/repricing/simulate` | `POST` | `brandId`, discount/duration bounds, optional dates |
-| `/api/planner/catalogs/upload` | `POST` | non-empty file up to 10 MB and tenant-owned `brandId` |
+| `/api/planner/catalogs/upload` | `POST` | non-empty file up to 4 MB, no more than 5,000 rows, and tenant-owned `brandId` |
 
 ## Implementation Notes
 

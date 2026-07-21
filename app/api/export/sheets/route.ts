@@ -4,6 +4,9 @@ import { createSpreadsheet } from "@/lib/gsheets";
 import { requireApiUser } from "@/lib/server-auth";
 import { isRecord, parseJsonBody, serverError, stringField, validationError } from "@/lib/api-contracts";
 
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
 // Універсальний експорт 2D-масиву в нову Google-таблицю.
 
 export async function POST(req: NextRequest) {

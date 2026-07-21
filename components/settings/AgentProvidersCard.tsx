@@ -200,7 +200,7 @@ export default function AgentProvidersCard() {
       <p className="text-[11px] font-mono text-[var(--subtle)] pt-2">
         Вибір зберігається в браузері. Для роботи потрібні API ключі:{" "}
         <span className="text-[var(--muted)]">ANTHROPIC_API_KEY</span> и{" "}
-        <span className="text-[var(--muted)]">OPENAI_API_KEY</span> в Railway Variables.
+        <span className="text-[var(--muted)]">OPENAI_API_KEY</span> у змінних середовища хостингу.
       </p>
     </div>
   );

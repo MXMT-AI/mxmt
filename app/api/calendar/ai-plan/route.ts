@@ -6,6 +6,9 @@ import type { SkuFlag } from "@/lib/analyst-types";
 import { requireApiUser } from "@/lib/server-auth";
 import { parseAgentJson } from "@/lib/agent-output";
 
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
 function getISOWeek(d: Date): number {
   const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
   const day = date.getUTCDay() || 7;

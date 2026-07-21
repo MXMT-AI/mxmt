@@ -7,6 +7,9 @@ import { serverError } from "@/lib/api-contracts";
 import { parseAgentJson } from "@/lib/agent-output";
 import { startAgentRun } from "@/lib/agent-runs";
 
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
 const SYSTEM_PROMPT = `Ты аналитик каналов продаж в fashion retail.
 
 Получаешь готовые метрики по каналам (уже посчитаны в базе).
