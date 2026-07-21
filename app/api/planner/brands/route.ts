@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireApiUser } from "@/lib/server-auth";
-import { isRecord, numberField, parseJsonBody, stringField, validationError } from "@/lib/api-contracts";
+import { apiError, isRecord, numberField, parseJsonBody, stringField, validationError } from "@/lib/api-contracts";
 
 export async function GET() {
   const { user, response } = await requireApiUser();
@@ -45,19 +46,36 @@ export async function POST(request: NextRequest) {
     return validationError(issues);
   }
 
-  const brand = await prisma.brand.create({
-    data: {
-      tenantId,
-      name: name!,
-      budget,
-      paymentDays,
-      currency,
-      country,
-      contact,
-      leadTimeDays,
-      moq,
-    },
+  const existing = await prisma.brand.findFirst({
+    where: { tenantId, name: { equals: name!, mode: "insensitive" } },
+    select: { id: true },
   });
 
-  return NextResponse.json(brand, { status: 201 });
+  if (existing) {
+    return apiError("Brand already exists", 409, "BRAND_ALREADY_EXISTS");
+  }
+
+  try {
+    const brand = await prisma.brand.create({
+      data: {
+        tenantId,
+        name: name!,
+        budget,
+        paymentDays,
+        currency,
+        country,
+        contact,
+        leadTimeDays,
+        moq,
+      },
+    });
+
+    return NextResponse.json(brand, { status: 201 });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return apiError("Brand already exists", 409, "BRAND_ALREADY_EXISTS");
+    }
+
+    throw error;
+  }
 }

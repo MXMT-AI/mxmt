@@ -1,6 +1,6 @@
 -- Remove duplicate brands per tenant before adding uniqueness.
 WITH ranked_brands AS (
-  SELECT id, ROW_NUMBER() OVER (PARTITION BY "tenantId", lower(name) ORDER BY "createdAt", id) AS rn
+  SELECT id, ROW_NUMBER() OVER (PARTITION BY "tenantId", lower(name) ORDER BY id) AS rn
   FROM "Brand"
 )
 UPDATE "Sku" s
@@ -13,7 +13,7 @@ JOIN ranked_brands canonical_rank ON canonical_rank.id = canonical.id AND canoni
 WHERE s."brandId" = duplicate.id AND duplicate.rn > 1;
 
 WITH ranked_brands AS (
-  SELECT id, ROW_NUMBER() OVER (PARTITION BY "tenantId", lower(name) ORDER BY "createdAt", id) AS rn
+  SELECT id, ROW_NUMBER() OVER (PARTITION BY "tenantId", lower(name) ORDER BY id) AS rn
   FROM "Brand"
 )
 UPDATE "CatalogUpload" c
@@ -26,7 +26,7 @@ JOIN ranked_brands canonical_rank ON canonical_rank.id = canonical.id AND canoni
 WHERE c."brandId" = duplicate.id AND duplicate.rn > 1;
 
 WITH ranked_brands AS (
-  SELECT id, ROW_NUMBER() OVER (PARTITION BY "tenantId", lower(name) ORDER BY "createdAt", id) AS rn
+  SELECT id, ROW_NUMBER() OVER (PARTITION BY "tenantId", lower(name) ORDER BY id) AS rn
   FROM "Brand"
 )
 UPDATE "CatalogItem" c
@@ -39,7 +39,7 @@ JOIN ranked_brands canonical_rank ON canonical_rank.id = canonical.id AND canoni
 WHERE c."brandId" = duplicate.id AND duplicate.rn > 1;
 
 WITH ranked_brands AS (
-  SELECT id, ROW_NUMBER() OVER (PARTITION BY "tenantId", lower(name) ORDER BY "createdAt", id) AS rn
+  SELECT id, ROW_NUMBER() OVER (PARTITION BY "tenantId", lower(name) ORDER BY id) AS rn
   FROM "Brand"
 )
 DELETE FROM "Brand" b
@@ -139,7 +139,7 @@ FROM (
 ) counts
 WHERE upload.id = counts."catalogId";
 
-CREATE UNIQUE INDEX "Brand_tenantId_name_key" ON "Brand"("tenantId", name);
+CREATE UNIQUE INDEX "Brand_tenantId_lower_name_key" ON "Brand"("tenantId", lower(name));
 CREATE UNIQUE INDEX "SalesRecord_tenantId_skuId_date_channel_key" ON "SalesRecord"("tenantId", "skuId", date, channel);
 CREATE UNIQUE INDEX "InventorySnapshot_tenantId_skuId_snapshotDate_key" ON "InventorySnapshot"("tenantId", "skuId", "snapshotDate");
 CREATE UNIQUE INDEX "CatalogUpload_tenantId_brandId_season_key" ON "CatalogUpload"("tenantId", "brandId", season);
