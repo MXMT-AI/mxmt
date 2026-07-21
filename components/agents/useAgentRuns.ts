@@ -24,7 +24,7 @@ export function useAgentRuns({
 
   const fetchStatus = useCallback(async () => {
     try {
-      const res = await apiFetch("/api/agents/inventory-analyst");
+      const res = await apiFetch("/api/agents/status");
       if (!res.ok) {
         setStatusError(`Не вдалося оновити статус агентів (${res.status})`);
         return;

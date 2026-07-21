@@ -5,7 +5,7 @@ import { chat } from "@/lib/ai";
 import { requireApiUser } from "@/lib/server-auth";
 import { serverError } from "@/lib/api-contracts";
 import { parseAgentJson } from "@/lib/agent-output";
-import { startAgentRun } from "@/lib/agent-runs";
+import { closeStaleAgentRuns, startAgentRun } from "@/lib/agent-runs";
 
 export const runtime = "nodejs";
 export const maxDuration = 180;
@@ -160,6 +160,8 @@ export async function GET() {
   const { user, response } = await requireApiUser();
   if (response) return response;
   const { tenantId } = user;
+
+  await closeStaleAgentRuns(tenantId);
 
   // Return last run for each agent type
   const agentTypes = [
