@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { RefreshCw, CheckCircle2, AlertCircle, Clock, ShieldCheck, AlertTriangle } from "lucide-react";
+import { apiFetch } from "@/lib/fetch";
 
 interface DriveSync {
   syncStatus: string;
@@ -32,7 +33,7 @@ export default function DriveSyncCard({
     setResult(null);
     setImportResult(null);
     try {
-      const res = await fetch("/api/sync/drive", { method: "POST" });
+      const res = await apiFetch("/api/sync/drive", { method: "POST" });
       const d = await res.json();
       if (!res.ok) {
         setErrMsg(d.error ?? "Unknown error");
@@ -54,10 +55,18 @@ export default function DriveSyncCard({
     }
   }
 
+  const visibleStatus = syncing
+    ? "running"
+    : result === "error" || result === "warn"
+      ? "error"
+      : result === "ok"
+        ? "success"
+        : lastSync?.syncStatus ?? "pending";
+
   const statusIcon = () => {
-    if (!lastSync) return <Clock size={14} className="text-[var(--subtle)]" />;
-    if (lastSync.syncStatus === "success") return <CheckCircle2 size={14} className="text-[#86efac]" />;
-    if (lastSync.syncStatus === "error") return <AlertCircle size={14} className="text-[#fca5a5]" />;
+    if (visibleStatus === "pending") return <Clock size={14} className="text-[var(--subtle)]" />;
+    if (visibleStatus === "success") return <CheckCircle2 size={14} className="text-[#86efac]" />;
+    if (visibleStatus === "error") return <AlertCircle size={14} className="text-[#fca5a5]" />;
     return <RefreshCw size={14} className="text-[#fbbf24] animate-spin" />;
   };
 
@@ -137,11 +146,11 @@ export default function DriveSyncCard({
               <div className="flex items-center gap-2 mb-2">
                 {statusIcon()}
                 <span className="text-sm text-[var(--text)] font-medium">
-                  {!lastSync
+                  {visibleStatus === "pending"
                     ? (uk ? "Не синхронізовано" : "Not synced")
-                    : lastSync.syncStatus === "success"
+                    : visibleStatus === "success"
                     ? (uk ? "Синхронізовано успішно" : "Synced successfully")
-                    : lastSync.syncStatus === "error"
+                    : visibleStatus === "error"
                     ? (uk ? "Помилка синхронізації" : "Sync failed")
                     : (uk ? "Синхронізація…" : "Syncing…")}
                 </span>

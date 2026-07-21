@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { apiFetch } from "@/lib/fetch";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, ChevronRight, ChevronLeft } from "lucide-react";
 import { useLang } from "@/components/LanguageProvider";
@@ -141,7 +142,7 @@ export default function OnboardingForm({
     setSaving(true);
     setError("");
     try {
-      const res = await fetch("/api/onboarding", {
+      const res = await apiFetch("/api/onboarding", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ businessModel: model, answers }),
