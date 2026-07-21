@@ -1,6 +1,7 @@
 import { createSign } from "node:crypto";
 import * as XLSX from "xlsx";
 import { prisma } from "@/lib/prisma";
+import { fetchWithTimeout } from "@/lib/server-fetch";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -8,6 +9,10 @@ interface ServiceAccount {
   client_email: string;
   private_key: string;
 }
+
+const MAX_DRIVE_FILE_BYTES = 15 * 1024 * 1024;
+const MAX_DRIVE_ROWS = 2_500;
+const DB_WRITE_CONCURRENCY = 10;
 
 export interface SyncResult {
   skus: number;
@@ -29,6 +34,19 @@ type SalesRecordInput = {
   isPromo?: boolean;
   returns?: number;
 };
+
+async function runInBatches<T>(items: T[], worker: (item: T) => Promise<void>): Promise<void> {
+  for (let index = 0; index < items.length; index += DB_WRITE_CONCURRENCY) {
+    await Promise.all(items.slice(index, index + DB_WRITE_CONCURRENCY).map(worker));
+  }
+}
+
+function ensureDriveFileSize(buffer: Buffer): Buffer {
+  if (buffer.byteLength > MAX_DRIVE_FILE_BYTES) {
+    throw new Error("Google Drive file exceeds the 15 MB serverless import limit");
+  }
+  return buffer;
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -196,7 +214,7 @@ function buildJwt(sa: ServiceAccount): string {
 
 async function getAccessToken(sa: ServiceAccount): Promise<string> {
   const jwt = buildJwt(sa);
-  const res = await fetch("https://oauth2.googleapis.com/token", {
+  const res = await fetchWithTimeout("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
@@ -210,12 +228,12 @@ async function getAccessToken(sa: ServiceAccount): Promise<string> {
 }
 
 async function downloadFile(fileId: string, accessToken: string): Promise<Buffer> {
-  const res = await fetch(
+  const res = await fetchWithTimeout(
     `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
     { headers: { Authorization: `Bearer ${accessToken}` } }
   );
   if (!res.ok) throw new Error(`Drive download failed: ${res.status} ${res.statusText}`);
-  return Buffer.from(await res.arrayBuffer());
+  return ensureDriveFileSize(Buffer.from(await res.arrayBuffer()));
 }
 
 async function downloadPublicFile(fileId: string): Promise<Buffer> {
@@ -226,11 +244,11 @@ async function downloadPublicFile(fileId: string): Promise<Buffer> {
   let lastError = "";
   for (const url of urls) {
     try {
-      const res = await fetch(url, { redirect: "follow", headers: { "User-Agent": "Mozilla/5.0" } });
+      const res = await fetchWithTimeout(url, { redirect: "follow", headers: { "User-Agent": "Mozilla/5.0" } });
       if (!res.ok) { lastError = `${res.status} (${url})`; continue; }
       const ct = res.headers.get("content-type") ?? "";
       if (ct.includes("text/html")) { lastError = `HTML response (${url}) — check file is publicly shared`; continue; }
-      const buf = Buffer.from(await res.arrayBuffer());
+      const buf = ensureDriveFileSize(Buffer.from(await res.arrayBuffer()));
       if (buf.byteLength < 100) { lastError = `Empty response (${url})`; continue; }
       return buf;
     } catch (e) {
@@ -285,19 +303,28 @@ async function importArticleReport(
   let skuCount = 0, invCount = 0, salesCount = 0;
   const brandsCreatedBefore = brandCache.size;
 
+  const brandNames = new Map<string, string>();
+  for (const row of rows) {
+    const brandName = str(row, "Brand", "brand", "Бренд", "UKR Brand", "manufacturer");
+    if (brandName) brandNames.set(brandName.toLowerCase().trim(), brandName);
+  }
+  for (const brandName of brandNames.values()) {
+    await findOrCreateBrand(tenantId, brandName, brandCache);
+  }
+
   // Collect catalog items per brand for batch catalog sync at the end
   const catalogBatch = new Map<string, Array<{
     sku: string; name: string; category: string;
     priceWholesale: number; priceRetail: number | null; stockAvail: number;
   }>>();
 
-  for (const row of rows) {
+  await runInBatches(rows, async (row) => {
     const skuCode = str(row, "Article", "article", "SKU", "sku", "Артикул", "ID", "id");
     const name = str(row, "Name", "name", "Назва", "Description", "description");
-    if (!skuCode || !name || skuCode === "#" || /^\d+$/.test(skuCode.trim())) continue;
+    if (!skuCode || !name || skuCode === "#" || /^\d+$/.test(skuCode.trim())) return;
 
     const brandName = str(row, "Brand", "brand", "Бренд", "UKR Brand", "manufacturer");
-    const brandId = brandName ? await findOrCreateBrand(tenantId, brandName, brandCache) : null;
+    const brandId = brandName ? brandCache.get(brandName.toLowerCase().trim()) ?? null : null;
 
     const category = str(row, "Category", "category", "Категорія", "Категория") || "Other";
     const priceRetail = num(row, "Retail Price", "retail price", "RRP", "rrp") ||
@@ -362,7 +389,7 @@ async function importArticleReport(
         stockAvail: stockQty,
       });
     }
-  }
+  });
 
   // ── Sync to CatalogItem so Drive-imported items appear in Assortment Planner ──
   for (const [brandId, items] of catalogBatch) {
@@ -426,33 +453,49 @@ async function importZavodApi(tenantId: string, rows: Row[]): Promise<number> {
     aggregates.set(key, aggregate);
   }
 
+  const aggregateList = [...aggregates.values()];
+  const skus = await prisma.sku.findMany({
+    where: { tenantId, sku: { in: [...new Set(aggregateList.map((item) => item.skuCode))] } },
+    select: { id: true, sku: true },
+  });
+  const skuMap = new Map(skus.map((sku) => [sku.sku, sku.id]));
+
   let count = 0;
-  for (const aggregate of aggregates.values()) {
-    const sku = await prisma.sku.findUnique({ where: { tenantId_sku: { tenantId, sku: aggregate.skuCode } } });
-    if (!sku) continue;
+  await runInBatches(aggregateList, async (aggregate) => {
+    const skuId = skuMap.get(aggregate.skuCode);
+    if (!skuId) return;
     await upsertSalesRecord({
       tenantId,
-      skuId: sku.id,
+      skuId,
       date: aggregate.date,
       qtySold: aggregate.qtySold,
       revenue: aggregate.revenue,
       channel: "online",
     });
     count++;
-  }
+  });
   return count;
 }
 
 // ─── Generic importers (fallback) ─────────────────────────────────────────────
 
 async function importSkus(tenantId: string, rows: Row[], brandCache: Map<string, string>): Promise<number> {
-  let count = 0;
+  const brandNames = new Map<string, string>();
   for (const row of rows) {
+    const brandName = str(row, "Brand", "brand", "Бренд", "manufacturer");
+    if (brandName) brandNames.set(brandName.toLowerCase().trim(), brandName);
+  }
+  for (const brandName of brandNames.values()) {
+    await findOrCreateBrand(tenantId, brandName, brandCache);
+  }
+
+  let count = 0;
+  await runInBatches(rows, async (row) => {
     const skuCode = str(row, "SKU", "sku", "Артикул", "артикул", "Article", "article", "Код", "код");
     const name = str(row, "Name", "name", "Назва", "назва", "Наименование", "Товар");
-    if (!skuCode || !name) continue;
+    if (!skuCode || !name) return;
     const brandName = str(row, "Brand", "brand", "Бренд", "manufacturer");
-    const brandId = brandName ? await findOrCreateBrand(tenantId, brandName, brandCache) : null;
+    const brandId = brandName ? brandCache.get(brandName.toLowerCase().trim()) ?? null : null;
     await prisma.sku.upsert({
       where: { tenantId_sku: { tenantId, sku: skuCode } },
       create: {
@@ -470,40 +513,52 @@ async function importSkus(tenantId: string, rows: Row[], brandCache: Map<string,
       },
     });
     count++;
-  }
+  });
   return count;
 }
 
 async function importInventory(tenantId: string, rows: Row[]): Promise<number> {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  const skuCodes = [...new Set(rows.map((row) => str(row, "SKU", "sku", "Артикул", "Article", "article", "Код")).filter(Boolean))];
+  const skus = await prisma.sku.findMany({
+    where: { tenantId, sku: { in: skuCodes } },
+    select: { id: true, sku: true },
+  });
+  const skuMap = new Map(skus.map((sku) => [sku.sku, sku.id]));
+
   let count = 0;
-  for (const row of rows) {
+  await runInBatches(rows, async (row) => {
     const skuCode = str(row, "SKU", "sku", "Артикул", "Article", "article", "Код");
     const qty = int(row, "Stock", "stock", "Залишок", "залишок", "QtyOnHand", "Stock units", "stock units", "Qty", "qty");
-    if (!skuCode) continue;
-    const sku = await prisma.sku.findUnique({ where: { tenantId_sku: { tenantId, sku: skuCode } } });
-    if (!sku) continue;
-    await upsertInventorySnapshot(tenantId, sku.id, today, qty);
+    const skuId = skuMap.get(skuCode);
+    if (!skuId) return;
+    await upsertInventorySnapshot(tenantId, skuId, today, qty);
     count++;
-  }
+  });
   return count;
 }
 
 async function importSales(tenantId: string, rows: Row[]): Promise<number> {
+  const skuCodes = [...new Set(rows.map((row) => str(row, "SKU", "sku", "Артикул", "Код", "product.sku")).filter(Boolean))];
+  const skus = await prisma.sku.findMany({
+    where: { tenantId, sku: { in: skuCodes } },
+    select: { id: true, sku: true },
+  });
+  const skuMap = new Map(skus.map((sku) => [sku.sku, sku.id]));
+
   let count = 0;
-  for (const row of rows) {
+  await runInBatches(rows, async (row) => {
     const skuCode = str(row, "SKU", "sku", "Артикул", "Код", "product.sku");
     const qty = int(row, "Qty", "qty", "QtySold", "Кількість", "product.amount", "Sales Last week");
     const revenue = num(row, "Revenue", "revenue", "Виручка", "paymentAmount", "ProductPaymentAmount");
-    if (!skuCode || qty === 0) continue;
+    if (!skuCode || qty === 0) return;
     const date = parseRowDate(row, "Date", "date", "Дата", "orderTime", "paymentDate");
-    if (!date) continue;
-    const sku = await prisma.sku.findUnique({ where: { tenantId_sku: { tenantId, sku: skuCode } } });
-    if (!sku) continue;
-    await upsertSalesRecord({ tenantId, skuId: sku.id, date, qtySold: qty, revenue, channel: "offline" });
+    const skuId = skuMap.get(skuCode);
+    if (!date || !skuId) return;
+    await upsertSalesRecord({ tenantId, skuId, date, qtySold: qty, revenue, channel: "offline" });
     count++;
-  }
+  });
   return count;
 }
 
@@ -535,9 +590,14 @@ export async function syncFromDrive(tenantId: string): Promise<SyncResult> {
   }
 
   const wb = XLSX.read(buffer, { type: "buffer", cellDates: true });
-  const brandCache = new Map<string, string>();
+  const existingBrands = await prisma.brand.findMany({
+    where: { tenantId },
+    select: { id: true, name: true },
+  });
+  const brandCache = new Map(existingBrands.map((brand) => [brand.name.toLowerCase().trim(), brand.id]));
 
   let totalSkus = 0, totalInventory = 0, totalSales = 0, totalBrands = 0;
+  let totalRows = 0;
   const sheets: SyncResult["sheets"] = [];
 
   for (const sheetName of wb.SheetNames) {
@@ -546,6 +606,10 @@ export async function syncFromDrive(tenantId: string): Promise<SyncResult> {
 
     // Use auto-header detection for all sheets
     const rows = parseWithAutoHeader(ws);
+    totalRows += rows.length;
+    if (totalRows > MAX_DRIVE_ROWS) {
+      throw new Error(`Google Drive workbook cannot exceed ${MAX_DRIVE_ROWS} total rows`);
+    }
     if (rows.length === 0) {
       sheets.push({ name: sheetName, rows: 0, imported: "пропущено", skipped: "порожній аркуш" });
       continue;

@@ -7,6 +7,9 @@ import { serverError } from "@/lib/api-contracts";
 import { parseAgentJson } from "@/lib/agent-output";
 import { startAgentRun } from "@/lib/agent-runs";
 
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
 const WOH_REORDER_THRESHOLD = 30; // trigger reorder analysis when WOH < 30 days
 
 const SYSTEM_PROMPT = `Ты стратег по закупкам в fashion retail.

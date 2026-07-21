@@ -4,6 +4,9 @@ import { syncFromDrive, isDriveConfigured, getDriveMode } from "@/lib/gdrive";
 import { requireApiUser } from "@/lib/server-auth";
 import { apiError, serverError } from "@/lib/api-contracts";
 
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
 export async function POST() {
   const { user, response } = await requireApiUser("ADMIN");
   if (response) return response;

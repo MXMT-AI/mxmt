@@ -7,6 +7,9 @@ import { serverError } from "@/lib/api-contracts";
 import { parseAgentJson } from "@/lib/agent-output";
 import { startAgentRun } from "@/lib/agent-runs";
 
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
 const SYSTEM_PROMPT = `Ты коммерческий маркетолог в fashion retail.
 
 Ты получаешь список брендов с решениями по уценке или дозаказу и создаёшь конкретные задачи для каждого маркетингового канала.

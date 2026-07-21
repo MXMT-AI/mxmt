@@ -70,8 +70,8 @@ export default function AIProviderCard({ lang }: { lang: "uk" | "en" }) {
 
       <p className="text-[11px] text-[var(--subtle)] mt-3 font-mono">
         {uk
-          ? "Вибір зберігається в браузері. API ключі налаштовуються в Railway Variables."
-          : "Choice is saved in the browser. API keys are configured in Railway Variables."}
+          ? "Вибір зберігається в браузері. API ключі налаштовуються у змінних середовища хостингу."
+          : "Choice is saved in the browser. API keys are configured in hosting environment variables."}
       </p>
     </div>
   );

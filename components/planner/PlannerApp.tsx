@@ -69,6 +69,8 @@ type Section = "dashboard" | "catalog" | "duplicates" | "cart" | "ai" | "brands"
 
 interface AiMessage { role: "user" | "assistant"; content: string }
 
+const MAX_CATALOG_UPLOAD_BYTES = 4 * 1024 * 1024;
+
 // ─── PlannerApp ───────────────────────────────────────────────────────────────
 
 export default function PlannerApp({
@@ -945,6 +947,10 @@ function UploadModal({ brands, onClose, onSuccess }: {
 
   async function handleFile(file: File) {
     if (!brandId) { setError("Select a brand first"); return; }
+    if (file.size === 0 || file.size > MAX_CATALOG_UPLOAD_BYTES) {
+      setError("Файл має бути не більшим за 4 МБ");
+      return;
+    }
     setLoading(true);
     setError("");
     try {
@@ -956,6 +962,8 @@ function UploadModal({ brands, onClose, onSuccess }: {
       const data = await res.json();
       if (!res.ok) { setError(data.error); return; }
       onSuccess(`✓ Uploaded ${data.itemCount} items`);
+    } catch {
+      setError("Не вдалося завантажити каталог. Спробуйте ще раз.");
     } finally {
       setLoading(false);
     }
@@ -999,6 +1007,7 @@ function UploadModal({ brands, onClose, onSuccess }: {
         <label className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-8 cursor-pointer transition-colors ${loading ? "opacity-50 cursor-not-allowed" : "border-white/[0.1] hover:border-[#00e5c4]/40"}`}>
           <Upload size={24} className="text-[var(--muted)] mb-2" />
           <span className="text-sm text-[var(--muted)]">{loading ? "Завантажуємо…" : "Клікніть або перетягніть .xlsx / .csv"}</span>
+          <span className="text-[10px] text-[var(--subtle)] mt-1">До 4 МБ і 5 000 рядків</span>
           <input type="file" accept=".xlsx,.xls,.csv" className="hidden" disabled={loading}
             onChange={(e) => { if (e.target.files?.[0]) handleFile(e.target.files[0]); }} />
         </label>
