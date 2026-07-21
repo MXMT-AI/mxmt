@@ -3,19 +3,22 @@ import { cookies } from "next/headers";
 import { chat, type ChatMessage } from "@/lib/ai";
 import { requireApiUser } from "@/lib/server-auth";
 import { isRecord, parseJsonBody, serverError, stringField, validationError } from "@/lib/api-contracts";
+import { createRequestContext, logError, requestLogContext, withRequestId } from "@/lib/observability";
 
 const MESSAGE_ROLES = new Set(["user", "assistant", "system"]);
 
 export async function POST(request: NextRequest) {
-  try {
-    const { response } = await requireApiUser("ANALYST");
-    if (response) return response;
+  const context = createRequestContext(request, "api.ai");
 
-    const { data, response: parseResponse } = await parseJsonBody(request);
-    if (parseResponse) return parseResponse;
+  try {
+    const { response } = await requireApiUser("ANALYST", context.requestId);
+    if (response) return withRequestId(response, context.requestId);
+
+    const { data, response: parseResponse } = await parseJsonBody(request, context.requestId);
+    if (parseResponse) return withRequestId(parseResponse, context.requestId);
 
     if (!isRecord(data)) {
-      return validationError(["body must be an object"]);
+      return withRequestId(validationError(["body must be an object"], context.requestId), context.requestId);
     }
 
     const issues: string[] = [];
@@ -47,7 +50,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (issues.length > 0) {
-      return validationError(issues);
+      return withRequestId(validationError(issues, context.requestId), context.requestId);
     }
 
     // Allow per-session override via cookie (set by Settings page)
@@ -56,9 +59,9 @@ export async function POST(request: NextRequest) {
 
     const content = await chat({ systemPrompt, messages, providerOverride });
 
-    return NextResponse.json({ content });
+    return withRequestId(NextResponse.json({ content, requestId: context.requestId }), context.requestId);
   } catch (err) {
-    console.error("[ai]", err);
-    return serverError("AI request failed");
+    logError("AI request failed", err, requestLogContext(context));
+    return withRequestId(serverError("AI request failed", context.requestId), context.requestId);
   }
 }

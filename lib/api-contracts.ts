@@ -4,6 +4,7 @@ export interface ApiErrorBody {
   error: string;
   code: string;
   details?: string[];
+  requestId?: string;
 }
 
 export type JsonParseResult<T> =
@@ -14,33 +15,38 @@ export function apiError(
   message: string,
   status = 400,
   code = "BAD_REQUEST",
-  details?: string[]
+  details?: string[],
+  requestId?: string
 ): NextResponse<ApiErrorBody> {
   return NextResponse.json(
     {
       error: message,
       code,
       ...(details && details.length > 0 ? { details } : {}),
+      ...(requestId ? { requestId } : {}),
     },
     { status }
   );
 }
 
-export function validationError(details: string[]): NextResponse<ApiErrorBody> {
-  return apiError("Invalid request body", 400, "VALIDATION_ERROR", details);
+export function validationError(details: string[], requestId?: string): NextResponse<ApiErrorBody> {
+  return apiError("Invalid request body", 400, "VALIDATION_ERROR", details, requestId);
 }
 
-export function serverError(message = "Internal server error"): NextResponse<ApiErrorBody> {
-  return apiError(message, 500, "INTERNAL_SERVER_ERROR");
+export function serverError(message = "Internal server error", requestId?: string): NextResponse<ApiErrorBody> {
+  return apiError(message, 500, "INTERNAL_SERVER_ERROR", undefined, requestId);
 }
 
-export async function parseJsonBody<T = unknown>(request: NextRequest): Promise<JsonParseResult<T>> {
+export async function parseJsonBody<T = unknown>(
+  request: NextRequest,
+  requestId?: string
+): Promise<JsonParseResult<T>> {
   try {
     return { data: await request.json() as T, response: null };
   } catch {
     return {
       data: null,
-      response: apiError("Malformed JSON body", 400, "INVALID_JSON"),
+      response: apiError("Malformed JSON body", 400, "INVALID_JSON", undefined, requestId),
     };
   }
 }

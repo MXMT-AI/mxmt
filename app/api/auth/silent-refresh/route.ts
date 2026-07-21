@@ -3,6 +3,7 @@ import { compare, hash } from "bcryptjs";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from "@/lib/auth";
+import { createRequestContext, logError, requestLogContext, withRequestId } from "@/lib/observability";
 
 function safeRedirectPath(value: string | null): string {
   if (!value || !value.startsWith("/") || value.startsWith("//")) {
@@ -14,6 +15,7 @@ function safeRedirectPath(value: string | null): string {
 // Called by middleware when access token is expired but refresh token exists.
 // Refreshes tokens, sets cookies, then redirects back to the original page.
 export async function GET(request: NextRequest) {
+  const context = createRequestContext(request, "api.auth.silent-refresh");
   const next = safeRedirectPath(request.nextUrl.searchParams.get("next"));
 
   try {
@@ -21,7 +23,7 @@ export async function GET(request: NextRequest) {
     const refreshToken = cookieStore.get("refresh_token")?.value;
 
     if (!refreshToken) {
-      return NextResponse.redirect(new URL("/login", request.url));
+      return withRequestId(NextResponse.redirect(new URL("/login", request.url)), context.requestId);
     }
 
     let payload;
@@ -31,17 +33,17 @@ export async function GET(request: NextRequest) {
       const res = NextResponse.redirect(new URL("/login", request.url));
       res.cookies.delete("access_token");
       res.cookies.delete("refresh_token");
-      return res;
+      return withRequestId(res, context.requestId);
     }
 
     const user = await prisma.user.findUnique({ where: { id: payload.sub } });
     if (!user?.refreshToken) {
-      return NextResponse.redirect(new URL("/login", request.url));
+      return withRequestId(NextResponse.redirect(new URL("/login", request.url)), context.requestId);
     }
 
     const valid = await compare(refreshToken, user.refreshToken);
     if (!valid) {
-      return NextResponse.redirect(new URL("/login", request.url));
+      return withRequestId(NextResponse.redirect(new URL("/login", request.url)), context.requestId);
     }
 
     const tokenPayload = { sub: user.id, tenantId: user.tenantId, role: user.role };
@@ -73,9 +75,9 @@ export async function GET(request: NextRequest) {
       maxAge: 15 * 60,
     });
 
-    return NextResponse.redirect(new URL(next, request.url));
+    return withRequestId(NextResponse.redirect(new URL(next, request.url)), context.requestId);
   } catch (err) {
-    console.error("[silent-refresh]", err);
-    return NextResponse.redirect(new URL("/login", request.url));
+    logError("Silent refresh failed", err, requestLogContext(context));
+    return withRequestId(NextResponse.redirect(new URL("/login", request.url)), context.requestId);
   }
 }

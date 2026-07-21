@@ -4,13 +4,16 @@ import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { signAccessToken, signRefreshToken } from "@/lib/auth";
 import { apiError, serverError } from "@/lib/api-contracts";
+import { createRequestContext, logError, requestLogContext, withRequestId } from "@/lib/observability";
 
 export async function POST(request: NextRequest) {
+  const context = createRequestContext(request, "api.auth.login");
+
   try {
     const { email, password } = await request.json();
 
     if (!email || !password) {
-      return apiError("Email and password are required", 400, "VALIDATION_ERROR");
+      return withRequestId(apiError("Email and password are required", 400, "VALIDATION_ERROR", undefined, context.requestId), context.requestId);
     }
 
     const user = await prisma.user.findUnique({
@@ -20,7 +23,7 @@ export async function POST(request: NextRequest) {
 
     // Constant-time check to prevent user enumeration
     if (!user || !(await compare(password, user.passwordHash))) {
-      return apiError("Invalid credentials", 401, "INVALID_CREDENTIALS");
+      return withRequestId(apiError("Invalid credentials", 401, "INVALID_CREDENTIALS", undefined, context.requestId), context.requestId);
     }
 
     const tokenPayload = {
@@ -56,12 +59,13 @@ export async function POST(request: NextRequest) {
       maxAge: 15 * 60,
     });
 
-    return NextResponse.json({
+    return withRequestId(NextResponse.json({
       user: { id: user.id, name: user.name, email: user.email, role: user.role },
       tenant: user.tenant,
-    });
+      requestId: context.requestId,
+    }), context.requestId);
   } catch (err) {
-    console.error("[login]", err);
-    return serverError();
+    logError("Login failed", err, requestLogContext(context));
+    return withRequestId(serverError("Login failed", context.requestId), context.requestId);
   }
 }
