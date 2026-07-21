@@ -161,7 +161,7 @@ export default function DriveSyncCard({
                   {new Date(lastSync.lastSyncAt).toLocaleString(uk ? "uk-UA" : "en-GB")}
                 </p>
               )}
-              {lastSync?.errorMessage && (
+              {result === null && lastSync?.errorMessage && (
                 <p className="text-xs text-[#fca5a5] mt-1 font-mono">{lastSync.errorMessage}</p>
               )}
               {result === "ok" && importResult && (
