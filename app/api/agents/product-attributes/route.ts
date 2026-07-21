@@ -8,7 +8,7 @@ import { parseAgentJson } from "@/lib/agent-output";
 import { startAgentRun } from "@/lib/agent-runs";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 180;
 
 const SYSTEM_PROMPT = `Ты аналитик ассортимента в fashion retail.
 

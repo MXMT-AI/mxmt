@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { getAgentProvider } from "@/components/settings/AgentProvidersCard";
 import { AGENT_ROUTES, COMING_SOON } from "@/components/agents/agents.config";
 import type { AgentRunInfo } from "@/components/agents/agents.types";
+import { apiFetch } from "@/lib/fetch";
+import { readApiJson } from "@/lib/api-response";
 
 export function useAgentRuns({
   analysisDate,
@@ -22,13 +24,13 @@ export function useAgentRuns({
 
   const fetchStatus = useCallback(async () => {
     try {
-      const res = await fetch("/api/agents/inventory-analyst");
+      const res = await apiFetch("/api/agents/inventory-analyst");
       if (!res.ok) {
         setStatusError(`Не вдалося оновити статус агентів (${res.status})`);
         return;
       }
 
-      const data = await res.json();
+      const data = await readApiJson<Record<string, AgentRunInfo>>(res);
       setRuns(data ?? {});
       setStatusError(null);
     } catch (error) {
@@ -79,7 +81,7 @@ export function useAgentRuns({
     }));
 
     try {
-      const res = await fetch(route, {
+      const res = await apiFetch(route, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -88,7 +90,7 @@ export function useAgentRuns({
           ...(hasDateFrom ? { dateFrom } : {}),
         }),
       });
-      const data = await res.json();
+      const data = await readApiJson<{ error?: string }>(res);
 
       if (!res.ok) {
         setRuns((prev) => ({
