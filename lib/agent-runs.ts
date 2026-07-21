@@ -9,6 +9,29 @@ interface StartAgentRunInput {
   input: Prisma.InputJsonObject;
 }
 
+export const AGENT_RUN_STALE_AFTER_MS = 5 * 60 * 1000;
+
+export function getStaleAgentRunCutoff(now = new Date()): Date {
+  return new Date(now.getTime() - AGENT_RUN_STALE_AFTER_MS);
+}
+
+export async function closeStaleAgentRuns(tenantId: string, agentType?: string): Promise<void> {
+  const finishedAt = new Date();
+  await prisma.agentRun.updateMany({
+    where: {
+      tenantId,
+      status: "running",
+      startedAt: { lt: getStaleAgentRunCutoff(finishedAt) },
+      ...(agentType ? { agentType } : {}),
+    },
+    data: {
+      status: "error",
+      errorMsg: "Agent run timed out before completion",
+      finishedAt,
+    },
+  });
+}
+
 export type StartAgentRunResult =
   | { run: AgentRun; response: null }
   | { run: null; response: NextResponse };
@@ -18,6 +41,8 @@ export async function startAgentRun({
   agentType,
   input,
 }: StartAgentRunInput): Promise<StartAgentRunResult> {
+  await closeStaleAgentRuns(tenantId, agentType);
+
   try {
     const run = await prisma.agentRun.create({
       data: {
