@@ -7,7 +7,7 @@ import { requireApiUser } from "@/lib/server-auth";
 import { parseAgentJson } from "@/lib/agent-output";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 180;
 
 function getISOWeek(d: Date): number {
   const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));

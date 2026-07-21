@@ -6,7 +6,7 @@ import { isRecord, parseJsonBody, serverError, stringField, validationError } fr
 import { createRequestContext, logError, requestLogContext, withRequestId } from "@/lib/observability";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 180;
 
 const MESSAGE_ROLES = new Set(["user", "assistant", "system"]);
 
