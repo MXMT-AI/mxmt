@@ -14,24 +14,24 @@ export async function POST(request: NextRequest) {
     const refreshToken = cookieStore.get("refresh_token")?.value;
 
     if (!refreshToken) {
-      return withRequestId(apiError("No refresh token", 401, "NO_REFRESH_TOKEN"), context.requestId);
+      return withRequestId(apiError("No refresh token", 401, "NO_REFRESH_TOKEN", undefined, context.requestId), context.requestId);
     }
 
     let payload;
     try {
       payload = await verifyRefreshToken(refreshToken);
     } catch {
-      return withRequestId(apiError("Invalid refresh token", 401, "INVALID_REFRESH_TOKEN"), context.requestId);
+      return withRequestId(apiError("Invalid refresh token", 401, "INVALID_REFRESH_TOKEN", undefined, context.requestId), context.requestId);
     }
 
     const user = await prisma.user.findUnique({ where: { id: payload.sub } });
     if (!user?.refreshToken) {
-      return withRequestId(apiError("Session revoked", 401, "SESSION_REVOKED"), context.requestId);
+      return withRequestId(apiError("Session revoked", 401, "SESSION_REVOKED", undefined, context.requestId), context.requestId);
     }
 
     const valid = await compare(refreshToken, user.refreshToken);
     if (!valid) {
-      return withRequestId(apiError("Refresh token mismatch", 401, "REFRESH_TOKEN_MISMATCH"), context.requestId);
+      return withRequestId(apiError("Refresh token mismatch", 401, "REFRESH_TOKEN_MISMATCH", undefined, context.requestId), context.requestId);
     }
 
     // Rotate both tokens

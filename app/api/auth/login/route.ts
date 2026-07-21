@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     const { email, password } = await request.json();
 
     if (!email || !password) {
-      return withRequestId(apiError("Email and password are required", 400, "VALIDATION_ERROR"), context.requestId);
+      return withRequestId(apiError("Email and password are required", 400, "VALIDATION_ERROR", undefined, context.requestId), context.requestId);
     }
 
     const user = await prisma.user.findUnique({
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
 
     // Constant-time check to prevent user enumeration
     if (!user || !(await compare(password, user.passwordHash))) {
-      return withRequestId(apiError("Invalid credentials", 401, "INVALID_CREDENTIALS"), context.requestId);
+      return withRequestId(apiError("Invalid credentials", 401, "INVALID_CREDENTIALS", undefined, context.requestId), context.requestId);
     }
 
     const tokenPayload = {

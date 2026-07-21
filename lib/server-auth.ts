@@ -87,7 +87,7 @@ export async function requireCurrentUser(requiredRole?: RequiredRole): Promise<C
   return user;
 }
 
-export async function requireApiUser(requiredRole?: RequiredRole): Promise<
+export async function requireApiUser(requiredRole?: RequiredRole, requestId?: string): Promise<
   | { user: CurrentUser; response: null }
   | { user: null; response: NextResponse }
 > {
@@ -97,13 +97,13 @@ export async function requireApiUser(requiredRole?: RequiredRole): Promise<
     if (error instanceof AuthError || error instanceof ForbiddenError) {
       return {
         user: null,
-        response: apiError(error.message, error.status, error.code),
+        response: apiError(error.message, error.status, error.code, undefined, requestId),
       };
     }
 
     return {
       user: null,
-      response: apiError("Authentication failed", 500, "AUTH_ERROR"),
+      response: apiError("Authentication failed", 500, "AUTH_ERROR", undefined, requestId),
     };
   }
 }

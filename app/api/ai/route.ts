@@ -11,14 +11,14 @@ export async function POST(request: NextRequest) {
   const context = createRequestContext(request, "api.ai");
 
   try {
-    const { response } = await requireApiUser("ANALYST");
+    const { response } = await requireApiUser("ANALYST", context.requestId);
     if (response) return withRequestId(response, context.requestId);
 
-    const { data, response: parseResponse } = await parseJsonBody(request);
+    const { data, response: parseResponse } = await parseJsonBody(request, context.requestId);
     if (parseResponse) return withRequestId(parseResponse, context.requestId);
 
     if (!isRecord(data)) {
-      return withRequestId(validationError(["body must be an object"]), context.requestId);
+      return withRequestId(validationError(["body must be an object"], context.requestId), context.requestId);
     }
 
     const issues: string[] = [];
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (issues.length > 0) {
-      return withRequestId(validationError(issues), context.requestId);
+      return withRequestId(validationError(issues, context.requestId), context.requestId);
     }
 
     // Allow per-session override via cookie (set by Settings page)

@@ -14,16 +14,16 @@ export async function POST(request: NextRequest) {
     const { businessName, name, email, password } = await request.json();
 
     if (!businessName || !name || !email || !password) {
-      return withRequestId(apiError("All fields are required", 400, "VALIDATION_ERROR"), context.requestId);
+      return withRequestId(apiError("All fields are required", 400, "VALIDATION_ERROR", undefined, context.requestId), context.requestId);
     }
 
     if (password.length < 8) {
-      return withRequestId(apiError("Password must be at least 8 characters", 400, "VALIDATION_ERROR"), context.requestId);
+      return withRequestId(apiError("Password must be at least 8 characters", 400, "VALIDATION_ERROR", undefined, context.requestId), context.requestId);
     }
 
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
-      return withRequestId(apiError("Email already registered", 409, "EMAIL_ALREADY_REGISTERED"), context.requestId);
+      return withRequestId(apiError("Email already registered", 409, "EMAIL_ALREADY_REGISTERED", undefined, context.requestId), context.requestId);
     }
 
     const slug =
