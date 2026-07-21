@@ -3,6 +3,7 @@ import * as XLSX from "xlsx";
 import { prisma } from "@/lib/prisma";
 import { fetchWithTimeout } from "@/lib/server-fetch";
 import { assertDriveRowLimit } from "@/lib/drive-limits";
+import { dedupeBySku } from "@/lib/drive-import-utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -399,6 +400,7 @@ async function importArticleReport(
   // ── Sync to CatalogItem so Drive-imported items appear in Assortment Planner ──
   for (const [brandId, items] of catalogBatch) {
     if (items.length === 0) continue;
+    const uniqueItems = dedupeBySku(items);
 
     // Find or create the "Drive" CatalogUpload for this brand+season
     const upload = await prisma.catalogUpload.upsert({
@@ -410,7 +412,7 @@ async function importArticleReport(
     // Replace all items for this upload (full refresh on each sync)
     await prisma.catalogItem.deleteMany({ where: { catalogId: upload.id } });
     await prisma.catalogItem.createMany({
-      data: items.map((item) => ({
+      data: uniqueItems.map((item) => ({
         tenantId,
         catalogId: upload!.id,
         brandId,
@@ -423,8 +425,9 @@ async function importArticleReport(
         minOrder: 1,
         leadTimeDays: 14,
       })),
+      skipDuplicates: true,
     });
-    await prisma.catalogUpload.update({ where: { id: upload.id }, data: { itemCount: items.length } });
+    await prisma.catalogUpload.update({ where: { id: upload.id }, data: { itemCount: uniqueItems.length } });
   }
 
   return { skus: skuCount, inventory: invCount, sales: salesCount, brands: brandCache.size - brandsCreatedBefore };
