@@ -89,7 +89,6 @@ model Brand {
   catalogUploads CatalogUpload[]
   catalogItems   CatalogItem[]
 
-  @@unique([tenantId, name])
   @@index([tenantId])
 }
 

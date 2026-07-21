@@ -139,7 +139,7 @@ FROM (
 ) counts
 WHERE upload.id = counts."catalogId";
 
-CREATE UNIQUE INDEX "Brand_tenantId_name_key" ON "Brand"("tenantId", name);
+CREATE UNIQUE INDEX "Brand_tenantId_lower_name_key" ON "Brand"("tenantId", lower(name));
 CREATE UNIQUE INDEX "SalesRecord_tenantId_skuId_date_channel_key" ON "SalesRecord"("tenantId", "skuId", date, channel);
 CREATE UNIQUE INDEX "InventorySnapshot_tenantId_skuId_snapshotDate_key" ON "InventorySnapshot"("tenantId", "skuId", "snapshotDate");
 CREATE UNIQUE INDEX "CatalogUpload_tenantId_brandId_season_key" ON "CatalogUpload"("tenantId", "brandId", season);
