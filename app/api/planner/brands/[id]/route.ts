@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireApiUser } from "@/lib/server-auth";
 import { apiError, isRecord, numberField, parseJsonBody, stringField, validationError } from "@/lib/api-contracts";
@@ -36,21 +37,42 @@ export async function PUT(
     return validationError(issues);
   }
 
-  const updated = await prisma.brand.update({
-    where: { id },
-    data: {
-      name,
-      budget,
-      paymentDays,
-      currency,
-      country,
-      contact,
-      leadTimeDays,
-      moq,
+  const existing = await prisma.brand.findFirst({
+    where: {
+      tenantId,
+      id: { not: id },
+      name: { equals: name, mode: "insensitive" },
     },
+    select: { id: true },
   });
 
-  return NextResponse.json(updated);
+  if (existing) {
+    return apiError("Brand already exists", 409, "BRAND_ALREADY_EXISTS");
+  }
+
+  try {
+    const updated = await prisma.brand.update({
+      where: { id },
+      data: {
+        name,
+        budget,
+        paymentDays,
+        currency,
+        country,
+        contact,
+        leadTimeDays,
+        moq,
+      },
+    });
+
+    return NextResponse.json(updated);
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return apiError("Brand already exists", 409, "BRAND_ALREADY_EXISTS");
+    }
+
+    throw error;
+  }
 }
 
 export async function DELETE(
