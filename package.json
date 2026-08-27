@@ -8,7 +8,6 @@
     "start": "next start",
     "test": "vitest run",
     "test:watch": "vitest",
-    "cron:data-import": "node scripts/trigger-data-import-cron.mjs",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",

@@ -846,7 +846,7 @@ await chat({ ..., providerOverride })
 ### 🚧 Наступні кроки
 
 **Автоматизація:**
-- [ ] Cron-задачі: запуск агентів 1-3 щодня о 08:00 (Railway cron або `/api/cron/daily`)
+- [ ] Cron-задачі: запуск агентів 1-3 щодня о 08:00 (Vercel Cron або `/api/cron/daily`)
 - [ ] AnalyticsConfig модель — пороги WOH/STR/GM per tenant (зараз хардкод)
 - [ ] Telegram webhook для CRITICAL брендів
 
@@ -861,5 +861,5 @@ await chat({ ..., providerOverride })
 
 ---
 
-*MXMT Analytics · Next.js 15 + PostgreSQL + Prisma + Claude Sonnet/Haiku + OpenAI · Railway*  
+*MXMT Analytics · Next.js 15 + Neon PostgreSQL + Prisma + Claude Sonnet/Haiku + OpenAI · Vercel*
 *Актуально станом на 2026-06-01*

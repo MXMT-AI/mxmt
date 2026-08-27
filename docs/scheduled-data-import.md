@@ -1,53 +1,60 @@
-# Scheduled data import
+# Scheduled data import on Vercel
 
 The production data pipeline runs every day during the `07:00–07:59`
-`Europe/Kyiv` window. The pipeline imports the Google workbook and calculates
-ARTICLE REPORT, BY BRAND, and BY CATEGORY for every tenant that already has a
-configured `DataSource`.
+`Europe/Kyiv` window. It imports the Google workbook and calculates ARTICLE
+REPORT, BY BRAND, and BY CATEGORY for every tenant that already has a
+configured `DataSource`. Prisma reads and writes these records in the Neon
+PostgreSQL database configured by `DATABASE_URL` and `DIRECT_URL`.
 
-Run the first import manually from **Data & Reports** before enabling the cron
-service. That first run creates the tenant's `DataSource`; later scheduled runs
-discover it automatically.
+Run the first import manually from **Data & Reports** before enabling the cron.
+That first run creates the tenant's `DataSource`; scheduled runs discover it
+automatically.
 
-## Why Railway calls the app hourly
+## DST-safe Vercel configuration
 
-Railway cron expressions use UTC. Kyiv changes between UTC+2 and UTC+3, so a
-single daily UTC expression would move by one hour after a daylight-saving
-transition. Configure Railway to invoke the application at minute zero of
-every hour. The protected endpoint converts the current instant to
-`Europe/Kyiv` and skips all calls outside the 07:00 local hour.
-
-The import and calculation layers are idempotent. A repeated authorized call
-does not duplicate source rows or report results.
-
-## Required variables
-
-Set the same values on the web service and the cron service:
+Vercel evaluates cron expressions in UTC. Kyiv changes between UTC+2 and UTC+3.
+The project therefore defines two once-daily jobs in `vercel.json`:
 
 ```text
-NEXT_PUBLIC_APP_URL=https://your-production-domain.example
-CRON_SECRET=<random secret generated with openssl rand -base64 32>
+04:00 UTC → 07:00 Kyiv during daylight-saving time
+05:00 UTC → 07:00 Kyiv during standard time
 ```
 
-The web service also needs the existing Google Drive and database variables.
+Both endpoints use the same local-time gate. The invocation that does not fall
+inside Kyiv's 07:00 hour returns HTTP 200 with `"skipped": true`. This design
+works with the Vercel Hobby once-per-day-per-job restriction as well as Pro and
+Enterprise plans.
 
-## Railway cron service
+Vercel Hobby may invoke a daily cron anywhere within the configured hour. Pro
+and Enterprise invoke it within the configured minute. Therefore exact 07:00
+minute precision requires a paid Vercel plan; on Hobby the run can start
+between 07:00 and 07:59 Kyiv.
 
-Create a second Railway service from this repository and configure:
+## Required Vercel environment variables
+
+Add these variables for the **Production** environment and redeploy:
 
 ```text
-Start Command: npm run cron:data-import
-Cron Schedule: 0 * * * *
+CRON_SECRET=<random value of at least 16 characters>
+DATABASE_URL=<Neon pooled connection string>
+DIRECT_URL=<Neon direct connection string>
+GOOGLE_DRIVE_FILE_ID=<source workbook ID>
+GOOGLE_SERVICE_ACCOUNT_KEY=<base64 service account JSON, when required>
 ```
 
-The command calls `GET /api/cron/data-import` with
-`Authorization: Bearer $CRON_SECRET`, prints the JSON result, and exits. A
-failed HTTP response produces a non-zero process exit code so the run is
-visible as failed in Railway.
+When `CRON_SECRET` is present, Vercel automatically sends it as
+`Authorization: Bearer <CRON_SECRET>` to cron endpoints. The application rejects
+missing or invalid credentials.
 
-Railway schedules cron services in UTC and expects each execution to exit when
-its work is complete. See the official
-[Railway Cron Jobs documentation](https://docs.railway.com/cron-jobs).
+The cron configuration becomes active after the production deployment. Verify
+it in **Vercel Project → Settings → Cron Jobs** and inspect each invocation via
+**View Logs**.
+
+Official references:
+
+- [Vercel Cron Jobs](https://vercel.com/docs/cron-jobs)
+- [Managing Cron Jobs](https://vercel.com/docs/cron-jobs/manage-cron-jobs)
+- [Cron usage and plan limits](https://vercel.com/docs/cron-jobs/usage-and-pricing)
 
 ## Manual verification
 
@@ -56,7 +63,7 @@ An authorized forced request bypasses only the local-time gate:
 ```bash
 curl --fail --request POST \
   --header "Authorization: Bearer $CRON_SECRET" \
-  "$NEXT_PUBLIC_APP_URL/api/cron/data-import?force=1"
+  "https://your-production-domain.example/api/cron/data-import?force=1"
 ```
 
 Expected successful response fields:
@@ -68,6 +75,3 @@ Expected successful response fields:
   "tenants": { "total": 1, "succeeded": 1, "failed": 0 }
 }
 ```
-
-Outside the Kyiv 07:00 hour, a normal request returns HTTP 200 with
-`"skipped": true`. Missing or invalid cron credentials return HTTP 503 or 401.
