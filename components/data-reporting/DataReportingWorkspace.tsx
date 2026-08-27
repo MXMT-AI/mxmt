@@ -479,20 +479,26 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
       </section>
 
       <section className="rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden">
-        <div className="overflow-x-auto border-b border-[var(--border)]">
-          <div role="tablist" aria-label={copy.title} className="flex min-w-max px-2 pt-2">
-            {TABLES.map((item) => (
-              <button key={item.key} id={`tab-${item.key}`} role="tab"
-                aria-selected={activeTab === item.key} aria-controls="data-table-panel"
-                type="button" onClick={() => selectTab(item.key)}
-                className={`px-4 py-3 border-b-2 text-xs font-mono font-semibold tracking-wide transition-colors ${
-                  activeTab === item.key
-                    ? "border-[#00e5c4] text-[#00e5c4]"
-                    : "border-transparent text-[var(--muted)] hover:text-[var(--text)]"
-                }`}>
-                {item.label}
-              </button>
-            ))}
+        <div className="overflow-x-auto border-b border-[var(--border)] bg-[var(--surface2)]">
+          <div role="tablist" aria-label={copy.title} className="flex min-w-max items-end gap-1 px-3 pt-3">
+            {TABLES.map((item) => {
+              const selected = activeTab === item.key;
+              return (
+                <button key={item.key} id={`tab-${item.key}`} role="tab"
+                  aria-selected={selected} aria-controls="data-table-panel"
+                  type="button" onClick={() => selectTab(item.key)}
+                  className={`relative rounded-t-xl border px-4 py-3 text-xs font-mono font-semibold tracking-wide outline-none transition-[color,background-color,border-color,box-shadow,transform] duration-200 focus-visible:z-20 focus-visible:ring-2 focus-visible:ring-[#00e5c4]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface2)] ${
+                    selected
+                      ? "z-10 -mb-px border-[#00e5c4]/80 border-b-[var(--row)] bg-[var(--row)] text-[#00e5c4] shadow-[0_0_18px_rgba(0,229,196,0.32),inset_0_1px_0_rgba(255,255,255,0.08)]"
+                      : "border-[var(--border)] bg-[var(--input-bg)] text-[var(--muted)] shadow-sm hover:-translate-y-0.5 hover:border-[#00e5c4]/45 hover:bg-[var(--input-hover)] hover:text-[var(--text)] hover:shadow-[0_0_10px_rgba(0,229,196,0.12)]"
+                  }`}>
+                  {selected && (
+                    <span aria-hidden="true" className="absolute inset-x-3 top-0 h-px bg-[#7dffec] shadow-[0_0_8px_2px_rgba(0,229,196,0.7)]" />
+                  )}
+                  {item.label}
+                </button>
+              );
+            })}
           </div>
         </div>
 
