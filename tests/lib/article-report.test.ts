@@ -141,6 +141,16 @@ describe("ARTICLE REPORT calculation", () => {
         count: vi.fn(async () => 0),
         deleteMany: vi.fn(async () => ({ count: 0 })),
       },
+      brandReportResult: {
+        createMany: vi.fn(async ({ data }: { data: unknown[] }) => ({ count: data.length })),
+        count: vi.fn(async () => 0),
+        deleteMany: vi.fn(async () => ({ count: 0 })),
+      },
+      categoryReportResult: {
+        createMany: vi.fn(async ({ data }: { data: unknown[] }) => ({ count: data.length })),
+        count: vi.fn(async () => 0),
+        deleteMany: vi.fn(async () => ({ count: 0 })),
+      },
     };
 
     const result = await calculateArticleReport(
@@ -156,8 +166,28 @@ describe("ARTICLE REPORT calculation", () => {
 
     expect(result.outcome).toBe("calculated");
     expect(result.rowCount).toBe(1);
+    expect(result.brandRowCount).toBe(1);
+    expect(result.categoryRowCount).toBe(1);
     expect(createMany).toHaveBeenCalledWith({
       data: [expect.objectContaining({ tenantId: "tenant-1", calculationRunId: "calc-1", productId: "SKU-1" })],
+    });
+    expect(db.brandReportResult.createMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({
+          tenantId: "tenant-1",
+          calculationRunId: "calc-1",
+          brand: "Brand",
+        }),
+      ],
+    });
+    expect(db.categoryReportResult.createMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({
+          tenantId: "tenant-1",
+          calculationRunId: "calc-1",
+          category: "Category",
+        }),
+      ],
     });
     expect(reportUpdate).toHaveBeenCalledWith({
       where: { id: "calc-1" },
@@ -172,6 +202,8 @@ describe("ARTICLE REPORT calculation", () => {
         findFirst: vi.fn(async () => ({ id: "calc-1", status: DataRunStatus.SUCCESS, warnings: [] })),
       },
       articleReportResult: { count: vi.fn(async () => 4050) },
+      brandReportResult: { count: vi.fn(async () => 250) },
+      categoryReportResult: { count: vi.fn(async () => 40) },
     };
     const result = await calculateArticleReport(
       { tenantId: "tenant-1", importRunId: "import-1", asOfDate: "2026-08-20" },
@@ -180,6 +212,8 @@ describe("ARTICLE REPORT calculation", () => {
 
     expect(result.outcome).toBe("cached");
     expect(result.rowCount).toBe(4050);
+    expect(result.brandRowCount).toBe(250);
+    expect(result.categoryRowCount).toBe(40);
   });
 
   it("marks a calculation as failed when result persistence is incomplete", async () => {
@@ -199,6 +233,8 @@ describe("ARTICLE REPORT calculation", () => {
           throw new Error("result insert failed");
         }),
       },
+      brandReportResult: { createMany: vi.fn() },
+      categoryReportResult: { createMany: vi.fn() },
     };
 
     await expect(

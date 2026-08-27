@@ -1,8 +1,9 @@
 import { DataRunStatus, Prisma, type PrismaClient } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { kyivBusinessDate } from "@/lib/data-import-workbook";
+import { calculateGroupedReportRows } from "@/lib/grouped-reports";
 
-export const ARTICLE_CALCULATION_VERSION = 1;
+export const ARTICLE_CALCULATION_VERSION = 2;
 const ARTICLE_RESULT_BATCH_SIZE = 500;
 const ONE = new Prisma.Decimal(1);
 const TWO = new Prisma.Decimal(2);
@@ -74,6 +75,8 @@ export interface ArticleCalculationResult {
   importRunId: string;
   status: DataRunStatus;
   rowCount: number;
+  brandRowCount: number;
+  categoryRowCount: number;
   period: ArticleReportPeriod;
   warnings: ArticleCalculationWarning[];
 }
@@ -107,6 +110,8 @@ type ArticleDatabaseClient = Pick<
   | "sourceSaleLine"
   | "reportCalculationRun"
   | "articleReportResult"
+  | "brandReportResult"
+  | "categoryReportResult"
 >;
 
 function decimal(value: DecimalInput): Prisma.Decimal {
@@ -303,12 +308,19 @@ async function cachedResult(
     throw new ArticleCalculationInProgressError();
   }
   if (run.status === DataRunStatus.FAILED) throw new Error("FAILED_CALCULATION_CAN_RETRY");
+  const [rowCount, brandRowCount, categoryRowCount] = await Promise.all([
+    db.articleReportResult.count({ where: { calculationRunId: run.id } }),
+    db.brandReportResult.count({ where: { calculationRunId: run.id } }),
+    db.categoryReportResult.count({ where: { calculationRunId: run.id } }),
+  ]);
   return {
     outcome: "cached",
     calculationRunId: run.id,
     importRunId,
     status: run.status,
-    rowCount: await db.articleReportResult.count({ where: { calculationRunId: run.id } }),
+    rowCount,
+    brandRowCount,
+    categoryRowCount,
     period,
     warnings: (run.warnings ?? []) as unknown as ArticleCalculationWarning[],
   };
@@ -404,7 +416,11 @@ export async function calculateArticleReport(
   const calculationRunId = run.id;
   try {
     if (resetFailedResults) {
-      await db.articleReportResult.deleteMany({ where: { calculationRunId, tenantId } });
+      await Promise.all([
+        db.articleReportResult.deleteMany({ where: { calculationRunId, tenantId } }),
+        db.brandReportResult.deleteMany({ where: { calculationRunId, tenantId } }),
+        db.categoryReportResult.deleteMany({ where: { calculationRunId, tenantId } }),
+      ]);
     }
     const [products, saleLines, sourceSnapshot] = await Promise.all([
       db.sourceProduct.findMany({ where: { tenantId, importRunId } }),
@@ -429,6 +445,8 @@ export async function calculateArticleReport(
     ]);
     const source = articleSourceMap(sourceSnapshot);
     const rows = calculateArticleReportRows(products, saleLines, period, source.values);
+    const brandRows = calculateGroupedReportRows(rows, "brand");
+    const categoryRows = calculateGroupedReportRows(rows, "category");
     const warnings = calculationWarnings(rows);
     if (source.duplicateIds.length > 0) {
       warnings.push({
@@ -442,6 +460,48 @@ export async function calculateArticleReport(
       const batch = rows.slice(index, index + ARTICLE_RESULT_BATCH_SIZE);
       await db.articleReportResult.createMany({
         data: batch.map((row) => ({ ...row, tenantId, calculationRunId })),
+      });
+    }
+    for (let index = 0; index < brandRows.length; index += ARTICLE_RESULT_BATCH_SIZE) {
+      const batch = brandRows.slice(index, index + ARTICLE_RESULT_BATCH_SIZE);
+      await db.brandReportResult.createMany({
+        data: batch.map((row) => ({
+          tenantId,
+          calculationRunId,
+          groupKey: row.groupKey,
+          brand: row.groupValue,
+          salesUah: row.salesUah,
+          salesUnits: row.salesUnits,
+          costOfSalesUah: row.costOfSalesUah,
+          gpUah: row.gpUah,
+          stockUnits: row.stockUnits,
+          stockUah: row.stockUah,
+          strPct: row.strPct,
+          salesSharePct: row.salesSharePct,
+          avgSalesLastTwoWeeks: row.avgSalesLastTwoWeeks,
+          woh: row.woh,
+        })),
+      });
+    }
+    for (let index = 0; index < categoryRows.length; index += ARTICLE_RESULT_BATCH_SIZE) {
+      const batch = categoryRows.slice(index, index + ARTICLE_RESULT_BATCH_SIZE);
+      await db.categoryReportResult.createMany({
+        data: batch.map((row) => ({
+          tenantId,
+          calculationRunId,
+          groupKey: row.groupKey,
+          category: row.groupValue,
+          salesUah: row.salesUah,
+          salesUnits: row.salesUnits,
+          costOfSalesUah: row.costOfSalesUah,
+          gpUah: row.gpUah,
+          stockUnits: row.stockUnits,
+          stockUah: row.stockUah,
+          strPct: row.strPct,
+          salesSharePct: row.salesSharePct,
+          avgSalesLastTwoWeeks: row.avgSalesLastTwoWeeks,
+          woh: row.woh,
+        })),
       });
     }
 
@@ -461,6 +521,8 @@ export async function calculateArticleReport(
       importRunId,
       status,
       rowCount: rows.length,
+      brandRowCount: brandRows.length,
+      categoryRowCount: categoryRows.length,
       period,
       warnings,
     };

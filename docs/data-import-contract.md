@@ -300,6 +300,9 @@ Changing formulas increments `calculationVersion`. Activating a new source
 import makes calculations from the previous source import historical rather
 than current.
 
+Current implementation version: `2` (`ARTICLE REPORT`, `BY BRAND`, and
+`BY CATEGORY` are persisted as one complete calculation result).
+
 ## 14. Reference examples
 
 ### 14.1 Product formulas
