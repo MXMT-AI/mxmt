@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  LayoutDashboard, Brain, Package, FileText, Settings, LogOut, Zap, CalendarDays, Bot,
+  LayoutDashboard, Brain, Package, FileText, Settings, LogOut, Zap, CalendarDays, Bot, Database,
 } from "lucide-react";
 import { useLang, LangToggle } from "@/components/LanguageProvider";
 import { ThemeToggle } from "@/components/ThemeProvider";
@@ -19,6 +19,7 @@ export default function Sidebar({ tenantName, userRole }: { tenantName: string; 
     { href: "/calendar",   label: t.nav_calendar,   icon: CalendarDays },
     { href: "/analyst",    label: t.nav_analyst,    icon: Brain },
     { href: "/assortment", label: t.nav_assortment, icon: Package },
+    { href: "/data-reporting", label: t.nav_data_reporting, icon: Database },
     { href: "/invoices",   label: t.nav_invoices,   icon: FileText },
     { href: "/settings",   label: t.nav_settings,   icon: Settings },
   ];
