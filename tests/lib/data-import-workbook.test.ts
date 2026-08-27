@@ -140,6 +140,31 @@ describe("raw workbook parser", () => {
     );
   });
 
+  it("rejects a required sheet containing only formatted blank rows", () => {
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(
+      wb,
+      worksheet([["ID", "Name", "Price", "Vendor Price", "Stock Qty"], []]),
+      "Product YML 2.0"
+    );
+    const products = wb.Sheets["Product YML 2.0"];
+    products["!ref"] = "A1:E10";
+    XLSX.utils.book_append_sheet(
+      wb,
+      worksheet([
+        ["id", "paymentDate", "statusId", "product.amount", "product.sku", "ProductPaymentAmount", "ProductcostPriceAmount"],
+        ["line", "2026-08-01", 5, 1, "SKU", 100, 50],
+      ]),
+      "ZAVOD_API"
+    );
+
+    expect(() =>
+      parseRawWorkbook(XLSX.write(wb, { type: "buffer", bookType: "xlsx" }) as Buffer)
+    ).toThrowError(
+      expect.objectContaining<Partial<RawWorkbookValidationError>>({ code: "EMPTY_REQUIRED_SHEET" })
+    );
+  });
+
   it("uses the Kyiv local calendar date across a UTC day boundary", () => {
     expect(kyivBusinessDate(new Date("2026-01-01T22:30:00.000Z")).toISOString()).toBe(
       "2026-01-02T00:00:00.000Z"
@@ -150,5 +175,30 @@ describe("raw workbook parser", () => {
     expect(serializeCell(Number.NaN)).toBeNull();
     expect(serializeCell(undefined)).toBe("");
     expect(serializeCell({ value: 1 })).toBe("[object Object]");
+  });
+
+  it("preserves the displayed representation of numeric identifiers", () => {
+    const wb = XLSX.utils.book_new();
+    const products = worksheet([
+      ["ID", "Name", "Price", "Vendor Price", "Stock Qty"],
+      [12, "Numeric ID", 100, 50, 1],
+    ]);
+    products.A2.z = "0000";
+    XLSX.utils.book_append_sheet(wb, products, "Product YML 2.0");
+    XLSX.utils.book_append_sheet(
+      wb,
+      worksheet([
+        ["id", "paymentDate", "statusId", "product.amount", "product.sku", "ProductPaymentAmount", "ProductcostPriceAmount"],
+        [1, "2026-08-01", 5, 1, 12, 100, 50],
+      ]),
+      "ZAVOD_API"
+    );
+    const parsed = parseRawWorkbook(
+      XLSX.write(wb, { type: "buffer", bookType: "xlsx" }) as Buffer
+    );
+
+    expect(parsed.sheets[0].rows[0].data.col_a).toBe("0012");
+    expect(parsed.sheets[1].rows[0].data.col_a).toBe("1");
+    expect(parsed.sheets[1].rows[0].data.col_e).toBe("12");
   });
 });

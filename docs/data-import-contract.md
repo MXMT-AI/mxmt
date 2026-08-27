@@ -42,6 +42,8 @@ be imported automatically until this contract and the allowlist are updated.
 
 The raw snapshot preserves source row numbers, blank values, original display
 headers, and values that are not part of the calculated reporting model.
+Completely blank physical rows caused by worksheet formatting remain in raw
+snapshots but do not create typed products, transactions, or data issues.
 
 ## 3. Relevant source fields
 
@@ -75,7 +77,7 @@ All 30 columns are stored in the raw layer. The calculation engine uses:
 
 | Source field | Typed meaning |
 | --- | --- |
-| `id` | Source order-line identifier |
+| `id` | Source record identifier; currently repeats across product lines of one order |
 | `orderId` | Source order identifier |
 | `orderTime` | Order creation date/time |
 | `paymentDate` | Contractual sales date |
@@ -155,9 +157,11 @@ For a return, quantity and amounts are normalized to negative absolute values.
 This rule prevents a source sign convention from applying the return sign
 twice.
 
-Duplicate source rows are detected by source import plus source line identity.
-When `id` is present it is the preferred line identity. A deterministic hash of
-the full raw row is used only when `id` is missing.
+Duplicate source rows are detected inside one source import. When `id` is
+unique at line level it is the preferred identity. The observed ZAVOD export
+uses the same `id` for multiple product lines of one order; in that layout a
+deterministic hash of the full raw row is used so legitimate multi-product
+orders are not discarded as duplicates.
 
 ## 6. Time and report period rules
 

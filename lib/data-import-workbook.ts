@@ -11,6 +11,7 @@ export const RAW_SHEET_CONFIGS = [
     headerRow: 1,
     required: true,
     requiredHeaders: ["ID", "Name", "Price", "Vendor Price", "Stock Qty"],
+    textHeaders: ["ID", "Article", "Vendor Code", "Barcode"],
   },
   {
     key: "zavod_api",
@@ -26,6 +27,16 @@ export const RAW_SHEET_CONFIGS = [
       "ProductPaymentAmount",
       "ProductcostPriceAmount",
     ],
+    textHeaders: [
+      "id",
+      "orderId",
+      "externalId",
+      "product.barcode",
+      "product.parameter",
+      "product.productId",
+      "product.sku",
+      "product.stockId",
+    ],
   },
   {
     key: "article_report_source",
@@ -33,6 +44,7 @@ export const RAW_SHEET_CONFIGS = [
     headerRow: 5,
     required: false,
     requiredHeaders: [],
+    textHeaders: ["ID", "Article"],
   },
   {
     key: "by_brand_source",
@@ -40,6 +52,7 @@ export const RAW_SHEET_CONFIGS = [
     headerRow: 1,
     required: false,
     requiredHeaders: [],
+    textHeaders: [],
   },
   {
     key: "by_category_source",
@@ -47,6 +60,7 @@ export const RAW_SHEET_CONFIGS = [
     headerRow: 1,
     required: false,
     requiredHeaders: [],
+    textHeaders: [],
   },
 ] as const;
 
@@ -163,7 +177,11 @@ function parseSheet(
     const searchValues: string[] = [];
 
     for (const column of columns) {
-      const value = serializeCell(sourceRow[column.sourceIndex]);
+      const sourceValue = sourceRow[column.sourceIndex];
+      const cell = ws[XLSX.utils.encode_cell({ r: rowIndex, c: column.sourceIndex })];
+      const value = (config.textHeaders as readonly string[]).includes(column.label)
+        ? serializeTextCell(cell, sourceValue)
+        : serializeCell(sourceValue);
       data[column.key] = value;
       if (value !== "" && value !== null) searchValues.push(String(value));
     }
@@ -177,7 +195,10 @@ function parseSheet(
     });
   }
 
-  if (config.required && rows.length === 0) {
+  const hasData = rows.some((row) =>
+    Object.values(row.data).some((value) => value !== "" && value !== null)
+  );
+  if (config.required && !hasData) {
     throw new RawWorkbookValidationError(
       "EMPTY_REQUIRED_SHEET",
       `Required worksheet "${config.name}" has no data rows`
@@ -198,6 +219,13 @@ function parseSheet(
     ),
     missing: false,
   };
+}
+
+function serializeTextCell(cell: XLSX.CellObject | undefined, fallback: unknown): JsonCellValue {
+  if (fallback === undefined || fallback === null || fallback === "") return "";
+  if (typeof fallback === "string") return fallback;
+  if (cell?.w !== undefined && cell.w !== "") return cell.w;
+  return String(fallback);
 }
 
 function missingOptionalSheet(config: (typeof RAW_SHEET_CONFIGS)[number]): ParsedRawSheet {

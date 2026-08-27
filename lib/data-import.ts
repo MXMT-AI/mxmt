@@ -15,12 +15,26 @@ import {
   sha256,
   type ParsedRawWorkbook,
 } from "@/lib/data-import-workbook";
+import {
+  normalizeRawWorkbook,
+  type NormalizationIssue,
+  type NormalizedWorkbook,
+} from "@/lib/data-normalization";
 
 const RAW_ROW_BATCH_SIZE = 750;
+const TYPED_ROW_BATCH_SIZE = 500;
+export const DATA_IMPORT_PIPELINE_VERSION = 2;
 
 type ImportDatabaseClient = Pick<
   PrismaClient,
-  "dataSource" | "dataImportRun" | "dataSheetSnapshot" | "dataSheetRow" | "importIssue" | "$transaction"
+  | "dataSource"
+  | "dataImportRun"
+  | "dataSheetSnapshot"
+  | "dataSheetRow"
+  | "sourceProduct"
+  | "sourceSaleLine"
+  | "importIssue"
+  | "$transaction"
 >;
 
 export interface RawImportSheetResult {
@@ -47,6 +61,13 @@ export class RawImportInProgressError extends Error {
   constructor() {
     super("A raw data import is already running for this source");
     this.name = "RawImportInProgressError";
+  }
+}
+
+export class TypedProjectionValidationError extends Error {
+  constructor(readonly issueCount: number) {
+    super(`Typed projection has ${issueCount} blocking validation issue(s)`);
+    this.name = "TypedProjectionValidationError";
   }
 }
 
@@ -92,6 +113,56 @@ async function insertRawRows(
       })),
     });
   }
+}
+
+async function insertInBatches<T>(
+  values: T[],
+  insert: (batch: T[]) => Promise<unknown>
+): Promise<void> {
+  for (let index = 0; index < values.length; index += TYPED_ROW_BATCH_SIZE) {
+    await insert(values.slice(index, index + TYPED_ROW_BATCH_SIZE));
+  }
+}
+
+async function insertIssues(
+  db: ImportDatabaseClient,
+  tenantId: string,
+  importRunId: string,
+  issues: NormalizationIssue[]
+): Promise<void> {
+  await insertInBatches(issues, (batch) =>
+    db.importIssue.createMany({
+      data: batch.map((item) => ({
+        tenantId,
+        importRunId,
+        sheetKey: item.sheetKey,
+        rowNumber: item.rowNumber,
+        code: item.code,
+        severity: item.severity,
+        message: item.message,
+        context: asJson(item.context),
+      })),
+    })
+  );
+}
+
+async function insertTypedProjection(
+  db: ImportDatabaseClient,
+  tenantId: string,
+  importRunId: string,
+  normalized: NormalizedWorkbook
+): Promise<void> {
+  await insertInBatches(normalized.products, (batch) =>
+    db.sourceProduct.createMany({
+      data: batch.map((product) => ({ ...product, tenantId, importRunId, sourceValues: asJson(product.sourceValues) })),
+    })
+  );
+  await insertInBatches(normalized.saleLines, (batch) =>
+    db.sourceSaleLine.createMany({
+      data: batch.map((saleLine) => ({ ...saleLine, tenantId, importRunId, sourceValues: asJson(saleLine.sourceValues) })),
+    })
+  );
+  await insertIssues(db, tenantId, importRunId, normalized.issues);
 }
 
 export async function importRawWorkbookBuffer(
@@ -142,11 +213,12 @@ export async function importRawWorkbookBuffer(
     (activeRun.status === DataRunStatus.SUCCESS || activeRun.status === DataRunStatus.WARNING)
   ) {
     const stats = (activeRun.stats ?? {}) as {
+      pipelineVersion?: number;
       totalRows?: number;
       sheets?: RawImportSheetResult[];
       warnings?: string[];
     };
-    return {
+    if (stats.pipelineVersion === DATA_IMPORT_PIPELINE_VERSION) return {
       outcome: "unchanged",
       sourceId: source.id,
       importRunId: activeRun.id,
@@ -178,6 +250,7 @@ export async function importRawWorkbookBuffer(
     importRunId = importRun.id;
 
     const parsed = parseRawWorkbook(buffer);
+    const normalized = normalizeRawWorkbook(parsed);
     const results = sheetResults(parsed);
 
     for (const sheet of parsed.sheets) {
@@ -197,6 +270,13 @@ export async function importRawWorkbookBuffer(
       await insertRawRows(db, tenantId, snapshot.id, sheet.rows);
     }
 
+    if (normalized.blockingIssues.length > 0) {
+      await insertIssues(db, tenantId, importRun.id, normalized.blockingIssues);
+      throw new TypedProjectionValidationError(normalized.blockingIssues.length);
+    }
+
+    await insertTypedProjection(db, tenantId, importRun.id, normalized);
+
     const missingSheets = parsed.sheets.filter((sheet) => sheet.missing);
     if (missingSheets.length > 0) {
       await db.importIssue.createMany({
@@ -212,11 +292,31 @@ export async function importRawWorkbookBuffer(
       });
     }
 
-    const status = parsed.warnings.length > 0 ? DataRunStatus.WARNING : DataRunStatus.SUCCESS;
+    const warningIssueCount = normalized.issues.filter((issue) => issue.severity === "WARNING").length;
+    const status = parsed.warnings.length > 0 || warningIssueCount > 0
+      ? DataRunStatus.WARNING
+      : DataRunStatus.SUCCESS;
     const stats = {
+      pipelineVersion: DATA_IMPORT_PIPELINE_VERSION,
       totalRows: parsed.totalRows,
       sheets: results,
       warnings: parsed.warnings,
+      products: normalized.products.length,
+      saleLines: normalized.saleLines.length,
+      includedFinalSaleLines: normalized.saleLines.filter(
+        (saleLine) => saleLine.normalizedSales !== null
+      ).length,
+      matchedSaleLines: normalized.saleLines.filter(
+        (saleLine) => saleLine.matchStatus === "MATCHED"
+      ).length,
+      unmatchedSaleLines: normalized.saleLines.filter(
+        (saleLine) => saleLine.matchStatus === "UNMATCHED"
+      ).length,
+      ambiguousSaleLines: normalized.saleLines.filter(
+        (saleLine) => saleLine.matchStatus === "AMBIGUOUS"
+      ).length,
+      issues: normalized.issues.length,
+      warningIssues: warningIssueCount,
     };
 
     await db.$transaction([
