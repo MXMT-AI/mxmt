@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    {
+      "path": "/api/cron/data-import/utc-04",
+      "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/data-import/utc-05",
+      "schedule": "0 5 * * *"
+    }
+  ]
+}

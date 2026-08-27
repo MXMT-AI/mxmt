@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { apiError, parseJsonBody, serverError, validationError } from "@/lib/api-contracts";
+import {
+  apiError,
+  parseJsonBody,
+  parseOptionalJsonBody,
+  serverError,
+  validationError,
+} from "@/lib/api-contracts";
 
 async function json(response: Response) {
   return response.json() as Promise<Record<string, unknown>>;
@@ -59,6 +65,24 @@ describe("parseJsonBody", () => {
     expect(result.data).toBeNull();
     expect(result.response?.status).toBe(400);
     await expect(json(result.response as Response)).resolves.toEqual({
+      error: "Malformed JSON body",
+      code: "INVALID_JSON",
+    });
+  });
+});
+
+describe("parseOptionalJsonBody", () => {
+  it("uses an empty object when an optional request body is absent", async () => {
+    const result = await parseOptionalJsonBody({ text: async () => "" } as never);
+    expect(result.data).toEqual({});
+    expect(result.response).toBeNull();
+  });
+
+  it("still rejects malformed non-empty JSON", async () => {
+    const result = await parseOptionalJsonBody({ text: async () => "{" } as never);
+    expect(result.data).toBeNull();
+    expect(result.response?.status).toBe(400);
+    expect(await result.response?.json()).toEqual({
       error: "Malformed JSON body",
       code: "INVALID_JSON",
     });

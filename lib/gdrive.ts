@@ -52,7 +52,7 @@ function ensureDriveFileSize(buffer: Buffer): Buffer {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function extractFileId(raw: string): string {
+export function extractDriveFileId(raw: string): string {
   const patterns = [
     /\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/,
     /\/file\/d\/([a-zA-Z0-9_-]+)/,
@@ -582,20 +582,26 @@ export function getDriveMode(): "service_account" | "public_link" | "none" {
   return "public_link";
 }
 
-export async function syncFromDrive(tenantId: string): Promise<SyncResult> {
+export async function downloadConfiguredDriveWorkbook(): Promise<{
+  fileId: string;
+  buffer: Buffer;
+}> {
   const rawId = process.env.GOOGLE_DRIVE_FILE_ID;
   if (!rawId) throw new Error("GOOGLE_DRIVE_FILE_ID not set");
-  const fileId = extractFileId(rawId);
+  const fileId = extractDriveFileId(rawId);
 
-  let buffer: Buffer;
   if (process.env.GOOGLE_SERVICE_ACCOUNT_KEY) {
     const sa: ServiceAccount = JSON.parse(
       Buffer.from(process.env.GOOGLE_SERVICE_ACCOUNT_KEY, "base64").toString("utf-8")
     );
-    buffer = await downloadFile(fileId, await getAccessToken(sa));
-  } else {
-    buffer = await downloadPublicFile(fileId);
+    return { fileId, buffer: await downloadFile(fileId, await getAccessToken(sa)) };
   }
+
+  return { fileId, buffer: await downloadPublicFile(fileId) };
+}
+
+export async function syncFromDrive(tenantId: string): Promise<SyncResult> {
+  const { buffer } = await downloadConfiguredDriveWorkbook();
 
   const wb = XLSX.read(buffer, { type: "buffer", cellDates: true });
   const existingBrands = await prisma.brand.findMany({
