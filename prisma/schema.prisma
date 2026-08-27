@@ -30,6 +30,18 @@ model Tenant {
   plannerCart        PlannerCart?
   marketingEvents    MarketingEvent[]
   agentRuns          AgentRun[]
+  dataSources        DataSource[]
+  dataImportRuns     DataImportRun[]
+  dataSheetSnapshots DataSheetSnapshot[]
+  dataSheetRows      DataSheetRow[]
+  sourceProducts     SourceProduct[]
+  sourceSaleLines    SourceSaleLine[]
+  importIssues       ImportIssue[]
+  reportRuns         ReportCalculationRun[]
+  articleResults     ArticleReportResult[]
+  brandResults       BrandReportResult[]
+  categoryResults    CategoryReportResult[]
+  tablePreferences   DataTablePreference[]
 }
 
 // ─── USER ─────────────────────────────────────────────────────────────────────
@@ -45,6 +57,9 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  tablePreferences DataTablePreference[]
+
+  @@unique([id, tenantId])
   @@index([tenantId])
 }
 
@@ -192,6 +207,341 @@ model GoogleDriveSync {
   createdAt    DateTime  @default(now())
 
   @@index([tenantId])
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SOURCE DATA IMPORTS AND CALCULATED REPORTS
+// ══════════════════════════════════════════════════════════════════════════════
+
+enum DataImportTrigger {
+  MANUAL
+  CRON
+}
+
+enum DataRunStatus {
+  PENDING
+  RUNNING
+  SUCCESS
+  WARNING
+  FAILED
+}
+
+enum DataIssueSeverity {
+  INFO
+  WARNING
+  ERROR
+}
+
+enum ProductMatchStatus {
+  PENDING
+  MATCHED
+  AMBIGUOUS
+  UNMATCHED
+}
+
+model DataSource {
+  id                String         @id @default(cuid())
+  tenantId          String
+  tenant            Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name              String         @default("ZAVOD Google Sheets")
+  driveFileId       String
+  timezone          String         @default("Europe/Kyiv")
+  allowedSheets     Json           @default("[]")
+  activeImportRunId String?        @unique
+  activeImportRun   DataImportRun? @relation("ActiveDataSourceImport", fields: [activeImportRunId], references: [id], onDelete: SetNull)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  importRuns DataImportRun[] @relation("DataSourceImports")
+
+  @@unique([id, tenantId])
+  @@unique([tenantId, driveFileId])
+  @@index([tenantId])
+}
+
+model DataImportRun {
+  id               String            @id @default(cuid())
+  tenantId         String
+  tenant           Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sourceId         String
+  source           DataSource        @relation("DataSourceImports", fields: [sourceId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  trigger          DataImportTrigger
+  status           DataRunStatus     @default(PENDING)
+  idempotencyKey   String
+  businessDate     DateTime          @db.Date
+  sourceChecksum   String?
+  sourceModifiedAt DateTime?
+  stats            Json              @default("{}")
+  errorMessage     String?
+  startedAt        DateTime          @default(now())
+  completedAt      DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  activeForSource DataSource?            @relation("ActiveDataSourceImport")
+  sheets          DataSheetSnapshot[]
+  products        SourceProduct[]
+  saleLines       SourceSaleLine[]
+  issues          ImportIssue[]
+  calculations    ReportCalculationRun[]
+
+  @@unique([id, tenantId])
+  @@unique([tenantId, idempotencyKey])
+  @@index([tenantId, status, startedAt])
+  @@index([sourceId, createdAt])
+}
+
+model DataSheetSnapshot {
+  id          String        @id @default(cuid())
+  tenantId    String
+  tenant      Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  importRunId String
+  importRun   DataImportRun @relation(fields: [importRunId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  sheetKey    String
+  sourceName  String
+  headerRow   Int
+  columns     Json          @default("[]")
+  rowCount    Int           @default(0)
+  checksum    String?
+  createdAt   DateTime      @default(now())
+
+  rows DataSheetRow[]
+
+  @@unique([id, tenantId])
+  @@unique([importRunId, sheetKey])
+  @@index([tenantId, sheetKey])
+}
+
+model DataSheetRow {
+  id         String            @id @default(cuid())
+  tenantId   String
+  tenant     Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  snapshotId String
+  snapshot   DataSheetSnapshot @relation(fields: [snapshotId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  rowNumber  Int
+  data       Json
+  rowHash    String
+  searchText String?
+  createdAt  DateTime          @default(now())
+
+  @@unique([snapshotId, rowNumber])
+  @@index([tenantId, snapshotId])
+  @@index([snapshotId, rowHash])
+}
+
+model SourceProduct {
+  id              String        @id @default(cuid())
+  tenantId        String
+  tenant          Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  importRunId     String
+  importRun       DataImportRun @relation(fields: [importRunId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  sourceRowNumber Int
+  productId       String
+  article         String?
+  vendorCode      String?
+  name            String
+  brand           String?
+  category        String?
+  retailPrice     Decimal       @db.Decimal(18, 4)
+  oldPrice        Decimal?      @db.Decimal(18, 4)
+  costPrice       Decimal       @db.Decimal(18, 4)
+  stockUnits      Decimal       @db.Decimal(18, 4)
+  sourceStatus    String?
+  sourceValues    Json          @default("{}")
+  createdAt       DateTime      @default(now())
+
+  @@unique([importRunId, productId])
+  @@unique([importRunId, sourceRowNumber])
+  @@index([tenantId, productId])
+  @@index([importRunId, article])
+  @@index([importRunId, vendorCode])
+  @@index([importRunId, brand])
+  @@index([importRunId, category])
+}
+
+model SourceSaleLine {
+  id                 String             @id @default(cuid())
+  tenantId           String
+  tenant             Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  importRunId        String
+  importRun          DataImportRun      @relation(fields: [importRunId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  sourceRowNumber    Int
+  sourceLineId       String?
+  orderId            String?
+  rowHash            String
+  orderTime          DateTime?
+  paymentDate        DateTime?          @db.Date
+  statusId           Int?
+  productSku         String?
+  productParameter   String?
+  sourceProductId    String?
+  manufacturer       String?
+  quantity           Decimal            @db.Decimal(18, 4)
+  salesAmount        Decimal            @db.Decimal(18, 4)
+  costAmount         Decimal            @db.Decimal(18, 4)
+  normalizedQuantity Decimal?           @db.Decimal(18, 4)
+  normalizedSales    Decimal?           @db.Decimal(18, 4)
+  normalizedCost     Decimal?           @db.Decimal(18, 4)
+  matchStatus        ProductMatchStatus @default(PENDING)
+  matchMethod        String?
+  resolvedProductId  String?
+  sourceValues       Json               @default("{}")
+  createdAt          DateTime           @default(now())
+
+  @@unique([importRunId, sourceRowNumber])
+  @@index([tenantId, paymentDate])
+  @@index([importRunId, statusId, paymentDate])
+  @@index([importRunId, productSku])
+  @@index([importRunId, productParameter])
+  @@index([importRunId, resolvedProductId])
+  @@index([importRunId, matchStatus])
+}
+
+model ImportIssue {
+  id          String            @id @default(cuid())
+  tenantId    String
+  tenant      Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  importRunId String
+  importRun   DataImportRun     @relation(fields: [importRunId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  sheetKey    String?
+  rowNumber   Int?
+  code        String
+  severity    DataIssueSeverity
+  message     String
+  context     Json              @default("{}")
+  createdAt   DateTime          @default(now())
+
+  @@index([tenantId, severity, createdAt])
+  @@index([importRunId, code])
+}
+
+model ReportCalculationRun {
+  id                 String        @id @default(cuid())
+  tenantId           String
+  tenant             Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  importRunId        String
+  importRun          DataImportRun @relation(fields: [importRunId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  dateFrom           DateTime      @db.Date
+  dateTo             DateTime      @db.Date
+  asOfDate           DateTime      @db.Date
+  calculationVersion Int           @default(1)
+  status             DataRunStatus @default(PENDING)
+  warnings           Json          @default("[]")
+  errorMessage       String?
+  startedAt          DateTime      @default(now())
+  completedAt        DateTime?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  articleResults  ArticleReportResult[]
+  brandResults    BrandReportResult[]
+  categoryResults CategoryReportResult[]
+
+  @@unique([id, tenantId])
+  @@unique([tenantId, importRunId, dateFrom, dateTo, asOfDate, calculationVersion], map: "ReportCalcRun_cache_key")
+  @@index([tenantId, status, createdAt])
+  @@index([importRunId, createdAt])
+}
+
+model ArticleReportResult {
+  id                   String               @id @default(cuid())
+  tenantId             String
+  tenant               Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  calculationRunId     String
+  calculationRun       ReportCalculationRun @relation(fields: [calculationRunId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  productId            String
+  article              String?
+  name                 String
+  brand                String?
+  category             String?
+  costPrice            Decimal              @db.Decimal(18, 4)
+  rrp                  Decimal?             @db.Decimal(18, 4)
+  retailPrice          Decimal              @db.Decimal(18, 4)
+  discount             Decimal?             @db.Decimal(20, 10)
+  gmPct                Decimal?             @db.Decimal(20, 10)
+  salesUnits           Decimal              @db.Decimal(18, 4)
+  salesUah             Decimal              @db.Decimal(18, 4)
+  costOfSalesUah       Decimal              @db.Decimal(18, 4)
+  gpUah                Decimal              @db.Decimal(18, 4)
+  salesGmPct           Decimal?             @db.Decimal(20, 10)
+  stockUnits           Decimal              @db.Decimal(18, 4)
+  stockUah             Decimal              @db.Decimal(18, 4)
+  strPct               Decimal?             @db.Decimal(20, 10)
+  avgSalesLastTwoWeeks Decimal              @db.Decimal(18, 4)
+  woh                  Decimal?             @db.Decimal(20, 10)
+  sourceValues         Json                 @default("{}")
+  createdAt            DateTime             @default(now())
+
+  @@unique([calculationRunId, productId])
+  @@index([tenantId, calculationRunId])
+  @@index([calculationRunId, brand])
+  @@index([calculationRunId, category])
+}
+
+model BrandReportResult {
+  id                   String               @id @default(cuid())
+  tenantId             String
+  tenant               Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  calculationRunId     String
+  calculationRun       ReportCalculationRun @relation(fields: [calculationRunId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  groupKey             String
+  brand                String?
+  salesUah             Decimal              @db.Decimal(18, 4)
+  salesUnits           Decimal              @db.Decimal(18, 4)
+  costOfSalesUah       Decimal              @db.Decimal(18, 4)
+  gpUah                Decimal              @db.Decimal(18, 4)
+  stockUnits           Decimal              @db.Decimal(18, 4)
+  stockUah             Decimal              @db.Decimal(18, 4)
+  strPct               Decimal?             @db.Decimal(20, 10)
+  salesSharePct        Decimal?             @db.Decimal(20, 10)
+  avgSalesLastTwoWeeks Decimal              @db.Decimal(18, 4)
+  woh                  Decimal?             @db.Decimal(20, 10)
+  createdAt            DateTime             @default(now())
+
+  @@unique([calculationRunId, groupKey])
+  @@index([tenantId, calculationRunId])
+}
+
+model CategoryReportResult {
+  id                   String               @id @default(cuid())
+  tenantId             String
+  tenant               Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  calculationRunId     String
+  calculationRun       ReportCalculationRun @relation(fields: [calculationRunId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  groupKey             String
+  category             String?
+  salesUah             Decimal              @db.Decimal(18, 4)
+  salesUnits           Decimal              @db.Decimal(18, 4)
+  costOfSalesUah       Decimal              @db.Decimal(18, 4)
+  gpUah                Decimal              @db.Decimal(18, 4)
+  stockUnits           Decimal              @db.Decimal(18, 4)
+  stockUah             Decimal              @db.Decimal(18, 4)
+  strPct               Decimal?             @db.Decimal(20, 10)
+  salesSharePct        Decimal?             @db.Decimal(20, 10)
+  avgSalesLastTwoWeeks Decimal              @db.Decimal(18, 4)
+  woh                  Decimal?             @db.Decimal(20, 10)
+  createdAt            DateTime             @default(now())
+
+  @@unique([calculationRunId, groupKey])
+  @@index([tenantId, calculationRunId])
+}
+
+model DataTablePreference {
+  id             String   @id @default(cuid())
+  tenantId       String
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User     @relation(fields: [userId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  sheetKey       String
+  visibleColumns Json     @default("[]")
+  pageSize       Int      @default(50)
+  sortColumn     String?
+  sortDirection  String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([userId, sheetKey])
+  @@index([tenantId, sheetKey])
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
