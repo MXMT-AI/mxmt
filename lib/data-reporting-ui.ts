@@ -1,5 +1,30 @@
 import type { DataColumnMetadata, DataColumnType } from "@/lib/data-table-api";
 
+export type ReportPeriodIssue = "required" | "reversed" | null;
+
+export interface ReportPeriodValues {
+  dateFrom: string;
+  dateTo: string;
+}
+
+export function currentKyivMonth(now = new Date()): ReportPeriodValues {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Europe/Kyiv",
+    year: "numeric",
+    month: "2-digit",
+  }).formatToParts(now);
+  const year = Number(parts.find((part) => part.type === "year")?.value);
+  const month = Number(parts.find((part) => part.type === "month")?.value);
+  const dateFrom = `${year}-${String(month).padStart(2, "0")}-01`;
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  return { dateFrom, dateTo: `${year}-${String(month).padStart(2, "0")}-${lastDay}` };
+}
+
+export function validateReportPeriod(dateFrom: string, dateTo: string): ReportPeriodIssue {
+  if (!dateFrom || !dateTo) return "required";
+  return dateFrom > dateTo ? "reversed" : null;
+}
+
 export function resolveVisibleColumns(
   columns: DataColumnMetadata[],
   savedColumns: string[]

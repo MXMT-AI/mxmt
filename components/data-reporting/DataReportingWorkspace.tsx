@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   ArrowDown,
   ArrowUp,
+  CalendarDays,
   Calculator,
   CheckCircle2,
   ChevronLeft,
@@ -22,9 +23,11 @@ import type {
   DataTableResponse,
 } from "@/lib/data-table-api";
 import {
+  currentKyivMonth,
   formatTableValue,
   nextSortDirection,
   resolveVisibleColumns,
+  validateReportPeriod,
 } from "@/lib/data-reporting-ui";
 
 export interface InitialTablePreference {
@@ -44,7 +47,14 @@ interface DataStatus {
   source: { name: string; timezone: string; updatedAt: string } | null;
   activeImport: { status: string; activatedAt?: string | null; finishedAt?: string | null } | null;
   latestImport: { status: string; createdAt: string; finishedAt?: string | null } | null;
-  calculation: { status: string; finishedAt?: string | null; createdAt: string } | null;
+  calculation: {
+    status: string;
+    dateFrom: string;
+    dateTo: string;
+    asOfDate: string;
+    finishedAt?: string | null;
+    createdAt: string;
+  } | null;
   issueCounts: Record<string, number>;
 }
 
@@ -96,6 +106,12 @@ const COPY = {
     active: "активний",
     warning: "із зауваженнями",
     success: "готово",
+    reportPeriod: "Період звіту",
+    dateFrom: "Дата від",
+    dateTo: "Дата до",
+    periodHelp: "Цей період буде використано під час імпорту та ручного перерахунку.",
+    periodRequired: "Оберіть дату початку та дату завершення періоду.",
+    periodReversed: "Дата початку не може бути пізніше дати завершення.",
   },
   en: {
     eyebrow: "Data center",
@@ -136,6 +152,12 @@ const COPY = {
     active: "active",
     warning: "with issues",
     success: "ready",
+    reportPeriod: "Report period",
+    dateFrom: "Date from",
+    dateTo: "Date to",
+    periodHelp: "This period will be used for imports and manual recalculation.",
+    periodRequired: "Select both the start and end date.",
+    periodReversed: "The start date cannot be later than the end date.",
   },
 } as const;
 
@@ -197,9 +219,13 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
   const [error, setError] = useState<string | null>(null);
   const [action, setAction] = useState<"import" | "calculate" | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [periodError, setPeriodError] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [reloadVersion, setReloadVersion] = useState(0);
   const saveControllers = useRef<Partial<Record<DataTableKey, AbortController>>>({});
+  const periodInitialized = useRef(false);
 
   const preference = preferences[activeTab];
   const canImport = ["ADMIN", "SUPER_ADMIN"].includes(userRole.toUpperCase());
@@ -225,6 +251,19 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
     void loadStatus(controller.signal);
     return () => controller.abort();
   }, [loadStatus, reloadVersion]);
+
+  useEffect(() => {
+    if (statusLoading || periodInitialized.current) return;
+    const initialPeriod = status?.calculation
+      ? {
+          dateFrom: status.calculation.dateFrom.slice(0, 10),
+          dateTo: status.calculation.dateTo.slice(0, 10),
+        }
+      : currentKyivMonth();
+    setDateFrom(initialPeriod.dateFrom);
+    setDateTo(initialPeriod.dateTo);
+    periodInitialized.current = true;
+  }, [status, statusLoading]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -326,13 +365,19 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
   }
 
   async function runAction(kind: "import" | "calculate") {
+    const issue = validateReportPeriod(dateFrom, dateTo);
+    if (issue) {
+      setPeriodError(issue === "required" ? copy.periodRequired : copy.periodReversed);
+      return;
+    }
     setAction(kind);
     setActionError(null);
+    setPeriodError(null);
     try {
       const response = await fetch(kind === "import" ? "/api/data/import" : "/api/data/calculate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: "{}",
+        body: JSON.stringify({ dateFrom, dateTo }),
       });
       if (!response.ok) throw new Error(await responseMessage(response));
       setPage(1);
@@ -382,6 +427,35 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
           )}
         </div>
       </header>
+
+      <section aria-labelledby="report-period-heading" className="mb-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
+        <div className="flex flex-col xl:flex-row xl:items-end gap-3 xl:gap-5">
+          <div className="flex items-start gap-2 xl:min-w-72">
+            <CalendarDays size={16} className="mt-0.5 shrink-0 text-[#00e5c4]" />
+            <div>
+              <h2 id="report-period-heading" className="text-sm font-medium text-[var(--text)]">{copy.reportPeriod}</h2>
+              <p className="mt-0.5 text-[11px] text-[var(--muted)]">{copy.periodHelp}</p>
+            </div>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <label className="grid gap-1 text-[11px] text-[var(--muted)]">
+              <span>{copy.dateFrom}</span>
+              <input type="date" value={dateFrom} max={dateTo || undefined}
+                aria-invalid={Boolean(periodError)}
+                onChange={(event) => { setDateFrom(event.target.value); setPeriodError(null); }}
+                className="h-9 rounded-lg border border-[var(--border)] bg-[var(--input-bg)] px-3 text-sm text-[var(--text)]" />
+            </label>
+            <label className="grid gap-1 text-[11px] text-[var(--muted)]">
+              <span>{copy.dateTo}</span>
+              <input type="date" value={dateTo} min={dateFrom || undefined}
+                aria-invalid={Boolean(periodError)}
+                onChange={(event) => { setDateTo(event.target.value); setPeriodError(null); }}
+                className="h-9 rounded-lg border border-[var(--border)] bg-[var(--input-bg)] px-3 text-sm text-[var(--text)]" />
+            </label>
+          </div>
+        </div>
+        {periodError && <p role="alert" className="mt-2 text-xs text-red-400">{periodError}</p>}
+      </section>
 
       {actionError && (
         <div role="alert" className="mb-4 flex items-start gap-2 rounded-lg border border-red-400/20 bg-red-400/10 px-3 py-2.5 text-sm text-red-300">
