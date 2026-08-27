@@ -51,6 +51,22 @@ export async function parseJsonBody<T = unknown>(
   }
 }
 
+export async function parseOptionalJsonBody<T = unknown>(
+  request: NextRequest,
+  fallback = {} as T,
+  requestId?: string
+): Promise<JsonParseResult<T>> {
+  try {
+    const raw = await request.text();
+    return { data: raw.trim() ? JSON.parse(raw) as T : fallback, response: null };
+  } catch {
+    return {
+      data: null,
+      response: apiError("Malformed JSON body", 400, "INVALID_JSON", undefined, requestId),
+    };
+  }
+}
+
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
