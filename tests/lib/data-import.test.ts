@@ -5,11 +5,13 @@ import {
   DATA_IMPORT_PIPELINE_VERSION,
   TypedProjectionValidationError,
   importRawWorkbookBuffer,
+  sourceWorkbookChecksum,
 } from "@/lib/data-import";
-import { sha256 } from "@/lib/data-import-workbook";
+import { parseRawWorkbook, sha256 } from "@/lib/data-import-workbook";
 
-function importBuffer(options?: { duplicateProduct?: boolean }): Buffer {
+function importBuffer(options?: { duplicateProduct?: boolean; metadataTitle?: string }): Buffer {
   const wb = XLSX.utils.book_new();
+  if (options?.metadataTitle) wb.Props = { Title: options.metadataTitle };
   XLSX.utils.book_append_sheet(
     wb,
     XLSX.utils.aoa_to_sheet([
@@ -155,7 +157,7 @@ describe("atomic raw import", () => {
 
   it("reuses the active run when the workbook checksum is unchanged", async () => {
     const buffer = importBuffer();
-    const db = fakeDatabase({ activeChecksum: sha256(buffer) });
+    const db = fakeDatabase({ activeChecksum: sourceWorkbookChecksum(parseRawWorkbook(buffer)) });
 
     const result = await importRawWorkbookBuffer(
       { tenantId: "tenant-1", fileId: "file-1", buffer },
@@ -170,7 +172,10 @@ describe("atomic raw import", () => {
 
   it("rebuilds an unchanged workbook created by an older import pipeline", async () => {
     const buffer = importBuffer();
-    const db = fakeDatabase({ activeChecksum: sha256(buffer), activePipelineVersion: 1 });
+    const db = fakeDatabase({
+      activeChecksum: sourceWorkbookChecksum(parseRawWorkbook(buffer)),
+      activePipelineVersion: 1,
+    });
 
     const result = await importRawWorkbookBuffer(
       { tenantId: "tenant-1", fileId: "file-1", buffer },
@@ -180,6 +185,15 @@ describe("atomic raw import", () => {
     expect(result.outcome).toBe("imported");
     expect(db.dataImportRun.create).toHaveBeenCalledTimes(1);
     expect(db.sourceProduct.createMany).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores XLSX package metadata when comparing workbook contents", () => {
+    const first = importBuffer({ metadataTitle: "First export" });
+    const second = importBuffer({ metadataTitle: "Second export" });
+
+    expect(sha256(first)).not.toBe(sha256(second));
+    expect(sourceWorkbookChecksum(parseRawWorkbook(first)))
+      .toBe(sourceWorkbookChecksum(parseRawWorkbook(second)));
   });
 
   it("persists blocking product issues and does not activate the run", async () => {

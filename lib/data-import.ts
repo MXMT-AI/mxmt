@@ -23,7 +23,7 @@ import {
 
 const RAW_ROW_BATCH_SIZE = 750;
 const TYPED_ROW_BATCH_SIZE = 500;
-export const DATA_IMPORT_PIPELINE_VERSION = 2;
+export const DATA_IMPORT_PIPELINE_VERSION = 3;
 
 type ImportDatabaseClient = Pick<
   PrismaClient,
@@ -92,6 +92,16 @@ function sheetResults(parsed: ParsedRawWorkbook): RawImportSheetResult[] {
     checksum: sheet.checksum,
     missing: sheet.missing,
   }));
+}
+
+/**
+ * Google exports may change ZIP metadata between downloads. Hash normalized
+ * sheet contents so identical cell data reuses the active import run.
+ */
+export function sourceWorkbookChecksum(parsed: ParsedRawWorkbook): string {
+  return sha256(JSON.stringify(
+    parsed.sheets.map((sheet) => ({ key: sheet.key, checksum: sheet.checksum }))
+  ));
 }
 
 async function insertRawRows(
@@ -181,7 +191,8 @@ export async function importRawWorkbookBuffer(
   },
   db: ImportDatabaseClient = prisma
 ): Promise<RawImportResult> {
-  const checksum = sha256(buffer);
+  const parsed = parseRawWorkbook(buffer);
+  const checksum = sourceWorkbookChecksum(parsed);
   const businessDate = kyivBusinessDate(now);
   const source = await db.dataSource.upsert({
     where: { tenantId_driveFileId: { tenantId, driveFileId: fileId } },
@@ -249,7 +260,6 @@ export async function importRawWorkbookBuffer(
     });
     importRunId = importRun.id;
 
-    const parsed = parseRawWorkbook(buffer);
     const normalized = normalizeRawWorkbook(parsed);
     const results = sheetResults(parsed);
 
