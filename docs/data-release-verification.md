@@ -60,6 +60,18 @@ call returned:
 
 No new snapshots or report rows were created by that repeated call.
 
+## Authenticated UI verification
+
+The `/data-reporting` workspace was verified through the browser with the
+production admin account against the active Neon data:
+
+- all five tabs loaded and reported the expected columns and rows;
+- Product YML rendered 50 rows per page and advanced to page 2 of 82;
+- category search returned the matching row;
+- a column checkbox hid and restored its table column;
+- status cards displayed the active import, calculation, and issue count;
+- the browser console contained no errors during the flow.
+
 ## Production activation checklist
 
 After this branch is merged and deployed:
