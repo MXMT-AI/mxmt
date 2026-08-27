@@ -5,7 +5,8 @@ const ACCESS_SECRET = new TextEncoder().encode(
   process.env.JWT_ACCESS_SECRET ?? "dev-access-secret-change-in-production"
 );
 
-const PUBLIC_PATHS = ["/login", "/register", "/api/auth", "/api/health"];
+// Cron routes authenticate with their own Bearer secret, not a browser JWT.
+const PUBLIC_PATHS = ["/login", "/register", "/api/auth", "/api/health", "/api/cron"];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;

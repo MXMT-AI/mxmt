@@ -61,3 +61,9 @@ npm run build
 ```
 
 Do not skip migrations: Phase 3 relies on unique database constraints for idempotent imports.
+
+## Scheduled import
+
+The data workbook and calculated reports are refreshed daily at 07:00 Kyiv.
+Deployment configuration, credentials, DST handling, and manual verification
+are documented in [Scheduled data import](./scheduled-data-import.md).
