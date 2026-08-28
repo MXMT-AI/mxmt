@@ -1,865 +1,492 @@
 # MXMT Analytics
 
-**AI-powered marketing & inventory analytics platform for fashion retail.**
+AI-платформа для управління асортиментом, запасами, продажами та маркетингом у fashion retail.
 
-B2B SaaS інструмент для fashion-бізнесів: аналіз асортименту, планування закупок, маркетинговий календар і система AI-агентів. Розроблявся з нуля, задеплоєний на Railway.
+Проєкт працює як мультитенантний Next.js застосунок:
 
----
+- застосунок і API розгортаються на **Vercel**;
+- основна PostgreSQL база працює в **Neon**;
+- доступ до БД виконується через Prisma ORM;
+- операційні дані імпортуються з Google Sheets;
+- управлінські звіти розраховуються всередині MXMT і зберігаються в Neon;
+- AI-агенти підтримують Anthropic і OpenAI.
+
+> Railway більше не використовується. У репозиторії немає Railway-конфігурації, а production runtime розрахований на Vercel Functions і Neon PostgreSQL.
 
 ## Зміст
 
-1. [Що це за продукт](#що-це-за-продукт)
-2. [Архітектура та стек](#архітектура-та-стек)
-3. [Актуальний стан — що зроблено](#актуальний-стан--що-зроблено)
-4. [Система 9 агентів — архітектура](#система-9-агентів--архітектура)
-5. [Що реально працює зараз](#що-реально-працює-зараз)
-6. [Відомі баги та обмеження](#відомі-баги-та-обмеження)
-7. [Структура файлів](#структура-файлів)
-8. [База даних — Prisma Schema](#база-даних--prisma-schema)
-9. [Змінні середовища Railway](#змінні-середовища-railway)
-10. [Запуск локально](#запуск-локально)
-11. [Деплой на Railway](#деплой-на-railway)
-12. [Важливі нюанси](#важливі-нюанси)
-13. [Roadmap — що далі](#roadmap--що-далі)
+1. [Можливості](#можливості)
+2. [Архітектура](#архітектура)
+3. [Технологічний стек](#технологічний-стек)
+4. [Структура репозиторію](#структура-репозиторію)
+5. [Локальний запуск](#локальний-запуск)
+6. [Змінні середовища](#змінні-середовища)
+7. [Neon PostgreSQL і Prisma](#neon-postgresql-і-prisma)
+8. [Деплой на Vercel](#деплой-на-vercel)
+9. [Щоденний імпорт Google Sheets](#щоденний-імпорт-google-sheets)
+10. [Дані та звіти](#дані-та-звіти)
+11. [AI-агенти](#ai-агенти)
+12. [Автентифікація та ролі](#автентифікація-та-ролі)
+13. [Тестування](#тестування)
+14. [Production release checklist](#production-release-checklist)
+15. [Діагностика](#діагностика)
+16. [Додаткова документація](#додаткова-документація)
 
----
+## Можливості
 
-## Що це за продукт
+| Модуль | URL | Призначення |
+| --- | --- | --- |
+| Дашборд | `/dashboard` | KPI, продажі, стокаути та стан синхронізації |
+| AI-агенти | `/agents` | Pipeline з 9 агентів, симуляції, трасування та експорт |
+| Маркетинговий календар | `/calendar` | Події, кампанії, залишки й AI-планування |
+| Агент-аналітик | `/analyst` | Класифікація SKU, фільтри та AI-аналіз |
+| Асортимент | `/assortment` | Каталоги, бренди, бюджет, кошик і замовлення |
+| Дані та звіти | `/data-reporting` | 5 вкладок даних, імпорт, перерахунок, пошук і колонки |
+| Налаштування | `/settings` | Онбординг, Google Drive та AI-провайдери |
 
-MXMT Analytics — маркетинговий інструмент для fashion-рітейлу.
+Інтерфейс підтримує українську й англійську мови, світлу та темну теми.
 
-- **Не тільки інвентар** — охоплює маркетинг, закупки, аналітику в єдиному циклі
-- **UA-специфіка** — сезонні коефіцієнти під UA-ринок, UAH/EUR ризики, UA-календар подій
-- **Мультитенантність** — один продукт, багато бізнесів, повна ізоляція даних
-- **9 AI-агентів** — аналізують склад, канали, категорії, генерують рекомендації, трекають кампанії
-- **Двомовний** — Ukrainian / English з перемикачем
-- **Темна і світла теми** — перемикач у сайдбарі
+## Архітектура
 
-### Основні модулі
-
-| Модуль | URL | Статус |
-|---|---|---|
-| Дашборд | `/dashboard` | ✅ Реальні алерти + sparkline продажів |
-| Агенти | `/agents` | ✅ Повний pipeline 9 агентів + період даних «від–до» + трасування + розрахунок акції з експортом у Google Sheets |
-| Маркетинговий Календар | `/calendar` | ✅ Динамічні тижні, UA свята, AI план |
-| Агент Аналітик | `/analyst` | ✅ SKU-класифікація + пагінація + AI chat |
-| Планер Асортименту | `/assortment` | ✅ Каталог (Drive-sync) + кошик + AI |
-| Налаштування | `/settings` | ✅ Онбординг + Drive + AI провайдер per-agent |
-| Рахунки / Інвойси | `/invoices` | 🚧 Placeholder |
-
----
-
-## Архітектура та стек
-
-### Технології
-
-```
-Next.js 15 (App Router)     — frontend + backend в одному сервісі
-TypeScript                  — строга типізація скрізь
-PostgreSQL                  — основна БД (Railway add-on)
-Prisma ORM                  — схема, типобезпечні запити, db push
-JWT (jose)                  — access 15хв + refresh 30д, httpOnly cookies
-bcryptjs                    — хешування паролів і refresh токенів
-Tailwind CSS                — стилізація, CSS custom properties для тем
-Anthropic SDK               — Claude Sonnet 4.6 / Haiku 4.5 (default)
-OpenAI SDK                  — GPT-4o / GPT-4o mini (альтернатива)
-SheetJS (xlsx)              — парсинг Excel на сервері і клієнті
-Node.js crypto              — RS256 JWT для Google Service Account
+```mermaid
+flowchart LR
+    U["Користувач"] --> V["Vercel / Next.js 15"]
+    V --> API["Route Handlers і Server Components"]
+    API --> P["Prisma ORM"]
+    P --> N["Neon PostgreSQL"]
+    API --> G["Google Drive / Google Sheets"]
+    API --> A["Anthropic або OpenAI"]
+    C["Vercel Cron"] --> API
 ```
 
-### Принципи
+### Ключові принципи
 
-- **Один сервіс** на Railway — Next.js обробляє і frontend і API
-- **Multi-tenant** — кожен бізнес ізольований через `tenantId` на всіх таблицях
-- **API ключі тільки на сервері** — AI виклики проксуються через `/api/agents/*`
-- **AI не рахує математику** — всі метрики (WOH, STR, Trend, GM) рахуються в PostgreSQL, AI тільки інтерпретує
+- **Один Next.js застосунок:** frontend, server rendering та API routes розгортаються разом на Vercel.
+- **Мультитенантність:** бізнес-дані ізольовані через `tenantId` у БД та серверних API.
+- **Server-only secrets:** ключі БД, JWT, Google і AI ніколи не передаються клієнту.
+- **Математика поза AI:** WOH, STR, GM, продажі та агрегати розраховує код і PostgreSQL; AI інтерпретує готові метрики.
+- **Ідемпотентний pipeline:** однаковий файл не створює повторні snapshots і повторні розрахунки.
+- **Історичність:** імпорти та розрахунки не перезаписуються; активний запуск обирається через `DataSource.activeImportRunId`.
 
-### AI Abstraction Layer
+## Технологічний стек
 
-`lib/ai.ts` — `chat()` функція:
-```
-AI_PROVIDER env var           → anthropic (default) або openai
-providerOverride arg          → per-agent override (з localStorage налаштувань)
-```
-Пріоритет: providerOverride > env var. Клієнт ніколи не бачить API ключів.
+| Компонент | Технологія |
+| --- | --- |
+| Web framework | Next.js 15, App Router, React 19 |
+| Мова | TypeScript |
+| Hosting | Vercel |
+| Database | Neon PostgreSQL |
+| ORM | Prisma 5 |
+| Styling | Tailwind CSS |
+| Auth | JWT у httpOnly cookies, `jose`, `bcryptjs` |
+| AI | Anthropic SDK, OpenAI SDK |
+| Табличні файли | SheetJS (`xlsx`) |
+| Тести | Vitest |
 
----
+## Структура репозиторію
 
-## Актуальний стан — що зроблено
-
-### Сесія 1 — Фундамент та основні модулі
-
-**Auth система:**
-- JWT + httpOnly cookies + refresh rotation + silent refresh
-- `middleware.ts` — Edge JWT guard, expired → redirect на silent-refresh
-- `TokenRefreshProvider.tsx` — клієнтський таймер, refresh за 2хв до exp
-- `apiFetch()` — wrapper з авто-retry після 401
-
-**Dashboard (`/dashboard`):**
-- 4 KPI-картки: Товарів, Алертів, Бізнес-модель, Синк
-- Блок топ-4 стокаутів (сортованих за терміновістю)
-- Блок топ-4 хітів тижня
-- Sparkline продажів за 30 днів
-- Week-over-week порівняння
-
-**Планер Асортименту (`/assortment`):**
-- Управління брендами (бюджет, валюта, lead time)
-- Upload Excel-каталогів → auto-upsert в `Sku` таблицю
-- Кошик з бюджет-трекером, auto-save в PostgreSQL
-- Детекція дублів між брендами
-- AI асистент + Експорт PO в Excel
-
-**Маркетинговий Календар (`/calendar`):**
-- **Динамічні тижні** — `generateWeeks(13)` від поточної дати, ISO week numbers
-- **Ремапінг демо-даних** — DEMO_DATA зміщується з w14-w26 на поточні тижні
-- **UA свята** — автоматично заповнюються в рядку "events"
-- **AI Plan** — кнопка ✨, `POST /api/calendar/ai-plan` → Claude генерує план
-- **Редагування подій** — PATCH `/api/calendar/events/[id]`
-- **Expand/Collapse** — блоки Інсайти агента і Статус залишків: 10 елементів + розгортання
-- DEMO шаблон ZAVOD прихований за замовчуванням, кнопка "Шаблон" для показу
-
-**Агент Аналітик (`/analyst`):**
-- Класифікація 5 флагів: 🔥 Хіт / 🛑 Стокаут / 📉 Слоу / 💤 Зависший / ✅ Норма
-- **Пагінація**: 20/50/100 на сторінці, dropdown вибір, скидання при фільтрі
-- **AI chat переміщений ВИЩЕ таблиці** з товарами
-- Реальні помилки в чаті: `❌ Error: ...` замість мовчазного fail
-
-**Налаштування (`/settings`):**
-- Онбординг бриф: SEASONAL/CARRYOVER/HYBRID
-- Google Drive sync (SA mode + public link mode)
-- **Вкладки**: Загальне / Агенти
-- **AI провайдер глобально** в табі Загальне
-- **Per-agent провайдер** в табі Агенти — для кожного з 9 агентів окремо
-
-**Теми:**
-- CSS custom properties: `var(--bg)`, `var(--surface)`, `var(--text)`, `var(--muted)` тощо
-- Клас `html.light` перемикає всі змінні
-- **Inline script в `<head>`** — запобігає flash при SSR: читає localStorage до гідратації
-- `ThemeToggle` — кнопка з текстом "Light"/"Dark" + іконка у сайдбарі
-
-**Google Drive sync — повна переробка (`lib/gdrive.ts`):**
-- `extractFileId()` — підтримує повні URL і bare ID
-- `parseWithAutoHeader()` — сканує перші 10 рядків на наявність "Article"/"SKU"
-- `findOrCreateBrand()` — з Map-кешем для дедуплікації
-- `importArticleReport()`:
-  - SKU upsert
-  - Brand linkage
-  - "Stock units" → `InventorySnapshot`
-  - Місячні колонки 1-12 → `SalesRecord` (по одному запису на місяць)
-  - "Sales Last week" → `SalesRecord`
-  - **CatalogItem sync** — паралельно записує в `CatalogUpload` + `CatalogItem` для Планера
-- `importZavodApi()`:
-  - `product.sku` + `orderTime` → `SalesRecord` з `channel: "online"`
-  - Дублі в один день — update замість create
-- `downloadPublicFile()` — пробує Sheets export URL, fallback на Drive UC URL
-
-**Railway фікси:**
-- Прибрано `output: standalone` з `next.config.ts` — спричиняло 502
-- `startCommand = "npx prisma db push && npm run start"` в `railway.toml`
-
----
-
-### Сесія 2 — Система 9 агентів (Блоки 1-3)
-
-**Новий модуль `/agents` (pipeline сторінка):**
-- Візуальний пайплайн з 4 блоками та стрілками між ними
-- 9 карточок агентів: модель, провайдер, статус, час останнього запуску, тривалість
-- Polling кожні 3с поки агент `running`
-- Кнопка "Запустити" на всіх 9 агентах
-- Баджики результатів per-agent (CRITICAL / WARNING / Coverage% / кількість кампаній тощо)
-- Розгортний вивід результатів per-agent з детальним inline-переглядом
-- Модальне вікно "Переглянути аналіз" (AnalysisModal) — повний структурований вивід
-
-**Нова DB модель `AgentRun`:**
-```prisma
-model AgentRun {
-  id         String    @id @default(cuid())
-  tenantId   String
-  agentType  String    // "inventory_analyst" | "channel_analytics" | ...
-  entityId   String    @default("all")
-  status     String    // "running" | "done" | "error"
-  input      Json      @default("{}")  // { provider, asOf? }
-  output     Json?     // результат агента + _debug
-  errorMsg   String?
-  startedAt  DateTime  @default(now())
-  finishedAt DateTime?
-}
+```text
+app/
+  (app)/                 захищені сторінки застосунку
+  (auth)/                login і register
+  api/                   Next.js Route Handlers
+components/              UI та клієнтська orchestration
+lib/                     бізнес-логіка, auth, AI, імпорт і звіти
+prisma/
+  schema.prisma          схема Neon PostgreSQL
+  migrations/            versioned production migrations
+tests/                   unit та contract tests
+docs/                    технічні контракти й runbooks
+middleware.ts            перевірка сесії для захищених маршрутів
+vercel.json              Vercel Cron configuration
+.env.example             шаблон змінних середовища
 ```
 
-**`lib/brand-metrics.ts` — SQL-метрики по брендах (підтримує `asOf?`):**
-- Запитує всі бренди → SKU (ACTIVE/NEW) → останній inventory snapshot → продажі 30д
-- Рахує: WOH, STR%, Trend (7d vs 7-14d), GM%, frozenCapital
-- `asOf?: Date` — зсуває всі вікна (d7/d14/d30) відносно переданої дати; фільтрує `snapshotDate: { lte: asOf }`
-- Включає SKU без бренда як окремий bucket "Без бренда"
+## Локальний запуск
 
-**`lib/channel-metrics.ts` — метрики по каналах (підтримує `asOf?`):**
-- `groupBy channel` з `SalesRecord` за 7d і 30d
-- При `asOf` фільтрує `date: { lte: asOf }` і `snapshotDate: { lte: asOf }`
+### Вимоги
 
-**`lib/attribute-metrics.ts` — метрики по категоріях (підтримує `asOf?`):**
-- Групує ACTIVE/NEW SKU по `category` і `subcategory`
-- Рахує STR, статус: bestseller/normal/slow/dead
-- При `asOf` фільтрує продажі та inventory snapshots
+- Node.js 20 LTS або новіший сумісний runtime;
+- npm;
+- Neon PostgreSQL database або локальний PostgreSQL;
+- доступ до Google-файлу для перевірки імпорту;
+- ключ Anthropic або OpenAI для AI-функцій.
 
-**Агент 1: Inventory Analyst** (`/api/agents/inventory-analyst`):
-- `POST` — запускає агента, передає провайдер і `asOf` з body
-- `GET` — повертає останній запуск для кожного з 9 агентів
-- Повертає JSON: `status`, `analysis`, `metrics_evaluation`, `suggested_actions`, `urgency`
-
-**Агент 2: Channel Analytics** (`/api/agents/channel-analytics`):
-- Аналізує канали: online vs offline
-- Claude визначає статус: best/normal/weak/inactive + рекомендацію
-
-**Агент 3: Product Attributes** (`/api/agents/product-attributes`):
-- Аналізує категорії по STR
-- Claude виділяє bestsellers і dead stock
-
-**Агент 4: Repricing Strategy** (`/api/agents/repricing`):
-- Кандидати: бренди з WOH > 45 або trend < -15%
-- Claude генерує 3 варіанти: AGGRESSIVE / BALANCED / CONSERVATIVE
-- Кожен варіант: `discount_percent`, `duration_days`, `forecast`, `evaluation` (pros/cons/risks/score/recommended)
-
-**Агент 5: Reordering Strategy** (`/api/agents/reordering`):
-- Кандидати: бренди з WOH < 30 (ризик стокауту)
-- Claude генерує 3 сценарії: PESSIMISTIC / REALISTIC / OPTIMISTIC
-- Кожен сценарій: `qty_multiplier`, `woh_after`, `risk_level`, `evaluation`
-
-**Агент 6: Commercial Marketer** (`/api/agents/commercial-marketer`):
-- Читає рекомендовані дії з останніх запусків Repricing + Reordering
-- Якщо немає — fallback на бренди з WOH > 45
-- Claude генерує брифи по 5 каналах: SMM, Email, Ads, Store, Marketplace
-- Кожен бриф: `brief`, `frequency`/`send_timing`/`budget_recommendation`, `start_date`, `priority`
-- Заборонено використовувати терміни WOH/STR/GM — тільки людська мова
-
-**Агент 7: Calendar Agent** (`/api/agents/calendar-agent`):
-- Читає `MarketingEvent` за поточні + 3 наступні тижні
-- Читає брифи з останнього Commercial Marketer
-- Claude знаходить: `gap` (не заплановане) / `conflict` (два в один день) / `timing` (не вчасно) / `ok`
-- Вихід: `annotations[]` + `health_score` (coverage_percent, critical_gaps)
-
-**Per-agent провайдер:**
-- `components/settings/AgentProvidersCard.tsx` — 9 агентів з Anthropic/OpenAI toggle
-- `localStorage` під ключем `mxmt_agent_providers`
-- При зміні диспатчить `mxmt_providers_changed` event
-- `getAgentProvider(agentId)` повертає провайдер для конкретного агента
-
----
-
-### Сесія 3 — Агенти Блоку 4 + Прозорість + Drive→Каталог фікс
-
-#### Фікс: Drive sync → CatalogItem
-
-**Проблема:** Drive sync записував тільки в `Sku` (для аналітики), а Планер Асортименту читає з `CatalogItem` — таблиці порожні.
-
-**Рішення** в `lib/gdrive.ts`, функція `importArticleReport()`:
-- Під час обробки рядків збирається `catalogBatch: Map<brandId, items[]>`
-- Після завершення основного loop — для кожного бренда:
-  - `findFirst` або `create` `CatalogUpload` з сезоном `"SS26 (Drive)"` (автодетекція: березень-серпень = SS, решта = AW)
-  - `deleteMany` старих `CatalogItem` для цього каталогу
-  - `createMany` нових з полями: `sku`, `name`, `category`, `priceWholesale` (= pricePurchase), `priceRetail`
-  - `update` `CatalogUpload.itemCount`
-- Результат синку тепер включає `каталог: N`
-
----
-
-#### Агент 8: Campaign Analysis (`/api/agents/campaign-analysis`)
-
-Відстежує активні кампанії (з Commercial Marketer) відносно поточних метрик продажів.
-
-**Логіка:**
-1. Читає останній `commercial_marketer` run → витягує список брендів з брифами
-2. Отримує `getBrandMetrics(tenantId, asOf?)` — поточний тренд і темп продажів
-3. Обчислює `daysRunning` для кожної кампанії за `start_date` з каналів
-4. Claude оцінює статус кожної кампанії:
-   - `on_track` — тренд стабільний або кампанія < 3 днів
-   - `ahead` — тренд > +15%
-   - `behind` — тренд не покращився після 3+ днів
-   - `stalled` — немає даних
-
-**Вихід:** `campaigns[]` + `overall_health` (on_track/needs_attention/critical) + `summary`
-
----
-
-#### Агент 9: Weekly Report (`/api/agents/weekly-report`)
-
-Мета-агент — синтезує результати всіх 8 попередніх агентів в єдиний звіт для двох аудиторій.
-
-**Логіка:**
-1. `isoWeekNumber()` — обчислює ISO номер тижня
-2. Паралельно читає останні `done` runs для всіх 8 агентів
-3. Будує текстовий summary кожного агента (скорочена статистика без JSON)
-4. Claude генерує:
-   - `pm_brief` — 3-4 речення для PM: факти, що вирішено, що потребує рішення
-   - `marketing_brief` — 3-4 речення для маркетингу: що робити, який тон, які бренди
-   - `top_priorities[]` — максимум 5 найтерміновіших дій (rank, type, brand, action, deadline)
-   - `decisions_needed[]` — тільки те, що вирішує PM (бюджет, знижки, дозамовлення)
-   - `wins[]` — позитивне, навіть якщо ситуація важка
-   - `next_week_focus` — одне речення на що зосередитись
-   - `inventory_health` — зведена статистика (critical/warning/ok/total brands)
-
----
-
-#### Прозорість агентів — `_debug` поле
-
-**Кожен з 9 агентів** тепер зберігає в `output._debug`:
-
-```typescript
-{
-  systemPrompt: string,       // повний системний промт (роль + правила + JSON схема)
-  userPrompt: string,         // точні дані, відправлені в AI (метрики, цифри)
-  rawResponse: string,        // сирий ответ AI до парсингу JSON
-  provider: "anthropic" | "openai",
-  model: "claude-sonnet-4-6" | "gpt-4o",
-  parsedSuccessfully: boolean, // чи вдалось розпарсити JSON
-  // агент-специфічні поля:
-  brandCount?: number,
-  candidateCount?: number,
-  channelCount?: number,
-  categoryCount?: number,
-  decisionCount?: number,
-  campaignCount?: number,
-  calendarEventCount?: number,
-  weeksAnalyzed?: string[],
-  agentsIncluded?: number,     // для Weekly Report
-  asOf?: string | null,        // дата аналізу (якщо не сьогодні)
-  analyzedAt: string,          // ISO timestamp запуску
-}
-```
-
-**UI — кнопка "Трассировка"** (іконка `Code2`) поруч з "Переглянути аналіз":
-- З'являється тільки коли є `output._debug`
-- Відкриває `DebugModal` — повне вікно з:
-  - **Метадані запуску**: провайдер, модель, парсинг, тривалість, кількість брендів/кандидатів тощо
-  - **Дата аналізу** (жовтим кольором, якщо не сьогодні)
-  - **Системний промт** — колапсований розділ з char count + copy
-  - **Дані для аналізу** — розгорнутий за замовчуванням (те що реально відправили в AI)
-  - **Сирий ответ AI** — колапсований, до парсингу JSON
-  - Попередження якщо `parsedSuccessfully: false` (використано fallback)
-
----
-
-#### Вибір дати аналізу (`asOf`)
-
-**Де:** панель зверху сторінки `/agents`, між заголовком і pipeline-діаграмою.
-
-**Як працює:**
-- `<input type="date">` обмежений `max={today}`
-- За замовчуванням — сьогодні
-- При виборі минулої дати — передає `asOf: "YYYY-MM-DD"` в POST body кожного агента
-- Кнопка "Сегодня" для скидання
-
-**Що зсувається при `asOf`:**
-- `d7 = asOf - 7d`, `d14 = asOf - 14d`, `d30 = asOf - 30d`
-- `salesRecords.date: { lte: asOf }` + `inventorySnapshots.snapshotDate: { lte: asOf }`
-- Prompts агентів: `"Дата анализа: YYYY-MM-DD"` замість `"Сегодня: ..."`
-
-**Застереження (відображаються в UI при виборі минулої дати):**
-
-| Блок | Застереження |
-|---|---|
-| Блоки 1–2 | Метрики продажів точні. Залишки — ближній snapshot до дати (якщо немає щоденних знімків — поточні) |
-| Блок 3 (Execution) | Commercial Marketer і Calendar Agent генерують рекомендації на майбутнє — для минулої дати вони будуть ретроспективними |
-| Блок 4 (Tracking) | Campaign Analysis і Weekly Report читають збережені результати інших агентів — дата майже не впливає на їх вивід |
-
-`asOf` зберігається в `AgentRun.input` і відображається в DebugModal.
-
----
-
-### Сесія 4 — Період даних «від–до» + Розрахунок акції з експортом
-
-#### Період даних `dateFrom` (доповнення до `asOf`)
-
-**Де:** панель «Період даних» зверху `/agents` — два дата-пікери «від» і «до».
-
-**Семантика:** поле «від» необовʼязкове. Якщо порожнє — стандартне вікно 30 днів. Якщо заповнене — аналізується тільки період `[dateFrom, asOf]`:
-- Швидкість продажів = продажі за період ÷ днів у періоді (замість ÷30)
-- WOH = залишок ÷ швидкість за період
-- **Тренд = друга половина періоду vs перша половина** (замість 7д vs 7–14д)
-- STR = продажі за останні 7 днів періоду ÷ залишок (обрізається до початку періоду)
-
-**Реалізація:** `getBrandMetrics(tenantId, asOf?, from?)`, `getChannelMetrics(...)`, `getAttributeMetrics(...)` — третій параметр `from`. Всі 9 роутів парсять `body.dateFrom`, зберігають у `AgentRun.input` і `_debug.dateFrom`, додають рядок «Период данных: …» у промт. Залишки завжди беруться на дату «до» — `dateFrom` на них не впливає.
-
-#### Розрахунок акції — «Переглянути в таблиці» (Repricing)
-
-Кнопка зʼявляється під кожним варіантом уцінки (AGGRESSIVE/BALANCED/CONSERVATIVE) з `discount_percent > 0` — і в модалці «Переглянути аналіз», і в розгорнутому вигляді картки.
-
-**Принцип:** AI обирає параметри сценарію (знижка, строк, прогноз % продажу) — вся математика детермінована, без AI:
-- `lib/promo-calc.ts` — `simulatePromo()`: бере всі ACTIVE/NEW SKU бренда з залишком > 0, рахує по кожному: ціну зі знижкою, маржу до/після, прогноз продажу (AI `units_to_sell_percent` від залишку, fallback — еластичність ×2 від базової швидкості), виручку, звільнений капітал, залишок і WOH після акції
-- `POST /api/agents/repricing/simulate` — `{ brandId, discountPercent, durationDays, unitsToSellPercent?, asOf?, dateFrom? }` → таблиця по SKU + підсумки
-- `components/agents/PromoTableModal.tsx` — модалка з summary-картками і таблицею
-
-#### Розрахунок дозамовлення — «Переглянути в таблиці» (Reordering)
-
-Аналогічна кнопка під кожним сценарієм (PESSIMISTIC/REALISTIC/OPTIMISTIC):
-- `lib/reorder-calc.ts` — `simulateReorder()`: замовлення = швидкість × 45 дн × `qty_multiplier` − залишок (семантика множника з промпта агента: 1.0 = покрити до 45 днів)
-- `POST /api/agents/reordering/simulate` + `components/agents/ReorderTableModal.tsx`
-- Інші 7 агентів таблиць не мають свідомо — їх вивід не товарний (канали, категорії, брифи, календар, звіти)
-
-**Експорт (спільний компонент `components/agents/ExportButtons.tsx`):**
-- **«Завантажити Excel»** — єдина кнопка експорту. Завантажує .xlsx **з живими формулами**: параметри в шапці (знижка B2 / покриття B2 + множник E2), зміна — і вся таблиця перераховується. Файл можна вручну закинути в Google Drive — відкриється як Google Таблиця з робочими формулами
-- Технічний нюанс SheetJS: formula cell обовʼязково потребує `v: 0` (клітинка без значення викидається при записі)
-- `lib/promo-sheet.ts` / `lib/reorder-sheet.ts` — builders 2D-масиву (formulas: true/false)
-- Кнопки Google Drive прибрані з UI за рішенням користувача (без OAuth прямий запис у особистий Drive неможливий). Серверна інфраструктура збережена на майбутнє, але не використовується: `lib/gsheets.ts` (Drive multipart upload з конвертацією в Google Sheets, без Sheets API) + `POST /api/export/sheets` + env `GOOGLE_DRIVE_EXPORT_FOLDER_ID`
-
-#### Favicon
-
-`app/icon.svg` — Next.js App Router автоматично віддає його як іконку вкладки браузера.
-
----
-
-## Система 9 агентів — архітектура
-
-### Принципи
-
-1. **AI не рахує математику** — WOH, STR, Trend рахуються в PostgreSQL. AI тільки інтерпретує.
-2. **Готові метрики на вхід** — агент отримує `woh_days=119, str_pct=2.1` а не сирі транзакції
-3. **JSON на виході, без тексту** — кожен агент повертає строго JSON без преамбули
-4. **Масиви замість динамічних ключів** — `[{value: "BLACK", discount: 25}]` а не `{BLACK: 25}`
-5. **Haiku для категоризації, Sonnet для аналізу** — заощаджує 65% вартості
-6. **`_debug` в кожному output** — повна трасовність: промт, дані, сирий ответ AI
-
-### 9 агентів по блоках
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│  БЛОК 1 · CORE ANALYTICS · автоматично кожен ранок                  │
-│                                                                      │
-│  1. Inventory Analyst  (Sonnet)  ✅ РЕАЛІЗОВАНО                     │
-│     Вхід: WOH, STR, Trend, GM по брендах з PostgreSQL               │
-│     Вихід: CRITICAL | WARNING | BALANCED | EXCELLENT + дії           │
-│                                                                      │
-│  2. Channel Analytics  (Haiku)   ✅ РЕАЛІЗОВАНО                     │
-│     Вхід: продажі grouped by channel (online/offline)                │
-│     Вихід: best/normal/weak/inactive + рекомендація                  │
-│                                                                      │
-│  3. Product Attributes (Haiku)   ✅ РЕАЛІЗОВАНО                     │
-│     Вхід: STR по категоріях/підкатегоріях                            │
-│     Вихід: bestseller/normal/slow/dead + дія                         │
-├─────────────────────────────────────────────────────────────────────┤
-│  БЛОК 2 · DECISION SUPPORT · за запитом PM                          │
-│                                                                      │
-│  4. Repricing Strategy  (Sonnet) ✅ РЕАЛІЗОВАНО                     │
-│     3 варіанти уцінки (AGGRESSIVE/BALANCED/CONSERVATIVE)             │
-│     + оцінка pros/cons/risks/score кожного                           │
-│                                                                      │
-│  5. Reordering Strategy (Sonnet) ✅ РЕАЛІЗОВАНО                     │
-│     3 сценарії дозамовлення (PESSIMISTIC/REALISTIC/OPTIMISTIC)       │
-│     + risk_level, safety_margin, woh_after                           │
-├─────────────────────────────────────────────────────────────────────┤
-│  БЛОК 3 · EXECUTION · після вибору PM                               │
-│                                                                      │
-│  6. Commercial Marketer (Sonnet) ✅ РЕАЛІЗОВАНО                     │
-│     Брифи по 5 каналах (SMM, Email, Ads, Store, Marketplace)         │
-│     ЗАБОРОНЕНО: WOH/STR/GM — тільки людська мова                    │
-│                                                                      │
-│  7. Calendar Agent      (Haiku)  ✅ РЕАЛІЗОВАНО                     │
-│     Gaps і конфлікти в маркетинговому плані                          │
-│     Вихід: annotations[], health_score { coverage_percent }          │
-├─────────────────────────────────────────────────────────────────────┤
-│  БЛОК 4 · TRACKING & REPORTS                                        │
-│                                                                      │
-│  8. Campaign Analysis   (Sonnet) ✅ РЕАЛІЗОВАНО                     │
-│     Трекінг кампаній план vs факт                                     │
-│     Вихід: on_track | ahead | behind | stalled per brand             │
-│                                                                      │
-│  9. Weekly Report       (Sonnet) ✅ РЕАЛІЗОВАНО                     │
-│     PM Brief + Marketing Brief + top_priorities + wins               │
-│     Синтезує результати всіх 8 агентів в єдиний звіт                 │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-### Залежності між агентами
-
-```
-Блок 1 (незалежні, читають БД напряму):
-  Inventory Analyst ──────────────────┐
-  Channel Analytics ──────────────────┤
-  Product Attributes ─────────────────┤
-                                       ▼
-Блок 2 (читають output Блоку 1):      ┌── Repricing ──┐
-                                       └── Reordering ──┤
-                                                         ▼
-Блок 3 (читають output Блоку 2):               Commercial Marketer
-                                                         │
-                                               Calendar Agent (читає Маркетинговий Календар + Маркетера)
-                                                         │
-                                                         ▼
-Блок 4 (мета-агенти):                          Campaign Analysis (читає Маркетера + БД метрики)
-                                               Weekly Report (читає всі 8 попередніх runs)
-```
-
-### Вартість (оцінка, 5 брендів/місяць)
-
-| Блок | Вартість |
-|---|---|
-| Щоденні агенти 1+2+3 | ~$2.10/місяць |
-| Decision Support 4+5 (3 рішення/міс) | ~$0.60/місяць |
-| Execution 6+7 | ~$0.08/місяць |
-| Campaign Analysis 8 | ~$1.34/місяць |
-| Weekly Report 9 | ~$0.21/місяць |
-| **Разом** | **~$4.33/місяць** |
-
----
-
-## Що реально працює зараз
-
-### ✅ Повністю функціонально
-
-| Функція | Де | Деталі |
-|---|---|---|
-| Auth + auto-refresh | Всюди | JWT, silent-refresh, TokenRefreshProvider |
-| Drive sync | `/settings` → Загальне | ARTICLE REPORT + ZAVOD_API + CatalogItem |
-| SKU класифікація | `/analyst` | 5 флагів, пагінація 20/50/100 |
-| Inventory Analyst | `/agents` | Brand-level аналіз, CRITICAL/WARNING/BALANCED |
-| Channel Analytics | `/agents` | Online vs offline порівняння |
-| Product Attributes | `/agents` | STR по категоріях |
-| Repricing Strategy | `/agents` | 3 варіанти уцінки з оцінками |
-| Reordering Strategy | `/agents` | 3 сценарії дозамовлення з ризиками |
-| Commercial Marketer | `/agents` | Брифи по 5 каналах |
-| Calendar Agent | `/agents` | Gaps і конфлікти в плані |
-| Campaign Analysis | `/agents` | Трекінг кампаній план vs факт |
-| Weekly Report | `/agents` | PM + Marketing brief зі зведенням |
-| Agent Трассировка | `/agents` | Промт + дані + сирий ответ AI per-agent |
-| Період даних «від–до» | `/agents` | Два дата-пікери + застереження + передача в усі 9 агентів |
-| Розрахунок акції | `/agents` → Repricing | «Переглянути в таблиці» → SKU-таблиця + Excel з живими формулами |
-| Розрахунок дозамовлення | `/agents` → Reordering | «Переглянути в таблиці» → SKU-таблиця дозаказу + Excel з живими формулами |
-| Per-agent провайдер | `/settings` → Агенти | Anthropic/OpenAI per-агент |
-| Маркетинговий календар | `/calendar` | Динамічні тижні, UA свята, AI план |
-| Теми dark/light | Сайдбар | No-flash SSR |
-| Каталог у Планері | `/assortment` | Заповнюється автоматично з Drive sync |
-
-### ⚠️ Частково / є обмеження
-
-| Функція | Обмеження |
-|---|---|
-| `asOf` + inventory | WOH для минулих дат точний тільки якщо є щоденні `InventorySnapshot`. Без них — поточні залишки |
-| `asOf` + Блок 3 | Commercial Marketer і Calendar Agent будуть ретроспективними (не actionable) |
-| `asOf` + Блок 4 | Campaign Analysis і Weekly Report читають збережені runs, дата майже не впливає |
-| Channel Analytics | Канал з 0 продаж за 7 днів зникає зі списку |
-| Product Attributes | Немає color/size — тільки category/subcategory |
-| Trend | Тільки 7d vs 7-14d — короткий горизонт для сезонного бізнесу |
-| WOH для off-season | Якщо продажів 30д = 0, WOH = 9999 |
-
-### 🚧 Не реалізовано
-
-- Cron-задачі для автоматичного запуску агентів о 08:00
-- Рахунки/Інвойси (`/invoices`)
-- AnalyticsConfig — пороги WOH/STR/GM per tenant (зараз хардкод у кожному route)
-- Telegram webhook для CRITICAL брендів
-
----
-
-## Відомі баги та обмеження
-
-### Не критично
-
-1. **Channel Analytics пропускає "мертві" канали**
-   - `channels` будується з `sales7` groupBy — канал без продаж за 7д зникає
-   - Фікс: union з `sales30` groupBy, заповнювати `salesLast7d = 0`
-
-2. **Trend занадто короткий** — 7d vs 7-14d. Для сезонного бізнесу краще 7d vs попередній аналогічний тиждень.
-
-3. **STR в Channel Analytics** — знаменник = весь склад, а не склад цього каналу.
-
-4. **WOH = 9999** — для off-season товарів (продажів 0 за 30д при ненульовому стоку).
-
-5. **Inventory snapshot history** — якщо `InventorySnapshot` не зберігається щодня, аналіз за `asOf` у минулому буде використовувати поточні залишки.
-
----
-
-## Структура файлів
-
-```
-/
-├── app/
-│   ├── (auth)/
-│   │   ├── login/page.tsx
-│   │   └── register/page.tsx
-│   ├── (app)/
-│   │   ├── layout.tsx               ← читає tenantId, рендерить Sidebar
-│   │   ├── dashboard/page.tsx       ← Server Component, KPI + sparkline
-│   │   ├── agents/page.tsx          ← Client Component, pipeline + 9 агентів + дата-пікер
-│   │   ├── analyst/page.tsx         ← Server Component → AnalystApp client
-│   │   ├── assortment/page.tsx
-│   │   ├── calendar/page.tsx
-│   │   └── settings/page.tsx        ← табована: Загальне / Агенти
-│   ├── api/
-│   │   ├── auth/                    ← register, login, refresh, logout, silent-refresh
-│   │   ├── ai/route.ts              ← загальний AI endpoint
-│   │   ├── agents/
-│   │   │   ├── inventory-analyst/   ← POST запуск + GET статус всіх агентів
-│   │   │   ├── channel-analytics/   ← POST запуск
-│   │   │   ├── product-attributes/  ← POST запуск
-│   │   │   ├── repricing/           ← POST запуск
-│   │   │   ├── reordering/          ← POST запуск
-│   │   │   ├── commercial-marketer/ ← POST запуск
-│   │   │   ├── calendar-agent/      ← POST запуск
-│   │   │   ├── campaign-analysis/   ← POST запуск
-│   │   │   └── weekly-report/       ← POST запуск
-│   │   ├── analyst/classify/
-│   │   ├── calendar/
-│   │   │   ├── events/              ← CRUD + PATCH
-│   │   │   ├── events/[id]/         ← PATCH для редагування
-│   │   │   ├── stock/               ← WOH по брендах
-│   │   │   ├── insights/            ← data-driven інсайти
-│   │   │   └── ai-plan/             ← POST → Claude генерує план
-│   │   ├── onboarding/
-│   │   ├── planner/                 ← brands, catalogs/upload, items, cart, duplicates
-│   │   └── sync/drive/              ← POST тригер синку
-│   └── layout.tsx                   ← root: ThemeProvider + LanguageProvider
-├── components/
-│   ├── analyst/AnalystApp.tsx        ← пагінація, AI chat зверху, фільтри
-│   ├── calendar/MarketingCalendar.tsx ← динамічні тижні, expand/collapse, CRUD
-│   ├── dashboard/SalesSparkline.tsx
-│   ├── planner/PlannerApp.tsx
-│   ├── settings/
-│   │   ├── OnboardingForm.tsx
-│   │   ├── DriveSyncCard.tsx
-│   │   ├── AIProviderCard.tsx        ← глобальний провайдер
-│   │   ├── AgentProvidersCard.tsx    ← per-agent Anthropic/OpenAI toggle
-│   │   └── SettingsTabs.tsx          ← таби Загальне/Агенти
-│   ├── Sidebar.tsx                   ← nav + ThemeToggle + LangToggle
-│   ├── LanguageProvider.tsx
-│   ├── ThemeProvider.tsx
-│   └── TokenRefreshProvider.tsx
-├── lib/
-│   ├── ai.ts                         ← chat() → Claude/OpenAI, providerOverride
-│   ├── analyst-types.ts
-│   ├── attribute-metrics.ts          ← STR по категоріях, підтримує asOf?
-│   ├── auth.ts
-│   ├── brand-metrics.ts              ← WOH/STR/Trend/GM по брендах, підтримує asOf?
-│   ├── channel-metrics.ts            ← продажі grouped by channel, підтримує asOf?
-│   ├── classify.ts
-│   ├── fetch.ts
-│   ├── gdrive.ts                     ← syncFromDrive() + CatalogItem sync
-│   ├── prisma.ts
-│   ├── server-auth.ts
-│   ├── translations.ts
-│   └── utils.ts
-├── middleware.ts
-├── prisma/schema.prisma
-└── railway.toml
-```
-
----
-
-## База даних — Prisma Schema
-
-### Всі моделі
-
-| Модель | Призначення |
-|---|---|
-| `Tenant` | Центральна. Всі FK з `onDelete: Cascade` |
-| `User` | Auth, ролі: SUPER_ADMIN/ADMIN/ANALYST/VIEWER |
-| `OnboardingBrief` | SEASONAL/CARRYOVER/HYBRID + JSON відповідей |
-| `Brand` | Постачальник. `leadTimeDays` — для класифікації стокаутів |
-| `Sku` | Наш інвентар для аналітики. `@@unique([tenantId, sku])` |
-| `SalesRecord` | Продажі: date, qtySold, revenue, channel, isPromo |
-| `InventorySnapshot` | Залишки: qtyOnHand, snapshotDate |
-| `PromoEvent` | Промо-акції |
-| `GoogleDriveSync` | Метадані останнього синку |
-| `CatalogUpload` | Завантажені каталоги від постачальників |
-| `CatalogItem` | Позиції каталогу (те що можна замовити) — заповнюється Drive sync |
-| `MarketingEvent` | Події календаря. source: user/agent/system |
-| `PlannerCart` | Кошик замовлень, один на tenant |
-| `AgentRun` | Результати запусків агентів |
-
-### AgentRun
-
-```prisma
-model AgentRun {
-  id         String    @id @default(cuid())
-  tenantId   String
-  agentType  String    // "inventory_analyst" | "channel_analytics" | "product_attributes"
-                       // "repricing" | "reordering" | "commercial_marketer"
-                       // "calendar_agent" | "campaign_analysis" | "weekly_report"
-  entityId   String    @default("all")
-  status     String    // "running" | "done" | "error"
-  input      Json      @default("{}")  // { provider: "anthropic"|"openai", asOf?: "YYYY-MM-DD" }
-  output     Json?     // результат агента (містить _debug з промтами і сирим ответом AI)
-  errorMsg   String?
-  startedAt  DateTime  @default(now())
-  finishedAt DateTime?
-}
-```
-
-### SalesRecord.channel
-
-- `"online"` — з ZAVOD_API (orderTime + product.sku)
-- `"offline"` — з ARTICLE REPORT (місячні продажі, "Sales Last week")
-- `"unknown"` — якщо не вказано
-
-### CatalogUpload.season (автодетекція при Drive sync)
-
-- `"SS26 (Drive)"` — якщо синк відбувається у березні-серпні
-- `"AW26 (Drive)"` — якщо синк відбувається у вересні-лютому
-
----
-
-## Змінні середовища Railway
-
-| Variable | Значення | Обов'язково |
-|---|---|---|
-| `DATABASE_URL` | Автоматично від Railway PostgreSQL | ✅ |
-| `JWT_ACCESS_SECRET` | `openssl rand -base64 32` | ✅ |
-| `JWT_REFRESH_SECRET` | `openssl rand -base64 32` (інший!) | ✅ |
-| `ANTHROPIC_API_KEY` | `sk-ant-...` | ✅ для Anthropic агентів |
-| `OPENAI_API_KEY` | `sk-...` | якщо використовується OpenAI |
-| `AI_PROVIDER` | `anthropic` або `openai` | (за замовч. anthropic) |
-| `GOOGLE_DRIVE_FILE_ID` | ID файлу з URL: `/d/{ID}/` | якщо Drive sync |
-| `GOOGLE_SERVICE_ACCOUNT_KEY` | `base64(service-account.json)` | якщо SA режим / експорт у Sheets |
-| `GOOGLE_DRIVE_EXPORT_FOLDER_ID` | ID папки, розшареної на email сервіс-акаунта | рекомендовано для експорту в Sheets |
-| `NEXT_PUBLIC_APP_URL` | `https://your-app.railway.app` | рекомендовано |
-
-> **Важливо:** Без `ANTHROPIC_API_KEY` агенти повернуть помилку _"Could not resolve authentication method"_. Ключ береться на [console.anthropic.com](https://console.anthropic.com).
-
-### Якщо Railway PostgreSQL впав
-
-Помилка: `P1001: Can't reach database server at postgres.railway.internal:5432`
-
-**Рішення:**
-1. Railway dashboard → видалити PostgreSQL сервіс
-2. `+ New` → `Database` → `Add PostgreSQL`
-3. Скопіювати нову `DATABASE_URL` в Variables апп-сервісу
-4. Редеплой — `prisma db push` пересоздасть всі таблиці автоматично
-5. Налаштування → Drive Sync → запустити синк для відновлення даних
-
----
-
-## Запуск локально
+### Встановлення
 
 ```bash
+git clone <repository-url>
+cd mxmt
 npm install
-cp .env.example .env        # заповнити DATABASE_URL, JWT secrets, AI keys
-npm run db:push             # sync схема з БД
-npm run dev                 # http://localhost:3000
+cp .env.example .env
 ```
 
-**npm scripts:**
-```
-npm run dev        → next dev
-npm run build      → prisma generate && next build
-npm run start      → next start
-npm run db:push    → prisma db push
-npm run db:studio  → prisma studio
+Заповніть `.env`, після чого застосуйте міграції та запустіть застосунок:
+
+```bash
+npm run db:migrate:deploy
+npm run dev
 ```
 
----
+Локальна адреса за замовчуванням: `http://localhost:3000`.
 
-## Деплой на Railway
+### Команди
 
-1. Push в GitHub (main branch)
-2. New Project → Deploy from GitHub
-3. Add PostgreSQL → `DATABASE_URL` підставляється автоматично
-4. Variables → додати всі ключі
-5. Deploy (автоматично при push)
+| Команда | Призначення |
+| --- | --- |
+| `npm run dev` | Next.js development server |
+| `npm run build` | Prisma Client generation і production build |
+| `npm run start` | Запуск зібраного Next.js застосунку |
+| `npm test` | Всі Vitest тести |
+| `npm run test:watch` | Тести в watch mode |
+| `npm run db:migrate` | Створення/застосування міграції у development |
+| `npm run db:migrate:deploy` | Застосування готових міграцій у staging/production |
+| `npm run db:push` | Синхронізація schema без migration history; лише для тимчасової локальної розробки |
 
-**railway.toml:**
-```toml
-[build]
-buildCommand = "npm run build"
+## Змінні середовища
 
-[deploy]
-startCommand = "npx prisma db push && npm run start"
+Актуальний шаблон знаходиться у [`.env.example`](./.env.example).
+
+### Обов'язкові
+
+| Змінна | Призначення |
+| --- | --- |
+| `DATABASE_URL` | Pooled Neon connection string для Prisma Client у Vercel Functions |
+| `DIRECT_URL` | Direct Neon connection string для Prisma Migrate та admin tooling |
+| `JWT_ACCESS_SECRET` | Підпис короткоживучого access token |
+| `JWT_REFRESH_SECRET` | Підпис refresh token |
+| `CRON_SECRET` | Авторизація Vercel Cron; щонайменше 16 випадкових символів |
+| `GOOGLE_DRIVE_FILE_ID` | ID основного Google Sheets/Drive файлу |
+| `NEXT_PUBLIC_APP_URL` | Production URL застосунку |
+
+### AI
+
+| Змінна | Призначення |
+| --- | --- |
+| `AI_PROVIDER` | `anthropic` або `openai` |
+| `AI_TIMEOUT_MS` | Timeout AI-запиту в мілісекундах |
+| `ANTHROPIC_API_KEY` | Ключ Anthropic |
+| `OPENAI_API_KEY` | Ключ OpenAI |
+
+Потрібен щонайменше один ключ для обраного провайдера. Користувацькі налаштування можуть перевизначати провайдера для окремого агента.
+
+### Google
+
+| Змінна | Призначення |
+| --- | --- |
+| `GOOGLE_SERVICE_ACCOUNT_KEY` | Необов'язковий base64 JSON Service Account для приватних файлів |
+| `GOOGLE_DRIVE_EXPORT_FOLDER_ID` | Необов'язкова папка для server-side Google Sheets exports |
+
+Якщо Service Account не налаштовано, вихідний файл має бути доступний за посиланням для читання.
+
+### Правила безпеки
+
+- Не комітьте `.env`, connection strings, JWT secrets або API keys.
+- Не додавайте секрети з префіксом `NEXT_PUBLIC_`.
+- Після зміни environment variables у Vercel створіть новий deployment: зміни не застосовуються до вже розгорнутих версій.
+
+## Neon PostgreSQL і Prisma
+
+`prisma/schema.prisma` використовує два підключення:
+
+```prisma
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
 ```
 
-> **Не використовувати `output: standalone`** — спричиняє 502 через HOSTNAME binding в Railway.
+### Підключення
 
----
+- `DATABASE_URL` повинен містити pooled hostname Neon з суфіксом `-pooler`.
+- `DIRECT_URL` використовує direct hostname без `-pooler`.
+- Обидва URL повинні використовувати TLS, наприклад `sslmode=require`.
 
-## Важливі нюанси
+Pooled URL потрібен serverless runtime Vercel, де може одночасно працювати багато короткоживучих functions. Direct URL залишений для migration та адміністративних операцій.
 
-### Multi-tenancy
-- **Завжди** `where: { tenantId }` в Prisma запитах
-- Server Components: `const tenantId = (await headers()).get("x-tenant-id")!`
-- Client Components не знають tenantId — все через API routes
+Офіційна документація: [Neon connection pooling](https://neon.com/docs/connect/connection-pooling).
 
-### Як додати новий агент
+### Міграції
 
-1. Написати `lib/<name>-metrics.ts` — SQL запити, AI не рахує математику. Підпис: `async function get<Name>Metrics(tenantId: string, asOf?: Date)`
-2. Написати `app/api/agents/<name>/route.ts`:
-   - Парсити `body.provider` і `body.asOf` з request
-   - Створити `AgentRun` з `input: { provider, asOf }`
-   - Викликати `chat()` з `providerOverride`
-   - Додати `_debug: { systemPrompt, userPrompt, rawResponse, provider, model, parsedSuccessfully, asOf, analyzedAt }` до output
-   - Зберегти в `AgentRun.output`
-3. Додати в масив `AGENTS` у `app/(app)/agents/page.tsx` з `runnable: true`
-4. Додати route в `AGENT_ROUTES`
-5. Додати в `AgentProvidersCard.tsx`
+Історія міграцій зберігається в `prisma/migrations` і не повинна редагуватися після застосування до production.
 
-### Per-agent провайдер
+Development:
 
-```typescript
-// Читання (в будь-якому client component)
-import { getAgentProvider } from "@/components/settings/AgentProvidersCard"
-const provider = getAgentProvider("inventory_analyst") // "anthropic" | "openai"
-
-// Передача в API
-fetch("/api/agents/inventory-analyst", {
-  method: "POST",
-  body: JSON.stringify({ provider, asOf: "2026-05-01" }) // asOf — опціонально
-})
-
-// В API route
-const body = await req.json()
-const providerOverride = body.provider
-const asOf = body.asOf ? new Date(body.asOf) : undefined
-await chat({ ..., providerOverride })
+```bash
+npm run db:migrate -- --name describe_change
 ```
 
-### Drive Sync — формати аркушів
+Production або staging:
 
-| Аркуш | Що робить | Ключові колонки |
-|---|---|---|
-| `ARTICLE REPORT` | SKU + склад + місячні продажі + CatalogItem | Article, Brand, Stock units, 1-12, Sales Last week |
-| `ZAVOD_API` | Транзакції онлайн-замовлень | product.sku, orderTime, product.amount |
+```bash
+npm run db:migrate:deploy
+```
 
-Інші аркуші — ігноруються.
+`prisma migrate deploy` застосовує лише pending migrations. Не використовуйте `prisma migrate reset` або `db push` для production Neon.
 
-### Теми — де можна зламати
-- Tailwind утиліти типу `text-white` потребують override в `globals.css` для light mode
-- Inline script в `<head>` читає `localStorage('mxmt_theme')` до гідратації — **не видаляти**
+Офіційна документація: [Prisma migrate deploy](https://www.prisma.io/docs/cli/migrate/deploy).
 
----
+### Поточні production migrations
 
-## Roadmap — що далі
+```text
+20260715000000_baseline
+20260717000000_data_reliability_constraints
+20260719000000_agent_run_lock
+20260827000000_data_import_reporting_schema
+```
 
-### ✅ Зроблено
+## Деплой на Vercel
 
-- [x] Auth + JWT auto-refresh + silent-refresh
-- [x] Dashboard з реальними алертами + sparkline
-- [x] Планер Асортименту (каталог + кошик + AI + PO export)
-- [x] Маркетинговий Календар (динамічні тижні + UA свята + AI план + CRUD)
-- [x] Агент Аналітик (5 флагів + пагінація + AI chat)
-- [x] Google Drive sync (ARTICLE REPORT + ZAVOD_API + CatalogItem)
-- [x] Теми dark/light (no-flash SSR)
-- [x] Система агентів — сторінка /agents з pipeline
-- [x] AgentRun DB модель — трекінг всіх запусків
-- [x] **Всі 9 агентів** — Inventory, Channel, Attributes, Repricing, Reordering, Marketer, Calendar, Campaign, Weekly
-- [x] Per-agent провайдер (Anthropic/OpenAI per-агент)
-- [x] **Трасування агентів** — `_debug` поле + DebugModal з промтами і сирим ответом
-- [x] **Дата аналізу `asOf`** — дата-пікер + застереження + передача в всі 9 агентів
-- [x] **CatalogItem з Drive sync** — Планер бачить товари з файлу Google Drive
-- [x] **Період даних «від–до»** — `dateFrom` у всіх 9 агентах, метрики за власний період, тренд по половинах
-- [x] **Розрахунок акції (Repricing)** — детермінована таблиця по SKU + експорт у Google Sheets (живі формули) та Excel
+### Git deployment
 
-### 🚧 Наступні кроки
+Рекомендований production flow:
 
-**Автоматизація:**
-- [ ] Cron-задачі: запуск агентів 1-3 щодня о 08:00 (Vercel Cron або `/api/cron/daily`)
-- [ ] AnalyticsConfig модель — пороги WOH/STR/GM per tenant (зараз хардкод)
-- [ ] Telegram webhook для CRITICAL брендів
+1. Підключити GitHub repository до Vercel.
+2. Обрати `main` як Production Branch.
+3. Framework Preset: `Next.js`.
+4. Додати змінні середовища для Production; за потреби окремі значення для Preview.
+5. До deployment застосувати pending Prisma migrations до Neon.
+6. Merge перевіреної feature branch у `main` запускає production deployment.
 
-**Покращення агентів:**
-- [ ] Channel Analytics — показувати канали з 0 продаж за 7д (union з 30д даних)
-- [ ] Trend — збільшити горизонт або додати 30d trend паралельно
-- [ ] InventorySnapshot — щоденне автоматичне збереження (для точного `asOf`)
+Vercel автоматично визначає команди з `package.json`. Production build у цьому проєкті:
 
-**Нові модулі:**
-- [ ] Рахунки/Інвойси (`/invoices`)
-- [ ] Промо-калькулятор (32 механіки)
+```bash
+npm run build
+```
 
----
+Він виконує `prisma generate`, а потім `next build`. Міграції не запускаються всередині кожного Vercel Function startup.
 
-*MXMT Analytics · Next.js 15 + Neon PostgreSQL + Prisma + Claude Sonnet/Haiku + OpenAI · Vercel*
-*Актуально станом на 2026-06-01*
+Environment variables діють лише для нових deployments. Див. [Vercel Environment Variables](https://vercel.com/docs/environment-variables).
+
+### CLI deployment
+
+Для ручного preview або production deployment:
+
+```bash
+npx vercel
+npx vercel --prod
+```
+
+Git-based deployment залишається основним production workflow.
+
+### Health check
+
+Після deployment перевірте:
+
+```text
+GET /api/health
+```
+
+Також перевірте Vercel Runtime Logs на помилки Prisma, auth, AI та scheduled import.
+
+## Щоденний імпорт Google Sheets
+
+Production pipeline запускається щодня у часовому вікні `07:00–07:59 Europe/Kyiv`.
+
+Vercel Cron використовує UTC, а Київ переходить між UTC+2 та UTC+3. Тому `vercel.json` містить два щоденні slots:
+
+```json
+{
+  "crons": [
+    { "path": "/api/cron/data-import/utc-04", "schedule": "0 4 * * *" },
+    { "path": "/api/cron/data-import/utc-05", "schedule": "0 5 * * *" }
+  ]
+}
+```
+
+Обидва endpoints перевіряють локальну київську годину. Невідповідний DST slot повертає успішну відповідь зі `skipped: true`, тому pipeline виконується один раз.
+
+`CRON_SECRET` передається Vercel як Bearer token. Endpoint відхиляє запити з відсутнім або неправильним секретом. Cron jobs активуються лише після production deployment.
+
+Офіційна документація: [Vercel Cron Jobs](https://vercel.com/docs/cron-jobs) і [Managing Cron Jobs](https://vercel.com/docs/cron-jobs/manage-cron-jobs).
+
+### Перший запуск
+
+До активації cron адміністратор повинен виконати перший імпорт на сторінці `/data-reporting`. Він створить tenant-specific `DataSource`, який надалі знайде scheduler.
+
+### Ручна перевірка cron
+
+```bash
+curl --fail --request POST \
+  --header "Authorization: Bearer $CRON_SECRET" \
+  "https://your-production-domain.example/api/cron/data-import?force=1"
+```
+
+`force=1` обходить лише перевірку локальної години, але не авторизацію.
+
+## Дані та звіти
+
+Сторінка `/data-reporting` містить п'ять вкладок:
+
+| Вкладка | Тип |
+| --- | --- |
+| `Product YML 2.0` | Raw source snapshot і typed products |
+| `ZAVOD_API` | Raw transactions і normalized sale lines |
+| `ARTICLE REPORT` | Розрахунок на рівні товару |
+| `BY BRAND` | Агрегація ARTICLE REPORT за брендом |
+| `BY CATEGORY` | Агрегація ARTICLE REPORT за категорією |
+
+Для кожної вкладки доступні pagination, search, sorting і вибір видимих колонок. Налаштування колонок зберігаються окремо для користувача та вкладки.
+
+### Pipeline
+
+1. Завантажує XLSX export Google Sheets.
+2. Перевіряє allowlist вкладок, headers, розмір і рядки.
+3. Зберігає raw snapshots для аудиту.
+4. Нормалізує products і transaction lines.
+5. Активує новий import atomically, якщо немає blocking errors.
+6. Розраховує `ARTICLE REPORT` для обраного `Date From` / `Date To`.
+7. Агрегує результати в `BY BRAND` і `BY CATEGORY`.
+8. Зберігає issues, warnings, статистику й immutable calculation results у Neon.
+
+Однаковий вміст workbook дає `importOutcome: "unchanged"`; розрахунок з тим самим cache identity дає `calculationOutcome: "cached"`.
+
+### Основні endpoints
+
+| Endpoint | Мінімальна роль | Призначення |
+| --- | --- | --- |
+| `POST /api/data/import` | `ADMIN` | Імпорт і автоматичний розрахунок |
+| `POST /api/data/calculate` | `ANALYST` | Перерахунок активного або історичного імпорту |
+| `GET /api/data/status` | authenticated | Джерело, активний імпорт, calculation та issues |
+| `GET /api/data/issues` | authenticated | Diagnostics з pagination і filters |
+| `GET /api/data/tables/{sheetKey}` | authenticated | Дані конкретної вкладки |
+| `GET/PUT /api/data/preferences/{sheetKey}` | authenticated | Налаштування таблиці користувача |
+
+Детальні контракти: [`docs/data-import-contract.md`](./docs/data-import-contract.md) і [`docs/data-reporting-api.md`](./docs/data-reporting-api.md).
+
+## AI-агенти
+
+Pipeline містить 9 агентів:
+
+1. Inventory Analyst
+2. Channel Analytics
+3. Product Attributes
+4. Repricing Strategy
+5. Reordering Strategy
+6. Commercial Marketer
+7. Calendar Agent
+8. Campaign Analysis
+9. Weekly Report
+
+Кожен запуск зберігається в `AgentRun`. Для одного `tenantId + agentType` дозволений лише один активний `running` запуск. Результат містить structured output і debug metadata для трасування.
+
+Provider resolution:
+
+```text
+налаштування конкретного агента → AI_PROVIDER → anthropic fallback
+```
+
+AI routes виконуються тільки на сервері. Клієнт отримує результат, але не API key.
+
+Детальніше: [`docs/ai-agents-runbook.md`](./docs/ai-agents-runbook.md).
+
+## Автентифікація та ролі
+
+Система використовує короткоживучий access token і refresh token у httpOnly cookies. `middleware.ts` захищає application routes, а API повторно перевіряють користувача та роль.
+
+| Роль | Загальне призначення |
+| --- | --- |
+| `VIEWER` | Перегляд дозволених даних |
+| `ANALYST` | Аналітика та перерахунок звітів |
+| `ADMIN` | Імпорт, налаштування та tenant operations |
+| `SUPER_ADMIN` | Повний адміністративний доступ |
+
+API не приймає `tenantId` від клієнта для data-reporting operations — tenant визначається з authenticated session.
+
+## Тестування
+
+Перед merge або production deployment виконайте:
+
+```bash
+npm test
+npm run build
+```
+
+Тести знаходяться у `tests/**/*.test.ts` і перевіряють:
+
+- auth та API contracts;
+- AI provider/output handling;
+- import parsing, normalization та idempotency;
+- ARTICLE REPORT formulas;
+- BY BRAND / BY CATEGORY aggregation;
+- scheduler, timezone та cron authorization;
+- data table API й UI helpers.
+
+Unit tests не повинні звертатися до real AI providers або змінювати production database.
+
+Детальніше: [`docs/testing.md`](./docs/testing.md).
+
+## Production release checklist
+
+Перед merge у `main`:
+
+- [ ] `npm test` проходить;
+- [ ] `npm run build` проходить;
+- [ ] migration files закомічені;
+- [ ] `prisma migrate deploy` застосовано до потрібної Neon branch/database;
+- [ ] Vercel Production variables налаштовані;
+- [ ] Preview не використовує production secrets без необхідності;
+- [ ] `CRON_SECRET` має щонайменше 16 випадкових символів;
+- [ ] Google source доступний production runtime;
+- [ ] формули або data contract зміни мають нову `calculationVersion`;
+- [ ] release не містить `.env`, credentials або exported customer data.
+
+Після deployment:
+
+- [ ] `/api/health` повертає успішний status;
+- [ ] login і refresh session працюють;
+- [ ] `/data-reporting` показує всі 5 вкладок;
+- [ ] Vercel Cron Jobs відображають обидва UTC slots;
+- [ ] перший scheduled run перевірений у Vercel Runtime Logs;
+- [ ] active import і report calculation не мають статусу `FAILED`.
+
+## Діагностика
+
+### Prisma не підключається у Vercel
+
+1. Перевірте, що `DATABASE_URL` — pooled Neon URL з `-pooler`.
+2. Перевірте `sslmode=require`.
+3. Переконайтеся, що змінна додана саме до потрібного Vercel Environment.
+4. Redeploy після зміни variables.
+
+### Міграція не застосовується
+
+1. Перевірте direct `DIRECT_URL`.
+2. Запустіть `npx prisma migrate status`.
+3. Перевірте migration history; не редагуйте вже застосовані migration files.
+4. Застосуйте `npm run db:migrate:deploy`.
+
+### Cron не запускається
+
+1. Перевірте `CRON_SECRET` у Production.
+2. Перевірте `vercel.json` і redeploy.
+3. Відкрийте **Vercel → Project → Settings → Cron Jobs**.
+4. Перевірте Runtime Logs обох DST slots.
+5. Пам'ятайте, що один із двох slots повинен повертати `skipped: true`.
+
+### Імпорт повернув `WARNING`
+
+`WARNING` не означає rollback. Перевірте `/api/data/issues` або картку issues у `/data-reporting`. Unmatched transactions, пропущені optional fields і negative metrics зберігаються як diagnostics.
+
+### AI-агент завис у `running`
+
+Перевірте `/api/health`, Vercel logs і останній `AgentRun`. Recovery procedure описана в [`docs/ai-agents-runbook.md`](./docs/ai-agents-runbook.md).
+
+## Додаткова документація
+
+| Документ | Призначення |
+| --- | --- |
+| [`docs/data-import-contract.md`](./docs/data-import-contract.md) | Джерела, identity, formulas і acceptance criteria |
+| [`docs/data-reporting-api.md`](./docs/data-reporting-api.md) | Data/reporting API contract |
+| [`docs/scheduled-data-import.md`](./docs/scheduled-data-import.md) | Vercel Cron і Kyiv DST |
+| [`docs/data-reliability-runbook.md`](./docs/data-reliability-runbook.md) | Імпорт, rollback і recovery |
+| [`docs/data-release-verification.md`](./docs/data-release-verification.md) | Перевірка Neon migration, pipeline та UI |
+| [`docs/ai-agents-runbook.md`](./docs/ai-agents-runbook.md) | AI runtime і recovery |
+| [`docs/api-contracts.md`](./docs/api-contracts.md) | Загальні API conventions |
+| [`docs/frontend-architecture.md`](./docs/frontend-architecture.md) | Frontend boundaries і performance rules |
+| [`docs/testing.md`](./docs/testing.md) | Testing workflow |
+
+## Ліцензія та доступ
+
+Проєкт приватний. Код, credentials, production data та customer exports не повинні поширюватися поза авторизованою командою.
