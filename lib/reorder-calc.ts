@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { brandValueFromAgentId, getActiveAgentImportRunId } from "@/lib/agent-data-source";
 
 // Детермінований калькулятор дозамовлення.
 // AI обирає сценарій (множник обʼєму) — вся математика тут.
@@ -8,7 +9,7 @@ export const REORDER_COVER_DAYS = 45;
 
 export interface ReorderSimulationInput {
   tenantId: string;
-  brandId: string; // "__unbranded__" → SKU без бренда
+  brandId: string; // "brand:null" → товари без бренда
   qtyMultiplier: number;
   asOf?: Date;
   dateFrom?: Date;
@@ -56,50 +57,50 @@ export async function simulateReorder(input: ReorderSimulationInput): Promise<Re
   const windowStart = input.dateFrom ?? new Date(now.getTime() - 30 * 86400000);
   const periodDays = Math.max(1, Math.round((now.getTime() - windowStart.getTime()) / 86400000));
 
-  const isUnbranded = brandId === "__unbranded__";
-  let brandName = "Без бренда";
-  let leadTimeDays: number | null = null;
-  if (!isUnbranded) {
-    const brand = await prisma.brand.findFirst({
-      where: { id: brandId, tenantId },
-      select: { name: true, leadTimeDays: true },
-    });
-    if (!brand) throw new Error("Бренд не знайдено");
-    brandName = brand.name;
-    leadTimeDays = brand.leadTimeDays ?? null;
+  const importRunId = await getActiveAgentImportRunId(tenantId);
+  if (!importRunId) throw new Error("Немає активного успішного імпорту в новій базі");
+  const brand = brandValueFromAgentId(brandId);
+  const brandName = brand ?? "Без бренда";
+  const leadTimeDays: number | null = null;
+
+  const [products, sales] = await Promise.all([
+    prisma.sourceProduct.findMany({
+      where: { tenantId, importRunId, brand },
+      select: {
+        productId: true,
+        article: true,
+        vendorCode: true,
+        name: true,
+        category: true,
+        costPrice: true,
+        stockUnits: true,
+      },
+    }),
+    prisma.sourceSaleLine.findMany({
+      where: {
+        tenantId,
+        importRunId,
+        paymentDate: { gte: windowStart, ...(input.asOf ? { lte: input.asOf } : {}) },
+        resolvedProductId: { not: null },
+        normalizedQuantity: { not: null },
+      },
+      select: { resolvedProductId: true, normalizedQuantity: true },
+    }),
+  ]);
+
+  const soldByProduct = new Map<string, number>();
+  for (const sale of sales) {
+    if (!sale.resolvedProductId) continue;
+    soldByProduct.set(
+      sale.resolvedProductId,
+      (soldByProduct.get(sale.resolvedProductId) ?? 0) + Number(sale.normalizedQuantity)
+    );
   }
 
-  const skus = await prisma.sku.findMany({
-    where: {
-      tenantId,
-      status: { in: ["ACTIVE", "NEW"] },
-      brandId: isUnbranded ? null : brandId,
-    },
-    select: {
-      sku: true,
-      name: true,
-      category: true,
-      pricePurchase: true,
-      inventorySnapshots: {
-        ...(input.asOf ? { where: { snapshotDate: { lte: input.asOf } } } : {}),
-        orderBy: { snapshotDate: "desc" as const },
-        take: 1,
-        select: { qtyOnHand: true },
-      },
-      salesRecords: {
-        where: {
-          tenantId,
-          date: input.asOf ? { gte: windowStart, lte: input.asOf } : { gte: windowStart },
-        },
-        select: { qtySold: true },
-      },
-    },
-  });
-
   const rows: ReorderSkuRow[] = [];
-  for (const s of skus) {
-    const stock = s.inventorySnapshots[0]?.qtyOnHand ?? 0;
-    const soldPeriod = s.salesRecords.reduce((sum, r) => sum + r.qtySold, 0);
+  for (const product of products) {
+    const stock = Number(product.stockUnits);
+    const soldPeriod = soldByProduct.get(product.productId) ?? 0;
     const velocity = soldPeriod / periodDays;
     if (velocity <= 0 && stock <= 0) continue; // нічого не продається і нема залишку — пропускаємо
 
@@ -108,15 +109,15 @@ export async function simulateReorder(input: ReorderSimulationInput): Promise<Re
     const stockAfter = stock + orderQty;
 
     rows.push({
-      sku: s.sku,
-      name: s.name,
-      category: s.category ?? "",
+      sku: product.article ?? product.vendorCode ?? product.productId,
+      name: product.name,
+      category: product.category ?? "",
       stock,
       velocityPerDay: r2(velocity),
       wohNowDays: velocity > 0 ? Math.round(stock / velocity) : stock > 0 ? null : 0,
       orderQty,
-      pricePurchase: s.pricePurchase,
-      orderCost: r2(orderQty * s.pricePurchase),
+      pricePurchase: Number(product.costPrice),
+      orderCost: r2(orderQty * Number(product.costPrice)),
       stockAfter,
       wohAfterDays: velocity > 0 ? Math.round(stockAfter / velocity) : null,
     });

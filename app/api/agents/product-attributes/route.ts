@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
         where: { id: run.id },
         data: {
           status: "done",
-          output: { by_category: [], message: "Нет данных по категориям. Синхронизируйте данные из Google Drive." },
+          output: { by_category: [], message: "Нет данных по категориям в активном импорте новой базы." },
           finishedAt: new Date(),
         },
       });

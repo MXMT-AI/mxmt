@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getActiveAgentImportRunId } from "@/lib/agent-data-source";
 
 export interface AttributeMetric {
   attribute: string; // category or subcategory value
@@ -30,60 +31,59 @@ export async function getAttributeMetrics(
   const now = asOf ?? new Date();
   const d30 = from ?? new Date(now.getTime() - 30 * 86400000);
   const d7 = new Date(Math.max(now.getTime() - 7 * 86400000, d30.getTime()));
+  const importRunId = await getActiveAgentImportRunId(tenantId);
+  if (!importRunId) {
+    return { byCategory: [], bySubcategory: [], topCategories: [], deadCategories: [] };
+  }
 
-  const skus = await prisma.sku.findMany({
-    where: { tenantId, status: { in: ["ACTIVE", "NEW"] } },
-    select: {
-      id: true,
-      category: true,
-      subcategory: true,
-      inventorySnapshots: {
-        ...(asOf ? { where: { snapshotDate: { lte: asOf } } } : {}),
-        orderBy: { snapshotDate: "desc" },
-        take: 1,
-        select: { qtyOnHand: true },
+  const [products, sales] = await Promise.all([
+    prisma.sourceProduct.findMany({
+      where: { tenantId, importRunId },
+      select: {
+        productId: true,
+        category: true,
+        stockUnits: true,
       },
-      salesRecords: {
-        where: { tenantId, date: asOf ? { gte: d30, lte: asOf } : { gte: d30 } },
-        select: { qtySold: true, date: true },
+    }),
+    prisma.sourceSaleLine.findMany({
+      where: {
+        tenantId,
+        importRunId,
+        paymentDate: { gte: d30, ...(asOf ? { lte: asOf } : {}) },
+        resolvedProductId: { not: null },
+        normalizedQuantity: { not: null },
       },
-    },
-  });
+      select: { resolvedProductId: true, paymentDate: true, normalizedQuantity: true },
+    }),
+  ]);
+
+  const salesByProduct = new Map<string, { sold7: number; sold30: number }>();
+  for (const sale of sales) {
+    if (!sale.resolvedProductId || !sale.paymentDate) continue;
+    const current = salesByProduct.get(sale.resolvedProductId) ?? { sold7: 0, sold30: 0 };
+    const quantity = Number(sale.normalizedQuantity);
+    current.sold30 += quantity;
+    if (sale.paymentDate >= d7) current.sold7 += quantity;
+    salesByProduct.set(sale.resolvedProductId, current);
+  }
 
   // Group by category
   const catMap = new Map<string, { stock: number; sold7: number; sold30: number; skus: Set<string> }>();
   const subMap = new Map<string, { stock: number; sold7: number; sold30: number; skus: Set<string> }>();
 
-  for (const sku of skus) {
-    const stock = sku.inventorySnapshots[0]?.qtyOnHand ?? 0;
-    let sold7 = 0;
-    let sold30 = 0;
-    for (const sale of sku.salesRecords) {
-      sold30 += sale.qtySold;
-      if (new Date(sale.date) >= d7) sold7 += sale.qtySold;
-    }
+  for (const product of products) {
+    const stock = Number(product.stockUnits);
+    const { sold7, sold30 } = salesByProduct.get(product.productId) ?? { sold7: 0, sold30: 0 };
 
     // Category
-    const cat = sku.category || "Other";
+    const cat = product.category || "Other";
     const existing = catMap.get(cat) ?? { stock: 0, sold7: 0, sold30: 0, skus: new Set() };
     catMap.set(cat, {
       stock: existing.stock + stock,
       sold7: existing.sold7 + sold7,
       sold30: existing.sold30 + sold30,
-      skus: existing.skus.add(sku.id),
+      skus: existing.skus.add(product.productId),
     });
-
-    // Subcategory
-    if (sku.subcategory) {
-      const sub = sku.subcategory;
-      const exSub = subMap.get(sub) ?? { stock: 0, sold7: 0, sold30: 0, skus: new Set() };
-      subMap.set(sub, {
-        stock: exSub.stock + stock,
-        sold7: exSub.sold7 + sold7,
-        sold30: exSub.sold30 + sold30,
-        skus: exSub.skus.add(sku.id),
-      });
-    }
   }
 
   function toMetric(

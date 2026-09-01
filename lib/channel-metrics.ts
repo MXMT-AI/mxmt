@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getActiveAgentImportRunId } from "@/lib/agent-data-source";
 
 export interface ChannelMetric {
   channel: string;
@@ -26,58 +27,60 @@ export async function getChannelMetrics(
   const d30 = from ?? new Date(now.getTime() - 30 * 86400000);
   const periodDays = Math.max(1, Math.round((now.getTime() - d30.getTime()) / 86400000));
   const d7 = new Date(Math.max(now.getTime() - 7 * 86400000, d30.getTime()));
+  const importRunId = await getActiveAgentImportRunId(tenantId);
+  if (!importRunId) {
+    return { channels: [], totalStock: 0, topChannel: "—", bottomChannel: "—", periodDays };
+  }
 
-  const [sales7, sales30, snapshots] = await Promise.all([
-    prisma.salesRecord.groupBy({
-      by: ["channel"],
-      where: { tenantId, date: asOf ? { gte: d7, lte: asOf } : { gte: d7 } },
-      _sum: { qtySold: true, revenue: true },
-      _count: { skuId: true },
+  const [sales, products] = await Promise.all([
+    prisma.sourceSaleLine.findMany({
+      where: {
+        tenantId,
+        importRunId,
+        paymentDate: { gte: d30, ...(asOf ? { lte: asOf } : {}) },
+        resolvedProductId: { not: null },
+        normalizedQuantity: { not: null },
+        normalizedSales: { not: null },
+      },
+      select: {
+        paymentDate: true,
+        resolvedProductId: true,
+        normalizedQuantity: true,
+        normalizedSales: true,
+      },
     }),
-    prisma.salesRecord.groupBy({
-      by: ["channel"],
-      where: { tenantId, date: asOf ? { gte: d30, lte: asOf } : { gte: d30 } },
-      _sum: { qtySold: true, revenue: true },
-    }),
-    prisma.inventorySnapshot.findMany({
-      where: { tenantId, ...(asOf ? { snapshotDate: { lte: asOf } } : {}) },
-      orderBy: { snapshotDate: "desc" },
-      distinct: ["skuId"],
-      select: { qtyOnHand: true },
+    prisma.sourceProduct.findMany({
+      where: { tenantId, importRunId },
+      select: { stockUnits: true },
     }),
   ]);
 
-  const totalStock = snapshots.reduce((s, i) => s + i.qtyOnHand, 0);
-  const s30Map: Record<string, { qty: number; revenue: number }> = {};
-  for (const s of sales30) {
-    s30Map[s.channel] = {
-      qty: s._sum.qtySold ?? 0,
-      revenue: s._sum.revenue ?? 0,
-    };
+  const totalStock = products.reduce((sum, product) => sum + Number(product.stockUnits), 0);
+  let sold7 = 0;
+  let soldPeriod = 0;
+  let revenuePeriod = 0;
+  const recentProductIds = new Set<string>();
+  for (const sale of sales) {
+    const quantity = Number(sale.normalizedQuantity);
+    soldPeriod += quantity;
+    revenuePeriod += Number(sale.normalizedSales);
+    if (sale.paymentDate && sale.paymentDate >= d7) {
+      sold7 += quantity;
+      if (sale.resolvedProductId) recentProductIds.add(sale.resolvedProductId);
+    }
   }
 
-  // Build from 30d data so channels with no recent 7d sales still appear
-  const s7Map: Record<string, { qty: number; skuCount: number }> = {};
-  for (const s of sales7) {
-    s7Map[s.channel] = {
-      qty: s._sum.qtySold ?? 0,
-      skuCount: s._count.skuId ?? 0,
-    };
-  }
-
-  const channels: ChannelMetric[] = sales30.map((s) => {
-    const ch = s.channel || "unknown";
-    const sold7 = s7Map[ch]?.qty ?? 0;
-    const sold30 = s._sum.qtySold ?? 0;
-    return {
-      channel: ch,
-      salesLast7d: sold7,
-      salesLast30d: sold30,
-      revenue30d: s._sum.revenue ?? 0,
-      skuCount: s7Map[ch]?.skuCount ?? 0,
-      strPercent: totalStock > 0 ? Math.round((sold7 / totalStock) * 100 * 10) / 10 : 0,
-    };
-  });
+  // ZAVOD_API is the online order source. The approved typed import contract
+  // has no channel column, so inventing finer channel attribution here would be
+  // misleading. Preserve the source's truthful granularity as one online channel.
+  const channels: ChannelMetric[] = sales.length > 0 ? [{
+    channel: "online",
+    salesLast7d: sold7,
+    salesLast30d: soldPeriod,
+    revenue30d: revenuePeriod,
+    skuCount: recentProductIds.size,
+    strPercent: totalStock > 0 ? Math.round((sold7 / totalStock) * 100 * 10) / 10 : 0,
+  }] : [];
 
   // Sort by sales30d desc
   channels.sort((a, b) => b.salesLast30d - a.salesLast30d);

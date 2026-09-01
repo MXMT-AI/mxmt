@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getActiveAgentImportRunId } from "@/lib/agent-data-source";
 
 export interface BrandMetric {
   brandId: string;
@@ -48,29 +49,18 @@ function buildWindows(now: Date, from?: Date): Windows {
   };
 }
 
-const SKU_SELECT = (tenantId: string, windowStart: Date, asOf?: Date) => ({
-  id: true as const,
-  pricePurchase: true as const,
-  priceRetail: true as const,
-  inventorySnapshots: {
-    ...(asOf ? { where: { snapshotDate: { lte: asOf } } } : {}),
-    orderBy: { snapshotDate: "desc" as const },
-    take: 1,
-    select: { qtyOnHand: true as const },
-  },
-  salesRecords: {
-    where: { tenantId, date: asOf ? { gte: windowStart, lte: asOf } : { gte: windowStart } },
-    select: { qtySold: true as const, revenue: true as const, date: true as const },
-  },
-});
-
-function aggregateSkus(
-  skus: {
-    id: string;
-    pricePurchase: number;
-    priceRetail: number;
-    inventorySnapshots: { qtyOnHand: number }[];
-    salesRecords: { qtySold: number; revenue: number; date: Date | string }[];
+function aggregateProducts(
+  products: {
+    productId: string;
+    costPrice: { toString(): string };
+    stockUnits: { toString(): string };
+  }[],
+  sales: {
+    resolvedProductId: string | null;
+    paymentDate: Date | string | null;
+    normalizedQuantity: { toString(): string } | null;
+    normalizedSales: { toString(): string } | null;
+    normalizedCost: { toString(): string } | null;
   }[],
   w: Windows
 ): Omit<BrandMetric, "brandId" | "brandName"> {
@@ -83,24 +73,27 @@ function aggregateSkus(
   let totalCost = 0;
   let frozenCapital = 0;
 
-  for (const sku of skus) {
-    const stock = sku.inventorySnapshots[0]?.qtyOnHand ?? 0;
+  const productIds = new Set(products.map((product) => product.productId));
+  for (const product of products) {
+    const stock = Number(product.stockUnits);
     totalStock += stock;
-    frozenCapital += stock * sku.pricePurchase;
+    frozenCapital += stock * Number(product.costPrice);
+  }
 
-    for (const sale of sku.salesRecords) {
-      const saleDate = new Date(sale.date);
-      salesPeriod += sale.qtySold;
-      totalRevenue += sale.revenue;
-      totalCost += sale.qtySold * sku.pricePurchase;
+  for (const sale of sales) {
+    if (!sale.resolvedProductId || !productIds.has(sale.resolvedProductId) || !sale.paymentDate) continue;
+    const quantity = Number(sale.normalizedQuantity);
+    const saleDate = new Date(sale.paymentDate);
+    salesPeriod += quantity;
+    totalRevenue += Number(sale.normalizedSales);
+    totalCost += Number(sale.normalizedCost);
 
-      if (saleDate >= w.strFrom) salesLast7d += sale.qtySold;
+    if (saleDate >= w.strFrom) salesLast7d += quantity;
 
-      if (saleDate >= w.trendRecentFrom) {
-        trendRecent += sale.qtySold;
-      } else if (w.trendMode === "halves" || saleDate >= w.trendPrevFrom) {
-        trendPrev += sale.qtySold;
-      }
+    if (saleDate >= w.trendRecentFrom) {
+      trendRecent += quantity;
+    } else if (w.trendMode === "halves" || saleDate >= w.trendPrevFrom) {
+      trendPrev += quantity;
     }
   }
 
@@ -120,7 +113,7 @@ function aggregateSkus(
       : 0;
 
   return {
-    skuCount: skus.length,
+    skuCount: products.length,
     totalStock,
     salesLast7d,
     salesLast30d: salesPeriod,
@@ -142,41 +135,44 @@ export async function getBrandMetrics(
 ): Promise<BrandMetric[]> {
   const now = asOf ?? new Date();
   const w = buildWindows(now, from);
+  const importRunId = await getActiveAgentImportRunId(tenantId);
+  if (!importRunId) return [];
 
-  const skuSelect = SKU_SELECT(tenantId, w.windowStart, asOf);
-
-  const [brands, unbrandedSkus] = await Promise.all([
-    prisma.brand.findMany({
-      where: { tenantId },
-      select: {
-        id: true,
-        name: true,
-        skus: {
-          where: { tenantId, status: { in: ["ACTIVE", "NEW"] } },
-          select: skuSelect,
-        },
-      },
+  const [products, sales] = await Promise.all([
+    prisma.sourceProduct.findMany({
+      where: { tenantId, importRunId },
+      select: { productId: true, brand: true, costPrice: true, stockUnits: true },
     }),
-    prisma.sku.findMany({
-      where: { tenantId, status: { in: ["ACTIVE", "NEW"] }, brandId: null },
-      select: skuSelect,
+    prisma.sourceSaleLine.findMany({
+      where: {
+        tenantId,
+        importRunId,
+        paymentDate: { gte: w.windowStart, ...(asOf ? { lte: asOf } : {}) },
+        resolvedProductId: { not: null },
+        normalizedQuantity: { not: null },
+        normalizedSales: { not: null },
+        normalizedCost: { not: null },
+      },
+      select: {
+        resolvedProductId: true,
+        paymentDate: true,
+        normalizedQuantity: true,
+        normalizedSales: true,
+        normalizedCost: true,
+      },
     }),
   ]);
 
-  const result: BrandMetric[] = brands.map((brand) => ({
-    brandId: brand.id,
-    brandName: brand.name,
-    ...aggregateSkus(brand.skus, w),
-  }));
-
-  // Include SKUs that have no brand assigned
-  if (unbrandedSkus.length > 0) {
-    result.push({
-      brandId: "__unbranded__",
-      brandName: "Без бренда",
-      ...aggregateSkus(unbrandedSkus, w),
-    });
+  const grouped = new Map<string | null, typeof products>();
+  for (const product of products) {
+    const group = grouped.get(product.brand) ?? [];
+    group.push(product);
+    grouped.set(product.brand, group);
   }
 
-  return result;
+  return [...grouped.entries()].map(([brand, brandProducts]) => ({
+    brandId: brand === null ? "brand:null" : `brand:value:${brand}`,
+    brandName: brand ?? "Без бренда",
+    ...aggregateProducts(brandProducts, sales, w),
+  }));
 }

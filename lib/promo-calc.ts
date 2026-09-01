@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { brandValueFromAgentId, getActiveAgentImportRunId } from "@/lib/agent-data-source";
 
 // Детермінований калькулятор акції (уцінки).
 // AI обирає параметри (знижка, строк, прогноз % продажу) — вся математика тут.
@@ -7,7 +8,7 @@ const ELASTICITY = 2; // fallback: +2% попиту на кожен -1% ціни
 
 export interface PromoSimulationInput {
   tenantId: string;
-  brandId: string; // "__unbranded__" → SKU без бренда
+  brandId: string; // "brand:null" → товари без бренда
   discountPercent: number;
   durationDays: number;
   unitsToSellPercent?: number | null; // прогноз AI: % залишку, що продасться за акцію
@@ -70,51 +71,52 @@ export async function simulatePromo(input: PromoSimulationInput): Promise<PromoS
   const windowStart = input.dateFrom ?? new Date(now.getTime() - 30 * 86400000);
   const periodDays = Math.max(1, Math.round((now.getTime() - windowStart.getTime()) / 86400000));
 
-  const isUnbranded = brandId === "__unbranded__";
-  let brandName = "Без бренда";
-  if (!isUnbranded) {
-    const brand = await prisma.brand.findFirst({
-      where: { id: brandId, tenantId },
-      select: { name: true },
-    });
-    if (!brand) throw new Error("Бренд не знайдено");
-    brandName = brand.name;
+  const importRunId = await getActiveAgentImportRunId(tenantId);
+  if (!importRunId) throw new Error("Немає активного успішного імпорту в новій базі");
+  const brand = brandValueFromAgentId(brandId);
+  const brandName = brand ?? "Без бренда";
+
+  const [products, sales] = await Promise.all([
+    prisma.sourceProduct.findMany({
+      where: { tenantId, importRunId, brand },
+      select: {
+        productId: true,
+        article: true,
+        vendorCode: true,
+        name: true,
+        category: true,
+        retailPrice: true,
+        costPrice: true,
+        stockUnits: true,
+      },
+    }),
+    prisma.sourceSaleLine.findMany({
+      where: {
+        tenantId,
+        importRunId,
+        paymentDate: { gte: windowStart, ...(input.asOf ? { lte: input.asOf } : {}) },
+        resolvedProductId: { not: null },
+        normalizedQuantity: { not: null },
+      },
+      select: { resolvedProductId: true, normalizedQuantity: true },
+    }),
+  ]);
+
+  const soldByProduct = new Map<string, number>();
+  for (const sale of sales) {
+    if (!sale.resolvedProductId) continue;
+    soldByProduct.set(
+      sale.resolvedProductId,
+      (soldByProduct.get(sale.resolvedProductId) ?? 0) + Number(sale.normalizedQuantity)
+    );
   }
 
-  const skus = await prisma.sku.findMany({
-    where: {
-      tenantId,
-      status: { in: ["ACTIVE", "NEW"] },
-      brandId: isUnbranded ? null : brandId,
-    },
-    select: {
-      sku: true,
-      name: true,
-      category: true,
-      priceRetail: true,
-      pricePurchase: true,
-      inventorySnapshots: {
-        ...(input.asOf ? { where: { snapshotDate: { lte: input.asOf } } } : {}),
-        orderBy: { snapshotDate: "desc" as const },
-        take: 1,
-        select: { qtyOnHand: true },
-      },
-      salesRecords: {
-        where: {
-          tenantId,
-          date: input.asOf ? { gte: windowStart, lte: input.asOf } : { gte: windowStart },
-        },
-        select: { qtySold: true },
-      },
-    },
-  });
-
   const rows: PromoSkuRow[] = [];
-  for (const s of skus) {
-    const stock = s.inventorySnapshots[0]?.qtyOnHand ?? 0;
+  for (const product of products) {
+    const stock = Number(product.stockUnits);
     if (stock <= 0) continue; // нема чого уцінювати
 
-    const soldPeriod = s.salesRecords.reduce((sum, r) => sum + r.qtySold, 0);
+    const soldPeriod = soldByProduct.get(product.productId) ?? 0;
     const velocity = soldPeriod / periodDays;
     const baselineUnits = Math.min(stock, Math.round(velocity * durationDays));
 
@@ -126,26 +128,28 @@ export async function simulatePromo(input: PromoSimulationInput): Promise<PromoS
       promoUnits = Math.min(stock, Math.round(baselineUnits * uplift));
     }
 
-    const newPrice = r2(s.priceRetail * (1 - discountPercent / 100));
+    const priceRetail = Number(product.retailPrice);
+    const pricePurchase = Number(product.costPrice);
+    const newPrice = r2(priceRetail * (1 - discountPercent / 100));
     const stockAfter = stock - promoUnits;
 
     rows.push({
-      sku: s.sku,
-      name: s.name,
-      category: s.category ?? "",
+      sku: product.article ?? product.vendorCode ?? product.productId,
+      name: product.name,
+      category: product.category ?? "",
       stock,
-      priceRetail: s.priceRetail,
-      pricePurchase: s.pricePurchase,
+      priceRetail,
+      pricePurchase,
       newPrice,
       marginBeforePct:
-        s.priceRetail > 0 ? r2(((s.priceRetail - s.pricePurchase) / s.priceRetail) * 100) : null,
-      marginAfterPct: newPrice > 0 ? r2(((newPrice - s.pricePurchase) / newPrice) * 100) : null,
+        priceRetail > 0 ? r2(((priceRetail - pricePurchase) / priceRetail) * 100) : null,
+      marginAfterPct: newPrice > 0 ? r2(((newPrice - pricePurchase) / newPrice) * 100) : null,
       velocityPerDay: r2(velocity),
       baselineUnits,
       promoUnits,
       promoRevenue: r2(promoUnits * newPrice),
-      promoMarginUah: r2(promoUnits * (newPrice - s.pricePurchase)),
-      capitalReleased: r2(promoUnits * s.pricePurchase),
+      promoMarginUah: r2(promoUnits * (newPrice - pricePurchase)),
+      capitalReleased: r2(promoUnits * pricePurchase),
       stockAfter,
       wohAfterDays: velocity > 0 ? Math.round(stockAfter / velocity) : stockAfter > 0 ? null : 0,
     });

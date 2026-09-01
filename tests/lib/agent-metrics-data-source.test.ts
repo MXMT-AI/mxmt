@@ -1,0 +1,192 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const mocks = vi.hoisted(() => ({
+  getActiveAgentImportRunId: vi.fn(),
+  sourceProductFindMany: vi.fn(),
+  sourceSaleLineFindMany: vi.fn(),
+}));
+
+vi.mock("@/lib/agent-data-source", () => ({
+  getActiveAgentImportRunId: mocks.getActiveAgentImportRunId,
+  brandValueFromAgentId: (brandId: string) => {
+    if (brandId === "brand:null") return null;
+    return brandId.replace(/^brand:value:/, "");
+  },
+}));
+
+vi.mock("@/lib/prisma", () => ({
+  prisma: {
+    sourceProduct: { findMany: mocks.sourceProductFindMany },
+    sourceSaleLine: { findMany: mocks.sourceSaleLineFindMany },
+  },
+}));
+
+import { getAttributeMetrics } from "@/lib/attribute-metrics";
+import { getBrandMetrics } from "@/lib/brand-metrics";
+import { getChannelMetrics } from "@/lib/channel-metrics";
+import { simulatePromo } from "@/lib/promo-calc";
+import { simulateReorder } from "@/lib/reorder-calc";
+
+const date = (value: string) => new Date(`${value}T00:00:00.000Z`);
+
+describe("agent metrics use the active normalized import", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.getActiveAgentImportRunId.mockResolvedValue("import-1");
+  });
+
+  it("builds brand metrics from SourceProduct and SourceSaleLine", async () => {
+    mocks.sourceProductFindMany.mockResolvedValue([
+      { productId: "p1", brand: "A", costPrice: 40, stockUnits: 10 },
+      { productId: "p2", brand: "A", costPrice: 20, stockUnits: 5 },
+      { productId: "p3", brand: null, costPrice: 10, stockUnits: 2 },
+    ]);
+    mocks.sourceSaleLineFindMany.mockResolvedValue([
+      { resolvedProductId: "p1", paymentDate: date("2026-08-29"), normalizedQuantity: 2, normalizedSales: 200, normalizedCost: 80 },
+      { resolvedProductId: "p2", paymentDate: date("2026-08-20"), normalizedQuantity: 1, normalizedSales: 80, normalizedCost: 20 },
+      { resolvedProductId: "p1", paymentDate: date("2026-08-10"), normalizedQuantity: 1, normalizedSales: 100, normalizedCost: 40 },
+    ]);
+
+    const result = await getBrandMetrics("tenant-1", date("2026-09-01"));
+    const brand = result.find((item) => item.brandName === "A")!;
+
+    expect(mocks.sourceProductFindMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { tenantId: "tenant-1", importRunId: "import-1" },
+    }));
+    expect(brand).toMatchObject({
+      brandId: "brand:value:A",
+      skuCount: 2,
+      totalStock: 15,
+      salesLast7d: 2,
+      salesLast30d: 4,
+      gmPercent: 63.2,
+      frozenCapital: 500,
+    });
+    expect(result.find((item) => item.brandId === "brand:null")?.brandName).toBe("Без бренда");
+  });
+
+  it("keeps ZAVOD_API at its truthful online channel granularity", async () => {
+    mocks.sourceProductFindMany.mockResolvedValue([{ stockUnits: 20 }, { stockUnits: 30 }]);
+    mocks.sourceSaleLineFindMany.mockResolvedValue([
+      { resolvedProductId: "p1", paymentDate: date("2026-08-30"), normalizedQuantity: 5, normalizedSales: 500 },
+      { resolvedProductId: "p2", paymentDate: date("2026-08-15"), normalizedQuantity: 2, normalizedSales: 150 },
+    ]);
+
+    const result = await getChannelMetrics("tenant-1", date("2026-09-01"));
+
+    expect(result.totalStock).toBe(50);
+    expect(result.channels).toEqual([{
+      channel: "online",
+      salesLast7d: 5,
+      salesLast30d: 7,
+      revenue30d: 650,
+      skuCount: 1,
+      strPercent: 10,
+    }]);
+  });
+
+  it("groups normalized products and net sales by category", async () => {
+    mocks.sourceProductFindMany.mockResolvedValue([
+      { productId: "p1", category: "Shoes", stockUnits: 10 },
+      { productId: "p2", category: "Shoes", stockUnits: 10 },
+      { productId: "p3", category: null, stockUnits: 5 },
+    ]);
+    mocks.sourceSaleLineFindMany.mockResolvedValue([
+      { resolvedProductId: "p1", paymentDate: date("2026-08-30"), normalizedQuantity: 4 },
+      { resolvedProductId: "p1", paymentDate: date("2026-08-31"), normalizedQuantity: -1 },
+    ]);
+
+    const result = await getAttributeMetrics("tenant-1", date("2026-09-01"));
+
+    expect(result.byCategory[0]).toMatchObject({
+      attribute: "Shoes",
+      skuCount: 2,
+      totalStock: 20,
+      salesLast7d: 3,
+      salesLast30d: 3,
+      strPercent: 15,
+      status: "normal",
+    });
+    expect(result.byCategory.find((item) => item.attribute === "Other")?.status).toBe("dead");
+    expect(result.bySubcategory).toEqual([]);
+  });
+
+  it("returns empty metrics when the tenant has no active successful import", async () => {
+    mocks.getActiveAgentImportRunId.mockResolvedValue(null);
+
+    await expect(getBrandMetrics("tenant-1")).resolves.toEqual([]);
+    await expect(getChannelMetrics("tenant-1")).resolves.toMatchObject({ channels: [] });
+    await expect(getAttributeMetrics("tenant-1")).resolves.toMatchObject({ byCategory: [] });
+    expect(mocks.sourceProductFindMany).not.toHaveBeenCalled();
+  });
+
+  it("runs repricing simulation against normalized products and net sale lines", async () => {
+    mocks.sourceProductFindMany.mockResolvedValue([{
+      productId: "p1",
+      article: "SKU-1",
+      vendorCode: null,
+      name: "Boot",
+      category: "Shoes",
+      retailPrice: 100,
+      costPrice: 40,
+      stockUnits: 10,
+    }]);
+    mocks.sourceSaleLineFindMany.mockResolvedValue([
+      { resolvedProductId: "p1", normalizedQuantity: 6 },
+      { resolvedProductId: "p1", normalizedQuantity: -1 },
+    ]);
+
+    const result = await simulatePromo({
+      tenantId: "tenant-1",
+      brandId: "brand:value:A",
+      discountPercent: 20,
+      durationDays: 10,
+      unitsToSellPercent: 50,
+      asOf: date("2026-09-01"),
+      dateFrom: date("2026-08-22"),
+    });
+
+    expect(result.brandName).toBe("A");
+    expect(result.rows[0]).toMatchObject({
+      sku: "SKU-1",
+      stock: 10,
+      velocityPerDay: 0.5,
+      promoUnits: 5,
+      newPrice: 80,
+      promoRevenue: 400,
+      capitalReleased: 200,
+    });
+  });
+
+  it("runs reordering simulation against normalized products and net sale lines", async () => {
+    mocks.sourceProductFindMany.mockResolvedValue([{
+      productId: "p1",
+      article: null,
+      vendorCode: "V-1",
+      name: "Boot",
+      category: "Shoes",
+      costPrice: 40,
+      stockUnits: 5,
+    }]);
+    mocks.sourceSaleLineFindMany.mockResolvedValue([
+      { resolvedProductId: "p1", normalizedQuantity: 10 },
+    ]);
+
+    const result = await simulateReorder({
+      tenantId: "tenant-1",
+      brandId: "brand:value:A",
+      qtyMultiplier: 1,
+      asOf: date("2026-09-01"),
+      dateFrom: date("2026-08-22"),
+    });
+
+    expect(result.rows[0]).toMatchObject({
+      sku: "V-1",
+      stock: 5,
+      velocityPerDay: 1,
+      orderQty: 40,
+      orderCost: 1600,
+      stockAfter: 45,
+    });
+  });
+});
