@@ -1,5 +1,9 @@
 # AI Agents Runbook
 
+Design references: [`agent-architecture.md`](./agent-architecture.md) and
+[`agent-prompts-reference.md`](./agent-prompts-reference.md). Runtime routes and
+prompts in `app/api/agents/*/route.ts` remain the source of truth.
+
 ## Required Environment
 
 At least one provider key must be configured for the selected provider:
