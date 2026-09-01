@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { chat } from "@/lib/ai";
 import { requireApiUser } from "@/lib/server-auth";
-import { serverError } from "@/lib/api-contracts";
+import { apiError, serverError } from "@/lib/api-contracts";
 import { parseAgentJson } from "@/lib/agent-output";
 import { startAgentRun } from "@/lib/agent-runs";
+import { getCurrentDependencyRun, resolveAgentRunContext } from "@/lib/agent-dependencies";
 
 export const runtime = "nodejs";
 export const maxDuration = 180;
@@ -17,7 +18,7 @@ function isoWeekNumber(d: Date): number {
   return Math.ceil((((date.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
 }
 
-const SYSTEM_PROMPT = `Ты PM-ассистент в fashion retail. Пишешь еженедельный отчёт для двух аудиторий.
+const SYSTEM_PROMPT = `Ти PM-асистент у fashion retail. Відповідай українською мовою та пишеш щотижневий звіт для двох аудиторій.
 
 Получаешь сводки от всех AI-агентов за текущую неделю.
 Создаёшь лаконичный двухуровневый отчёт: для PM и для маркетинга.
@@ -69,6 +70,22 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const providerOverride: string | undefined = body.provider ?? undefined;
   const asOf: Date | undefined = body.asOf ? new Date(body.asOf) : undefined;
+  const agentTypes = ["inventory_analyst", "channel_analytics", "product_attributes", "repricing", "reordering", "commercial_marketer", "calendar_agent", "campaign_analysis"];
+  const context = await resolveAgentRunContext(tenantId, body);
+  const dependencyStates = await Promise.all(
+    agentTypes.map((agentType) => getCurrentDependencyRun(tenantId, agentType, context))
+  );
+  const missingDependencies = agentTypes
+    .map((agentType, index) => ({ agentType, state: dependencyStates[index] }))
+    .filter(({ state }) => !state.ready);
+  if (missingDependencies.length > 0) {
+    return apiError(
+      "Тижневий звіт доступний після завершення попередніх агентів для поточного імпорту та періоду.",
+      409,
+      "AGENT_DEPENDENCY_NOT_READY",
+      missingDependencies.map(({ agentType, state }) => `${agentType}: ${state.reason}`)
+    );
+  }
 
   const { run, response: runResponse } = await startAgentRun({
     tenantId,
@@ -78,17 +95,12 @@ export async function POST(req: NextRequest) {
   if (runResponse) return runResponse;
 
   try {
-    const now = new Date();
+    const now = asOf ?? new Date();
     const currentWeek = isoWeekNumber(now);
     const year = now.getFullYear();
 
     // Fetch all latest done runs
-    const agentTypes = ["inventory_analyst", "channel_analytics", "product_attributes", "repricing", "reordering", "commercial_marketer", "calendar_agent", "campaign_analysis"];
-    const latestRuns = await Promise.all(
-      agentTypes.map((agentType) =>
-        prisma.agentRun.findFirst({ where: { tenantId, agentType, status: "done" }, orderBy: { startedAt: "desc" } })
-      )
-    );
+    const latestRuns = dependencyStates.map((state) => state.run);
     const runMap = Object.fromEntries(agentTypes.map((t, i) => [t, latestRuns[i]]));
 
     // Build text summary per agent

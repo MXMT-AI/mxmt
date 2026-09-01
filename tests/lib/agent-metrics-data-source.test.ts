@@ -111,6 +111,22 @@ describe("agent metrics use the active normalized import", () => {
     expect(result.bySubcategory).toEqual([]);
   });
 
+  it("distinguishes sold-out and inactive categories from dead stock", async () => {
+    mocks.sourceProductFindMany.mockResolvedValue([
+      { productId: "sold-out", category: "Sold out", stockUnits: 0 },
+      { productId: "inactive", category: "Inactive", stockUnits: 0 },
+    ]);
+    mocks.sourceSaleLineFindMany.mockResolvedValue([
+      { resolvedProductId: "sold-out", paymentDate: date("2026-08-30"), normalizedQuantity: 2 },
+    ]);
+
+    const result = await getAttributeMetrics("tenant-1", date("2026-09-01"));
+
+    expect(result.byCategory.find((item) => item.attribute === "Sold out")?.status).toBe("stockout");
+    expect(result.byCategory.find((item) => item.attribute === "Inactive")?.status).toBe("inactive");
+    expect(result.deadCategories).toEqual([]);
+  });
+
   it("returns empty metrics when the tenant has no active successful import", async () => {
     mocks.getActiveAgentImportRunId.mockResolvedValue(null);
 

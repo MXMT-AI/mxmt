@@ -1,6 +1,22 @@
 import type { PromoSimParams } from "@/components/agents/PromoTableModal";
 import type { ReorderSimParams } from "@/components/agents/ReorderTableModal";
-import type { AgentRunInfo, BrandStatus } from "@/components/agents/agents.types";
+import type { AgentDefinition, AgentRunInfo, BrandStatus } from "@/components/agents/agents.types";
+
+export function areAgentDependenciesReady(
+  agent: Pick<AgentDefinition, "dependsOn">,
+  runs: Record<string, AgentRunInfo>
+): boolean {
+  return agent.dependsOn.every((dependency) => {
+    const run = runs[dependency];
+    return run?.status === "done" && run.isCurrent === true;
+  });
+}
+
+export function formatWohDays(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value)) return "—";
+  if (value >= 9999) return "Немає продажів";
+  return `${value}д`;
+}
 
 export function buildSimParams(brand: any, opt: any, debug?: Record<string, any>): PromoSimParams {
   return {

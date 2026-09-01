@@ -6,11 +6,12 @@ import { requireApiUser } from "@/lib/server-auth";
 import { serverError } from "@/lib/api-contracts";
 import { parseAgentJson } from "@/lib/agent-output";
 import { startAgentRun } from "@/lib/agent-runs";
+import { buildAttributeAnalysis } from "@/lib/attribute-analysis";
 
 export const runtime = "nodejs";
 export const maxDuration = 180;
 
-const SYSTEM_PROMPT = `Ты аналитик ассортимента в fashion retail.
+const SYSTEM_PROMPT = `Ти аналітик асортименту у fashion retail. Відповідай українською мовою.
 
 Получаешь готовые метрики по категориям товаров (уже посчитаны в базе).
 STR (Stock Turn Ratio) — % от склада проданный за последние 7 дней.
@@ -22,7 +23,7 @@ STR (Stock Turn Ratio) — % от склада проданный за посл�
   "by_category": [
     {
       "category": "string",
-      "status": "bestseller | normal | slow | dead",
+      "status": "bestseller | normal | slow | dead | stockout | inactive",
       "insight": "1-2 предложения",
       "recommendation": "конкретное действие"
     }
@@ -37,7 +38,9 @@ STR (Stock Turn Ratio) — % от склада проданный за посл�
 bestseller — STR >= 25% (продаётся быстро)
 normal — STR 5-24%
 slow — STR 1-4% (медленно, нужна активация)
-dead — STR < 1% (стоит на складе, нужна уценка/акция)`;
+dead — STR < 1% і є залишок (товар стоїть на складі)
+stockout — залишок 0, але у періоді були продажі
+inactive — залишок 0 і продажів у періоді не було`;
 
 export async function POST(req: NextRequest) {
   const { user, response } = await requireApiUser("ANALYST");
@@ -92,27 +95,25 @@ ${
 
 Дата анализа: ${(asOf ?? new Date()).toISOString().slice(0, 10)}${dateFrom ? `\nПериод данных: с ${dateFrom.toISOString().slice(0, 10)} (скорость продаж и WOH рассчитаны за этот период; тренд = вторая половина периода vs первая)` : ""}`;
 
-    const raw = await chat({
-      systemPrompt: SYSTEM_PROMPT,
-      messages: [{ role: "user", content: userPrompt }],
-      maxTokens: 1500,
-      providerOverride,
-    });
+    let raw = "";
+    let parsed: any = null;
+    let parseError: string | null = null;
+    let providerError: string | null = null;
+    try {
+      raw = await chat({
+        systemPrompt: SYSTEM_PROMPT,
+        messages: [{ role: "user", content: userPrompt }],
+        maxTokens: 1500,
+        providerOverride,
+      });
+      const result = parseAgentJson<any>(raw, "object");
+      parsed = result.data;
+      parseError = result.error;
+    } catch (error) {
+      providerError = error instanceof Error ? error.message : String(error);
+    }
 
-    const { data: parsed, error: parseError } = parseAgentJson<any>(raw, "object");
-
-    const output = parsed ?? {
-      by_category: metrics.byCategory.map((c) => ({
-        category: c.attribute,
-        status: c.status,
-        insight: `STR: ${c.strPercent}%, продаж за 7д: ${c.salesLast7d} шт`,
-        recommendation: "Анализ временно недоступен",
-      })),
-      bestsellers: metrics.topCategories,
-      dead_stock: metrics.deadCategories,
-      summary: "Анализ временно недоступен",
-      action: "Проверьте данные по категориям",
-    };
+    const output: Record<string, any> = buildAttributeAnalysis(metrics.byCategory, parsed);
 
     output.metrics = metrics;
     output._debug = {
@@ -120,6 +121,7 @@ ${
       userPrompt,
       rawResponse: raw,
       parseError,
+      providerError,
       provider: providerOverride ?? "anthropic",
       model: (providerOverride ?? "anthropic") === "openai" ? "gpt-4o" : "claude-sonnet-4-6",
       parsedSuccessfully: parsed !== null,

@@ -3,14 +3,15 @@ import { prisma } from "@/lib/prisma";
 import { getBrandMetrics } from "@/lib/brand-metrics";
 import { chat } from "@/lib/ai";
 import { requireApiUser } from "@/lib/server-auth";
-import { serverError } from "@/lib/api-contracts";
+import { apiError, serverError } from "@/lib/api-contracts";
 import { parseAgentJson } from "@/lib/agent-output";
 import { startAgentRun } from "@/lib/agent-runs";
+import { getCurrentDependencyRun, resolveAgentRunContext } from "@/lib/agent-dependencies";
 
 export const runtime = "nodejs";
 export const maxDuration = 180;
 
-const SYSTEM_PROMPT = `Ты аналитик маркетинговых кампаний в fashion retail.
+const SYSTEM_PROMPT = `Ти аналітик маркетингових кампаній у fashion retail. Відповідай українською мовою.
 
 Получаешь:
 1. Активные кампании (что было запланировано по брифам)
@@ -60,6 +61,16 @@ export async function POST(req: NextRequest) {
   const providerOverride: string | undefined = body.provider ?? undefined;
   const asOf: Date | undefined = body.asOf ? new Date(body.asOf) : undefined;
   const dateFrom: Date | undefined = body.dateFrom ? new Date(body.dateFrom) : undefined;
+  const context = await resolveAgentRunContext(tenantId, body);
+  const marketerState = await getCurrentDependencyRun(tenantId, "commercial_marketer", context);
+  if (!marketerState.ready) {
+    return apiError(
+      "Спочатку запустіть Commercial Marketer для поточного імпорту та періоду.",
+      409,
+      "AGENT_DEPENDENCY_NOT_READY",
+      [`Commercial Marketer: ${marketerState.reason}`]
+    );
+  }
 
   const { run, response: runResponse } = await startAgentRun({
     tenantId,
@@ -69,10 +80,8 @@ export async function POST(req: NextRequest) {
   if (runResponse) return runResponse;
 
   try {
-    const [marketerRun, brandMetrics] = await Promise.all([
-      prisma.agentRun.findFirst({ where: { tenantId, agentType: "commercial_marketer", status: "done" }, orderBy: { startedAt: "desc" } }),
-      getBrandMetrics(tenantId, asOf, dateFrom),
-    ]);
+    const marketerRun = marketerState.run;
+    const brandMetrics = await getBrandMetrics(tenantId, asOf, dateFrom);
 
     // No commercial_marketer output → no campaigns to track
     if (!marketerRun?.output) {
@@ -102,7 +111,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ runId: run.id, ...output });
     }
 
-    const today = new Date();
+    const today = asOf ?? new Date();
     const metricsMap = new Map(brandMetrics.map((b) => [b.brandId, b]));
 
     // Build campaign context for AI

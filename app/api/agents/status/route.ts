@@ -1,7 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { closeStaleAgentRuns } from "@/lib/agent-runs";
 import { requireApiUser } from "@/lib/server-auth";
+import { resolveAgentRunContext } from "@/lib/agent-dependencies";
+import { selectCurrentDependencyRun } from "@/lib/agent-context";
 
 export const runtime = "nodejs";
 
@@ -17,10 +19,14 @@ const AGENT_TYPES = [
   "weekly_report",
 ];
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const { user, response } = await requireApiUser();
   if (response) return response;
   const { tenantId } = user;
+  const context = await resolveAgentRunContext(tenantId, {
+    asOf: req.nextUrl.searchParams.get("asOf"),
+    dateFrom: req.nextUrl.searchParams.get("dateFrom"),
+  });
 
   await closeStaleAgentRuns(tenantId);
 
@@ -31,8 +37,16 @@ export async function GET() {
 
   const latest = Object.fromEntries(
     AGENT_TYPES.flatMap((agentType) => {
-      const run = runs.find((item) => item.agentType === agentType);
-      return run ? [[agentType, run]] : [];
+      const agentRuns = runs.filter((item) => item.agentType === agentType);
+      const state = selectCurrentDependencyRun(agentRuns, context);
+      const run = state.run ?? agentRuns[0];
+      return run
+        ? [[agentType, {
+            ...run,
+            isCurrent: state.run?.id === run.id,
+            staleReason: state.run?.id === run.id ? null : state.reason,
+          }]]
+        : [];
     })
   );
 

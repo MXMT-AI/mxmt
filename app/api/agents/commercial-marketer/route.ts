@@ -3,14 +3,17 @@ import { prisma } from "@/lib/prisma";
 import { getBrandMetrics } from "@/lib/brand-metrics";
 import { chat } from "@/lib/ai";
 import { requireApiUser } from "@/lib/server-auth";
-import { serverError } from "@/lib/api-contracts";
+import { apiError, serverError } from "@/lib/api-contracts";
 import { parseAgentJson } from "@/lib/agent-output";
 import { startAgentRun } from "@/lib/agent-runs";
+import { runAgentBatches } from "@/lib/agent-batching";
+import { buildCommercialFallback, type CommercialDecision } from "@/lib/agent-fallbacks";
+import { getCurrentDependencyRun, resolveAgentRunContext } from "@/lib/agent-dependencies";
 
 export const runtime = "nodejs";
 export const maxDuration = 180;
 
-const SYSTEM_PROMPT = `Ты коммерческий маркетолог в fashion retail.
+const SYSTEM_PROMPT = `Ти комерційний маркетолог у fashion retail. Відповідай українською мовою.
 
 Ты получаешь список брендов с решениями по уценке или дозаказу и создаёшь конкретные задачи для каждого маркетингового канала.
 
@@ -90,6 +93,24 @@ export async function POST(req: NextRequest) {
   const asOf: Date | undefined = body.asOf ? new Date(body.asOf) : undefined;
   const dateFrom: Date | undefined = body.dateFrom ? new Date(body.dateFrom) : undefined;
 
+  const context = await resolveAgentRunContext(tenantId, body);
+  const [repricingState, reorderingState] = await Promise.all([
+    getCurrentDependencyRun(tenantId, "repricing", context),
+    getCurrentDependencyRun(tenantId, "reordering", context),
+  ]);
+  if (!repricingState.ready || !reorderingState.ready) {
+    const details = [
+      !repricingState.ready ? `Repricing: ${repricingState.reason}` : null,
+      !reorderingState.ready ? `Reordering: ${reorderingState.reason}` : null,
+    ].filter((item): item is string => Boolean(item));
+    return apiError(
+      "Спочатку запустіть Repricing і Reordering для поточного імпорту та періоду.",
+      409,
+      "AGENT_DEPENDENCY_NOT_READY",
+      details
+    );
+  }
+
   const { run, response: runResponse } = await startAgentRun({
     tenantId,
     agentType: "commercial_marketer",
@@ -98,13 +119,10 @@ export async function POST(req: NextRequest) {
   if (runResponse) return runResponse;
 
   try {
-    // Get recommended actions from latest repricing and reordering runs
-    const [repricingRun, reorderingRun] = await Promise.all([
-      prisma.agentRun.findFirst({ where: { tenantId, agentType: "repricing", status: "done" }, orderBy: { startedAt: "desc" } }),
-      prisma.agentRun.findFirst({ where: { tenantId, agentType: "reordering", status: "done" }, orderBy: { startedAt: "desc" } }),
-    ]);
+    const repricingRun = repricingState.run;
+    const reorderingRun = reorderingState.run;
 
-    const decisions: { brand_id: string; brand_name: string; type: "markdown" | "reorder"; action: string; label: string }[] = [];
+    const decisions: CommercialDecision[] = [];
 
     // Extract recommended repricing options
     if (repricingRun?.output) {
@@ -159,42 +177,51 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ runId: run.id, brands: [] });
     }
 
-    const userPrompt = `Решения PM для маркетинговой активации:
-
-${decisions.map((d) => `• ${d.brand_name} (id: ${d.brand_id}): ${d.label} (тип: ${d.type === "markdown" ? "уценка/скидка" : "дозаказ — товар снова в наличии"})`).join("\n")}
-
-Дата анализа: ${(asOf ?? new Date()).toISOString().slice(0, 10)}${dateFrom ? `\nПериод данных: с ${dateFrom.toISOString().slice(0, 10)} (скорость продаж и WOH рассчитаны за этот период; тренд = вторая половина периода vs первая)` : ""}
-Создай конкретные маркетинговые брифы для каждого бренда по 5 каналам.`;
-
-    const raw = await chat({
-      systemPrompt: SYSTEM_PROMPT,
-      messages: [{ role: "user", content: userPrompt }],
-      maxTokens: 5000,
-      providerOverride,
+    const analysisDate = (asOf ?? new Date()).toISOString().slice(0, 10);
+    const prompts: string[] = [];
+    const rawResponses: string[] = [];
+    const parseErrors: string[] = [];
+    const batched = await runAgentBatches({
+      items: decisions,
+      batchSize: 1,
+      concurrency: 2,
+      runBatch: async (batch) => {
+        const decision = batch[0];
+        const userPrompt = `Рішення PM для маркетингової активації:\n\n• ${decision.brand_name} (id: ${decision.brand_id}): ${decision.label} (тип: ${decision.type === "markdown" ? "уцінка/знижка" : "поповнення — товар знову в наявності"})\n\nДата аналізу: ${analysisDate}${dateFrom ? `\nПеріод даних: з ${dateFrom.toISOString().slice(0, 10)}` : ""}\nСтвори конкретний маркетинговий бриф для бренду за 5 каналами.`;
+        prompts.push(userPrompt);
+        const raw = await chat({
+          systemPrompt: SYSTEM_PROMPT,
+          messages: [{ role: "user", content: userPrompt }],
+          maxTokens: 2600,
+          providerOverride,
+        });
+        rawResponses.push(raw);
+        const { data: parsed, error } = parseAgentJson<{ brands?: any[] }>(raw, "object");
+        if (error) parseErrors.push(error);
+        return [parsed?.brands?.[0] ?? buildCommercialFallback(decision, analysisDate)];
+      },
+      fallbackBatch: (batch) => batch.map((decision) => buildCommercialFallback(decision, analysisDate)),
     });
 
-    const { data: parsed, error: parseError } = parseAgentJson<any>(raw, "object");
-
-    const output = parsed ?? {
-      analysis_date: new Date().toISOString().slice(0, 10),
-      brands: decisions.map((d) => ({
-        brand_id: d.brand_id,
-        brand_name: d.brand_name,
-        decision_summary: d.label,
-        urgency: "high",
-        channels: {},
-      })),
-      message: "Анализ временно недоступен",
+    const output: Record<string, any> = {
+      analysis_date: analysisDate,
+      brands: batched.results,
+      summary: "Маркетингові брифи сформовано за поточними рішеннями щодо ціни та поповнення.",
+      start_immediately: decisions.filter((decision) => decision.type === "markdown").map((decision) => decision.brand_id),
+      ...(batched.errors.length > 0
+        ? { message: "Частину брифів сформовано без AI через недоступність провайдера." }
+        : {}),
     };
 
     output._debug = {
       systemPrompt: SYSTEM_PROMPT,
-      userPrompt,
-      rawResponse: raw,
-      parseError,
+      userPrompts: prompts,
+      rawResponses,
+      parseErrors,
+      batchErrors: batched.errors,
       provider: providerOverride ?? "anthropic",
       model: (providerOverride ?? "anthropic") === "openai" ? "gpt-4o" : "claude-sonnet-4-6",
-      parsedSuccessfully: parsed !== null,
+      parsedSuccessfully: batched.errors.length === 0 && parseErrors.length === 0,
       decisionCount: decisions.length,
       asOf: body.asOf ?? null,
       dateFrom: body.dateFrom ?? null,

@@ -64,7 +64,10 @@ export const AGENTS: AgentDefinition[] = [
     id: "weekly_report", label: "Weekly Report", model: "Sonnet",
     block: 4, blockLabel: "Tracking & Reports", desc: "PM Report + Marketing Brief щопʼятниці",
     icon: FileText, color: "#fb923c", runnable: true,
-    dependsOn: ["campaign_analysis"],
+    dependsOn: [
+      "inventory_analyst", "channel_analytics", "product_attributes",
+      "repricing", "reordering", "commercial_marketer", "calendar_agent", "campaign_analysis",
+    ],
   },
 ];
 

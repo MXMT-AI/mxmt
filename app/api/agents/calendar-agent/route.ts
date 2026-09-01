@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { chat } from "@/lib/ai";
 import { requireApiUser } from "@/lib/server-auth";
-import { serverError } from "@/lib/api-contracts";
+import { apiError, serverError } from "@/lib/api-contracts";
 import { parseAgentJson } from "@/lib/agent-output";
 import { startAgentRun } from "@/lib/agent-runs";
+import { getCurrentDependencyRun, resolveAgentRunContext } from "@/lib/agent-dependencies";
 
 export const runtime = "nodejs";
 export const maxDuration = 180;
@@ -17,7 +18,7 @@ function isoWeekNumber(d: Date): number {
   return Math.ceil((((date.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
 }
 
-const SYSTEM_PROMPT = `Ты помощник маркетолога, который проверяет маркетинговый план.
+const SYSTEM_PROMPT = `Ти помічник маркетолога, який перевіряє маркетинговий план. Відповідай українською мовою.
 
 Получаешь:
 1. Текущие события в маркетинговом календаре (что запланировано)
@@ -67,6 +68,16 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const providerOverride: string | undefined = body.provider ?? undefined;
   const asOf: Date | undefined = body.asOf ? new Date(body.asOf) : undefined;
+  const context = await resolveAgentRunContext(tenantId, body);
+  const marketerState = await getCurrentDependencyRun(tenantId, "commercial_marketer", context);
+  if (!marketerState.ready) {
+    return apiError(
+      "Спочатку запустіть Commercial Marketer для поточного імпорту та періоду.",
+      409,
+      "AGENT_DEPENDENCY_NOT_READY",
+      [`Commercial Marketer: ${marketerState.reason}`]
+    );
+  }
 
   const { run, response: runResponse } = await startAgentRun({
     tenantId,
@@ -76,20 +87,18 @@ export async function POST(req: NextRequest) {
   if (runResponse) return runResponse;
 
   try {
-    const now = new Date();
+    const now = asOf ?? new Date();
     const currentWeek = isoWeekNumber(now);
     const year = now.getFullYear();
 
     // Collect week keys for current + next 3 weeks
     const weekKeys = [0, 1, 2, 3].map((offset) => `w${currentWeek + offset}`);
 
-    const [calendarEvents, marketerRun] = await Promise.all([
-      prisma.marketingEvent.findMany({
+    const calendarEvents = await prisma.marketingEvent.findMany({
         where: { tenantId, weekKey: { in: weekKeys } },
         orderBy: { weekKey: "asc" },
-      }),
-      prisma.agentRun.findFirst({ where: { tenantId, agentType: "commercial_marketer", status: "done" }, orderBy: { startedAt: "desc" } }),
-    ]);
+      });
+    const marketerRun = marketerState.run;
 
     // Summarize calendar
     const calendarSummary = weekKeys.map((wk) => {

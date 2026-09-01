@@ -3,16 +3,19 @@ import { prisma } from "@/lib/prisma";
 import { getBrandMetrics } from "@/lib/brand-metrics";
 import { chat } from "@/lib/ai";
 import { requireApiUser } from "@/lib/server-auth";
-import { serverError } from "@/lib/api-contracts";
+import { apiError, serverError } from "@/lib/api-contracts";
 import { parseAgentJson } from "@/lib/agent-output";
 import { startAgentRun } from "@/lib/agent-runs";
+import { runAgentBatches } from "@/lib/agent-batching";
+import { buildReorderingFallback, type ReorderingBrandResult } from "@/lib/agent-fallbacks";
+import { getCurrentDependencyRun, resolveAgentRunContext } from "@/lib/agent-dependencies";
 
 export const runtime = "nodejs";
 export const maxDuration = 180;
 
 const WOH_REORDER_THRESHOLD = 30; // trigger reorder analysis when WOH < 30 days
 
-const SYSTEM_PROMPT = `Ты стратег по закупкам в fashion retail.
+const SYSTEM_PROMPT = `Ти стратег із закупівель у fashion retail. Відповідай українською мовою.
 
 Получаешь массив брендов с уже посчитанными метриками (WOH, STR, Trend, avgDailyVelocity).
 ИИ НЕ считает математику — только интерпретирует готовые цифры и предлагает сценарии дозаказа.
@@ -71,6 +74,16 @@ export async function POST(req: NextRequest) {
   const providerOverride: string | undefined = body.provider ?? undefined;
   const asOf: Date | undefined = body.asOf ? new Date(body.asOf) : undefined;
   const dateFrom: Date | undefined = body.dateFrom ? new Date(body.dateFrom) : undefined;
+  const context = await resolveAgentRunContext(tenantId, body);
+  const inventoryState = await getCurrentDependencyRun(tenantId, "inventory_analyst", context);
+  if (!inventoryState.ready) {
+    return apiError(
+      "Спочатку запустіть Inventory Analyst для поточного імпорту та періоду.",
+      409,
+      "AGENT_DEPENDENCY_NOT_READY",
+      [`Inventory Analyst: ${inventoryState.reason}`]
+    );
+  }
 
   const { run, response: runResponse } = await startAgentRun({
     tenantId,
@@ -93,55 +106,62 @@ export async function POST(req: NextRequest) {
         where: { id: run.id },
         data: {
           status: "done",
-          output: { brands: [], message: "Нет брендов с риском stockout. WOH у всех выше 30 дней." },
+          output: { brands: [], message: "Немає брендів із ризиком дефіциту. WOH у всіх понад 30 днів." },
           finishedAt: new Date(),
         },
       });
       return NextResponse.json({ runId: run.id, brands: [] });
     }
 
-    const userPrompt = `Бренды для анализа стратегии дозаказа (WOH < ${WOH_REORDER_THRESHOLD} дней):
-
-${candidates
-  .map(
-    (b) =>
-      `• ${b.brandName} (id: ${b.brandId}): WOH=${b.wohDays}д, STR=${b.strPercent}%, ` +
-      `Trend=${b.trend7dPct > 0 ? "+" : ""}${b.trend7dPct}%, ` +
-      `AvgVelocity=${b.avgDailyVelocity}шт/день, Stock=${b.totalStock}шт`
-  )
-  .join("\n")}
-
-Порог для дозаказа: WOH < ${WOH_REORDER_THRESHOLD} дней
-Дата анализа: ${(asOf ?? new Date()).toISOString().slice(0, 10)}${dateFrom ? `\nПериод данных: с ${dateFrom.toISOString().slice(0, 10)} (скорость продаж и WOH рассчитаны за этот период; тренд = вторая половина периода vs первая)` : ""}`;
-
-    const raw = await chat({
-      systemPrompt: SYSTEM_PROMPT,
-      messages: [{ role: "user", content: userPrompt }],
-      maxTokens: 5000,
-      providerOverride,
+    const prompts: string[] = [];
+    const rawResponses: string[] = [];
+    const parseErrors: string[] = [];
+    const batched = await runAgentBatches({
+      items: candidates,
+      batchSize: 2,
+      concurrency: 2,
+      runBatch: async (batch) => {
+        const userPrompt = `Бренди для аналізу поповнення (WOH < ${WOH_REORDER_THRESHOLD} днів):\n\n${batch
+          .map(
+            (b) =>
+              `• ${b.brandName} (id: ${b.brandId}): WOH=${b.wohDays}д, STR=${b.strPercent}%, ` +
+              `Trend=${b.trend7dPct > 0 ? "+" : ""}${b.trend7dPct}%, ` +
+              `AvgVelocity=${b.avgDailyVelocity}шт/день, Stock=${b.totalStock}шт`
+          )
+          .join("\n")}\n\nДата аналізу: ${(asOf ?? new Date()).toISOString().slice(0, 10)}${dateFrom ? `\nПеріод даних: з ${dateFrom.toISOString().slice(0, 10)}` : ""}`;
+        prompts.push(userPrompt);
+        const raw = await chat({
+          systemPrompt: SYSTEM_PROMPT,
+          messages: [{ role: "user", content: userPrompt }],
+          maxTokens: 2400,
+          providerOverride,
+        });
+        rawResponses.push(raw);
+        const { data: parsed, error } = parseAgentJson<{ brands?: ReorderingBrandResult[] }>(raw, "object");
+        if (error) parseErrors.push(error);
+        const parsedById = new Map((parsed?.brands ?? []).map((brand) => [brand.brand_id, brand]));
+        return batch.map((metric) => parsedById.get(metric.brandId) ?? buildReorderingFallback(metric));
+      },
+      fallbackBatch: (batch) => batch.map(buildReorderingFallback),
     });
 
-    const { data: parsed, error: parseError } = parseAgentJson<any>(raw, "object");
-
-    const output = parsed ?? {
-      analysis_date: new Date().toISOString().slice(0, 10),
-      brands: candidates.map((b) => ({
-        brand_id: b.brandId,
-        brand_name: b.brandName,
-        current_situation: `WOH: ${b.wohDays}д, темп: ${b.avgDailyVelocity}шт/день, тренд: ${b.trend7dPct}%`,
-        scenarios: [],
-      })),
-      message: "Анализ временно недоступен",
+    const output: Record<string, any> = {
+      analysis_date: (asOf ?? new Date()).toISOString().slice(0, 10),
+      brands: batched.results,
+      ...(batched.errors.length > 0
+        ? { message: "Частину сценаріїв сформовано без AI через недоступність провайдера." }
+        : {}),
     };
 
     output._debug = {
       systemPrompt: SYSTEM_PROMPT,
-      userPrompt,
-      rawResponse: raw,
-      parseError,
+      userPrompts: prompts,
+      rawResponses,
+      parseErrors,
+      batchErrors: batched.errors,
       provider: providerOverride ?? "anthropic",
       model: (providerOverride ?? "anthropic") === "openai" ? "gpt-4o" : "claude-sonnet-4-6",
-      parsedSuccessfully: parsed !== null,
+      parsedSuccessfully: batched.errors.length === 0 && parseErrors.length === 0,
       candidateCount: candidates.length,
       asOf: body.asOf ?? null,
       dateFrom: body.dateFrom ?? null,

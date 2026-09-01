@@ -9,7 +9,7 @@ export interface AttributeMetric {
   salesLast7d: number;
   salesLast30d: number;
   strPercent: number;
-  status: "bestseller" | "normal" | "slow" | "dead";
+  status: "bestseller" | "normal" | "slow" | "dead" | "stockout" | "inactive";
 }
 
 export interface AttributeMetrics {
@@ -93,7 +93,9 @@ export async function getAttributeMetrics(
   ): AttributeMetric {
     const strPct = v.stock > 0 ? Math.round((v.sold7 / v.stock) * 100 * 10) / 10 : 0;
     const status =
-      strPct >= STR_BESTSELLER
+      v.stock <= 0
+        ? v.sold30 > 0 ? "stockout" : "inactive"
+        : strPct >= STR_BESTSELLER
         ? "bestseller"
         : strPct >= STR_SLOW
           ? "normal"

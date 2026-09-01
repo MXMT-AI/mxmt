@@ -2,6 +2,8 @@ import { AgentRun, Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { apiError } from "@/lib/api-contracts";
+import { getActiveAgentImportRunId } from "@/lib/agent-data-source";
+import { buildAgentRunContext } from "@/lib/agent-context";
 
 interface StartAgentRunInput {
   tenantId: string;
@@ -44,12 +46,14 @@ export async function startAgentRun({
   await closeStaleAgentRuns(tenantId, agentType);
 
   try {
+    const importRunId = await getActiveAgentImportRunId(tenantId);
+    const context = buildAgentRunContext({ ...input, importRunId });
     const run = await prisma.agentRun.create({
       data: {
         tenantId,
         agentType,
         status: "running",
-        input,
+        input: { ...input, ...context },
       },
     });
 

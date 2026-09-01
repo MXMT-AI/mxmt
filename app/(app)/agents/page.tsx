@@ -12,7 +12,7 @@ import PromoTableModal, { type PromoSimParams } from "@/components/agents/PromoT
 import ReorderTableModal, { type ReorderSimParams } from "@/components/agents/ReorderTableModal";
 import { AGENTS, AGENT_ROUTES, BLOCKS } from "@/components/agents/agents.config";
 import type { AgentRunInfo, AgentStatus, BrandResult, BrandStatus } from "@/components/agents/agents.types";
-import { buildReorderParams, buildSimParams, duration, fmt, fmtDate, statusColor, statusLabel } from "@/components/agents/agents.utils";
+import { areAgentDependenciesReady, buildReorderParams, buildSimParams, duration, fmt, fmtDate, formatWohDays, statusColor, statusLabel } from "@/components/agents/agents.utils";
 import DebugSection from "@/components/agents/DebugSection";
 import { useAgentRuns } from "@/components/agents/useAgentRuns";
 
@@ -68,6 +68,7 @@ function AnalysisModal({
   };
   const catColors: Record<string, string> = {
     bestseller: "#00e5c4", normal: "#6b7a8d", slow: "#fbbf24", dead: "#ef4444",
+    stockout: "#60a5fa", inactive: "#6b7a8d",
   };
 
   return (
@@ -259,7 +260,7 @@ function AnalysisModal({
                         <div className="flex gap-4 text-[10px] font-mono text-[var(--muted)] mb-3 flex-wrap">
                           {opt.discount_percent > 0 && <span>Знижка <span className="text-[var(--text)]">-{opt.discount_percent}%</span></span>}
                           {opt.duration_days && <span>Строк <span className="text-[var(--text)]">{opt.duration_days}д</span></span>}
-                          {opt.forecast?.woh_after != null && <span>WOH після <span className="text-[var(--text)]">{opt.forecast.woh_after}д</span></span>}
+                          {opt.forecast?.woh_after != null && <span>WOH після <span className="text-[var(--text)]">{formatWohDays(opt.forecast.woh_after)}</span></span>}
                           {opt.forecast?.margin_impact_percent != null && (
                             <span>Маржа <span className={opt.forecast.margin_impact_percent < 0 ? "text-[#fbbf24]" : "text-[#00e5c4]"}>
                               {opt.forecast.margin_impact_percent > 0 ? "+" : ""}{opt.forecast.margin_impact_percent}%
@@ -340,7 +341,7 @@ function AnalysisModal({
                           </div>
                           <div className="flex gap-4 text-[10px] font-mono text-[var(--muted)] mb-3 flex-wrap">
                             {sc.qty_multiplier != null && <span>Обʼєм <span className="text-[var(--text)]">×{sc.qty_multiplier}</span></span>}
-                            {sc.woh_after != null && <span>WOH після <span className="text-[var(--text)]">{sc.woh_after}д</span></span>}
+                            {sc.woh_after != null && <span>WOH після <span className="text-[var(--text)]">{formatWohDays(sc.woh_after)}</span></span>}
                             {sc.logic && <span className="text-[var(--subtle)]">{sc.logic}</span>}
                           </div>
                           {sc.evaluation?.pros?.length > 0 && (
@@ -882,7 +883,7 @@ function BrandCard({ b }: { b: BrandResult }) {
         <div className="flex items-center gap-4">
           {b.metrics && (
             <div className="hidden sm:flex items-center gap-4 text-[11px] font-mono text-[var(--muted)]">
-              <span>WOH <span className="text-[var(--text)]">{b.metrics.wohDays}d</span></span>
+              <span>WOH <span className="text-[var(--text)]">{formatWohDays(b.metrics.wohDays)}</span></span>
               <span>STR <span className="text-[var(--text)]">{b.metrics.strPercent}%</span></span>
               <span>
                 {b.metrics.trend7dPct > 0 ? (
@@ -941,11 +942,13 @@ function AgentCard({
   run,
   onRun,
   isFirst,
+  dependenciesReady,
 }: {
   agent: (typeof AGENTS)[0];
   run?: AgentRunInfo;
   onRun: () => void;
   isFirst: boolean;
+  dependenciesReady: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -954,8 +957,9 @@ function AgentCard({
   const [reorderParams, setReorderParams] = useState<ReorderSimParams | null>(null);
   const [provider, setProvider] = useState<string>("anthropic");
   const Icon = agent.icon;
-  const s = run?.status ?? "idle";
-  const output = run?.output ?? {};
+  const isStale = run?.isCurrent === false;
+  const s = isStale ? "idle" : (run?.status ?? "idle");
+  const output = isStale ? {} : (run?.output ?? {});
 
   // Inventory analyst
   // Only inventory_analyst returns BrandResult[] — repricing/reordering also use output.brands
@@ -1043,7 +1047,8 @@ function AgentCard({
             <button
               type="button"
               onClick={onRun}
-              disabled={s === "running"}
+              disabled={s === "running" || !dependenciesReady}
+              title={!dependenciesReady ? "Спочатку завершіть залежні агенти для поточного періоду" : undefined}
               aria-label={`${s === "running" ? "Агент працює" : "Запустити агента"} ${agent.label}`}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-mono font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               style={{
@@ -1057,7 +1062,7 @@ function AgentCard({
               ) : (
                 <Play size={11} aria-hidden="true" />
               )}
-              {s === "running" ? "Працює…" : "Запустити"}
+              {s === "running" ? "Працює…" : !dependenciesReady ? "Очікує дані" : "Запустити"}
             </button>
           </div>
         </div>
@@ -1077,7 +1082,7 @@ function AgentCard({
                       : "text-[var(--subtle)]"
               }
             >
-              {s === "idle" ? "очікування" : s === "running" ? "працює" : s === "done" ? "готово" : "помилка"}
+              {isStale ? "застаріло" : s === "idle" ? "очікування" : s === "running" ? "працює" : s === "done" ? "готово" : "помилка"}
             </span>
           </span>
           {run?.finishedAt && (
@@ -1423,10 +1428,10 @@ function AgentCard({
                             <span>Строк: <span className="text-[var(--text)]">{item.duration_days}д</span></span>
                           )}
                           {item.forecast?.woh_after !== undefined && (
-                            <span>WOH після: <span className="text-[var(--text)]">{item.forecast.woh_after}д</span></span>
+                            <span>WOH після: <span className="text-[var(--text)]">{formatWohDays(item.forecast.woh_after)}</span></span>
                           )}
                           {item.woh_after !== undefined && (
-                            <span>WOH після: <span className="text-[var(--text)]">{item.woh_after}д</span></span>
+                            <span>WOH після: <span className="text-[var(--text)]">{formatWohDays(item.woh_after)}</span></span>
                           )}
                           {item.qty_multiplier !== undefined && (
                             <span>Обʼєм: <span className="text-[var(--text)]">×{item.qty_multiplier}</span></span>
@@ -1673,7 +1678,7 @@ function PipelineDiagram({ runs }: { runs: Record<string, AgentRunInfo> }) {
                 </div>
                 {blockAgents.map((agent) => {
                   const run = runs[agent.id];
-                  const s = run?.status ?? "idle";
+                  const s = run?.isCurrent === false ? "idle" : (run?.status ?? "idle");
                   return (
                     <div
                       key={agent.id}
@@ -1911,6 +1916,7 @@ export default function AgentsPage() {
                     run={runs[agent.id]}
                     onRun={() => handleRun(agent.id)}
                     isFirst={agent.id === "inventory_analyst"}
+                    dependenciesReady={areAgentDependenciesReady(agent, runs)}
                   />
                 ))}
               </div>

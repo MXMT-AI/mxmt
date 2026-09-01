@@ -10,7 +10,7 @@ import { startAgentRun } from "@/lib/agent-runs";
 export const runtime = "nodejs";
 export const maxDuration = 180;
 
-const SYSTEM_PROMPT = `Ты аналитик каналов продаж в fashion retail.
+const SYSTEM_PROMPT = `Ти аналітик каналів продажів у fashion retail. Відповідай українською мовою.
 
 Получаешь готовые метрики по каналам (уже посчитаны в базе).
 Твоя задача — сравнить каналы и дать рекомендации.
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
         where: { id: run.id },
         data: {
           status: "done",
-          output: { channels: [], message: "Нет данных о продажах в активном импорте новой базы." },
+          output: { channels: [], message: "В активному імпорті нової бази немає даних про продажі." },
           finishedAt: new Date(),
         },
       });
@@ -98,11 +98,11 @@ ${metrics.channels
         channel: c.channel,
         status: c.salesLast7d > 0 ? "normal" : "inactive",
         insight: `Продаж за 7д: ${c.salesLast7d} шт`,
-        recommendation: "Нет данных для рекомендации",
+        recommendation: "Недостатньо даних для рекомендації",
       })),
       top_channel: metrics.topChannel,
-      summary: "Анализ временно недоступен",
-      action: "Проверьте данные по каналам",
+      summary: "AI-аналіз тимчасово недоступний; показано розраховані метрики.",
+      action: "Перевірити дані за каналами",
     };
 
     // Attach raw metrics

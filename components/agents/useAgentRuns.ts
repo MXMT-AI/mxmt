@@ -24,7 +24,9 @@ export function useAgentRuns({
 
   const fetchStatus = useCallback(async () => {
     try {
-      const res = await apiFetch("/api/agents/status");
+      const params = new URLSearchParams({ asOf: analysisDate });
+      if (hasDateFrom) params.set("dateFrom", dateFrom);
+      const res = await apiFetch(`/api/agents/status?${params.toString()}`);
       if (!res.ok) {
         setStatusError(`Не вдалося оновити статус агентів (${res.status})`);
         return;
@@ -38,7 +40,7 @@ export function useAgentRuns({
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [analysisDate, dateFrom, hasDateFrom]);
 
   useEffect(() => {
     fetchStatus();
@@ -77,6 +79,7 @@ export function useAgentRuns({
         status: "running" as const,
         startedAt: new Date().toISOString(),
         output: prev[agentId]?.output,
+        isCurrent: true,
       },
     }));
 

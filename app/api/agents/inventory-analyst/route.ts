@@ -6,6 +6,12 @@ import { requireApiUser } from "@/lib/server-auth";
 import { serverError } from "@/lib/api-contracts";
 import { parseAgentJson } from "@/lib/agent-output";
 import { closeStaleAgentRuns, startAgentRun } from "@/lib/agent-runs";
+import {
+  buildInventoryResults,
+  selectInventoryAiCandidates,
+  type InventoryAiResult,
+} from "@/lib/inventory-analysis";
+import { runAgentBatches } from "@/lib/agent-batching";
 
 export const runtime = "nodejs";
 export const maxDuration = 180;
@@ -18,7 +24,7 @@ const THRESHOLDS = {
   gm_expected: 40,
 };
 
-const SYSTEM_PROMPT = `Ты аналитик склада в fashion retail.
+const SYSTEM_PROMPT = `Ти аналітик складу у fashion retail. Відповідай українською мовою.
 
 Получаешь готовые метрики брендов (WOH, STR, Trend, GM — уже посчитаны в базе).
 Твоя задача — только ИНТЕРПРЕТИРОВАТЬ цифры и определить статус каждого бренда.
@@ -76,7 +82,7 @@ export async function POST(req: NextRequest) {
         where: { id: run.id },
         data: {
           status: "done",
-          output: { brands: [], message: "Нет брендов с товарами" },
+          output: { brands: [], message: "Немає брендів із товарами" },
           finishedAt: new Date(),
         },
       });
@@ -85,57 +91,59 @@ export async function POST(req: NextRequest) {
 
     await prisma.agentRun.update({
       where: { id: run.id },
-      data: { input: { brandCount: metrics.length, provider: providerOverride ?? "anthropic" } },
+      data: {
+        input: {
+          ...(run.input as Record<string, any>),
+          brandCount: metrics.length,
+        },
+      },
     });
 
     const analysisDateStr = (asOf ?? new Date()).toISOString().slice(0, 10);
-    const userPrompt = `Пороги: WOH red=${THRESHOLDS.woh_red}d yellow=${THRESHOLDS.woh_yellow}d green=${THRESHOLDS.woh_green}d | STR expected=${THRESHOLDS.str_expected}% | GM expected=${THRESHOLDS.gm_expected}%
-Дата анализа: ${analysisDateStr}${dateFrom ? `\nПериод данных: с ${dateFrom.toISOString().slice(0, 10)} (скорость продаж и WOH рассчитаны за этот период; тренд = вторая половина периода vs первая)` : ""}
-
-Бренды:
-${metrics
-  .map(
-    (m) =>
-      `• ${m.brandName} (id: ${m.brandId}): stock=${m.totalStock} SKUs=${m.skuCount} ` +
-      `WOH=${m.wohDays}d STR=${m.strPercent}% trend=${m.trend7dPct}% GM=${m.gmPercent}% ` +
-      `sold7d=${m.salesLast7d} sold30d=${m.salesLast30d}`
-  )
-  .join("\n")}`;
-
-    const raw = await chat({
-      systemPrompt: SYSTEM_PROMPT,
-      messages: [{ role: "user", content: userPrompt }],
-      maxTokens: 3000,
-      providerOverride,
+    const aiCandidates = selectInventoryAiCandidates(metrics, 20);
+    const prompts: string[] = [];
+    const rawResponses: string[] = [];
+    const parseErrors: string[] = [];
+    const batched = await runAgentBatches({
+      items: aiCandidates,
+      batchSize: 5,
+      concurrency: 2,
+      runBatch: async (batch) => {
+        const userPrompt = `Пороги: WOH red=${THRESHOLDS.woh_red}d yellow=${THRESHOLDS.woh_yellow}d green=${THRESHOLDS.woh_green}d | STR expected=${THRESHOLDS.str_expected}% | GM expected=${THRESHOLDS.gm_expected}%\nДата аналізу: ${analysisDateStr}${dateFrom ? `\nПеріод даних: з ${dateFrom.toISOString().slice(0, 10)}` : ""}\n\nБренди:\n${batch
+          .map(
+            (m) =>
+              `• ${m.brandName} (id: ${m.brandId}): stock=${m.totalStock} SKUs=${m.skuCount} ` +
+              `WOH=${m.wohDays}d STR=${m.strPercent}% trend=${m.trend7dPct}% GM=${m.gmPercent}% ` +
+              `sold7d=${m.salesLast7d} sold30d=${m.salesLast30d}`
+          )
+          .join("\n")}`;
+        prompts.push(userPrompt);
+        const raw = await chat({
+          systemPrompt: SYSTEM_PROMPT,
+          messages: [{ role: "user", content: userPrompt }],
+          maxTokens: 1800,
+          providerOverride,
+        });
+        rawResponses.push(raw);
+        const { data, error } = parseAgentJson<InventoryAiResult[]>(raw, "array");
+        if (error) parseErrors.push(error);
+        return data ?? [];
+      },
+      fallbackBatch: () => [],
     });
+    const output = buildInventoryResults(metrics, batched.results);
 
-    const { data: parsedData, error: parseError } = parseAgentJson<any[]>(raw, "array");
-    const parsed = parsedData ?? metrics.map((m) => ({
-        brand_id: m.brandId,
-        brand_name: m.brandName,
-        status: "balanced",
-        analysis: "Анализ временно недоступен",
-        confidence: 0.5,
-        metrics_evaluation: { woh_status: "green", str_status: "normal", trend_status: "stable", gm_status: "normal" },
-        suggested_actions: [],
-        urgency: "low",
-      }));
-
-    // Attach computed metrics to each brand result
-    const output = parsed.map((p: any) => {
-      const metric = metrics.find((m) => m.brandId === p.brand_id || m.brandName === p.brand_name);
-      return { ...p, metrics: metric ?? null };
-    });
-
-    const _debug = {
+    const _debug: Record<string, any> = {
       systemPrompt: SYSTEM_PROMPT,
-      userPrompt,
-      rawResponse: raw,
-      parseError,
+      userPrompts: prompts,
+      rawResponses,
+      parseErrors,
+      batchErrors: batched.errors,
       provider: providerOverride ?? "anthropic",
       model: (providerOverride ?? "anthropic") === "openai" ? "gpt-4o" : "claude-sonnet-4-6",
-      parsedSuccessfully: parsed.length > 0,
+      parsedSuccessfully: batched.errors.length === 0 && parseErrors.length === 0,
       brandCount: metrics.length,
+      aiEnrichedCount: batched.results.length,
       asOf: body.asOf ?? null,
       dateFrom: body.dateFrom ?? null,
       analyzedAt: new Date().toISOString(),
