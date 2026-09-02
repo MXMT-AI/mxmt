@@ -23,13 +23,9 @@ STR (Stock Turn Ratio) — % от склада проданный за посл�
   "by_category": [
     {
       "category": "string",
-      "status": "bestseller | normal | slow | dead | stockout | inactive",
-      "insight": "1-2 предложения",
       "recommendation": "конкретное действие"
     }
   ],
-  "bestsellers": ["category1", "category2"],
-  "dead_stock": ["category3"],
   "summary": "2-3 предложения общий вывод",
   "action": "самое важное действие прямо сейчас"
 }
@@ -46,7 +42,8 @@ inactive — залишок 0 і продажів у періоді не бул�
 - Статус каждой категории уже рассчитан по данным. Не изменяй и не переосмысливай переданный status.
 - gross_sales — продажи до возвратов, returns — возвраты, net_sales — продажи минус возвраты.
 - Возвраты являются бизнес-транзакциями и не означают отрицательный спрос или техническую ошибку.
-- Не называй категорию dead, если gross_sales_period больше нуля.`;
+- Не называй категорию dead, если gross_sales_period больше нуля.
+- Фактическое описание метрик формирует система. Ты создаёшь только рекомендации по категориям, общий вывод и главное действие.`;
 
 export async function POST(req: NextRequest) {
   const { user, response } = await requireApiUser("ANALYST");

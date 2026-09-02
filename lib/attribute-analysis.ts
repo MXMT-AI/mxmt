@@ -2,7 +2,7 @@ import type { AttributeMetric } from "@/lib/attribute-metrics";
 
 interface AttributeAiCategory {
   category?: string;
-  insight?: string;
+  insight?: string; // accepted from older saved responses, never used for factual metrics
   recommendation?: string;
 }
 
@@ -19,14 +19,14 @@ type CategoryMetric = Pick<
   "strPercent" | "status"
 >;
 
-function defaultInsight(metric: CategoryMetric): string {
+function dataInsight(metric: CategoryMetric): string {
   if (metric.status === "stockout") {
-    return `За період продано ${metric.grossSalesLast30d} од., повернено ${metric.returnsLast30d} од., але поточний залишок дорівнює нулю.`;
+    return `За вибраний період: валові продажі — ${metric.grossSalesLast30d} од., повернення — ${metric.returnsLast30d} од., чисті продажі — ${metric.salesLast30d} од.; поточний залишок — 0 од.`;
   }
   if (metric.status === "inactive") {
-    return "Немає ані залишку, ані продажів за вибраний період.";
+    return `За вибраний період: валові продажі — 0 од., повернення — ${metric.returnsLast30d} од.; поточний залишок — 0 од.`;
   }
-  return `STR ${metric.strPercent}%, валові продажі за період — ${metric.grossSalesLast30d} од., повернення — ${metric.returnsLast30d} од., залишок — ${metric.totalStock} од.`;
+  return `STR за 7 днів — ${metric.strPercent}%, валові продажі за вибраний період — ${metric.grossSalesLast30d} од., повернення — ${metric.returnsLast30d} од., чисті продажі — ${metric.salesLast30d} од., залишок — ${metric.totalStock} од.`;
 }
 
 function defaultRecommendation(metric: CategoryMetric): string {
@@ -43,7 +43,7 @@ export function buildAttributeAnalysis(categories: CategoryMetric[], ai: Attribu
     return {
       category: metric.attribute,
       status: metric.status,
-      insight: aiCategory?.insight?.trim() || defaultInsight(metric),
+      insight: dataInsight(metric),
       recommendation: aiCategory?.recommendation?.trim() || defaultRecommendation(metric),
     };
   });
