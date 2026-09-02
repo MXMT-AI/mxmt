@@ -166,7 +166,7 @@ export default function PromoTableModal({
                   <table className="w-full text-[11px] font-mono whitespace-nowrap">
                     <thead>
                       <tr className="bg-[var(--surface2)] text-[var(--subtle)] text-[9px] uppercase tracking-wide">
-                        {["SKU", "Назва", "Залишок", "Ціна", "Зі знижкою", "Маржа до", "Маржа після", "Прогноз, шт", "Виручка", "Маржа, грн", "Капітал", "WOH після"].map((h) => (
+                        {["SKU", "Назва", "Залишок", "Ціна", "Зі знижкою", "Маржа до", "Маржа після", "Прогноз, шт", "Виручка", "Маржа, грн", "Капітал", "DOH після"].map((h) => (
                           <th key={h} className="px-3 py-2 text-left font-normal">{h}</th>
                         ))}
                       </tr>

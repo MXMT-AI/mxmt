@@ -32,7 +32,7 @@ export const AGENTS: AgentDefinition[] = [
   },
   {
     id: "repricing", label: "Repricing Strategy", model: "GPT-4o",
-    block: 2, blockLabel: "Decision Support", desc: "3 варіанти уцінки для брендів з високим WOH",
+    block: 2, blockLabel: "Decision Support", desc: "3 варіанти уцінки для брендів з високим запасом у днях (DOH)",
     icon: TrendingDown, color: "#a78bfa", runnable: true,
     dependsOn: ["inventory_analyst"],
   },

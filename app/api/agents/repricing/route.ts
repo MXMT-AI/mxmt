@@ -7,7 +7,11 @@ import { apiError, serverError } from "@/lib/api-contracts";
 import { parseAgentJson } from "@/lib/agent-output";
 import { startAgentRun } from "@/lib/agent-runs";
 import { runAgentBatches } from "@/lib/agent-batching";
-import { buildRepricingFallback, type RepricingBrandResult } from "@/lib/agent-fallbacks";
+import {
+  buildRepricingFallback,
+  normalizeRepricingResult,
+  type RepricingBrandResult,
+} from "@/lib/agent-fallbacks";
 import { getCurrentDependencyRun, resolveAgentRunContext } from "@/lib/agent-dependencies";
 
 export const runtime = "nodejs";
@@ -20,8 +24,9 @@ const GM_EXPECTED = 40;
 
 const SYSTEM_PROMPT = `Ти стратег із ціноутворення у fashion retail. Відповідай українською мовою.
 
-Получаешь массив брендов с уже посчитанными метриками (WOH, STR, Trend, GM).
-ИИ НЕ считает математику — только интерпретирует готовые цифры и предлагает стратегии.
+Получаешь массив брендов с уже посчитанными метриками (DOH, STR, Trend, GM).
+DOH — количество дней запаса при текущей скорости продаж.
+ИИ НЕ считает математику и не выбирает финальную рекомендацию — только предлагает варианты, прогноз доли продаж и аргументы. Сервер проверит скидку, маржу, оценки и рекомендацию.
 
 Для каждого бренда генерируй 3 варианта (AGGRESSIVE, BALANCED, CONSERVATIVE) с оценкой.
 
@@ -44,8 +49,9 @@ const SYSTEM_PROMPT = `Ти стратег із ціноутворення у fa
           "duration_days": 14,
           "forecast": {
             "units_to_sell_percent": 41,
-            "woh_after": 68,
-            "margin_impact_percent": -17
+            "woh_after": null,
+            "margin_impact_percent": 0,
+            "margin_after_percent": 0
           },
           "evaluation": {
             "score": 8,
@@ -65,12 +71,11 @@ const SYSTEM_PROMPT = `Ти стратег із ціноутворення у fa
 ПРАВИЛА:
 - Всегда 3 варианта: AGGRESSIVE, BALANCED, CONSERVATIVE
 - action: FLASH_SALE | CLEARANCE | MARKDOWN | VISIBILITY
-- recommended: true только у одного варианта на бренд
-- score 1-10: основан на данных и соответствии сезону
-- WOH > ${WOH_RED} и падающий тренд → рекомендовать AGGRESSIVE
-- WOH ${WOH_YELLOW}–${WOH_RED} и стабильный тренд → рекомендовать BALANCED
-- WOH < ${WOH_YELLOW} → рекомендовать CONSERVATIVE или VISIBILITY
-- Если тренд растёт — предупреждать: скидка не нужна`;
+- Сервер сам определяет recommended, score, DOH после акции и влияние на маржу; переданные тобой значения будут перепроверены
+- DOH > ${WOH_RED} и падающий тренд → предложить AGGRESSIVE
+- DOH ${WOH_YELLOW}–${WOH_RED} и стабильный тренд → предложить BALANCED
+- DOH < ${WOH_YELLOW} → предложить CONSERVATIVE или VISIBILITY
+- Если тренд растёт — консервативный вариант должен быть без скидки`;
 
 export async function POST(req: NextRequest) {
   const { user, response } = await requireApiUser("ANALYST");
@@ -102,7 +107,7 @@ export async function POST(req: NextRequest) {
   try {
     const allBrands = await getBrandMetrics(tenantId, asOf, dateFrom);
 
-    // Candidates: high WOH or significantly falling trend
+    // Candidates: high days of inventory (DOH) or significantly falling trend
     const candidates = allBrands
       .filter((b) => b.skuCount > 0 && (b.wohDays > WOH_YELLOW || b.trend7dPct < -15))
       .slice(0, 8); // cap to avoid token overflow
@@ -112,7 +117,7 @@ export async function POST(req: NextRequest) {
         where: { id: run.id },
         data: {
           status: "done",
-          output: { brands: [], message: "Немає брендів, які потребують уцінки. WOH у межах норми." },
+          output: { brands: [], message: "Немає брендів, які потребують уцінки. Дні запасу (DOH) у межах норми." },
           finishedAt: new Date(),
         },
       });
@@ -130,11 +135,11 @@ export async function POST(req: NextRequest) {
         const userPrompt = `Бренди для аналізу стратегії уцінки:\n\n${batch
           .map(
             (b) =>
-              `• ${b.brandName} (id: ${b.brandId}): WOH=${b.wohDays}д, STR=${b.strPercent}%, ` +
+              `• ${b.brandName} (id: ${b.brandId}): DOH=${b.wohDays >= 9999 ? "немає історії продажів" : `${b.wohDays}д`}, STR=${b.strPercent}%, ` +
               `Trend=${b.trend7dPct > 0 ? "+" : ""}${b.trend7dPct}%, GM=${b.gmPercent}%, ` +
               `Stock=${b.totalStock}шт, FrozenCapital=${b.frozenCapital}грн`
           )
-          .join("\n")}\n\nПороги: woh_red=${WOH_RED}д, woh_yellow=${WOH_YELLOW}д, str_expected=${STR_EXPECTED}%, gm_expected=${GM_EXPECTED}%\nДата аналізу: ${(asOf ?? new Date()).toISOString().slice(0, 10)}${dateFrom ? `\nПеріод даних: з ${dateFrom.toISOString().slice(0, 10)}` : ""}`;
+          .join("\n")}\n\nПороги: doh_red=${WOH_RED}д, doh_yellow=${WOH_YELLOW}д, str_expected=${STR_EXPECTED}%, gm_expected=${GM_EXPECTED}%\nДата аналізу: ${(asOf ?? new Date()).toISOString().slice(0, 10)}${dateFrom ? `\nПеріод даних: з ${dateFrom.toISOString().slice(0, 10)}` : ""}`;
         prompts.push(userPrompt);
         const raw = await chat({
           systemPrompt: SYSTEM_PROMPT,
@@ -146,7 +151,7 @@ export async function POST(req: NextRequest) {
         const { data: parsed, error: parseError } = parseAgentJson<{ brands?: RepricingBrandResult[] }>(raw, "object");
         if (parseError) parseErrors.push(parseError);
         const parsedById = new Map((parsed?.brands ?? []).map((brand) => [brand.brand_id, brand]));
-        return batch.map((metric) => parsedById.get(metric.brandId) ?? buildRepricingFallback(metric));
+        return batch.map((metric) => normalizeRepricingResult(metric, parsedById.get(metric.brandId)));
       },
       fallbackBatch: (batch) => batch.map(buildRepricingFallback),
     });

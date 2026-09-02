@@ -4,6 +4,8 @@ import {
   buildCommercialFallback,
   buildReorderingFallback,
   buildRepricingFallback,
+  maxSafeDiscountPercent,
+  normalizeRepricingResult,
 } from "@/lib/agent-fallbacks";
 import type { BrandMetric } from "@/lib/brand-metrics";
 
@@ -53,6 +55,96 @@ describe("decision agent fallbacks", () => {
       "BALANCED",
       "CONSERVATIVE",
     ]);
+  });
+
+  it("selects a no-discount conservative option for a growing brand", () => {
+    const metric: BrandMetric = {
+      brandId: "brand:value:GROWING",
+      brandName: "Growing",
+      skuCount: 3,
+      totalStock: 100,
+      salesLast7d: 10,
+      salesLast30d: 20,
+      salesPrev7d: 5,
+      avgDailyVelocity: 0.67,
+      wohDays: 149,
+      strPercent: 10,
+      trend7dPct: 100,
+      gmPercent: 55,
+      frozenCapital: 10_000,
+      periodDays: 30,
+    };
+    const ai = buildRepricingFallback(metric);
+    ai.options.forEach((option) => {
+      option.evaluation.recommended = option.strategy_type === "BALANCED";
+      option.evaluation.score = option.strategy_type === "BALANCED" ? 10 : 4;
+    });
+
+    const result = normalizeRepricingResult(metric, ai);
+    const recommended = result.options.find((option) => option.evaluation.recommended)!;
+
+    expect(recommended.strategy_type).toBe("CONSERVATIVE");
+    expect(recommended.discount_percent).toBe(0);
+    expect(recommended.evaluation.score).toBeGreaterThan(
+      Math.max(...result.options.filter((option) => !option.evaluation.recommended).map((option) => option.evaluation.score))
+    );
+  });
+
+  it("caps discounts at a safe margin and calculates DOH on the server", () => {
+    const metric: BrandMetric = {
+      brandId: "brand:value:LOW_MARGIN",
+      brandName: "Low margin",
+      skuCount: 3,
+      totalStock: 100,
+      salesLast7d: 1,
+      salesLast30d: 9,
+      salesPrev7d: 3,
+      avgDailyVelocity: 0.3,
+      wohDays: 333,
+      strPercent: 1,
+      trend7dPct: -67,
+      gmPercent: 40,
+      frozenCapital: 10_000,
+      periodDays: 30,
+    };
+    const ai = buildRepricingFallback(metric);
+    const aggressive = ai.options.find((option) => option.strategy_type === "AGGRESSIVE")!;
+    aggressive.discount_percent = 70;
+    aggressive.forecast.units_to_sell_percent = 50;
+
+    const result = normalizeRepricingResult(metric, ai);
+    const recommended = result.options.find((option) => option.evaluation.recommended)!;
+
+    expect(maxSafeDiscountPercent(metric)).toBe(33);
+    expect(recommended.strategy_type).toBe("AGGRESSIVE");
+    expect(recommended.discount_percent).toBe(33);
+    expect(recommended.forecast.margin_after_percent).toBeGreaterThanOrEqual(10);
+    expect(recommended.forecast.woh_after).toBe(167);
+    expect(recommended.evaluation.risks[0]).toContain("обмежено до 33%");
+  });
+
+  it("does not invent post-promo stock days without sales history", () => {
+    const metric: BrandMetric = {
+      brandId: "brand:value:NO_SALES",
+      brandName: "No sales",
+      skuCount: 2,
+      totalStock: 50,
+      salesLast7d: 0,
+      salesLast30d: 0,
+      salesPrev7d: 0,
+      avgDailyVelocity: 0,
+      wohDays: 9999,
+      strPercent: 0,
+      trend7dPct: 0,
+      gmPercent: 60,
+      frozenCapital: 5_000,
+      periodDays: 30,
+    };
+
+    const result = normalizeRepricingResult(metric, buildRepricingFallback(metric));
+
+    expect(result.options.every((option) => option.forecast.woh_after === null)).toBe(true);
+    expect(result.current_situation).toContain("прогноз днів запасу недоступний");
   });
 
   it("keeps reordering simulation usable when an AI batch times out", () => {

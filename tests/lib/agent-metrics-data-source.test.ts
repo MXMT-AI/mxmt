@@ -42,9 +42,9 @@ describe("agent metrics use the active normalized import", () => {
 
   it("builds brand metrics from SourceProduct and SourceSaleLine", async () => {
     mocks.sourceProductFindMany.mockResolvedValue([
-      { productId: "p1", brand: "A", costPrice: 40, stockUnits: 10 },
-      { productId: "p2", brand: "A", costPrice: 20, stockUnits: 5 },
-      { productId: "p3", brand: null, costPrice: 10, stockUnits: 2 },
+      { productId: "p1", brand: "A", costPrice: 40, retailPrice: 100, stockUnits: 10 },
+      { productId: "p2", brand: "A", costPrice: 20, retailPrice: 25, stockUnits: 5 },
+      { productId: "p3", brand: null, costPrice: 10, retailPrice: 20, stockUnits: 2 },
     ]);
     mocks.sourceSaleLineFindMany.mockResolvedValue([
       { resolvedProductId: "p1", paymentDate: date("2026-08-29"), normalizedQuantity: 2, normalizedSales: 200, normalizedCost: 80 },
@@ -65,6 +65,7 @@ describe("agent metrics use the active normalized import", () => {
       salesLast7d: 2,
       salesLast30d: 4,
       gmPercent: 63.2,
+      safeDiscountCapPercent: 11,
       frozenCapital: 500,
     });
     expect(result.find((item) => item.brandId === "brand:null")?.brandName).toBe("Без бренда");

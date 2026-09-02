@@ -14,6 +14,7 @@ export interface BrandMetric {
   strPercent: number; // stock turn ratio %
   trend7dPct: number; // % change recent vs previous trend window
   gmPercent: number; // gross margin %
+  safeDiscountCapPercent?: number; // brand-wide cap that keeps stocked SKUs at >=10% margin
   frozenCapital: number; // stock * purchase price
   periodDays: number; // length of the analysis window in days
 }
@@ -53,6 +54,7 @@ function aggregateProducts(
   products: {
     productId: string;
     costPrice: { toString(): string };
+    retailPrice?: { toString(): string };
     stockUnits: { toString(): string };
   }[],
   sales: {
@@ -72,12 +74,22 @@ function aggregateProducts(
   let totalRevenue = 0;
   let totalCost = 0;
   let frozenCapital = 0;
+  let safeDiscountCapPercent = 50;
+  let hasPricedStock = false;
 
   const productIds = new Set(products.map((product) => product.productId));
   for (const product of products) {
     const stock = Number(product.stockUnits);
     totalStock += stock;
     frozenCapital += stock * Number(product.costPrice);
+    const retailPrice = Number(product.retailPrice);
+    const costPrice = Number(product.costPrice);
+    if (stock > 0 && retailPrice > 0 && Number.isFinite(costPrice)) {
+      const costShare = Math.max(0, costPrice / retailPrice);
+      const skuCap = Math.max(0, Math.floor((1 - costShare / 0.9) * 100));
+      safeDiscountCapPercent = Math.min(safeDiscountCapPercent, skuCap);
+      hasPricedStock = true;
+    }
   }
 
   for (const sale of sales) {
@@ -123,6 +135,7 @@ function aggregateProducts(
     strPercent,
     trend7dPct,
     gmPercent,
+    safeDiscountCapPercent: hasPricedStock ? safeDiscountCapPercent : undefined,
     frozenCapital: Math.round(frozenCapital),
     periodDays: w.periodDays,
   };
@@ -141,7 +154,7 @@ export async function getBrandMetrics(
   const [products, sales] = await Promise.all([
     prisma.sourceProduct.findMany({
       where: { tenantId, importRunId },
-      select: { productId: true, brand: true, costPrice: true, stockUnits: true },
+      select: { productId: true, brand: true, costPrice: true, retailPrice: true, stockUnits: true },
     }),
     prisma.sourceSaleLine.findMany({
       where: {

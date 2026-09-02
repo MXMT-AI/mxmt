@@ -264,10 +264,14 @@ function AnalysisModal({
                         <div className="flex gap-4 text-[10px] font-mono text-[var(--muted)] mb-3 flex-wrap">
                           {opt.discount_percent > 0 && <span>Знижка <span className="text-[var(--text)]">-{opt.discount_percent}%</span></span>}
                           {opt.duration_days && <span>Строк <span className="text-[var(--text)]">{opt.duration_days}д</span></span>}
-                          {opt.forecast?.woh_after != null && <span>WOH після <span className="text-[var(--text)]">{formatWohDays(opt.forecast.woh_after)}</span></span>}
-                          {opt.forecast?.margin_impact_percent != null && (
-                            <span>Маржа <span className={opt.forecast.margin_impact_percent < 0 ? "text-[#fbbf24]" : "text-[#00e5c4]"}>
-                              {opt.forecast.margin_impact_percent > 0 ? "+" : ""}{opt.forecast.margin_impact_percent}%
+                          {opt.forecast && (
+                            <span>Днів запасу після (DOH) <span className="text-[var(--text)]">
+                              {opt.forecast.woh_after == null ? "недостатньо даних" : formatWohDays(opt.forecast.woh_after)}
+                            </span></span>
+                          )}
+                          {opt.forecast?.margin_after_percent != null && (
+                            <span>Маржа після <span className={opt.forecast.margin_after_percent < 10 ? "text-[#ef4444]" : "text-[#00e5c4]"}>
+                              {opt.forecast.margin_after_percent}%
                             </span></span>
                           )}
                         </div>
@@ -1431,8 +1435,10 @@ function AgentCard({
                           {item.duration_days && (
                             <span>Строк: <span className="text-[var(--text)]">{item.duration_days}д</span></span>
                           )}
-                          {item.forecast?.woh_after !== undefined && (
-                            <span>WOH після: <span className="text-[var(--text)]">{formatWohDays(item.forecast.woh_after)}</span></span>
+                          {item.forecast && (
+                            <span>Днів запасу після (DOH): <span className="text-[var(--text)]">
+                              {item.forecast.woh_after == null ? "недостатньо даних" : formatWohDays(item.forecast.woh_after)}
+                            </span></span>
                           )}
                           {item.woh_after !== undefined && (
                             <span>WOH після: <span className="text-[var(--text)]">{formatWohDays(item.woh_after)}</span></span>
