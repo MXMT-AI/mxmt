@@ -171,7 +171,7 @@ export async function POST(req: NextRequest) {
     const output: Record<string, any> = {
       analysis_date: analysisDate,
       brands: batched.results,
-      summary: "Маркетингові брифи сформовано за поточними рішеннями щодо ціни та поповнення.",
+      summary: "Маркетингові брифи сформовано за валідованими рекомендаціями щодо ціни, видимості та поповнення.",
       start_immediately: decisions.filter((decision) => decision.type === "markdown").map((decision) => decision.brand_id),
       ...(batched.errors.length > 0
         ? { message: "Частину брифів сформовано без AI через недоступність провайдера." }

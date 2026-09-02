@@ -151,6 +151,31 @@ describe("decision agent fallbacks", () => {
     expect(recommended.evaluation.risks[0]).toContain("обмежено до 33%");
   });
 
+  it("caps each repricing strategy even when margin would allow a larger discount", () => {
+    const metric: BrandMetric = {
+      brandId: "brand:value:HIGH_MARGIN",
+      brandName: "High margin",
+      skuCount: 3,
+      totalStock: 100,
+      salesLast7d: 1,
+      salesLast30d: 5,
+      salesPrev7d: 3,
+      avgDailyVelocity: 0.17,
+      wohDays: 588,
+      strPercent: 1,
+      trend7dPct: -67,
+      gmPercent: 100,
+      frozenCapital: 0,
+      periodDays: 30,
+    };
+    const ai = buildRepricingFallback(metric);
+    ai.options.forEach((option) => { option.discount_percent = 50; });
+
+    const result = normalizeRepricingResult(metric, ai);
+
+    expect(result.options.map((option) => option.discount_percent)).toEqual([35, 20, 10]);
+  });
+
   it("does not invent post-promo stock days without sales history", () => {
     const metric: BrandMetric = {
       brandId: "brand:value:NO_SALES",
@@ -294,6 +319,25 @@ describe("decision agent fallbacks", () => {
       brand_id: "brand:value:A",
       type: "visibility",
     })]);
+  });
+
+  it("does not let AI turn visibility into a new-arrivals campaign", () => {
+    const decision = {
+      brand_id: "brand:null",
+      brand_name: "Без бренда",
+      type: "visibility" as const,
+      action: "VISIBILITY",
+      label: "Підвищення видимості без знижки",
+    };
+
+    const result = normalizeCommercialBrief(decision, "2026-09-02", {
+      channels: {
+        email: { brief: "Розповісти про нові надходження" },
+      },
+    });
+
+    expect(result.channels.email.brief).not.toContain("нові надходження");
+    expect(result.key_message).toContain("Зверніть увагу");
   });
 
   it("prefers reordering over visibility for the same low-stock brand", () => {

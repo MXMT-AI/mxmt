@@ -35,6 +35,11 @@ export interface RepricingBrandResult {
 
 const MIN_MARGIN_PERCENT = 10;
 const MAX_DISCOUNT_PERCENT = 50;
+const STRATEGY_DISCOUNT_CAP: Record<RepricingStrategy, number> = {
+  AGGRESSIVE: 35,
+  BALANCED: 20,
+  CONSERVATIVE: 10,
+};
 
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
@@ -192,9 +197,10 @@ export function normalizeRepricingResult(
   const options = fallback.options.map((base) => {
     const ai = aiByStrategy.get(base.strategy_type);
     const requestedDiscount = Math.round(finiteNumber(ai?.discount_percent, base.discount_percent));
+    const strategyDiscountCap = Math.min(maxDiscount, STRATEGY_DISCOUNT_CAP[base.strategy_type]);
     const discountPercent = base.strategy_type === "CONSERVATIVE" && (metric.trend7dPct > 0 || metric.wohDays < 45)
       ? 0
-      : clamp(requestedDiscount, 0, maxDiscount);
+      : clamp(requestedDiscount, 0, strategyDiscountCap);
     const durationDays = Math.round(clamp(finiteNumber(ai?.duration_days, base.duration_days), 1, 90));
     const sellThrough = clamp(
       finiteNumber(ai?.forecast?.units_to_sell_percent, base.forecast.units_to_sell_percent),
@@ -512,7 +518,7 @@ export function normalizeCommercialBrief(
   aiResult?: unknown
 ): CommercialBrief {
   const fallback = buildCommercialFallback(decision, executionDate);
-  if (decision.type === "reorder") return fallback;
+  if (decision.type === "reorder" || decision.type === "visibility") return fallback;
   const parsed = objectValue(aiResult);
   const aiChannels = objectValue(parsed?.channels);
   const channelNames = ["smm", "email", "ads", "store", "marketplace"] as const;
