@@ -300,34 +300,54 @@ function productResolver(products: NormalizedProduct[]) {
   };
 
   return (sku: string | null, parameter: string | null, barcode: string | null): ProductMatch => {
+    let ambiguousMatch: ProductMatch | null = null;
+    const accept = (match: ProductMatch | null): ProductMatch | null => {
+      if (!match) return null;
+      if (match.status === ProductMatchStatus.MATCHED) return match;
+      ambiguousMatch ??= match;
+      return null;
+    };
+
     if (sku) {
-      const exactId = uniqueMatch(ids.get(sku), "SKU_EXACT_ID");
+      const exactId = accept(uniqueMatch(ids.get(sku), "SKU_EXACT_ID"));
       if (exactId) return exactId;
-      const insensitiveId = uniqueMatch(idsLower.get(sku.toLocaleLowerCase("uk-UA")), "SKU_CASE_INSENSITIVE_ID");
+      const insensitiveId = accept(
+        uniqueMatch(idsLower.get(sku.toLocaleLowerCase("uk-UA")), "SKU_CASE_INSENSITIVE_ID")
+      );
       if (insensitiveId) return insensitiveId;
-      const article = uniqueMatch(articles.get(sku), "SKU_EXACT_ARTICLE");
-      if (article) return article;
-      const barcodeMatch = uniqueMatch(barcodes.get(sku), "SKU_EXACT_BARCODE");
-      if (barcodeMatch) return barcodeMatch;
-      const compact = compactMatch(sku);
-      if (compact) return compact;
     }
     if (parameter) {
-      const exactId = uniqueMatch(ids.get(parameter), "PARAMETER_EXACT_ID");
+      const exactId = accept(uniqueMatch(ids.get(parameter), "PARAMETER_EXACT_ID"));
       if (exactId) return exactId;
+    }
+    if (barcode) {
+      const barcodeMatch = accept(uniqueMatch(barcodes.get(barcode), "BARCODE_EXACT"));
+      if (barcodeMatch) return barcodeMatch;
+    }
+    if (sku) {
+      const barcodeMatch = accept(uniqueMatch(barcodes.get(sku), "SKU_EXACT_BARCODE"));
+      if (barcodeMatch) return barcodeMatch;
+      const article = accept(uniqueMatch(articles.get(sku), "SKU_EXACT_ARTICLE"));
+      if (article) return article;
+    }
+    if (parameter) {
       const fallback = new Map<string, NormalizedProduct>();
       for (const product of articles.get(parameter) ?? []) fallback.set(product.productId, product);
       for (const product of vendorCodes.get(parameter) ?? []) fallback.set(product.productId, product);
-      const alternate = uniqueMatch([...fallback.values()], "PARAMETER_ARTICLE_OR_VENDOR_CODE");
+      const alternate = accept(
+        uniqueMatch([...fallback.values()], "PARAMETER_ARTICLE_OR_VENDOR_CODE")
+      );
       if (alternate) return alternate;
-      const compact = compactMatch(parameter);
+    }
+    if (sku) {
+      const compact = accept(compactMatch(sku));
       if (compact) return compact;
     }
-    if (barcode) {
-      const barcodeMatch = uniqueMatch(barcodes.get(barcode), "BARCODE_EXACT");
-      if (barcodeMatch) return barcodeMatch;
+    if (parameter) {
+      const compact = accept(compactMatch(parameter));
+      if (compact) return compact;
     }
-    return { status: ProductMatchStatus.UNMATCHED, method: null, productId: null };
+    return ambiguousMatch ?? { status: ProductMatchStatus.UNMATCHED, method: null, productId: null };
   };
 }
 

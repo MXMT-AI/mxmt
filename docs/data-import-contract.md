@@ -120,22 +120,31 @@ Every sale line is resolved in this order:
 
 1. exact trimmed `ZAVOD_API.product.sku` to `Product YML.ID`;
 2. case-insensitive `product.sku` to `Product YML.ID`, only when unique;
-3. exact `product.sku` to a unique `Product YML.Article`;
-4. exact `product.parameter` to `Product YML.ID`;
-5. exact `product.parameter` to a unique `Product YML.Article` or
-   `Product YML.Vendor Code`.
+3. exact `product.parameter` to `Product YML.ID`;
+4. exact `product.barcode`, then `product.sku`, to a unique
+   `Product YML.Barcode`;
+5. exact `product.sku` to a unique `Product YML.Article`;
+6. exact `product.parameter` to a unique `Product YML.Article` or
+   `Product YML.Vendor Code`;
+7. a unique whitespace-compacted identifier match.
 
-`ZAVOD_API.product.productId` is not compared with `Product YML.ID`, because
-the observed values belong to different identifier systems.
+An ambiguous fallback does not stop resolution while a stronger exact or
+otherwise unique candidate remains. For example, a shared article in
+`product.sku` is disambiguated by an exact `product.parameter` product ID.
+
+`ZAVOD_API.product.productId` is not compared directly with `Product YML.ID`,
+because the observed values belong to different identifier systems. It may be
+used as an import-local alias when another sale row establishes one unique
+mapping to a canonical product.
 
 If a fallback matches more than one product, the sale line is marked
 `AMBIGUOUS_PRODUCT_MATCH` and excluded from calculations. If nothing matches,
 it is marked `UNMATCHED_PRODUCT`. Import issues retain the source worksheet,
 row number, attempted values, and source import ID.
 
-Resolver normalization is limited to trimming surrounding whitespace and the
-explicit case-insensitive fallback. Punctuation, leading zeroes, and internal
-spaces are not removed.
+Resolver normalization trims surrounding whitespace. Its final compact
+fallback removes internal whitespace and compares case-insensitively, but does
+not remove punctuation or leading zeroes.
 
 ## 5. Transaction inclusion rules
 

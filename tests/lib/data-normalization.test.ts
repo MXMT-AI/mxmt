@@ -80,6 +80,25 @@ describe("typed source normalization", () => {
     expect(result.issues.some((item) => item.code === "UNMATCHED_PRODUCT")).toBe(false);
   });
 
+  it("uses an exact parameter ID to disambiguate a shared SKU article", () => {
+    const result = normalize(
+      [
+        ["id_1", "First", 100, "", 40, 3, "active", "Cat", "Brand", "", "Shared article", ""],
+        ["id_2", "Second", 100, "", 40, 3, "active", "Cat", "Brand", "", "Shared article", ""],
+      ],
+      [["order-1", "line-1", "2026-08-02T10:00:00Z", 5, "2026-08-02", 1, "", "id_2", "", "Shared article", 100, 40, ""]]
+    );
+
+    expect(result.saleLines[0]).toEqual(
+      expect.objectContaining({
+        matchStatus: ProductMatchStatus.MATCHED,
+        matchMethod: "PARAMETER_EXACT_ID",
+        resolvedProductId: "id_2",
+      })
+    );
+    expect(result.issues.some((item) => item.code === "AMBIGUOUS_PRODUCT_MATCH")).toBe(false);
+  });
+
   it("infers missing final payment dates from the correct lifecycle timestamp", () => {
     const result = normalize(
       [["SKU-1", "First", 100, "", 40, 3, "active", "Cat", "Brand", "", "", ""]],
