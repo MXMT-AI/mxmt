@@ -356,12 +356,6 @@ function normalizeSales(
       ? `id:${sourceLineId}`
       : `hash:${row.rowHash}`;
   };
-  const identities = groupBy(rows, (row) => {
-    return rowIdentity(row);
-  });
-  const duplicateIdentities = new Set(
-    [...identities].filter(([, matches]) => matches.length > 1).map(([identity]) => identity)
-  );
   const sourceProductCandidates = new Map<string, Set<string>>();
   for (const row of rows) {
     const sourceProductId = optionalText(read(row, "product.productId"));
@@ -383,6 +377,7 @@ function normalizeSales(
   );
   const saleLines: NormalizedSaleLine[] = [];
   const issues: NormalizationIssue[] = [];
+  const seenIdentities = new Set<string>();
 
   for (const row of rows) {
     const sourceLineId = optionalText(read(row, "id"));
@@ -416,7 +411,8 @@ function normalizeSales(
       ? localDate(fallbackDateValue)
       : null;
     const paymentDate = explicitPaymentDate ?? fallbackPaymentDate;
-    const duplicate = duplicateIdentities.has(identity);
+    const duplicate = seenIdentities.has(identity);
+    seenIdentities.add(identity);
     let excluded = duplicate || !finalStatus || !paymentDate || !quantity || !salesAmount || !costAmount;
     excluded ||= match.status !== ProductMatchStatus.MATCHED;
 

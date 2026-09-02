@@ -165,7 +165,9 @@ Duplicate source rows are detected inside one source import. When `id` is
 unique at line level it is the preferred identity. The observed ZAVOD export
 uses the same `id` for multiple product lines of one order; in that layout a
 deterministic hash of the full raw row is used so legitimate multi-product
-orders are not discarded as duplicates.
+orders are not discarded as duplicates. For a repeated identity, the first row
+is included and only subsequent identical copies are excluded with a
+`DUPLICATE_SALE_LINE` warning.
 
 ## 6. Time and report period rules
 

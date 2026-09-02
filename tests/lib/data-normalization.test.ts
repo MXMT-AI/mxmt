@@ -101,6 +101,25 @@ describe("typed source normalization", () => {
     expect(result.issues.some((item) => item.code === "INVALID_PAYMENT_DATE")).toBe(false);
   });
 
+  it("includes the first identical sale line and excludes only later copies", () => {
+    const duplicateRow = [
+      "order-1", "line-1", "2026-08-02T10:00:00Z", 5, "2026-08-02", 1,
+      "", "", "", "SKU-1", 100, 40, "", "2026-08-02T10:01:00Z",
+    ];
+    const result = normalize(
+      [["SKU-1", "First", 100, "", 40, 3, "active", "Cat", "Brand", "", "", ""]],
+      [duplicateRow, [...duplicateRow]]
+    );
+
+    expect(result.saleLines.map((line) => line.normalizedSales?.toString() ?? null)).toEqual([
+      "100",
+      null,
+    ]);
+    expect(result.issues.filter((item) => item.code === "DUPLICATE_SALE_LINE")).toEqual([
+      expect.objectContaining({ rowNumber: 3 }),
+    ]);
+  });
+
   it("ignores formatting-only product rows but blocks populated rows without valid identity", () => {
     const result = normalize(
       [
