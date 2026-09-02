@@ -535,9 +535,12 @@ function AnalysisModal({
             <div className="space-y-3">
               {output.health_score && (
                 <div className="bg-[var(--surface2)] border border-[var(--border)] rounded-xl p-4">
-                  <div className="text-[9px] font-mono uppercase tracking-widest text-[var(--subtle)] mb-2">Здоровʼя плану</div>
+                  <div className="text-[9px] font-mono uppercase tracking-widest text-[var(--subtle)] mb-2">Готовність плану</div>
                   <div className="flex items-center gap-4 text-[12px] font-mono flex-wrap">
-                    <span>Coverage: <span className={output.health_score.coverage_percent >= 70 ? "text-[#00e5c4]" : "text-[#fbbf24]"}>{output.health_score.coverage_percent}%</span></span>
+                    <span>Покриття: <span className={output.health_score.coverage_percent >= 70 ? "text-[#00e5c4]" : "text-[#fbbf24]"}>{output.health_score.coverage_percent}%</span></span>
+                    {output.health_score.recommendation_count != null && (
+                      <span>Заплановано: <span className="text-[var(--text)]">{output.health_score.scheduled_recommendations ?? 0}/{output.health_score.recommendation_count}</span></span>
+                    )}
                     {output.health_score.critical_gaps > 0 && <span>Критичних: <span className="text-[#ef4444]">{output.health_score.critical_gaps}</span></span>}
                     {output.health_score.high_gaps > 0 && <span>Важливих: <span className="text-[#fbbf24]">{output.health_score.high_gaps}</span></span>}
                   </div>
@@ -1039,9 +1042,11 @@ function AgentCard({
                 <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[var(--input-bg)] text-[var(--subtle)]">
                   {agent.model}
                 </span>
-                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[var(--input-bg)] text-[var(--subtle)]">
-                  {provider === "openai" ? "OpenAI" : "Anthropic"}
-                </span>
+                {agent.model !== "Rules v1" && (
+                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[var(--input-bg)] text-[var(--subtle)]">
+                    {provider === "openai" ? "OpenAI" : "Anthropic"}
+                  </span>
+                )}
                 {!AGENT_ROUTES[agent.id] && (
                   <span className="text-[9px] font-mono text-[var(--subtle)]">• скоро</span>
                 )}
@@ -1200,7 +1205,12 @@ function AgentCard({
           <div className="flex items-center gap-2 mt-3 flex-wrap">
             {healthScore?.coverage_percent != null && (
               <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#fbbf24]/10 border border-[#fbbf24]/20 text-[#fbbf24]">
-                Coverage: {healthScore.coverage_percent}%
+                Покриття: {healthScore.coverage_percent}%
+              </span>
+            )}
+            {healthScore?.recommendation_count != null && (
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--input-bg)] border border-[var(--border)] text-[var(--muted)]">
+                {healthScore.scheduled_recommendations ?? 0} заплановано / {healthScore.recommendation_count} рекомендовано
               </span>
             )}
             {criticalAnnotations > 0 && (
@@ -1539,7 +1549,7 @@ function AgentCard({
           )}
           {annotations.map((ann: any, i: number) => {
             const prioColor = ann.priority === "critical" ? "#ef4444" : ann.priority === "high" ? "#fbbf24" : ann.priority === "medium" ? "#a78bfa" : "#6b7a8d";
-            const typeIcon = ann.type === "gap" ? "○" : ann.type === "conflict" ? "✕" : ann.type === "timing" ? "⏱" : "✓";
+            const typeIcon = ann.type === "suggestion" ? "+" : ann.type === "gap" ? "○" : ann.type === "conflict" ? "✕" : ann.type === "timing" ? "⏱" : "✓";
             return (
               <div key={ann.id ?? i} className="border border-[var(--border)] rounded-xl p-3">
                 <div className="flex items-start gap-2 mb-1">

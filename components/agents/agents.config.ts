@@ -49,8 +49,8 @@ export const AGENTS: AgentDefinition[] = [
     dependsOn: ["repricing", "reordering"],
   },
   {
-    id: "calendar_agent", label: "Calendar Agent", model: "GPT-4o mini",
-    block: 3, blockLabel: "Execution", desc: "Gaps і конфлікти в маркетинговому плані",
+    id: "calendar_agent", label: "Calendar Agent", model: "Rules v1",
+    block: 3, blockLabel: "Execution", desc: "Чернетки рекомендацій і конфлікти календаря",
     icon: CalendarDays, color: "#fbbf24", runnable: true,
     dependsOn: ["commercial_marketer"],
   },

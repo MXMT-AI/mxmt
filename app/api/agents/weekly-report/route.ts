@@ -173,8 +173,10 @@ export async function POST(req: NextRequest) {
     if (calRun?.output) {
       const out = calRun.output as any;
       const hs = out.health_score ?? {};
-      const criticalGaps = hs.critical_gaps ?? 0;
-      sections.push(`КАЛЕНДАРЬ: Coverage ${hs.coverage_percent ?? 0}%, Критических пробелов: ${criticalGaps}
+      const scheduled = hs.scheduled_recommendations ?? 0;
+      const recommendations = hs.recommendation_count ?? 0;
+      const conflicts = hs.high_issues ?? hs.high_gaps ?? 0;
+      sections.push(`КАЛЕНДАР: заплановано ${scheduled} із ${recommendations} рекомендацій, можливих конфліктів: ${conflicts}
 Резюме: ${out.summary ?? hs.summary ?? "—"}`);
     }
 
