@@ -6,6 +6,10 @@ export interface AttributeMetric {
   attributeType: "category" | "subcategory";
   skuCount: number;
   totalStock: number;
+  grossSalesLast7d: number;
+  returnsLast7d: number;
+  grossSalesLast30d: number;
+  returnsLast30d: number;
   salesLast7d: number;
   salesLast30d: number;
   strPercent: number;
@@ -21,7 +25,21 @@ export interface AttributeMetrics {
 
 const STR_BESTSELLER = 25; // % per week
 const STR_SLOW = 5;
-const STR_DEAD = 1;
+
+const CATEGORY_ALIASES = new Map<string, string>([
+  ["other", "Other"],
+  ["книги", "Книги"],
+  ["книжки", "Книги"],
+]);
+
+function normalizeCategory(value: string | null): string {
+  const normalized = (value ?? "")
+    .normalize("NFC")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!normalized) return "Other";
+  return CATEGORY_ALIASES.get(normalized.toLocaleLowerCase("uk-UA")) ?? normalized;
+}
 
 export async function getAttributeMetrics(
   tenantId: string,
@@ -57,31 +75,76 @@ export async function getAttributeMetrics(
     }),
   ]);
 
-  const salesByProduct = new Map<string, { sold7: number; sold30: number }>();
+  const salesByProduct = new Map<string, {
+    grossSold7: number;
+    returned7: number;
+    grossSold30: number;
+    returned30: number;
+    netSold7: number;
+    netSold30: number;
+  }>();
   for (const sale of sales) {
     if (!sale.resolvedProductId || !sale.paymentDate) continue;
-    const current = salesByProduct.get(sale.resolvedProductId) ?? { sold7: 0, sold30: 0 };
+    const current = salesByProduct.get(sale.resolvedProductId) ?? {
+      grossSold7: 0,
+      returned7: 0,
+      grossSold30: 0,
+      returned30: 0,
+      netSold7: 0,
+      netSold30: 0,
+    };
     const quantity = Number(sale.normalizedQuantity);
-    current.sold30 += quantity;
-    if (sale.paymentDate >= d7) current.sold7 += quantity;
+    current.netSold30 += quantity;
+    if (quantity < 0) current.returned30 += Math.abs(quantity);
+    else current.grossSold30 += quantity;
+
+    if (sale.paymentDate >= d7) {
+      current.netSold7 += quantity;
+      if (quantity < 0) current.returned7 += Math.abs(quantity);
+      else current.grossSold7 += quantity;
+    }
     salesByProduct.set(sale.resolvedProductId, current);
   }
 
   // Group by category
-  const catMap = new Map<string, { stock: number; sold7: number; sold30: number; skus: Set<string> }>();
-  const subMap = new Map<string, { stock: number; sold7: number; sold30: number; skus: Set<string> }>();
+  type Aggregate = {
+    stock: number;
+    grossSold7: number;
+    returned7: number;
+    grossSold30: number;
+    returned30: number;
+    netSold7: number;
+    netSold30: number;
+    skus: Set<string>;
+  };
+  const emptyAggregate = (): Aggregate => ({
+    stock: 0,
+    grossSold7: 0,
+    returned7: 0,
+    grossSold30: 0,
+    returned30: 0,
+    netSold7: 0,
+    netSold30: 0,
+    skus: new Set<string>(),
+  });
+  const catMap = new Map<string, Aggregate>();
+  const subMap = new Map<string, Aggregate>();
 
   for (const product of products) {
     const stock = Number(product.stockUnits);
-    const { sold7, sold30 } = salesByProduct.get(product.productId) ?? { sold7: 0, sold30: 0 };
+    const productSales = salesByProduct.get(product.productId) ?? emptyAggregate();
 
     // Category
-    const cat = product.category || "Other";
-    const existing = catMap.get(cat) ?? { stock: 0, sold7: 0, sold30: 0, skus: new Set() };
+    const cat = normalizeCategory(product.category);
+    const existing = catMap.get(cat) ?? emptyAggregate();
     catMap.set(cat, {
       stock: existing.stock + stock,
-      sold7: existing.sold7 + sold7,
-      sold30: existing.sold30 + sold30,
+      grossSold7: existing.grossSold7 + productSales.grossSold7,
+      returned7: existing.returned7 + productSales.returned7,
+      grossSold30: existing.grossSold30 + productSales.grossSold30,
+      returned30: existing.returned30 + productSales.returned30,
+      netSold7: existing.netSold7 + productSales.netSold7,
+      netSold30: existing.netSold30 + productSales.netSold30,
       skus: existing.skus.add(product.productId),
     });
   }
@@ -89,26 +152,30 @@ export async function getAttributeMetrics(
   function toMetric(
     key: string,
     type: "category" | "subcategory",
-    v: { stock: number; sold7: number; sold30: number; skus: Set<string> }
+    v: Aggregate
   ): AttributeMetric {
-    const strPct = v.stock > 0 ? Math.round((v.sold7 / v.stock) * 100 * 10) / 10 : 0;
+    const strPct = v.stock > 0 ? Math.round((v.grossSold7 / v.stock) * 100 * 10) / 10 : 0;
     const status =
       v.stock <= 0
-        ? v.sold30 > 0 ? "stockout" : "inactive"
+        ? v.grossSold30 > 0 ? "stockout" : "inactive"
+        : v.grossSold30 <= 0
+          ? "dead"
         : strPct >= STR_BESTSELLER
-        ? "bestseller"
-        : strPct >= STR_SLOW
-          ? "normal"
-          : strPct >= STR_DEAD
-            ? "slow"
-            : "dead";
+          ? "bestseller"
+          : strPct >= STR_SLOW
+            ? "normal"
+            : "slow";
     return {
       attribute: key,
       attributeType: type,
       skuCount: v.skus.size,
       totalStock: v.stock,
-      salesLast7d: v.sold7,
-      salesLast30d: v.sold30,
+      grossSalesLast7d: v.grossSold7,
+      returnsLast7d: v.returned7,
+      grossSalesLast30d: v.grossSold30,
+      returnsLast30d: v.returned30,
+      salesLast7d: v.netSold7,
+      salesLast30d: v.netSold30,
       strPercent: strPct,
       status,
     };

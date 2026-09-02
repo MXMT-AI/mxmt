@@ -162,9 +162,13 @@ describe("agent metrics use the active normalized import", () => {
       attribute: "Shoes",
       skuCount: 2,
       totalStock: 20,
+      grossSalesLast7d: 4,
+      returnsLast7d: 1,
+      grossSalesLast30d: 4,
+      returnsLast30d: 1,
       salesLast7d: 3,
       salesLast30d: 3,
-      strPercent: 15,
+      strPercent: 20,
       status: "normal",
     });
     expect(result.byCategory.find((item) => item.attribute === "Other")?.status).toBe("dead");
@@ -184,6 +188,34 @@ describe("agent metrics use the active normalized import", () => {
 
     expect(result.byCategory.find((item) => item.attribute === "Sold out")?.status).toBe("stockout");
     expect(result.byCategory.find((item) => item.attribute === "Inactive")?.status).toBe("inactive");
+    expect(result.deadCategories).toEqual([]);
+  });
+
+  it("keeps selling categories slow instead of dead and merges category aliases", async () => {
+    mocks.sourceProductFindMany.mockResolvedValue([
+      { productId: "p1", category: "Книги", stockUnits: 10 },
+      { productId: "p2", category: "  Книжки\u00a0", stockUnits: 10 },
+    ]);
+    mocks.sourceSaleLineFindMany.mockResolvedValue([
+      { resolvedProductId: "p1", paymentDate: date("2026-08-10"), normalizedQuantity: 2 },
+      { resolvedProductId: "p2", paymentDate: date("2026-08-11"), normalizedQuantity: -1 },
+    ]);
+
+    const result = await getAttributeMetrics("tenant-1", date("2026-09-01"));
+
+    expect(result.byCategory).toHaveLength(1);
+    expect(result.byCategory[0]).toMatchObject({
+      attribute: "Книги",
+      skuCount: 2,
+      totalStock: 20,
+      grossSalesLast7d: 0,
+      returnsLast7d: 0,
+      grossSalesLast30d: 2,
+      returnsLast30d: 1,
+      salesLast30d: 1,
+      strPercent: 0,
+      status: "slow",
+    });
     expect(result.deadCategories).toEqual([]);
   });
 

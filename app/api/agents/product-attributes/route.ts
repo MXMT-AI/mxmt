@@ -37,10 +37,16 @@ STR (Stock Turn Ratio) — % от склада проданный за посл�
 СТАТУСЫ:
 bestseller — STR >= 25% (продаётся быстро)
 normal — STR 5-24%
-slow — STR 1-4% (медленно, нужна активация)
-dead — STR < 1% і є залишок (товар стоїть на складі)
+slow — за вибраний період були продажі, але STR < 5% (медленно, нужна активация)
+dead — за весь вибраний період не було жодного валового продажу і є залишок
 stockout — залишок 0, але у періоді були продажі
-inactive — залишок 0 і продажів у періоді не було`;
+inactive — залишок 0 і продажів у періоді не було
+
+ВАЖНО:
+- Статус каждой категории уже рассчитан по данным. Не изменяй и не переосмысливай переданный status.
+- gross_sales — продажи до возвратов, returns — возвраты, net_sales — продажи минус возвраты.
+- Возвраты являются бизнес-транзакциями и не означают отрицательный спрос или техническую ошибку.
+- Не называй категорию dead, если gross_sales_period больше нуля.`;
 
 export async function POST(req: NextRequest) {
   const { user, response } = await requireApiUser("ANALYST");
@@ -79,8 +85,10 @@ export async function POST(req: NextRequest) {
 ${metrics.byCategory
   .map(
     (c) =>
-      `• ${c.attribute}: SKUs=${c.skuCount} stock=${c.totalStock} ` +
-      `sold7d=${c.salesLast7d} sold30d=${c.salesLast30d} STR=${c.strPercent}%`
+      `• ${c.attribute}: status=${c.status} SKUs=${c.skuCount} stock=${c.totalStock} ` +
+      `gross_sales_7d=${c.grossSalesLast7d} returns_7d=${c.returnsLast7d} ` +
+      `gross_sales_period=${c.grossSalesLast30d} returns_period=${c.returnsLast30d} ` +
+      `net_sales_period=${c.salesLast30d} STR=${c.strPercent}%`
   )
   .join("\n")}
 
@@ -88,7 +96,7 @@ ${
   metrics.bySubcategory.length > 0
     ? `\nПодкатегории:\n${metrics.bySubcategory
         .slice(0, 10)
-        .map((c) => `• ${c.attribute}: STR=${c.strPercent}% sold7d=${c.salesLast7d}`)
+        .map((c) => `• ${c.attribute}: status=${c.status} STR=${c.strPercent}% gross_sales_7d=${c.grossSalesLast7d} returns_7d=${c.returnsLast7d}`)
         .join("\n")}`
     : ""
 }

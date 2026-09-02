@@ -14,17 +14,19 @@ interface AttributeAiOutput {
 
 type CategoryMetric = Pick<
   AttributeMetric,
-  "attribute" | "skuCount" | "totalStock" | "salesLast7d" | "salesLast30d" | "strPercent" | "status"
+  "attribute" | "skuCount" | "totalStock" | "grossSalesLast7d" | "returnsLast7d" |
+  "grossSalesLast30d" | "returnsLast30d" | "salesLast7d" | "salesLast30d" |
+  "strPercent" | "status"
 >;
 
 function defaultInsight(metric: CategoryMetric): string {
   if (metric.status === "stockout") {
-    return `За період продано ${metric.salesLast30d} од., але поточний залишок дорівнює нулю.`;
+    return `За період продано ${metric.grossSalesLast30d} од., повернено ${metric.returnsLast30d} од., але поточний залишок дорівнює нулю.`;
   }
   if (metric.status === "inactive") {
     return "Немає ані залишку, ані продажів за вибраний період.";
   }
-  return `STR ${metric.strPercent}%, продажі за 30 днів — ${metric.salesLast30d} од., залишок — ${metric.totalStock} од.`;
+  return `STR ${metric.strPercent}%, валові продажі за період — ${metric.grossSalesLast30d} од., повернення — ${metric.returnsLast30d} од., залишок — ${metric.totalStock} од.`;
 }
 
 function defaultRecommendation(metric: CategoryMetric): string {

@@ -1148,7 +1148,7 @@ function AgentCard({
             )}
             {deadStock.length > 0 && (
               <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#ef4444]/10 border border-[#ef4444]/20 text-[#ef4444]">
-                Dead stock: {deadStock.slice(0, 2).join(", ")}
+                Dead stock: {deadStock.length} категорій
               </span>
             )}
             <button type="button" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded} className="text-[10px] font-mono text-[var(--muted)] hover:text-[var(--text)] ml-auto">
