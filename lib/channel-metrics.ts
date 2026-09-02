@@ -18,6 +18,20 @@ export interface ChannelMetrics {
   periodDays: number;
 }
 
+const UNKNOWN_CHANNEL = "Невідомий канал";
+
+function channelFromSourceValues(sourceValues: unknown): string {
+  if (!sourceValues || typeof sourceValues !== "object" || Array.isArray(sourceValues)) {
+    return UNKNOWN_CHANNEL;
+  }
+
+  const rawValue = (sourceValues as Record<string, unknown>).sajt;
+  const value = typeof rawValue === "string" || typeof rawValue === "number"
+    ? String(rawValue).trim()
+    : "";
+  return value ? `Site ${value}` : UNKNOWN_CHANNEL;
+}
+
 export async function getChannelMetrics(
   tenantId: string,
   asOf?: Date,
@@ -47,6 +61,7 @@ export async function getChannelMetrics(
         resolvedProductId: true,
         normalizedQuantity: true,
         normalizedSales: true,
+        sourceValues: true,
       },
     }),
     prisma.sourceProduct.findMany({
@@ -56,31 +71,43 @@ export async function getChannelMetrics(
   ]);
 
   const totalStock = products.reduce((sum, product) => sum + Number(product.stockUnits), 0);
-  let sold7 = 0;
-  let soldPeriod = 0;
-  let revenuePeriod = 0;
-  const recentProductIds = new Set<string>();
+  const grouped = new Map<string, {
+    sold7: number;
+    soldPeriod: number;
+    revenuePeriod: number;
+    recentProductIds: Set<string>;
+  }>();
+
   for (const sale of sales) {
+    const channel = channelFromSourceValues(sale.sourceValues);
+    const aggregate = grouped.get(channel) ?? {
+      sold7: 0,
+      soldPeriod: 0,
+      revenuePeriod: 0,
+      recentProductIds: new Set<string>(),
+    };
     const quantity = Number(sale.normalizedQuantity);
-    soldPeriod += quantity;
-    revenuePeriod += Number(sale.normalizedSales);
+    aggregate.soldPeriod += quantity;
+    aggregate.revenuePeriod += Number(sale.normalizedSales);
     if (sale.paymentDate && sale.paymentDate >= d7) {
-      sold7 += quantity;
-      if (sale.resolvedProductId) recentProductIds.add(sale.resolvedProductId);
+      aggregate.sold7 += quantity;
+      if (sale.resolvedProductId) aggregate.recentProductIds.add(sale.resolvedProductId);
     }
+    grouped.set(channel, aggregate);
   }
 
-  // ZAVOD_API is the online order source. The approved typed import contract
-  // has no channel column, so inventing finer channel attribution here would be
-  // misleading. Preserve the source's truthful granularity as one online channel.
-  const channels: ChannelMetric[] = sales.length > 0 ? [{
-    channel: "online",
-    salesLast7d: sold7,
-    salesLast30d: soldPeriod,
-    revenue30d: revenuePeriod,
-    skuCount: recentProductIds.size,
-    strPercent: totalStock > 0 ? Math.round((sold7 / totalStock) * 100 * 10) / 10 : 0,
-  }] : [];
+  // `sajt` is an opaque source-system site/channel code. Keep its identity
+  // without guessing business names until an explicit mapping is configured.
+  const channels: ChannelMetric[] = [...grouped].map(([channel, aggregate]) => ({
+    channel,
+    salesLast7d: aggregate.sold7,
+    salesLast30d: aggregate.soldPeriod,
+    revenue30d: aggregate.revenuePeriod,
+    skuCount: aggregate.recentProductIds.size,
+    strPercent: totalStock > 0
+      ? Math.round((aggregate.sold7 / totalStock) * 100 * 10) / 10
+      : 0,
+  }));
 
   // Sort by sales30d desc
   channels.sort((a, b) => b.salesLast30d - a.salesLast30d);

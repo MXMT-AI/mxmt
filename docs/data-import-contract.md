@@ -89,6 +89,7 @@ All 30 columns are stored in the raw layer. The calculation engine uses:
 | `ProductPaymentAmount` | Sales amount in UAH |
 | `ProductcostPriceAmount` | Cost amount in UAH |
 | `product.manufacturer` | Source manufacturer, retained for diagnostics |
+| `sajt` | Opaque source site/channel code used by Channel Analytics; displayed as `Site <code>` until a business-name mapping is configured |
 
 ### 3.3 ARTICLE REPORT source
 

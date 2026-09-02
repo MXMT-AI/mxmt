@@ -65,24 +65,55 @@ describe("agent metrics use the active normalized import", () => {
     expect(result.find((item) => item.brandId === "brand:null")?.brandName).toBe("Без бренда");
   });
 
-  it("keeps ZAVOD_API at its truthful online channel granularity", async () => {
+  it("groups ZAVOD_API sales by its opaque sajt channel code", async () => {
     mocks.sourceProductFindMany.mockResolvedValue([{ stockUnits: 20 }, { stockUnits: 30 }]);
     mocks.sourceSaleLineFindMany.mockResolvedValue([
-      { resolvedProductId: "p1", paymentDate: date("2026-08-30"), normalizedQuantity: 5, normalizedSales: 500 },
-      { resolvedProductId: "p2", paymentDate: date("2026-08-15"), normalizedQuantity: 2, normalizedSales: 150 },
+      { resolvedProductId: "p1", paymentDate: date("2026-08-30"), normalizedQuantity: 5, normalizedSales: 500, sourceValues: { sajt: 38 } },
+      { resolvedProductId: "p2", paymentDate: date("2026-08-15"), normalizedQuantity: 2, normalizedSales: 150, sourceValues: { sajt: "79" } },
+      { resolvedProductId: "p2", paymentDate: date("2026-08-31"), normalizedQuantity: -1, normalizedSales: -75, sourceValues: { sajt: "88" } },
+      { resolvedProductId: "p3", paymentDate: date("2026-08-29"), normalizedQuantity: 1, normalizedSales: 25, sourceValues: {} },
     ]);
 
     const result = await getChannelMetrics("tenant-1", date("2026-09-01"));
 
     expect(result.totalStock).toBe(50);
-    expect(result.channels).toEqual([{
-      channel: "online",
-      salesLast7d: 5,
-      salesLast30d: 7,
-      revenue30d: 650,
-      skuCount: 1,
-      strPercent: 10,
-    }]);
+    expect(result.channels).toEqual([
+      {
+        channel: "Site 38",
+        salesLast7d: 5,
+        salesLast30d: 5,
+        revenue30d: 500,
+        skuCount: 1,
+        strPercent: 10,
+      },
+      {
+        channel: "Site 79",
+        salesLast7d: 0,
+        salesLast30d: 2,
+        revenue30d: 150,
+        skuCount: 0,
+        strPercent: 0,
+      },
+      {
+        channel: "Невідомий канал",
+        salesLast7d: 1,
+        salesLast30d: 1,
+        revenue30d: 25,
+        skuCount: 1,
+        strPercent: 2,
+      },
+      {
+        channel: "Site 88",
+        salesLast7d: -1,
+        salesLast30d: -1,
+        revenue30d: -75,
+        skuCount: 1,
+        strPercent: -2,
+      },
+    ]);
+    expect(mocks.sourceSaleLineFindMany).toHaveBeenCalledWith(expect.objectContaining({
+      select: expect.objectContaining({ sourceValues: true }),
+    }));
   });
 
   it("groups normalized products and net sales by category", async () => {
