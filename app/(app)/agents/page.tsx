@@ -349,7 +349,7 @@ function AnalysisModal({
                           </div>
                           <div className="flex gap-4 text-[10px] font-mono text-[var(--muted)] mb-3 flex-wrap">
                             {sc.qty_multiplier != null && <span>Обʼєм <span className="text-[var(--text)]">×{sc.qty_multiplier}</span></span>}
-                            {sc.woh_after != null && <span>WOH після <span className="text-[var(--text)]">{formatWohDays(sc.woh_after)}</span></span>}
+                            {sc.woh_after != null && <span>Днів запасу після (DOH) <span className="text-[var(--text)]">{formatWohDays(sc.woh_after)}</span></span>}
                             {sc.logic && <span className="text-[var(--subtle)]">{sc.logic}</span>}
                           </div>
                           {sc.evaluation?.pros?.length > 0 && (
@@ -1441,7 +1441,7 @@ function AgentCard({
                             </span></span>
                           )}
                           {item.woh_after !== undefined && (
-                            <span>WOH після: <span className="text-[var(--text)]">{formatWohDays(item.woh_after)}</span></span>
+                            <span>Днів запасу після (DOH): <span className="text-[var(--text)]">{formatWohDays(item.woh_after)}</span></span>
                           )}
                           {item.qty_multiplier !== undefined && (
                             <span>Обʼєм: <span className="text-[var(--text)]">×{item.qty_multiplier}</span></span>

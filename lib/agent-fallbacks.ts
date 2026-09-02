@@ -246,34 +246,52 @@ export function normalizeRepricingResult(
 
 type ReorderingScenarioType = "PESSIMISTIC" | "REALISTIC" | "OPTIMISTIC";
 
+export interface ReorderingScenario {
+  scenario_id: number;
+  type: ReorderingScenarioType;
+  label: string;
+  qty_multiplier: number;
+  logic: string;
+  woh_after: number;
+  evaluation: {
+    score: number;
+    score_label: string;
+    risk_level: "HIGH" | "MEDIUM" | "LOW";
+    risks: string[];
+    pros: string[];
+    cons: string[];
+    safety_margin: "LOW" | "GOOD" | "AGGRESSIVE";
+    recommended: boolean;
+    confidence: number;
+  };
+}
+
 export interface ReorderingBrandResult {
   brand_id: string;
   brand_name: string;
   current_situation: string;
-  scenarios: Array<{
-    scenario_id: number;
-    type: ReorderingScenarioType;
-    label: string;
-    qty_multiplier: number;
-    logic: string;
-    woh_after: number;
-    evaluation: {
-      score: number;
-      score_label: string;
-      risk_level: "HIGH" | "MEDIUM" | "LOW";
-      risks: string[];
-      pros: string[];
-      cons: string[];
-      safety_margin: "LOW" | "GOOD" | "AGGRESSIVE";
-      recommended: boolean;
-      confidence: number;
-    };
-  }>;
+  scenarios: ReorderingScenario[];
+}
+
+const REORDER_COVER_DAYS = 45;
+
+function recommendedReorderingScenario(metric: BrandMetric): ReorderingScenarioType {
+  if (metric.trend7dPct < -10) return "PESSIMISTIC";
+  if (metric.trend7dPct > 25) return "OPTIMISTIC";
+  return "REALISTIC";
+}
+
+function reorderDaysAfter(metric: BrandMetric, multiplier: number): number {
+  if (metric.avgDailyVelocity <= 0) return metric.wohDays;
+  const orderQty = Math.max(
+    0,
+    Math.round(metric.avgDailyVelocity * REORDER_COVER_DAYS * multiplier - metric.totalStock)
+  );
+  return Math.round((metric.totalStock + orderQty) / metric.avgDailyVelocity);
 }
 
 export function buildReorderingFallback(metric: BrandMetric): ReorderingBrandResult {
-  const recommended: ReorderingScenarioType = metric.trend7dPct > 25 ? "OPTIMISTIC" : "REALISTIC";
-  const targetDays = Math.max(0, 45 - metric.wohDays);
+  const recommended = recommendedReorderingScenario(metric);
   const definitions = [
     { type: "PESSIMISTIC" as const, label: "Мінімальне поповнення", multiplier: 0.5, risk: "HIGH" as const, safety: "LOW" as const },
     { type: "REALISTIC" as const, label: "Базове поповнення", multiplier: 1, risk: "LOW" as const, safety: "GOOD" as const },
@@ -283,14 +301,14 @@ export function buildReorderingFallback(metric: BrandMetric): ReorderingBrandRes
   return {
     brand_id: metric.brandId,
     brand_name: metric.brandName,
-    current_situation: `Запас на ${metric.wohDays} днів, темп продажів ${metric.avgDailyVelocity} од./день, тренд ${metric.trend7dPct}%.`,
+    current_situation: `Запас на ${metric.wohDays} днів (DOH), чистий темп продажів ${metric.avgDailyVelocity} од./день, тренд ${metric.trend7dPct}%.`,
     scenarios: definitions.map((definition, index) => ({
       scenario_id: index + 1,
       type: definition.type,
       label: definition.label,
       qty_multiplier: definition.multiplier,
-      logic: `Покрити приблизно ${Math.round(targetDays * definition.multiplier)} днів поточного попиту.`,
-      woh_after: Math.round(metric.wohDays + targetDays * definition.multiplier),
+      logic: `Цільове покриття — до ${Math.round(REORDER_COVER_DAYS * definition.multiplier)} днів поточного чистого попиту; без lead time та MOQ.`,
+      woh_after: reorderDaysAfter(metric, definition.multiplier),
       evaluation: {
         score: definition.type === recommended ? 8 : 6,
         score_label: definition.type === recommended ? "Рекомендовано за метриками" : "Альтернативний сценарій",
@@ -303,6 +321,44 @@ export function buildReorderingFallback(metric: BrandMetric): ReorderingBrandRes
         confidence: 0.7,
       },
     })),
+  };
+}
+
+export function normalizeReorderingResult(
+  metric: BrandMetric,
+  aiResult?: ReorderingBrandResult
+): ReorderingBrandResult {
+  const fallback = buildReorderingFallback(metric);
+  const recommended = recommendedReorderingScenario(metric);
+  const aiByType = new Map(
+    (aiResult?.scenarios ?? [])
+      .filter((scenario) => ["PESSIMISTIC", "REALISTIC", "OPTIMISTIC"].includes(scenario.type))
+      .map((scenario) => [scenario.type, scenario])
+  );
+
+  return {
+    brand_id: metric.brandId,
+    brand_name: metric.brandName,
+    current_situation: fallback.current_situation,
+    scenarios: fallback.scenarios.map((base) => {
+      const ai = aiByType.get(base.type);
+      const isRecommended = base.type === recommended;
+      return {
+        ...base,
+        logic: base.logic,
+        woh_after: reorderDaysAfter(metric, base.qty_multiplier),
+        evaluation: {
+          ...base.evaluation,
+          score: isRecommended ? 8 : 6,
+          score_label: isRecommended ? "Рекомендовано за метриками" : "Альтернативний сценарій",
+          risks: stringList(ai?.evaluation?.risks, base.evaluation.risks),
+          pros: stringList(ai?.evaluation?.pros, base.evaluation.pros),
+          cons: stringList(ai?.evaluation?.cons, base.evaluation.cons),
+          recommended: isRecommended,
+          confidence: isRecommended ? 0.8 : 0.65,
+        },
+      };
+    }),
   };
 }
 

@@ -7,7 +7,11 @@ import { apiError, serverError } from "@/lib/api-contracts";
 import { parseAgentJson } from "@/lib/agent-output";
 import { startAgentRun } from "@/lib/agent-runs";
 import { runAgentBatches } from "@/lib/agent-batching";
-import { buildReorderingFallback, type ReorderingBrandResult } from "@/lib/agent-fallbacks";
+import {
+  buildReorderingFallback,
+  normalizeReorderingResult,
+  type ReorderingBrandResult,
+} from "@/lib/agent-fallbacks";
 import { getCurrentDependencyRun, resolveAgentRunContext } from "@/lib/agent-dependencies";
 
 export const runtime = "nodejs";
@@ -17,8 +21,9 @@ const WOH_REORDER_THRESHOLD = 30; // trigger reorder analysis when WOH < 30 days
 
 const SYSTEM_PROMPT = `Ти стратег із закупівель у fashion retail. Відповідай українською мовою.
 
-Получаешь массив брендов с уже посчитанными метриками (WOH, STR, Trend, avgDailyVelocity).
-ИИ НЕ считает математику — только интерпретирует готовые цифры и предлагает сценарии дозаказа.
+Получаешь массив брендов с уже посчитанными метриками (DOH, STR, Trend, avgDailyVelocity).
+DOH — количество дней запаса при текущей чистой скорости продаж с учетом возвратов.
+ИИ НЕ считает математику и не выбирает финальную рекомендацию — только интерпретирует цифры и описывает риски. Сервер фиксирует множители, прогноз DOH, оценки и рекомендацию.
 
 Для каждого бренда генерируй 3 сценария (PESSIMISTIC, REALISTIC, OPTIMISTIC) с оценкой рисков.
 
@@ -58,12 +63,12 @@ const SYSTEM_PROMPT = `Ти стратег із закупівель у fashion 
 
 ПРАВИЛА:
 - Всегда 3 сценария: PESSIMISTIC, REALISTIC, OPTIMISTIC
-- qty_multiplier: относительный объём дозаказа (1.0 = покрыть до 45 дней при текущем темпе)
-- recommended: true обычно у REALISTIC, но если Trend > +25% → OPTIMISTIC
+- qty_multiplier будет перепроверен сервером: PESSIMISTIC=0.5, REALISTIC=1.0, OPTIMISTIC=1.5; 1.0 означает покрытие до 45 дней
+- recommended и score определяет сервер: при Trend < -10% → PESSIMISTIC, при Trend > +25% → OPTIMISTIC, иначе REALISTIC
 - risk_level: HIGH | MEDIUM | LOW
 - safety_margin: LOW | GOOD | AGGRESSIVE
 - Если тренд падает (Trend < -10%) → указывать в risks что дозаказ не рекомендуется
-- woh_after — примерная оценка WOH после дозаказа на основе текущей скорости продаж`;
+- DOH после дозаказа рассчитывает сервер; не придумывай lead time или MOQ поставщика`;
 
 export async function POST(req: NextRequest) {
   const { user, response } = await requireApiUser("ANALYST");
@@ -95,7 +100,7 @@ export async function POST(req: NextRequest) {
   try {
     const allBrands = await getBrandMetrics(tenantId, asOf, dateFrom);
 
-    // Candidates: low WOH — risk of stockout
+    // Candidates: low days of inventory (DOH) — risk of stockout
     const candidates = allBrands
       .filter((b) => b.skuCount > 0 && b.wohDays < WOH_REORDER_THRESHOLD && b.wohDays > 0)
       .sort((a, b) => a.wohDays - b.wohDays) // most urgent first
@@ -106,7 +111,7 @@ export async function POST(req: NextRequest) {
         where: { id: run.id },
         data: {
           status: "done",
-          output: { brands: [], message: "Немає брендів із ризиком дефіциту. WOH у всіх понад 30 днів." },
+          output: { brands: [], message: "Немає брендів із ризиком дефіциту. Дні запасу (DOH) у всіх понад 30 днів." },
           finishedAt: new Date(),
         },
       });
@@ -121,10 +126,10 @@ export async function POST(req: NextRequest) {
       batchSize: 2,
       concurrency: 2,
       runBatch: async (batch) => {
-        const userPrompt = `Бренди для аналізу поповнення (WOH < ${WOH_REORDER_THRESHOLD} днів):\n\n${batch
+        const userPrompt = `Бренди для аналізу поповнення (DOH < ${WOH_REORDER_THRESHOLD} днів):\n\n${batch
           .map(
             (b) =>
-              `• ${b.brandName} (id: ${b.brandId}): WOH=${b.wohDays}д, STR=${b.strPercent}%, ` +
+              `• ${b.brandName} (id: ${b.brandId}): DOH=${b.wohDays}д, STR=${b.strPercent}%, ` +
               `Trend=${b.trend7dPct > 0 ? "+" : ""}${b.trend7dPct}%, ` +
               `AvgVelocity=${b.avgDailyVelocity}шт/день, Stock=${b.totalStock}шт`
           )
@@ -140,7 +145,7 @@ export async function POST(req: NextRequest) {
         const { data: parsed, error } = parseAgentJson<{ brands?: ReorderingBrandResult[] }>(raw, "object");
         if (error) parseErrors.push(error);
         const parsedById = new Map((parsed?.brands ?? []).map((brand) => [brand.brand_id, brand]));
-        return batch.map((metric) => parsedById.get(metric.brandId) ?? buildReorderingFallback(metric));
+        return batch.map((metric) => normalizeReorderingResult(metric, parsedById.get(metric.brandId)));
       },
       fallbackBatch: (batch) => batch.map(buildReorderingFallback),
     });

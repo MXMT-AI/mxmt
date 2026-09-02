@@ -6,6 +6,7 @@ import {
   buildRepricingFallback,
   maxSafeDiscountPercent,
   normalizeRepricingResult,
+  normalizeReorderingResult,
 } from "@/lib/agent-fallbacks";
 import type { BrandMetric } from "@/lib/brand-metrics";
 
@@ -174,6 +175,63 @@ describe("decision agent fallbacks", () => {
       "REALISTIC",
       "OPTIMISTIC",
     ]);
+    expect(result.scenarios.map((scenario) => scenario.woh_after)).toEqual([23, 45, 68]);
+  });
+
+  it("ignores invented reordering multipliers, forecasts and recommendations", () => {
+    const metric: BrandMetric = {
+      brandId: "brand:value:B",
+      brandName: "B",
+      skuCount: 2,
+      totalStock: 5,
+      salesLast7d: 10,
+      salesLast30d: 30,
+      salesPrev7d: 8,
+      avgDailyVelocity: 1,
+      wohDays: 5,
+      strPercent: 200,
+      trend7dPct: 25,
+      gmPercent: 50,
+      frozenCapital: 500,
+      periodDays: 30,
+    };
+    const ai = buildReorderingFallback(metric);
+    ai.scenarios[0].qty_multiplier = 20;
+    ai.scenarios[0].woh_after = 900;
+    ai.scenarios.forEach((scenario) => {
+      scenario.evaluation.recommended = scenario.type === "OPTIMISTIC";
+      scenario.evaluation.score = scenario.type === "OPTIMISTIC" ? 10 : 2;
+    });
+
+    const result = normalizeReorderingResult(metric, ai);
+
+    expect(result.scenarios.map((scenario) => scenario.qty_multiplier)).toEqual([0.5, 1, 1.5]);
+    expect(result.scenarios.map((scenario) => scenario.woh_after)).toEqual([23, 45, 68]);
+    expect(result.scenarios.find((scenario) => scenario.evaluation.recommended)?.type).toBe("REALISTIC");
+  });
+
+  it("uses the smallest reordering scenario when demand is falling", () => {
+    const metric: BrandMetric = {
+      brandId: "brand:value:FALLING",
+      brandName: "Falling",
+      skuCount: 2,
+      totalStock: 10,
+      salesLast7d: 2,
+      salesLast30d: 30,
+      salesPrev7d: 8,
+      avgDailyVelocity: 1,
+      wohDays: 10,
+      strPercent: 75,
+      trend7dPct: -75,
+      gmPercent: 50,
+      frozenCapital: 500,
+      periodDays: 30,
+    };
+
+    const result = buildReorderingFallback(metric);
+
+    expect(result.scenarios.find((scenario) => scenario.evaluation.recommended)?.type).toBe("PESSIMISTIC");
+    expect(result.scenarios.find((scenario) => scenario.type === "PESSIMISTIC")?.evaluation.risks[0]).toContain("Попит знижується");
   });
 
   it("creates usable channel briefs when a commercial AI batch times out", () => {

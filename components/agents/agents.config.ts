@@ -38,7 +38,7 @@ export const AGENTS: AgentDefinition[] = [
   },
   {
     id: "reordering", label: "Reordering Strategy", model: "GPT-4o",
-    block: 2, blockLabel: "Decision Support", desc: "3 сценарії дозамовлення для брендів з низьким WOH",
+    block: 2, blockLabel: "Decision Support", desc: "3 сценарії дозамовлення для брендів з низьким запасом у днях (DOH)",
     icon: ShoppingCart, color: "#a78bfa", runnable: true,
     dependsOn: ["inventory_analyst"],
   },

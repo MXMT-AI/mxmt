@@ -138,8 +138,9 @@ export default function ReorderTableModal({
 
               {/* Model note */}
               <p className="text-[10px] font-mono text-[var(--subtle)]">
-                Сценарій — від AI-агента; розрахунок — детермінований: замовлення = швидкість × {sim.coverDays} дн × {sim.qtyMultiplier} − залишок.
+                Сценарій перевірено сервером; розрахунок детермінований: замовлення = чиста швидкість × {sim.coverDays} дн × {sim.qtyMultiplier} − залишок.
                 {sim.leadTimeDays != null ? ` Lead time бренда: ${sim.leadTimeDays} дн.` : ""}
+                {sim.leadTimeDays == null ? " Lead time і MOQ постачальника не задані — перевірте їх перед замовленням." : ""}
                 {" "}Дані за {sim.periodDays} дн.{sim.dateFrom ? ` (${sim.dateFrom} — ${sim.asOf ?? "сьогодні"})` : ""}.
                 В експорті покриття в B2 і множник в E2 — формули перерахуються автоматично.
               </p>
@@ -154,7 +155,7 @@ export default function ReorderTableModal({
                   <table className="w-full text-[11px] font-mono whitespace-nowrap">
                     <thead>
                       <tr className="bg-[var(--surface2)] text-[var(--subtle)] text-[9px] uppercase tracking-wide">
-                        {["SKU", "Назва", "Залишок", "Шт/день", "WOH зараз", "Дозамовлення", "Закупка", "Вартість", "Залишок після", "WOH після"].map((h) => (
+                        {["SKU", "Назва", "Залишок", "Шт/день", "DOH зараз", "Дозамовлення", "Закупка", "Вартість", "Залишок після", "DOH після"].map((h) => (
                           <th key={h} className="px-3 py-2 text-left font-normal">{h}</th>
                         ))}
                       </tr>

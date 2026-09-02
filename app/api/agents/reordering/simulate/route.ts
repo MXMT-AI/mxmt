@@ -20,9 +20,13 @@ export async function POST(req: NextRequest) {
 
   const issues: string[] = [];
   const brandId = stringField(data, "brandId", issues, { required: true });
-  const qtyMultiplier = numberField(data, "qtyMultiplier", issues, { required: true, min: 0.01 });
+  const qtyMultiplier = numberField(data, "qtyMultiplier", issues, { required: true, min: 0.5, max: 1.5 });
   const asOf = optionalDate(data, "asOf", issues);
   const dateFrom = optionalDate(data, "dateFrom", issues);
+
+  if (qtyMultiplier !== undefined && ![0.5, 1, 1.5].includes(qtyMultiplier)) {
+    issues.push("qtyMultiplier must be one of 0.5, 1, 1.5");
+  }
 
   if (issues.length > 0) {
     return validationError(issues);
