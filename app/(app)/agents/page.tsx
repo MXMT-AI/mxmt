@@ -15,6 +15,10 @@ import type { AgentRunInfo, AgentStatus, BrandResult, BrandStatus } from "@/comp
 import { areAgentDependenciesReady, buildReorderParams, buildSimParams, duration, fmt, fmtDate, formatWohDays, statusColor, statusLabel } from "@/components/agents/agents.utils";
 import DebugSection from "@/components/agents/DebugSection";
 import { useAgentRuns } from "@/components/agents/useAgentRuns";
+import {
+  AGENT_PERIOD_STORAGE_KEY,
+  parseStoredAgentPeriod,
+} from "@/lib/agent-period";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -1734,12 +1738,47 @@ function PipelineDiagram({ runs }: { runs: Record<string, AgentRunInfo> }) {
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function AgentsPage() {
-  const [analysisDate, setAnalysisDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const [analysisDate, setAnalysisDate] = useState(todayStr);
   const [dateFrom, setDateFrom] = useState(""); // "" = стандартне вікно 30 днів
+  const [periodRestored, setPeriodRestored] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
 
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const { runs, loading, statusError, fetchStatus, handleRun } = useAgentRuns({ analysisDate, dateFrom, todayStr });
+  useEffect(() => {
+    try {
+      const stored = parseStoredAgentPeriod(
+        localStorage.getItem(AGENT_PERIOD_STORAGE_KEY),
+        todayStr
+      );
+      if (stored) {
+        setAnalysisDate(stored.analysisDate);
+        setDateFrom(stored.dateFrom);
+      }
+    } catch {
+      // Continue with the default period when browser storage is unavailable.
+    } finally {
+      setPeriodRestored(true);
+    }
+  }, [todayStr]);
+
+  useEffect(() => {
+    if (!periodRestored) return;
+    try {
+      localStorage.setItem(
+        AGENT_PERIOD_STORAGE_KEY,
+        JSON.stringify({ analysisDate, dateFrom })
+      );
+    } catch {
+      // Private browsing or storage policies must not break the agents page.
+    }
+  }, [analysisDate, dateFrom, periodRestored]);
+
+  const { runs, loading, statusError, fetchStatus, handleRun } = useAgentRuns({
+    analysisDate,
+    dateFrom,
+    todayStr,
+    enabled: periodRestored,
+  });
   const isHistoricalDate = analysisDate !== todayStr;
   const hasDateFrom = dateFrom !== "";
   // "Від" має бути щонайменше на день раніше за "До"

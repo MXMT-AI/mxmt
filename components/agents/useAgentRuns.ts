@@ -11,10 +11,12 @@ export function useAgentRuns({
   analysisDate,
   dateFrom,
   todayStr,
+  enabled = true,
 }: {
   analysisDate: string;
   dateFrom: string;
   todayStr: string;
+  enabled?: boolean;
 }) {
   const [runs, setRuns] = useState<Record<string, AgentRunInfo>>({});
   const [loading, setLoading] = useState(true);
@@ -23,6 +25,8 @@ export function useAgentRuns({
   const hasDateFrom = dateFrom !== "";
 
   const fetchStatus = useCallback(async () => {
+    if (!enabled) return;
+
     try {
       const params = new URLSearchParams({ asOf: analysisDate });
       if (hasDateFrom) params.set("dateFrom", dateFrom);
@@ -40,11 +44,12 @@ export function useAgentRuns({
     } finally {
       setLoading(false);
     }
-  }, [analysisDate, dateFrom, hasDateFrom]);
+  }, [analysisDate, dateFrom, enabled, hasDateFrom]);
 
   useEffect(() => {
+    if (!enabled) return;
     fetchStatus();
-  }, [fetchStatus]);
+  }, [enabled, fetchStatus]);
 
   useEffect(() => {
     const isRunning = Object.values(runs).some((run) => run.status === "running");
@@ -54,6 +59,8 @@ export function useAgentRuns({
   }, [runs, fetchStatus]);
 
   const handleRun = useCallback(async (agentId: string) => {
+    if (!enabled) return;
+
     const route = AGENT_ROUTES[agentId];
     if (!route) {
       const msg = COMING_SOON[agentId] ?? "Агент у розробці.";
@@ -120,7 +127,7 @@ export function useAgentRuns({
         },
       }));
     }
-  }, [analysisDate, dateFrom, fetchStatus, hasDateFrom, isHistoricalDate]);
+  }, [analysisDate, dateFrom, enabled, fetchStatus, hasDateFrom, isHistoricalDate]);
 
   return { runs, loading, statusError, fetchStatus, handleRun };
 }
