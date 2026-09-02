@@ -269,12 +269,35 @@ function uniqueMatch(products: NormalizedProduct[] | undefined, method: string):
   return { status: ProductMatchStatus.AMBIGUOUS, method, productId: null };
 }
 
+function compactIdentifier(value: string | null): string | null {
+  if (!value) return null;
+  const compact = value.replace(/\s+/g, "").toLocaleLowerCase("uk-UA");
+  return compact || null;
+}
+
 function productResolver(products: NormalizedProduct[]) {
   const ids = groupBy(products, (product) => product.productId);
   const idsLower = groupBy(products, (product) => product.productId.toLocaleLowerCase("uk-UA"));
   const articles = groupBy(products, (product) => product.article);
   const vendorCodes = groupBy(products, (product) => product.vendorCode);
   const barcodes = groupBy(products, (product) => product.barcode);
+  const compactIdentifiers = new Map<string, Map<string, NormalizedProduct>>();
+  for (const product of products) {
+    for (const value of [product.productId, product.article, product.vendorCode, product.barcode]) {
+      const key = compactIdentifier(value);
+      if (!key) continue;
+      const matches = compactIdentifiers.get(key) ?? new Map<string, NormalizedProduct>();
+      matches.set(product.productId, product);
+      compactIdentifiers.set(key, matches);
+    }
+  }
+
+  const compactMatch = (value: string | null) => {
+    const key = compactIdentifier(value);
+    return key
+      ? uniqueMatch([...(compactIdentifiers.get(key)?.values() ?? [])], "COMPACT_IDENTIFIER")
+      : null;
+  };
 
   return (sku: string | null, parameter: string | null, barcode: string | null): ProductMatch => {
     if (sku) {
@@ -286,6 +309,8 @@ function productResolver(products: NormalizedProduct[]) {
       if (article) return article;
       const barcodeMatch = uniqueMatch(barcodes.get(sku), "SKU_EXACT_BARCODE");
       if (barcodeMatch) return barcodeMatch;
+      const compact = compactMatch(sku);
+      if (compact) return compact;
     }
     if (parameter) {
       const exactId = uniqueMatch(ids.get(parameter), "PARAMETER_EXACT_ID");
@@ -295,6 +320,8 @@ function productResolver(products: NormalizedProduct[]) {
       for (const product of vendorCodes.get(parameter) ?? []) fallback.set(product.productId, product);
       const alternate = uniqueMatch([...fallback.values()], "PARAMETER_ARTICLE_OR_VENDOR_CODE");
       if (alternate) return alternate;
+      const compact = compactMatch(parameter);
+      if (compact) return compact;
     }
     if (barcode) {
       const barcodeMatch = uniqueMatch(barcodes.get(barcode), "BARCODE_EXACT");
@@ -335,6 +362,25 @@ function normalizeSales(
   const duplicateIdentities = new Set(
     [...identities].filter(([, matches]) => matches.length > 1).map(([identity]) => identity)
   );
+  const sourceProductCandidates = new Map<string, Set<string>>();
+  for (const row of rows) {
+    const sourceProductId = optionalText(read(row, "product.productId"));
+    if (!sourceProductId) continue;
+    const directMatch = resolve(
+      optionalText(read(row, "product.sku")),
+      optionalText(read(row, "product.parameter")),
+      optionalText(read(row, "product.barcode"))
+    );
+    if (directMatch.status !== ProductMatchStatus.MATCHED || !directMatch.productId) continue;
+    const matches = sourceProductCandidates.get(sourceProductId) ?? new Set<string>();
+    matches.add(directMatch.productId);
+    sourceProductCandidates.set(sourceProductId, matches);
+  }
+  const sourceProductAliases = new Map(
+    [...sourceProductCandidates]
+      .filter(([, productIds]) => productIds.size === 1)
+      .map(([sourceProductId, productIds]) => [sourceProductId, [...productIds][0]])
+  );
   const saleLines: NormalizedSaleLine[] = [];
   const issues: NormalizationIssue[] = [];
 
@@ -346,10 +392,19 @@ function normalizeSales(
     const productSku = optionalText(read(row, "product.sku"));
     const productParameter = optionalText(read(row, "product.parameter"));
     const productBarcode = optionalText(read(row, "product.barcode"));
+    const sourceProductId = optionalText(read(row, "product.productId"));
     const nonProductLine = [productSku, productParameter]
       .filter((value): value is string => Boolean(value))
       .some((value) => value.toLocaleUpperCase("uk-UA") === "COUPON");
-    const match = resolve(productSku, productParameter, productBarcode);
+    let match = resolve(productSku, productParameter, productBarcode);
+    const aliasedProductId = sourceProductId ? sourceProductAliases.get(sourceProductId) : null;
+    if (match.status === ProductMatchStatus.UNMATCHED && aliasedProductId) {
+      match = {
+        status: ProductMatchStatus.MATCHED,
+        method: "SOURCE_PRODUCT_ID_ALIAS",
+        productId: aliasedProductId,
+      };
+    }
     const quantity = decimal(read(row, "product.amount"));
     const salesAmount = decimal(read(row, "ProductPaymentAmount"));
     const costAmount = decimal(read(row, "ProductcostPriceAmount"));
@@ -401,7 +456,7 @@ function normalizeSales(
       statusId,
       productSku,
       productParameter,
-      sourceProductId: optionalText(read(row, "product.productId")),
+      sourceProductId,
       manufacturer: optionalText(read(row, "product.manufacturer")),
       quantity: quantity ?? new Prisma.Decimal(0),
       salesAmount: salesAmount ?? new Prisma.Decimal(0),

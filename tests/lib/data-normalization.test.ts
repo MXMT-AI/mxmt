@@ -61,6 +61,25 @@ describe("typed source normalization", () => {
     expect(result.issues.some((item) => item.code === "UNMATCHED_PRODUCT")).toBe(false);
   });
 
+  it("matches formatting variants and reuses an unambiguous source product alias", () => {
+    const result = normalize(
+      [["6307 10 10 00", "First", 100, "", 40, 3, "active", "Cat", "Brand", "", "", ""]],
+      [
+        ["order-1", "line-1", "2026-08-02T10:00:00Z", 5, "2026-08-02", 1, "", "6307 10 10 00", "7750", "6307 10 10 00", 100, 40, ""],
+        ["order-2", "line-2", "2026-08-03T10:00:00Z", 5, "2026-08-03", 1, "", "6307101000", "7750", "6307101000", 100, 40, ""],
+        ["order-3", "line-3", "2026-08-04T10:00:00Z", 5, "2026-08-04", 1, "", new Date("2037-09-10T00:00:00Z"), "7750", new Date("2037-09-10T00:00:00Z"), 100, 40, ""],
+      ]
+    );
+
+    expect(result.saleLines.map((line) => line.matchMethod)).toEqual([
+      "SKU_EXACT_ID",
+      "COMPACT_IDENTIFIER",
+      "SOURCE_PRODUCT_ID_ALIAS",
+    ]);
+    expect(result.saleLines.every((line) => line.matchStatus === ProductMatchStatus.MATCHED)).toBe(true);
+    expect(result.issues.some((item) => item.code === "UNMATCHED_PRODUCT")).toBe(false);
+  });
+
   it("ignores formatting-only product rows but blocks populated rows without valid identity", () => {
     const result = normalize(
       [
