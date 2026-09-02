@@ -17,7 +17,7 @@ interface ChatOptions {
   providerOverride?: string;
 }
 
-const DEFAULT_PROVIDER: AiProvider = "anthropic";
+const DEFAULT_PROVIDER: AiProvider = "openai";
 const PROVIDERS = new Set<AiProvider>(["anthropic", "openai"]);
 const MODEL_BY_PROVIDER: Record<AiProvider, string> = {
   anthropic: "claude-sonnet-4-6",
@@ -66,7 +66,7 @@ function requireApiKey(provider: AiProvider): string {
 
 /**
  * Unified AI chat function.
- * Switch provider via env var: AI_PROVIDER=anthropic (default) | openai
+ * Switch provider via env var: AI_PROVIDER=openai (default) | anthropic
  * API keys are read server-side only — never exposed to the client.
  */
 export async function chat({
@@ -94,7 +94,7 @@ export async function chat({
     return res.choices[0]?.message?.content ?? "";
   }
 
-  // Default: Anthropic Claude
+  // Anthropic remains available as an explicit override.
   const client = new Anthropic({ apiKey: requireApiKey(provider), timeout, maxRetries: 1 });
   const anthropicMessages = messages.filter(
     (message): message is AnthropicChatMessage => message.role !== "system"

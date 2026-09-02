@@ -23,10 +23,10 @@ describe("resolveAiProvider", () => {
     expect(resolveAiProvider("openai")).toBe("openai");
   });
 
-  it("falls back to anthropic for invalid values", () => {
+  it("falls back to openai for invalid values", () => {
     process.env.AI_PROVIDER = "invalid";
 
-    expect(resolveAiProvider()).toBe("anthropic");
+    expect(resolveAiProvider()).toBe("openai");
   });
 
   it("maps providers to expected model ids", () => {

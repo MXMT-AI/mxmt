@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
   const { run, response: runResponse } = await startAgentRun({
     tenantId,
     agentType: "inventory_analyst",
-    input: { provider: providerOverride ?? "anthropic", asOf: body.asOf ?? null, dateFrom: body.dateFrom ?? null },
+    input: { provider: providerOverride ?? "openai", asOf: body.asOf ?? null, dateFrom: body.dateFrom ?? null },
   });
   if (runResponse) return runResponse;
 
@@ -139,8 +139,8 @@ export async function POST(req: NextRequest) {
       rawResponses,
       parseErrors,
       batchErrors: batched.errors,
-      provider: providerOverride ?? "anthropic",
-      model: (providerOverride ?? "anthropic") === "openai" ? "gpt-4o" : "claude-sonnet-4-6",
+      provider: providerOverride ?? "openai",
+      model: (providerOverride ?? "openai") === "openai" ? "gpt-4o" : "claude-sonnet-4-6",
       parsedSuccessfully: batched.errors.length === 0 && parseErrors.length === 0,
       brandCount: metrics.length,
       aiEnrichedCount: batched.results.length,

@@ -70,7 +70,7 @@ export default function Sidebar({ tenantName, userRole }: { tenantName: string; 
         <div className="flex items-center justify-between px-3 py-1.5">
           <div className="flex items-center gap-2">
             <Zap size={12} className="text-[#fbbf24]" aria-hidden="true" />
-            <span className="text-[10px] font-mono text-[var(--subtle)]">Claude</span>
+            <span className="text-[10px] font-mono text-[var(--subtle)]">OpenAI</span>
           </div>
           <div className="flex items-center gap-1.5">
             <ThemeToggle />

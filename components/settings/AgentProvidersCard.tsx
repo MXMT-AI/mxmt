@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 
 export type AgentProvider = "anthropic" | "openai";
+export const DEFAULT_AGENT_PROVIDER: AgentProvider = "openai";
 
 export const AGENT_CONFIGS = [
   {
@@ -105,7 +106,7 @@ export function loadAgentProviders(): Record<string, AgentProvider> {
 
 export function getAgentProvider(agentId: string): AgentProvider {
   const map = loadAgentProviders();
-  return map[agentId] ?? "anthropic";
+  return map[agentId] ?? DEFAULT_AGENT_PROVIDER;
 }
 
 const BLOCKS = ["Core Analytics", "Decision Support", "Execution", "Tracking & Reports"] as const;
@@ -151,7 +152,7 @@ export default function AgentProvidersCard() {
             <div className="space-y-2">
               {agents.map((agent) => {
                 const Icon = agent.icon;
-                const current = providers[agent.id] ?? "anthropic";
+                const current = providers[agent.id] ?? DEFAULT_AGENT_PROVIDER;
                 return (
                   <div
                     key={agent.id}
@@ -198,8 +199,7 @@ export default function AgentProvidersCard() {
       })}
 
       <p className="text-[11px] font-mono text-[var(--subtle)] pt-2">
-        Вибір зберігається в браузері. Для роботи потрібні API ключі:{" "}
-        <span className="text-[var(--muted)]">ANTHROPIC_API_KEY</span> и{" "}
+        OpenAI використовується за замовчуванням. Для роботи потрібен{" "}
         <span className="text-[var(--muted)]">OPENAI_API_KEY</span> у змінних середовища хостингу.
       </p>
     </div>

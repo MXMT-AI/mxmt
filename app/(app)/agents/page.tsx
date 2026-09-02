@@ -955,7 +955,7 @@ function AgentCard({
   const [showDebug, setShowDebug] = useState(false);
   const [simParams, setSimParams] = useState<PromoSimParams | null>(null);
   const [reorderParams, setReorderParams] = useState<ReorderSimParams | null>(null);
-  const [provider, setProvider] = useState<string>("anthropic");
+  const [provider, setProvider] = useState<string>("openai");
   const Icon = agent.icon;
   const isStale = run?.isCurrent === false;
   const s = isStale ? "idle" : (run?.status ?? "idle");
@@ -1767,7 +1767,7 @@ export default function AgentsPage() {
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1.5 text-[10px] font-mono text-[var(--subtle)]">
               <Zap size={11} className="text-[#fbbf24]" aria-hidden="true" />
-              Claude Sonnet / Haiku
+              OpenAI GPT-4o / GPT-4o mini
             </div>
             <button
               type="button"

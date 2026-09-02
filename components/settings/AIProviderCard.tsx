@@ -10,23 +10,23 @@ const PROVIDERS: { id: Provider; name: string; model: string; desc: string }[] =
     id: "anthropic",
     name: "Claude",
     model: "claude-sonnet-4-6",
-    desc: "Anthropic · Найкраще для аналітики та структурованих відповідей",
+    desc: "Anthropic · Доступний лише при ручному виборі",
   },
   {
     id: "openai",
     name: "OpenAI",
     model: "gpt-4o",
-    desc: "OpenAI · Альтернативна модель для порівняння",
+    desc: "OpenAI · Провайдер за замовчуванням для всіх агентів",
   },
 ];
 
 export default function AIProviderCard({ lang }: { lang: "uk" | "en" }) {
   const uk = lang === "uk";
-  const [active, setActive] = useState<Provider>("anthropic");
+  const [active, setActive] = useState<Provider>("openai");
 
   useEffect(() => {
     const stored = document.cookie.match(/(?:^|;\s*)ai_provider=([^;]+)/);
-    if (stored?.[1] === "openai") setActive("openai");
+    if (stored?.[1] === "anthropic" || stored?.[1] === "openai") setActive(stored[1]);
   }, []);
 
   function pick(p: Provider) {
