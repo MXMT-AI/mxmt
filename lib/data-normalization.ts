@@ -409,7 +409,13 @@ function normalizeSales(
     const salesAmount = decimal(read(row, "ProductPaymentAmount"));
     const costAmount = decimal(read(row, "ProductcostPriceAmount"));
     const paymentDateValue = read(row, "paymentDate");
-    const paymentDate = localDate(paymentDateValue);
+    const explicitPaymentDate = localDate(paymentDateValue);
+    const fallbackDateField = statusId === 7 ? "updateAt" : "orderTime";
+    const fallbackDateValue = read(row, fallbackDateField);
+    const fallbackPaymentDate = finalStatus && !explicitPaymentDate
+      ? localDate(fallbackDateValue)
+      : null;
+    const paymentDate = explicitPaymentDate ?? fallbackPaymentDate;
     const duplicate = duplicateIdentities.has(identity);
     let excluded = duplicate || !finalStatus || !paymentDate || !quantity || !salesAmount || !costAmount;
     excluded ||= match.status !== ProductMatchStatus.MATCHED;
@@ -421,7 +427,12 @@ function normalizeSales(
     }
     if (finalStatus && !paymentDate) {
       issues.push(
-        issue(sheet.key, row.rowNumber, "INVALID_PAYMENT_DATE", DataIssueSeverity.WARNING, "Final transaction has no valid paymentDate", { sourceLineId: sourceLineId ?? "", value: read(row, "paymentDate") })
+        issue(sheet.key, row.rowNumber, "INVALID_PAYMENT_DATE", DataIssueSeverity.WARNING, "Final transaction has no valid paymentDate or fallback date", { sourceLineId: sourceLineId ?? "", value: paymentDateValue, fallbackField: fallbackDateField, fallbackValue: fallbackDateValue })
+      );
+    }
+    if (finalStatus && !explicitPaymentDate && fallbackPaymentDate) {
+      issues.push(
+        issue(sheet.key, row.rowNumber, "INFERRED_PAYMENT_DATE", DataIssueSeverity.INFO, `Final transaction uses ${fallbackDateField} as paymentDate`, { sourceLineId: sourceLineId ?? "", fallbackField: fallbackDateField, fallbackValue: fallbackDateValue })
       );
     }
     if (!finalStatus && text(paymentDateValue) && !paymentDate) {

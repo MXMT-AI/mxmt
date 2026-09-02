@@ -148,8 +148,12 @@ The following business rules are approved:
 | `6` | Rejection | Excluded |
 | any other value | Non-final/other status | Excluded |
 
-`paymentDate` is the contractual sales date. A row without a valid
-`paymentDate` does not enter sales, return, period, or rolling-14-day metrics,
+`paymentDate` is the contractual sales date. When it is missing on a final
+sale, `orderTime` is used as an inferred date; when it is missing on a return,
+`updateAt` is used so the return is assigned to the date it was recorded rather
+than the original order date. An `INFERRED_PAYMENT_DATE` informational issue is
+stored for either fallback. A row without a valid explicit or inferred date
+does not enter sales, return, period, or rolling-14-day metrics,
 even if `orderTime` is present.
 
 For a sale, quantity and amounts are normalized to positive absolute values.
@@ -403,7 +407,8 @@ Before production activation, a shadow calculation must satisfy:
 
 The following decisions were approved before implementation:
 
-- use `paymentDate` as the sales date;
+- use `paymentDate` as the sales date, with `orderTime` fallback for sales and
+  `updateAt` fallback for returns when it is missing;
 - include status `5` as sales, subtract status `7` as returns, and ignore status
   `6` plus all other non-final statuses;
 - calculate `Stock UAH` as `Vendor Price * Stock Qty`;

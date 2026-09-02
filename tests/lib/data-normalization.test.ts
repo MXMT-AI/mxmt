@@ -11,7 +11,7 @@ const productHeaders = [
 const saleHeaders = [
   "orderId", "id", "orderTime", "statusId", "paymentDate", "product.amount",
   "product.manufacturer", "product.parameter", "product.productId", "product.sku",
-  "ProductPaymentAmount", "ProductcostPriceAmount", "product.barcode",
+  "ProductPaymentAmount", "ProductcostPriceAmount", "product.barcode", "updateAt",
 ];
 
 function workbook(products: unknown[][], sales: unknown[][]): Buffer {
@@ -78,6 +78,27 @@ describe("typed source normalization", () => {
     ]);
     expect(result.saleLines.every((line) => line.matchStatus === ProductMatchStatus.MATCHED)).toBe(true);
     expect(result.issues.some((item) => item.code === "UNMATCHED_PRODUCT")).toBe(false);
+  });
+
+  it("infers missing final payment dates from the correct lifecycle timestamp", () => {
+    const result = normalize(
+      [["SKU-1", "First", 100, "", 40, 3, "active", "Cat", "Brand", "", "", ""]],
+      [
+        ["order-1", "sale-1", "2026-08-05T10:00:00Z", 5, "", 1, "", "", "", "SKU-1", 100, 40, "", "2026-08-07T10:00:00Z"],
+        ["order-2", "return-1", "2026-08-01T10:00:00Z", 7, "", 1, "", "", "", "SKU-1", 100, 40, "", "2026-08-10T10:00:00Z"],
+      ]
+    );
+
+    expect(result.saleLines.map((line) => line.paymentDate?.toISOString())).toEqual([
+      "2026-08-05T00:00:00.000Z",
+      "2026-08-10T00:00:00.000Z",
+    ]);
+    expect(result.saleLines.map((line) => line.normalizedSales?.toString())).toEqual(["100", "-100"]);
+    expect(result.issues.filter((item) => item.code === "INFERRED_PAYMENT_DATE")).toEqual([
+      expect.objectContaining({ rowNumber: 2, severity: "INFO", context: expect.objectContaining({ fallbackField: "orderTime" }) }),
+      expect.objectContaining({ rowNumber: 3, severity: "INFO", context: expect.objectContaining({ fallbackField: "updateAt" }) }),
+    ]);
+    expect(result.issues.some((item) => item.code === "INVALID_PAYMENT_DATE")).toBe(false);
   });
 
   it("ignores formatting-only product rows but blocks populated rows without valid identity", () => {

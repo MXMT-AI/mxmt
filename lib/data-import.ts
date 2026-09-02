@@ -23,7 +23,7 @@ import {
 
 const RAW_ROW_BATCH_SIZE = 750;
 const TYPED_ROW_BATCH_SIZE = 500;
-export const DATA_IMPORT_PIPELINE_VERSION = 5;
+export const DATA_IMPORT_PIPELINE_VERSION = 6;
 const PRUNABLE_IMPORT_STATUSES = [
   DataRunStatus.SUCCESS,
   DataRunStatus.WARNING,
