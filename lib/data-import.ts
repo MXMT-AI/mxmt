@@ -23,7 +23,12 @@ import {
 
 const RAW_ROW_BATCH_SIZE = 750;
 const TYPED_ROW_BATCH_SIZE = 500;
-export const DATA_IMPORT_PIPELINE_VERSION = 3;
+export const DATA_IMPORT_PIPELINE_VERSION = 4;
+const PRUNABLE_IMPORT_STATUSES = [
+  DataRunStatus.SUCCESS,
+  DataRunStatus.WARNING,
+  DataRunStatus.FAILED,
+];
 
 type ImportDatabaseClient = Pick<
   PrismaClient,
@@ -34,6 +39,7 @@ type ImportDatabaseClient = Pick<
   | "sourceProduct"
   | "sourceSaleLine"
   | "importIssue"
+  | "reportCalculationRun"
   | "$transaction"
 >;
 
@@ -92,6 +98,36 @@ function sheetResults(parsed: ParsedRawWorkbook): RawImportSheetResult[] {
     checksum: sheet.checksum,
     missing: sheet.missing,
   }));
+}
+
+async function pruneInactiveImportRuns(
+  db: ImportDatabaseClient,
+  tenantId: string,
+  sourceId: string,
+  activeImportRunId: string | null
+): Promise<void> {
+  await db.dataImportRun.deleteMany({
+    where: {
+      tenantId,
+      sourceId,
+      status: { in: PRUNABLE_IMPORT_STATUSES },
+      ...(activeImportRunId ? { id: { not: activeImportRunId } } : {}),
+    },
+  });
+}
+
+async function cleanupImportPayload(
+  db: ImportDatabaseClient,
+  tenantId: string,
+  importRunId: string
+): Promise<void> {
+  await db.$transaction([
+    db.reportCalculationRun.deleteMany({ where: { tenantId, importRunId } }),
+    db.importIssue.deleteMany({ where: { tenantId, importRunId } }),
+    db.sourceSaleLine.deleteMany({ where: { tenantId, importRunId } }),
+    db.sourceProduct.deleteMany({ where: { tenantId, importRunId } }),
+    db.dataSheetSnapshot.deleteMany({ where: { tenantId, importRunId } }),
+  ]);
 }
 
 /**
@@ -164,7 +200,12 @@ async function insertTypedProjection(
 ): Promise<void> {
   await insertInBatches(normalized.products, (batch) =>
     db.sourceProduct.createMany({
-      data: batch.map((product) => ({ ...product, tenantId, importRunId, sourceValues: asJson(product.sourceValues) })),
+      data: batch.map(({ barcode: _barcode, ...product }) => ({
+        ...product,
+        tenantId,
+        importRunId,
+        sourceValues: asJson(product.sourceValues),
+      })),
     })
   );
   await insertInBatches(normalized.saleLines, (batch) =>
@@ -219,6 +260,7 @@ export async function importRawWorkbookBuffer(
   });
 
   const activeRun = source.activeImportRun;
+  await pruneInactiveImportRuns(db, tenantId, source.id, activeRun?.id ?? null);
   if (
     activeRun?.sourceChecksum === checksum &&
     (activeRun.status === DataRunStatus.SUCCESS || activeRun.status === DataRunStatus.WARNING)
@@ -345,6 +387,10 @@ export async function importRawWorkbookBuffer(
       }),
     ]);
 
+    await pruneInactiveImportRuns(db, tenantId, source.id, importRun.id).catch((error) => {
+      console.error("[data/import] could not prune inactive imports", error);
+    });
+
     return {
       outcome: "imported",
       sourceId: source.id,
@@ -367,6 +413,9 @@ export async function importRawWorkbookBuffer(
           },
         })
         .catch(() => undefined);
+      await cleanupImportPayload(db, tenantId, importRunId).catch((cleanupError) => {
+        console.error("[data/import] could not clean failed import payload", cleanupError);
+      });
     }
     if (isUniqueConstraintError(error)) throw new RawImportInProgressError();
     throw error;

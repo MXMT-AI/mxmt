@@ -224,6 +224,14 @@ function parseSheet(
 function serializeTextCell(cell: XLSX.CellObject | undefined, fallback: unknown): JsonCellValue {
   if (fallback === undefined || fallback === null || fallback === "") return "";
   if (typeof fallback === "string") return fallback;
+  if (
+    typeof fallback === "number" &&
+    Number.isSafeInteger(fallback) &&
+    typeof cell?.w === "string" &&
+    /e[+-]?\d+/i.test(cell.w)
+  ) {
+    return String(fallback);
+  }
   if (cell?.w !== undefined && cell.w !== "") return cell.w;
   return String(fallback);
 }

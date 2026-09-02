@@ -54,6 +54,7 @@ function fakeDatabase(options?: {
 }) {
   const dataSourceUpdate = vi.fn(async () => ({ id: "source-1" }));
   const dataImportRunUpdate = vi.fn(async () => ({ id: "run-1" }));
+  const dataImportRunDeleteMany = vi.fn(async () => ({ count: 0 }));
   let snapshotNumber = 0;
 
   return {
@@ -80,9 +81,11 @@ function fakeDatabase(options?: {
     dataImportRun: {
       create: vi.fn(async () => ({ id: "run-1" })),
       update: dataImportRunUpdate,
+      deleteMany: dataImportRunDeleteMany,
     },
     dataSheetSnapshot: {
       create: vi.fn(async () => ({ id: `snapshot-${++snapshotNumber}` })),
+      deleteMany: vi.fn(async () => ({ count: 0 })),
     },
     dataSheetRow: {
       createMany: options?.failRows
@@ -93,15 +96,21 @@ function fakeDatabase(options?: {
     },
     sourceProduct: {
       createMany: vi.fn(async ({ data }: { data: unknown[] }) => ({ count: data.length })),
+      deleteMany: vi.fn(async () => ({ count: 0 })),
     },
     sourceSaleLine: {
       createMany: vi.fn(async ({ data }: { data: unknown[] }) => ({ count: data.length })),
+      deleteMany: vi.fn(async () => ({ count: 0 })),
     },
     importIssue: {
       createMany: vi.fn(async () => ({ count: 0 })),
+      deleteMany: vi.fn(async () => ({ count: 0 })),
+    },
+    reportCalculationRun: {
+      deleteMany: vi.fn(async () => ({ count: 0 })),
     },
     $transaction: vi.fn(async (operations: Array<Promise<unknown>>) => Promise.all(operations)),
-    spies: { dataSourceUpdate, dataImportRunUpdate },
+    spies: { dataSourceUpdate, dataImportRunUpdate, dataImportRunDeleteMany },
   };
 }
 
@@ -153,6 +162,43 @@ describe("atomic raw import", () => {
         data: expect.objectContaining({ status: DataRunStatus.FAILED }),
       })
     );
+    expect(db.dataSheetSnapshot.deleteMany).toHaveBeenCalledWith({
+      where: { tenantId: "tenant-1", importRunId: "run-1" },
+    });
+  });
+
+  it("prunes terminal inactive imports while preserving the active and running runs", async () => {
+    const buffer = importBuffer();
+    const db = fakeDatabase({
+      activeChecksum: sourceWorkbookChecksum(parseRawWorkbook(buffer)),
+      activePipelineVersion: DATA_IMPORT_PIPELINE_VERSION - 1,
+    });
+
+    await importRawWorkbookBuffer(
+      { tenantId: "tenant-1", fileId: "file-1", buffer },
+      db as never
+    );
+
+    expect(db.spies.dataImportRunDeleteMany).toHaveBeenNthCalledWith(1, {
+      where: {
+        tenantId: "tenant-1",
+        sourceId: "source-1",
+        status: {
+          in: [DataRunStatus.SUCCESS, DataRunStatus.WARNING, DataRunStatus.FAILED],
+        },
+        id: { not: "active-run" },
+      },
+    });
+    expect(db.spies.dataImportRunDeleteMany).toHaveBeenNthCalledWith(2, {
+      where: {
+        tenantId: "tenant-1",
+        sourceId: "source-1",
+        status: {
+          in: [DataRunStatus.SUCCESS, DataRunStatus.WARNING, DataRunStatus.FAILED],
+        },
+        id: { not: "run-1" },
+      },
+    });
   });
 
   it("reuses the active run when the workbook checksum is unchanged", async () => {

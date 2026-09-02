@@ -6,12 +6,12 @@ import { parseRawWorkbook } from "@/lib/data-import-workbook";
 
 const productHeaders = [
   "ID", "Name", "Price", "Old Price", "Vendor Price", "Stock Qty", "Status",
-  "Category", "Vendor", "Vendor Code", "Article",
+  "Category", "Vendor", "Vendor Code", "Article", "Barcode",
 ];
 const saleHeaders = [
   "orderId", "id", "orderTime", "statusId", "paymentDate", "product.amount",
   "product.manufacturer", "product.parameter", "product.productId", "product.sku",
-  "ProductPaymentAmount", "ProductcostPriceAmount",
+  "ProductPaymentAmount", "ProductcostPriceAmount", "product.barcode",
 ];
 
 function workbook(products: unknown[][], sales: unknown[][]): Buffer {
@@ -42,6 +42,22 @@ describe("typed source normalization", () => {
 
     expect(result.saleLines).toHaveLength(1);
     expect(result.saleLines[0].normalizedSales).toBeNull();
+    expect(result.issues.some((item) => item.code === "UNMATCHED_PRODUCT")).toBe(false);
+  });
+
+  it("matches a sale by product barcode when its sku was converted to a date", () => {
+    const result = normalize(
+      [["SKU-1", "First", 100, "", 40, 3, "active", "Cat", "Brand", "VC-1", "ART-1", "2341901086754"]],
+      [["order-1", "line-1", "2026-08-02T10:00:00Z", 5, "2026-08-02", 1, "", new Date("2037-09-10T00:00:00Z"), "", new Date("2037-09-10T00:00:00Z"), 100, 40, "2341901086754"]]
+    );
+
+    expect(result.saleLines[0]).toEqual(
+      expect.objectContaining({
+        matchStatus: ProductMatchStatus.MATCHED,
+        matchMethod: "BARCODE_EXACT",
+        resolvedProductId: "SKU-1",
+      })
+    );
     expect(result.issues.some((item) => item.code === "UNMATCHED_PRODUCT")).toBe(false);
   });
 

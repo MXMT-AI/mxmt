@@ -15,6 +15,7 @@ export interface NormalizedProduct {
   name: string;
   brand: string | null;
   category: string | null;
+  barcode: string | null;
   retailPrice: Prisma.Decimal;
   oldPrice: Prisma.Decimal | null;
   costPrice: Prisma.Decimal;
@@ -183,6 +184,7 @@ function normalizeProducts(sheet: ParsedRawSheet): {
     const vendorCode = optionalText(read(row, "Vendor Code"));
     const brand = optionalText(read(row, "Vendor"));
     const category = optionalText(read(row, "Category"));
+    const barcode = optionalText(read(row, "Barcode"));
     for (const [field, value] of [
       ["Article", article],
       ["Vendor Code", vendorCode],
@@ -211,6 +213,7 @@ function normalizeProducts(sheet: ParsedRawSheet): {
       name,
       brand,
       category,
+      barcode,
       retailPrice,
       oldPrice: decimal(read(row, "Old Price")),
       costPrice,
@@ -271,8 +274,9 @@ function productResolver(products: NormalizedProduct[]) {
   const idsLower = groupBy(products, (product) => product.productId.toLocaleLowerCase("uk-UA"));
   const articles = groupBy(products, (product) => product.article);
   const vendorCodes = groupBy(products, (product) => product.vendorCode);
+  const barcodes = groupBy(products, (product) => product.barcode);
 
-  return (sku: string | null, parameter: string | null): ProductMatch => {
+  return (sku: string | null, parameter: string | null, barcode: string | null): ProductMatch => {
     if (sku) {
       const exactId = uniqueMatch(ids.get(sku), "SKU_EXACT_ID");
       if (exactId) return exactId;
@@ -280,6 +284,8 @@ function productResolver(products: NormalizedProduct[]) {
       if (insensitiveId) return insensitiveId;
       const article = uniqueMatch(articles.get(sku), "SKU_EXACT_ARTICLE");
       if (article) return article;
+      const barcodeMatch = uniqueMatch(barcodes.get(sku), "SKU_EXACT_BARCODE");
+      if (barcodeMatch) return barcodeMatch;
     }
     if (parameter) {
       const exactId = uniqueMatch(ids.get(parameter), "PARAMETER_EXACT_ID");
@@ -289,6 +295,10 @@ function productResolver(products: NormalizedProduct[]) {
       for (const product of vendorCodes.get(parameter) ?? []) fallback.set(product.productId, product);
       const alternate = uniqueMatch([...fallback.values()], "PARAMETER_ARTICLE_OR_VENDOR_CODE");
       if (alternate) return alternate;
+    }
+    if (barcode) {
+      const barcodeMatch = uniqueMatch(barcodes.get(barcode), "BARCODE_EXACT");
+      if (barcodeMatch) return barcodeMatch;
     }
     return { status: ProductMatchStatus.UNMATCHED, method: null, productId: null };
   };
@@ -335,10 +345,11 @@ function normalizeSales(
     const finalStatus = statusId === 5 || statusId === 7;
     const productSku = optionalText(read(row, "product.sku"));
     const productParameter = optionalText(read(row, "product.parameter"));
+    const productBarcode = optionalText(read(row, "product.barcode"));
     const nonProductLine = [productSku, productParameter]
       .filter((value): value is string => Boolean(value))
       .some((value) => value.toLocaleUpperCase("uk-UA") === "COUPON");
-    const match = resolve(productSku, productParameter);
+    const match = resolve(productSku, productParameter, productBarcode);
     const quantity = decimal(read(row, "product.amount"));
     const salesAmount = decimal(read(row, "ProductPaymentAmount"));
     const costAmount = decimal(read(row, "ProductcostPriceAmount"));

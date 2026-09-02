@@ -201,4 +201,28 @@ describe("raw workbook parser", () => {
     expect(parsed.sheets[1].rows[0].data.col_a).toBe("1");
     expect(parsed.sheets[1].rows[0].data.col_e).toBe("12");
   });
+
+  it("preserves the full raw integer when an identifier is displayed in scientific notation", () => {
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(
+      wb,
+      worksheet([
+        ["ID", "Name", "Price", "Vendor Price", "Stock Qty"],
+        ["SKU-1", "Product", 100, 50, 1],
+      ]),
+      "Product YML 2.0"
+    );
+    const sales = worksheet([
+      ["id", "paymentDate", "statusId", "product.amount", "product.sku", "ProductPaymentAmount", "ProductcostPriceAmount"],
+      [1, "2026-08-01", 5, 1, 9786177948482, 100, 50],
+    ]);
+    sales.E2.z = "0.00000E+00";
+    XLSX.utils.book_append_sheet(wb, sales, "ZAVOD_API");
+
+    const parsed = parseRawWorkbook(
+      XLSX.write(wb, { type: "buffer", bookType: "xlsx" }) as Buffer
+    );
+
+    expect(parsed.sheets[1].rows[0].data.col_e).toBe("9786177948482");
+  });
 });
