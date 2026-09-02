@@ -792,7 +792,7 @@ function DebugModal({
                 ...(debug.candidateCount != null ? [{ label: "Кандидатів", value: String(debug.candidateCount) }] : []),
                 ...(debug.channelCount != null ? [{ label: "Каналів", value: String(debug.channelCount) }] : []),
                 ...(debug.categoryCount != null ? [{ label: "Категорій", value: String(debug.categoryCount) }] : []),
-                ...(debug.decisionCount != null ? [{ label: "Рішень PM", value: String(debug.decisionCount) }] : []),
+                ...(debug.decisionCount != null ? [{ label: "Валідованих рекомендацій", value: String(debug.decisionCount) }] : []),
                 ...(debug.campaignCount != null ? [{ label: "Кампаній", value: String(debug.campaignCount) }] : []),
                 ...(debug.calendarEventCount != null ? [{ label: "Подій", value: String(debug.calendarEventCount) }] : []),
                 ...(debug.agentsIncluded != null ? [{ label: "Агентів", value: String(debug.agentsIncluded) }] : []),

@@ -43,7 +43,7 @@ const finiteNumber = (value: unknown, fallback: number) =>
   typeof value === "number" && Number.isFinite(value) ? value : fallback;
 
 function recommendedRepricingStrategy(metric: BrandMetric): RepricingStrategy {
-  if (metric.trend7dPct > 0) return "CONSERVATIVE";
+  if (metric.wohDays < 45 || metric.trend7dPct > 0) return "CONSERVATIVE";
   if (metric.wohDays > 60 || metric.trend7dPct < -15) return "AGGRESSIVE";
   if (metric.wohDays >= 45) return "BALANCED";
   return "CONSERVATIVE";
@@ -131,7 +131,7 @@ export function buildRepricingFallback(metric: BrandMetric): RepricingBrandResul
       strategy_type: "CONSERVATIVE",
       label: "Підсилення видимості −10%",
       action: "VISIBILITY",
-      discount_percent: recommended === "CONSERVATIVE" && metric.trend7dPct > 0
+      discount_percent: recommended === "CONSERVATIVE" && (metric.trend7dPct > 0 || metric.wohDays < 45)
         ? 0
         : Math.min(10, maxDiscount),
       duration_days: 30,
@@ -192,7 +192,7 @@ export function normalizeRepricingResult(
   const options = fallback.options.map((base) => {
     const ai = aiByStrategy.get(base.strategy_type);
     const requestedDiscount = Math.round(finiteNumber(ai?.discount_percent, base.discount_percent));
-    const discountPercent = base.strategy_type === "CONSERVATIVE" && metric.trend7dPct > 0
+    const discountPercent = base.strategy_type === "CONSERVATIVE" && (metric.trend7dPct > 0 || metric.wohDays < 45)
       ? 0
       : clamp(requestedDiscount, 0, maxDiscount);
     const durationDays = Math.round(clamp(finiteNumber(ai?.duration_days, base.duration_days), 1, 90));
@@ -365,62 +365,177 @@ export function normalizeReorderingResult(
 export interface CommercialDecision {
   brand_id: string;
   brand_name: string;
-  type: "markdown" | "reorder";
+  type: "markdown" | "reorder" | "visibility";
   action: string;
   label: string;
 }
 
-export function buildCommercialFallback(decision: CommercialDecision, analysisDate: string) {
+type CommercialChannel = Record<string, unknown> & { action_needed: boolean; priority: number };
+
+export interface CommercialBrief {
+  brand_id: string;
+  brand_name: string;
+  decision_type: CommercialDecision["type"];
+  decision_summary: string;
+  urgency: "high" | "medium" | "low";
+  key_message: string;
+  overall_tone: "urgency" | "calm" | "informational";
+  channels: Record<"smm" | "email" | "ads" | "store" | "marketplace", CommercialChannel>;
+}
+
+function objectValue(value: unknown): Record<string, unknown> | undefined {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : undefined;
+}
+
+function commercialText(value: unknown, fallback: string): string {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : fallback;
+}
+
+function sanitizeCommercialText(value: string, decision: CommercialDecision): string {
+  const allowedDiscount = decision.type === "markdown" ? decision.label.match(/\d+\s*%/)?.[0] : undefined;
+  if (allowedDiscount) return value.replace(/\d+(?:[.,]\d+)?\s*%/g, allowedDiscount);
+  return value.replace(/\d+(?:[.,]\d+)?\s*%/g, "без знижки");
+}
+
+export function extractCommercialDecisions(
+  repricingOutput: unknown,
+  reorderingOutput: unknown
+): CommercialDecision[] {
+  const decisions = new Map<string, CommercialDecision>();
+  const repricingBrands = objectValue(repricingOutput)?.brands;
+  if (Array.isArray(repricingBrands)) {
+    for (const rawBrand of repricingBrands) {
+      const brand = objectValue(rawBrand);
+      if (!brand || typeof brand.brand_id !== "string" || typeof brand.brand_name !== "string") continue;
+      const options = Array.isArray(brand.options) ? brand.options : [];
+      const recommended = options.map(objectValue).find((option) => objectValue(option?.evaluation)?.recommended === true);
+      if (!recommended) continue;
+      const discount = finiteNumber(recommended.discount_percent, 0);
+      const type: CommercialDecision["type"] = discount > 0 ? "markdown" : "visibility";
+      decisions.set(brand.brand_id, {
+        brand_id: brand.brand_id,
+        brand_name: brand.brand_name,
+        type,
+        action: typeof recommended.action === "string" ? recommended.action : type === "markdown" ? "MARKDOWN" : "VISIBILITY",
+        label: commercialText(recommended.label, type === "markdown" ? `Уцінка −${discount}%` : "Підвищення видимості без знижки"),
+      });
+    }
+  }
+
+  const reorderingBrands = objectValue(reorderingOutput)?.brands;
+  if (Array.isArray(reorderingBrands)) {
+    for (const rawBrand of reorderingBrands) {
+      const brand = objectValue(rawBrand);
+      if (!brand || typeof brand.brand_id !== "string" || typeof brand.brand_name !== "string") continue;
+      const scenarios = Array.isArray(brand.scenarios) ? brand.scenarios : [];
+      const recommended = scenarios.map(objectValue).find((scenario) => objectValue(scenario?.evaluation)?.recommended === true);
+      if (!recommended) continue;
+      const existing = decisions.get(brand.brand_id);
+      if (existing?.type === "markdown") continue;
+      decisions.set(brand.brand_id, {
+        brand_id: brand.brand_id,
+        brand_name: brand.brand_name,
+        type: "reorder",
+        action: "REORDER",
+        label: commercialText(recommended.label, "Дозамовлення"),
+      });
+    }
+  }
+
+  return [...decisions.values()];
+}
+
+export function buildCommercialFallback(decision: CommercialDecision, executionDate: string): CommercialBrief {
   const markdown = decision.type === "markdown";
+  const visibility = decision.type === "visibility";
   const message = markdown
     ? `${decision.label}: обмежена пропозиція для ${decision.brand_name}.`
-    : `${decision.brand_name} знову в наявності.`;
+    : visibility
+      ? `Зверніть увагу на добірку ${decision.brand_name}.`
+      : `Підготувати комунікацію ${decision.brand_name} після підтвердження надходження.`;
+  const externalActionNeeded = decision.type !== "reorder";
   return {
     brand_id: decision.brand_id,
     brand_name: decision.brand_name,
     decision_type: decision.type,
     decision_summary: decision.label,
-    urgency: markdown ? "high" : "medium",
+    urgency: markdown ? "high" : visibility ? "medium" : "low",
     key_message: message,
-    overall_tone: markdown ? "urgency" : "calm",
+    overall_tone: markdown ? "urgency" : visibility ? "informational" : "calm",
     channels: {
       smm: {
-        action_needed: true,
-        brief: `Підготувати Stories і допис: ${message}`,
-        frequency: "2 публікації сьогодні",
+        action_needed: externalActionNeeded,
+        brief: externalActionNeeded ? `Підготувати Stories і допис: ${message}` : "Не публікувати до підтвердження надходження товару.",
+        frequency: externalActionNeeded ? "До 2 публікацій у день запуску" : "Після підтвердження надходження",
         content_direction: "Stories і карусель із товарами та чітким CTA",
-        start_date: analysisDate,
+        start_date: executionDate,
         priority: 1,
       },
       email: {
-        action_needed: true,
-        brief: `Надіслати клієнтам повідомлення: ${message}`,
-        send_timing: "today",
+        action_needed: externalActionNeeded,
+        brief: externalActionNeeded ? `Надіслати клієнтам повідомлення: ${message}` : "Не надсилати до підтвердження надходження товару.",
+        send_timing: externalActionNeeded ? "today" : "after_stock_confirmation",
         subject_direction: decision.label,
         cta: "Переглянути пропозицію",
         priority: 1,
       },
       ads: {
-        action_needed: true,
-        brief: `Запустити ретаргетинг на товари бренду ${decision.brand_name}.`,
-        budget_recommendation: "Почати з тестового денного бюджету 500 грн",
+        action_needed: markdown,
+        brief: markdown ? `Підготувати ретаргетинг на товари бренду ${decision.brand_name}.` : "Платне просування не запускати без окремого погодження.",
+        budget_recommendation: "Бюджет потребує погодження PM",
         targeting: "Відвідувачі карток товарів та покупці споріднених категорій",
         priority: 2,
       },
       store: {
         action_needed: true,
-        brief: `Виділити товари ${decision.brand_name} у торговій зоні.`,
-        display_changes: "Додати помітний цінник і навігацію",
+        brief: decision.type === "reorder" ? `Підготувати місце для ${decision.brand_name}; не позначати товар як наявний до приймання.` : `Виділити товари ${decision.brand_name} у торговій зоні.`,
+        display_changes: decision.type === "reorder" ? "Підготувати викладку після приймання" : "Додати помітну навігацію",
         staff_talking_points: message,
         priority: 3,
       },
       marketplace: {
-        action_needed: true,
-        brief: `Оновити картки ${decision.brand_name}, ціну й доступний залишок.`,
+        action_needed: externalActionNeeded,
+        brief: externalActionNeeded ? `Оновити картки ${decision.brand_name} відповідно до затвердженої дії.` : "Не змінювати статус наявності до фактичного приймання товару.",
         priority_platform: "instagram",
         reason: "Можна швидко синхронізувати повідомлення з SMM-активацією",
         priority: 2,
       },
     },
+  };
+}
+
+export function normalizeCommercialBrief(
+  decision: CommercialDecision,
+  executionDate: string,
+  aiResult?: unknown
+): CommercialBrief {
+  const fallback = buildCommercialFallback(decision, executionDate);
+  if (decision.type === "reorder") return fallback;
+  const parsed = objectValue(aiResult);
+  const aiChannels = objectValue(parsed?.channels);
+  const channelNames = ["smm", "email", "ads", "store", "marketplace"] as const;
+  const channels = Object.fromEntries(channelNames.map((name) => {
+    const base = fallback.channels[name];
+    const ai = objectValue(aiChannels?.[name]);
+    const merged: CommercialChannel = { ...base };
+    for (const [key, value] of Object.entries(ai ?? {})) {
+      if (typeof value === "string" && value.trim()) {
+        merged[key] = sanitizeCommercialText(value.trim(), decision);
+      }
+    }
+    merged.action_needed = base.action_needed;
+    merged.priority = base.priority;
+    if (name === "smm") merged.start_date = executionDate;
+    if (name === "email") merged.send_timing = base.send_timing;
+    if (name === "ads") merged.budget_recommendation = "Бюджет потребує погодження PM";
+    return [name, merged];
+  })) as CommercialBrief["channels"];
+
+  return {
+    ...fallback,
+    key_message: fallback.key_message,
+    channels,
   };
 }

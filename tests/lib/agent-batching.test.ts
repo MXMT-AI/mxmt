@@ -5,6 +5,8 @@ import {
   buildReorderingFallback,
   buildRepricingFallback,
   maxSafeDiscountPercent,
+  extractCommercialDecisions,
+  normalizeCommercialBrief,
   normalizeRepricingResult,
   normalizeReorderingResult,
 } from "@/lib/agent-fallbacks";
@@ -89,6 +91,31 @@ describe("decision agent fallbacks", () => {
     expect(recommended.evaluation.score).toBeGreaterThan(
       Math.max(...result.options.filter((option) => !option.evaluation.recommended).map((option) => option.evaluation.score))
     );
+  });
+
+  it("does not recommend discounting a low-stock brand even when its trend is falling", () => {
+    const metric: BrandMetric = {
+      brandId: "brand:value:LOW_STOCK",
+      brandName: "Low stock",
+      skuCount: 3,
+      totalStock: 20,
+      salesLast7d: 3,
+      salesLast30d: 30,
+      salesPrev7d: 10,
+      avgDailyVelocity: 1,
+      wohDays: 20,
+      strPercent: 60,
+      trend7dPct: -70,
+      gmPercent: 55,
+      frozenCapital: 2_000,
+      periodDays: 30,
+    };
+
+    const result = normalizeRepricingResult(metric, buildRepricingFallback(metric));
+    const recommended = result.options.find((option) => option.evaluation.recommended)!;
+
+    expect(recommended.strategy_type).toBe("CONSERVATIVE");
+    expect(recommended.discount_percent).toBe(0);
   });
 
   it("caps discounts at a safe margin and calculates DOH on the server", () => {
@@ -247,5 +274,102 @@ describe("decision agent fallbacks", () => {
     expect(result.channels.email.action_needed).toBe(true);
     expect(result.channels.ads.action_needed).toBe(true);
     expect(result.brand_id).toBe("brand:value:A");
+  });
+
+  it("treats a no-discount repricing recommendation as visibility, not markdown", () => {
+    const decisions = extractCommercialDecisions({
+      brands: [{
+        brand_id: "brand:value:A",
+        brand_name: "A",
+        options: [{
+          action: "VISIBILITY",
+          label: "Підвищення видимості без знижки",
+          discount_percent: 0,
+          evaluation: { recommended: true },
+        }],
+      }],
+    }, { brands: [] });
+
+    expect(decisions).toEqual([expect.objectContaining({
+      brand_id: "brand:value:A",
+      type: "visibility",
+    })]);
+  });
+
+  it("prefers reordering over visibility for the same low-stock brand", () => {
+    const decisions = extractCommercialDecisions({
+      brands: [{
+        brand_id: "brand:value:A",
+        brand_name: "A",
+        options: [{ discount_percent: 0, evaluation: { recommended: true } }],
+      }],
+    }, {
+      brands: [{
+        brand_id: "brand:value:A",
+        brand_name: "A",
+        scenarios: [{ label: "Мінімальне поповнення", evaluation: { recommended: true } }],
+      }],
+    });
+
+    expect(decisions).toEqual([expect.objectContaining({ type: "reorder" })]);
+  });
+
+  it("does not advertise a reorder before stock arrival is confirmed", () => {
+    const decision = {
+      brand_id: "brand:value:A",
+      brand_name: "A",
+      type: "reorder" as const,
+      action: "REORDER",
+      label: "Базове поповнення",
+    };
+    const result = normalizeCommercialBrief(decision, "2026-09-02", {
+      brand_id: "invented",
+      brand_name: "Invented",
+      urgency: "critical",
+      key_message: "Товар уже в наявності!",
+      channels: {
+        smm: { action_needed: true, brief: "Рекламувати зараз" },
+        ads: { action_needed: true, budget_recommendation: "100000 грн" },
+      },
+    });
+
+    expect(result.brand_id).toBe(decision.brand_id);
+    expect(result.brand_name).toBe(decision.brand_name);
+    expect(result.urgency).toBe("low");
+    expect(result.key_message).not.toContain("вже в наявності");
+    expect(result.channels.smm.action_needed).toBe(false);
+    expect(result.channels.email.action_needed).toBe(false);
+    expect(result.channels.ads.action_needed).toBe(false);
+    expect(result.channels.marketplace.action_needed).toBe(false);
+    expect(result.channels.store.action_needed).toBe(true);
+  });
+
+  it("keeps commercial identity, start date and budget under server control", () => {
+    const decision = {
+      brand_id: "brand:value:A",
+      brand_name: "A",
+      type: "markdown" as const,
+      action: "MARKDOWN",
+      label: "Планова уцінка −20%",
+    };
+    const result = normalizeCommercialBrief(decision, "2026-09-02", {
+      brand_id: "invented",
+      brand_name: "Invented",
+      channels: {
+        smm: { action_needed: false, start_date: "2020-01-01", brief: "AI brief зі знижкою 70%" },
+        email: { send_timing: "last_year" },
+        ads: { action_needed: false, budget_recommendation: "100000 грн" },
+      },
+    });
+
+    expect(result.brand_id).toBe(decision.brand_id);
+    expect(result.brand_name).toBe(decision.brand_name);
+    expect(result.channels.smm.action_needed).toBe(true);
+    expect(result.channels.smm.start_date).toBe("2026-09-02");
+    expect(result.channels.smm.brief).toContain("20%");
+    expect(result.channels.smm.brief).not.toContain("70%");
+    expect(result.channels.email.send_timing).toBe("today");
+    expect(result.channels.ads.action_needed).toBe(true);
+    expect(result.channels.ads.budget_recommendation).toBe("Бюджет потребує погодження PM");
   });
 });

@@ -44,7 +44,7 @@ export const AGENTS: AgentDefinition[] = [
   },
   {
     id: "commercial_marketer", label: "Commercial Marketer", model: "GPT-4o",
-    block: 3, blockLabel: "Execution", desc: "Брифи по 5 каналах після рішення PM",
+    block: 3, blockLabel: "Execution", desc: "Брифи по 5 каналах із валідованих рекомендацій",
     icon: Megaphone, color: "#fbbf24", runnable: true,
     dependsOn: ["repricing", "reordering"],
   },
@@ -74,7 +74,7 @@ export const AGENTS: AgentDefinition[] = [
 export const BLOCKS: AgentBlock[] = [
   { id: 1, label: "Core Analytics", color: "#00e5c4", desc: "Автоматично кожного ранку" },
   { id: 2, label: "Decision Support", color: "#a78bfa", desc: "За запитом PM" },
-  { id: 3, label: "Execution", color: "#fbbf24", desc: "Після вибору PM" },
+  { id: 3, label: "Execution", color: "#fbbf24", desc: "Після валідованої рекомендації" },
   { id: 4, label: "Tracking & Reports", color: "#fb923c", desc: "Авто-трекінг" },
 ];
 

@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getBrandMetrics } from "@/lib/brand-metrics";
 import { chat } from "@/lib/ai";
 import { requireApiUser } from "@/lib/server-auth";
 import { apiError, serverError } from "@/lib/api-contracts";
 import { parseAgentJson } from "@/lib/agent-output";
 import { startAgentRun } from "@/lib/agent-runs";
 import { runAgentBatches } from "@/lib/agent-batching";
-import { buildCommercialFallback, type CommercialDecision } from "@/lib/agent-fallbacks";
+import {
+  buildCommercialFallback,
+  extractCommercialDecisions,
+  normalizeCommercialBrief,
+} from "@/lib/agent-fallbacks";
 import { getCurrentDependencyRun, resolveAgentRunContext } from "@/lib/agent-dependencies";
 
 export const runtime = "nodejs";
@@ -15,7 +18,7 @@ export const maxDuration = 180;
 
 const SYSTEM_PROMPT = `Ти комерційний маркетолог у fashion retail. Відповідай українською мовою.
 
-Ты получаешь список брендов с решениями по уценке или дозаказу и создаёшь конкретные задачи для каждого маркетингового канала.
+Ты получаешь список брендов с валидированными автоматическими рекомендациями по уценке, видимости или дозаказу и создаёшь конкретные задачи для каждого маркетингового канала.
 
 КРИТИЧЕСКИ ВАЖНО: НЕ используй термины WOH, STR, GM, маржа, конверсия, ROI, тренд.
 Говори человеческим языком: что делать, когда, кому, с каким тоном.
@@ -28,7 +31,7 @@ const SYSTEM_PROMPT = `Ти комерційний маркетолог у fashi
     {
       "brand_id": "string",
       "brand_name": "string",
-      "decision_type": "markdown | reorder",
+      "decision_type": "markdown | visibility | reorder",
       "decision_summary": "одно предложение что нужно сделать",
       "urgency": "critical | high | medium | low",
       "key_message": "главный месседж для покупателей (без бизнес-терминов)",
@@ -80,8 +83,9 @@ const SYSTEM_PROMPT = `Ти комерційний маркетолог у fashi
 
 ПРАВИЛА ТОНА:
 - Уценка / скидка → urgency или excitement
-- Дозаказ (товар снова есть) → calm + positive
-- Если urgency="critical" → SMM и email в приоритете, start_date = сегодня`;
+- Видимость без скидки → informational, нельзя обещать скидку
+- Дозаказ — это рекомендация закупить, а не подтвержденное поступление: нельзя сообщать покупателям, что товар уже в наличии
+- Не придумывай бюджет: он требует отдельного согласования PM`;
 
 export async function POST(req: NextRequest) {
   const { user, response } = await requireApiUser("ANALYST");
@@ -122,62 +126,18 @@ export async function POST(req: NextRequest) {
     const repricingRun = repricingState.run;
     const reorderingRun = reorderingState.run;
 
-    const decisions: CommercialDecision[] = [];
-
-    // Extract recommended repricing options
-    if (repricingRun?.output) {
-      const out = repricingRun.output as any;
-      for (const brand of out.brands ?? []) {
-        const recommended = (brand.options ?? []).find((o: any) => o.evaluation?.recommended);
-        if (recommended) {
-          decisions.push({
-            brand_id: brand.brand_id,
-            brand_name: brand.brand_name,
-            type: "markdown",
-            action: recommended.action ?? "FLASH_SALE",
-            label: recommended.label ?? `Скидка ${recommended.discount_percent}%`,
-          });
-        }
-      }
-    }
-
-    // Extract recommended reordering scenarios
-    if (reorderingRun?.output) {
-      const out = reorderingRun.output as any;
-      for (const brand of out.brands ?? []) {
-        // Skip if already added from repricing
-        if (decisions.some((d) => d.brand_id === brand.brand_id)) continue;
-        const recommended = (brand.scenarios ?? []).find((s: any) => s.evaluation?.recommended);
-        if (recommended) {
-          decisions.push({
-            brand_id: brand.brand_id,
-            brand_name: brand.brand_name,
-            type: "reorder",
-            action: "REORDER",
-            label: recommended.label ?? "Дозаказ",
-          });
-        }
-      }
-    }
-
-    // If no repricing/reordering data — fall back to high-WOH brands
-    if (decisions.length === 0) {
-      const brandMetrics = await getBrandMetrics(tenantId, asOf, dateFrom);
-      const highWoh = brandMetrics.filter((b) => b.wohDays > 45 && b.skuCount > 0).slice(0, 5);
-      for (const b of highWoh) {
-        decisions.push({ brand_id: b.brandId, brand_name: b.brandName, type: "markdown", action: "MARKDOWN", label: "Уценка (рекомендовано)" });
-      }
-    }
+    const decisions = extractCommercialDecisions(repricingRun?.output, reorderingRun?.output);
 
     if (decisions.length === 0) {
       await prisma.agentRun.update({
         where: { id: run.id },
-        data: { status: "done", output: { brands: [], message: "Нет решений для создания брифов. Сначала запустите Repricing или Reordering." }, finishedAt: new Date() },
+        data: { status: "done", output: { brands: [], message: "Немає валідованих рекомендацій для створення маркетингових брифів." }, finishedAt: new Date() },
       });
       return NextResponse.json({ runId: run.id, brands: [] });
     }
 
     const analysisDate = (asOf ?? new Date()).toISOString().slice(0, 10);
+    const executionDate = new Date().toISOString().slice(0, 10);
     const prompts: string[] = [];
     const rawResponses: string[] = [];
     const parseErrors: string[] = [];
@@ -187,7 +147,12 @@ export async function POST(req: NextRequest) {
       concurrency: 2,
       runBatch: async (batch) => {
         const decision = batch[0];
-        const userPrompt = `Рішення PM для маркетингової активації:\n\n• ${decision.brand_name} (id: ${decision.brand_id}): ${decision.label} (тип: ${decision.type === "markdown" ? "уцінка/знижка" : "поповнення — товар знову в наявності"})\n\nДата аналізу: ${analysisDate}${dateFrom ? `\nПеріод даних: з ${dateFrom.toISOString().slice(0, 10)}` : ""}\nСтвори конкретний маркетинговий бриф для бренду за 5 каналами.`;
+        const typeLabel = decision.type === "markdown"
+          ? "уцінка/знижка"
+          : decision.type === "visibility"
+            ? "підвищення видимості без знижки"
+            : "рекомендація дозамовлення; надходження ще не підтверджене";
+        const userPrompt = `Валідована автоматична рекомендація для маркетингової підготовки:\n\n• ${decision.brand_name} (id: ${decision.brand_id}): ${decision.label} (тип: ${typeLabel})\n\nДата аналізу: ${analysisDate}\nДата можливого старту: ${executionDate}${dateFrom ? `\nПеріод даних: з ${dateFrom.toISOString().slice(0, 10)}` : ""}\nСтвори конкретний маркетинговий бриф для бренду за 5 каналами. Не називай це затвердженим рішенням PM.`;
         prompts.push(userPrompt);
         const raw = await chat({
           systemPrompt: SYSTEM_PROMPT,
@@ -198,9 +163,9 @@ export async function POST(req: NextRequest) {
         rawResponses.push(raw);
         const { data: parsed, error } = parseAgentJson<{ brands?: any[] }>(raw, "object");
         if (error) parseErrors.push(error);
-        return [parsed?.brands?.[0] ?? buildCommercialFallback(decision, analysisDate)];
+        return [normalizeCommercialBrief(decision, executionDate, parsed?.brands?.[0])];
       },
-      fallbackBatch: (batch) => batch.map((decision) => buildCommercialFallback(decision, analysisDate)),
+      fallbackBatch: (batch) => batch.map((decision) => buildCommercialFallback(decision, executionDate)),
     });
 
     const output: Record<string, any> = {
@@ -223,6 +188,7 @@ export async function POST(req: NextRequest) {
       model: (providerOverride ?? "openai") === "openai" ? "gpt-4o" : "claude-sonnet-4-6",
       parsedSuccessfully: batched.errors.length === 0 && parseErrors.length === 0,
       decisionCount: decisions.length,
+      executionDate,
       asOf: body.asOf ?? null,
       dateFrom: body.dateFrom ?? null,
       analyzedAt: new Date().toISOString(),
