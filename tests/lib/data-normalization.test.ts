@@ -34,6 +34,17 @@ function normalize(products: unknown[][], sales: unknown[][]) {
 }
 
 describe("typed source normalization", () => {
+  it("keeps coupon service rows out of product warnings and calculated sales", () => {
+    const result = normalize(
+      [["SKU-1", "First", 100, "", 40, 3, "active", "Cat", "Brand", "VC-1", "ART-1"]],
+      [["order-1", "coupon-1", "2026-08-02T10:00:00Z", 5, "2026-08-02", 1, "", "COUPON", "", "", 100, 0]]
+    );
+
+    expect(result.saleLines).toHaveLength(1);
+    expect(result.saleLines[0].normalizedSales).toBeNull();
+    expect(result.issues.some((item) => item.code === "UNMATCHED_PRODUCT")).toBe(false);
+  });
+
   it("ignores formatting-only product rows but blocks populated rows without valid identity", () => {
     const result = normalize(
       [

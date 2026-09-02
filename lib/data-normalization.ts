@@ -335,6 +335,9 @@ function normalizeSales(
     const finalStatus = statusId === 5 || statusId === 7;
     const productSku = optionalText(read(row, "product.sku"));
     const productParameter = optionalText(read(row, "product.parameter"));
+    const nonProductLine = [productSku, productParameter]
+      .filter((value): value is string => Boolean(value))
+      .some((value) => value.toLocaleUpperCase("uk-UA") === "COUPON");
     const match = resolve(productSku, productParameter);
     const quantity = decimal(read(row, "product.amount"));
     const salesAmount = decimal(read(row, "ProductPaymentAmount"));
@@ -365,7 +368,7 @@ function normalizeSales(
         issue(sheet.key, row.rowNumber, "INVALID_TRANSACTION_VALUE", DataIssueSeverity.WARNING, "Final transaction has an invalid quantity or amount", { sourceLineId: sourceLineId ?? "" })
       );
     }
-    if (finalStatus && match.status === ProductMatchStatus.UNMATCHED) {
+    if (finalStatus && !nonProductLine && match.status === ProductMatchStatus.UNMATCHED) {
       issues.push(
         issue(sheet.key, row.rowNumber, "UNMATCHED_PRODUCT", DataIssueSeverity.WARNING, "Final transaction could not be matched to a product", { sourceLineId: sourceLineId ?? "", productSku: productSku ?? "", productParameter: productParameter ?? "" })
       );
