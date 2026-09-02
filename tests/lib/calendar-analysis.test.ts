@@ -59,6 +59,14 @@ describe("calendar planning analysis", () => {
       scheduled_recommendations: 1,
       recommendation_count: 2,
     });
+    expect(result.scheduled_campaigns).toEqual([
+      expect.objectContaining({
+        brand_id: "zavod",
+        brand_name: "ZAVOD",
+        decision_summary: "Розпродаж −30%",
+        events: [expect.objectContaining({ weekKey: "w36", rowKey: "smm1" })],
+      }),
+    ]);
     expect(result.annotations.find((annotation) => annotation.brand === "ZAVOD")?.type).toBe("ok");
     expect(result.annotations.find((annotation) => annotation.brand === "KHVYLI")?.type).toBe("suggestion");
   });

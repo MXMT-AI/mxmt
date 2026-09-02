@@ -60,7 +60,9 @@ const SYSTEM_PROMPT = `Ти PM-асистент у fashion retail. Відпов�
 - decisions_needed — только то, что решает PM (бюджет, скидки, дозаказ)
 - wins — найди позитив, даже если ситуация тяжёлая
 - Пиши по-человечески, без аббревиатур WOH/STR/GM/ROI
-- Если данных мало — честно напиши что неделя только началась`;
+- Если данных мало — честно напиши что неделя только началась
+- Не называй маркетинговые брифы или рекомендации активными кампаниями. Кампания считается активной только если в сводке КАМПАНІЇ явно указано, что активных кампаний больше нуля.
+- Если активных кампаний 0, опиши рекомендации как ожидающие согласования или планирования, а не как запущенные, успешные или отстающие`;
 
 export async function POST(req: NextRequest) {
   const { user, response } = await requireApiUser("ANALYST");
@@ -186,8 +188,11 @@ export async function POST(req: NextRequest) {
       const out = campRun.output as any;
       const campaigns: any[] = out.campaigns ?? [];
       const behind = campaigns.filter((c: any) => c.status === "behind" || c.status === "stalled").length;
-      sections.push(`КАМПАНИИ: ${campaigns.length} активных, ${behind} отстают
-Здоровье: ${out.overall_health ?? "—"}, Резюме: ${out.summary ?? "—"}`);
+      const active = out.active_campaign_count ?? campaigns.length;
+      const scheduled = out.scheduled_campaign_count ?? campaigns.length;
+      const pending = out.pending_recommendations ?? 0;
+      sections.push(`КАМПАНІЇ: активних ${active}, у календарі ${scheduled}, очікують погодження ${pending}, відстають ${behind}
+Стан: ${out.overall_health ?? "—"}, Підсумок: ${out.summary ?? "—"}`);
     }
 
     if (sections.length === 0) {

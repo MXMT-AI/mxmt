@@ -55,10 +55,10 @@ export const AGENTS: AgentDefinition[] = [
     dependsOn: ["commercial_marketer"],
   },
   {
-    id: "campaign_analysis", label: "Campaign Analysis", model: "GPT-4o",
-    block: 4, blockLabel: "Tracking & Reports", desc: "Трекінг кампаній план vs факт",
+    id: "campaign_analysis", label: "Campaign Analysis", model: "Rules v1",
+    block: 4, blockLabel: "Tracking & Reports", desc: "Трекінг лише запланованих кампаній",
     icon: LineChart, color: "#fb923c", runnable: true,
-    dependsOn: ["commercial_marketer"],
+    dependsOn: ["calendar_agent"],
   },
   {
     id: "weekly_report", label: "Weekly Report", model: "GPT-4o",

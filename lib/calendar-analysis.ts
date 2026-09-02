@@ -29,6 +29,13 @@ type MarketerBrand = {
 export type CalendarAnalysis = {
   week: string;
   annotations: CalendarAnnotation[];
+  scheduled_campaigns: Array<{
+    brand_id: string;
+    brand_name: string;
+    decision_summary: string;
+    channels: CalendarAnnotation["channel"][];
+    events: CalendarEventInput[];
+  }>;
   health_score: {
     coverage_percent: number;
     scheduled_recommendations: number;
@@ -155,6 +162,7 @@ export function buildCalendarAnalysis({
   }));
 
   let scheduledRecommendations = 0;
+  const scheduledCampaigns: CalendarAnalysis["scheduled_campaigns"] = [];
   const recommendationAnnotations: CalendarAnnotation[] = recommendations.map((recommendation) => {
     const brandNeedle = normalizeText(recommendation.brandName);
     const matchingEvents = brandNeedle
@@ -167,6 +175,13 @@ export function buildCalendarAnalysis({
 
     if (matchingEvents.length > 0) {
       scheduledRecommendations += 1;
+      scheduledCampaigns.push({
+        brand_id: recommendation.brandId,
+        brand_name: recommendation.brandName,
+        decision_summary: recommendation.decisionSummary,
+        channels: recommendation.channels,
+        events: matchingEvents.map(({ event }) => event),
+      });
       return {
         id: `recommendation-${recommendation.brandId}`,
         type: "ok",
@@ -217,6 +232,7 @@ export function buildCalendarAnalysis({
   return {
     week,
     annotations,
+    scheduled_campaigns: scheduledCampaigns,
     health_score: {
       coverage_percent: coveragePercent,
       scheduled_recommendations: scheduledRecommendations,

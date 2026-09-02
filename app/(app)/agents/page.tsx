@@ -29,6 +29,34 @@ function agentStatusIcon(s: AgentStatus) {
   return <Clock size={12} className="text-[var(--subtle)]" aria-hidden="true" />;
 }
 
+function campaignHealthLabel(status: string) {
+  if (status === "on_track") return "На правильному шляху";
+  if (status === "critical") return "Критичний стан";
+  if (status === "not_started") return "Ще не запущено";
+  if (status === "insufficient_data") return "Недостатньо даних";
+  return "Потребує уваги";
+}
+
+function campaignHealthClasses(status: string) {
+  if (status === "on_track") return "bg-[#00e5c4]/5 border-[#00e5c4]/20 text-[#00e5c4]";
+  if (status === "critical") return "bg-[#ef4444]/5 border-[#ef4444]/20 text-[#ef4444]";
+  if (status === "not_started") return "bg-[var(--input-bg)] border-[var(--border)] text-[var(--muted)]";
+  return "bg-[#fbbf24]/5 border-[#fbbf24]/20 text-[#fbbf24]";
+}
+
+function campaignStatusColor(status: string) {
+  if (status === "ahead") return "#00e5c4";
+  if (status === "on_track") return "#86efac";
+  if (status === "behind") return "#fbbf24";
+  if (status === "insufficient_data" || status === "scheduled") return "#6b7a8d";
+  return "#ef4444";
+}
+
+function campaignMetricLabel(campaign: any) {
+  if (campaign.days_running == null || campaign.performance_score == null) return "метрики відсутні";
+  return `${campaign.days_running}д · ${campaign.performance_score}/10`;
+}
+
 // ─── Full analysis modal ──────────────────────────────────────────────────────
 
 function AnalysisModal({
@@ -429,12 +457,12 @@ function AnalysisModal({
           {agentId === "campaign_analysis" && (
             <div className="space-y-3">
               {output.overall_health && (
-                <div className={`border rounded-xl p-4 ${output.overall_health === "on_track" ? "bg-[#00e5c4]/5 border-[#00e5c4]/20" : output.overall_health === "critical" ? "bg-[#ef4444]/5 border-[#ef4444]/20" : "bg-[#fbbf24]/5 border-[#fbbf24]/20"}`}>
-                  <div className="text-[9px] font-mono uppercase tracking-widest mb-1" style={{ color: output.overall_health === "on_track" ? "#00e5c4" : output.overall_health === "critical" ? "#ef4444" : "#fbbf24" }}>
+                <div className={`border rounded-xl p-4 ${campaignHealthClasses(output.overall_health)}`}>
+                  <div className="text-[9px] font-mono uppercase tracking-widest mb-1">
                     Загальний стан кампаній
                   </div>
                   <p className="text-sm font-semibold text-[var(--text)]">
-                    {output.overall_health === "on_track" ? "На правильному шляху" : output.overall_health === "critical" ? "Критичний стан" : "Потребує уваги"}
+                    {campaignHealthLabel(output.overall_health)}
                   </p>
                   {output.summary && <p className="text-[12px] text-[var(--muted)] mt-1">{output.summary}</p>}
                 </div>
@@ -444,13 +472,13 @@ function AnalysisModal({
                   <div className="text-[9px] font-mono uppercase tracking-widest text-[var(--subtle)] mb-3">Кампанії ({output.campaigns.length})</div>
                   <div className="space-y-3">
                     {output.campaigns.map((camp: any, i: number) => {
-                      const sc = camp.status === "ahead" ? "#00e5c4" : camp.status === "on_track" ? "#86efac" : camp.status === "behind" ? "#fbbf24" : "#ef4444";
+                      const sc = campaignStatusColor(camp.status);
                       return (
                         <div key={camp.campaign_id ?? i} className="border border-[var(--border)] rounded-xl p-4">
                           <div className="flex items-center gap-2 mb-2 flex-wrap">
                             <span className="font-semibold text-sm text-[var(--text)]">{camp.brand_name}</span>
                             <span className="text-[9px] font-mono px-1.5 py-0.5 rounded" style={{ background: sc + "20", color: sc, border: `1px solid ${sc}30` }}>{camp.status?.toUpperCase()}</span>
-                            <span className="text-[9px] font-mono text-[var(--subtle)] ml-auto">{camp.days_running ?? 0}д · {camp.performance_score ?? 0}/10</span>
+                            <span className="text-[9px] font-mono text-[var(--subtle)] ml-auto">{campaignMetricLabel(camp)}</span>
                           </div>
                           {camp.planned_action && <p className="text-[11px] text-[var(--subtle)] mb-1">📋 {camp.planned_action}</p>}
                           {camp.actual_observation && <p className="text-[12px] text-[var(--muted)] mb-2">{camp.actual_observation}</p>}
@@ -1009,6 +1037,9 @@ function AgentCard({
   const campaigns: any[] = agent.id === "campaign_analysis" ? (output.campaigns ?? []) : [];
   const campaignOverallHealth: string = output.overall_health ?? "";
   const campaignsBehind = campaigns.filter((c: any) => c.status === "behind" || c.status === "stalled").length;
+  const activeCampaignCount = output.active_campaign_count ?? campaigns.length;
+  const scheduledCampaignCount = output.scheduled_campaign_count ?? campaigns.length;
+  const pendingRecommendations = output.pending_recommendations ?? 0;
 
   // Weekly Report
   const isWeeklyReport = agent.id === "weekly_report";
@@ -1230,22 +1261,26 @@ function AgentCard({
         )}
 
         {/* Summary badges — Campaign Analysis */}
-        {s === "done" && campaigns.length > 0 && (
+        {s === "done" && agent.id === "campaign_analysis" && campaignOverallHealth && (
           <div className="flex items-center gap-2 mt-3 flex-wrap">
             {campaignOverallHealth && (
-              <span className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
-                campaignOverallHealth === "on_track"
-                  ? "bg-[#00e5c4]/10 border-[#00e5c4]/20 text-[#00e5c4]"
-                  : campaignOverallHealth === "critical"
-                    ? "bg-[#ef4444]/10 border-[#ef4444]/20 text-[#ef4444]"
-                    : "bg-[#fbbf24]/10 border-[#fbbf24]/20 text-[#fbbf24]"
-              }`}>
-                {campaignOverallHealth === "on_track" ? "На правильному шляху" : campaignOverallHealth === "critical" ? "Критично" : "Потребує уваги"}
+              <span className={`text-[10px] font-mono px-2 py-0.5 rounded border ${campaignHealthClasses(campaignOverallHealth)}`}>
+                {campaignHealthLabel(campaignOverallHealth)}
               </span>
             )}
             <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--input-bg)] border border-[var(--border)] text-[var(--muted)]">
-              {campaigns.length} кампаній
+              {activeCampaignCount} активних
             </span>
+            {scheduledCampaignCount > 0 && (
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--input-bg)] border border-[var(--border)] text-[var(--muted)]">
+                {scheduledCampaignCount} у календарі
+              </span>
+            )}
+            {pendingRecommendations > 0 && (
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#fbbf24]/10 border border-[#fbbf24]/20 text-[#fbbf24]">
+                {pendingRecommendations} очікують погодження
+              </span>
+            )}
             {campaignsBehind > 0 && (
               <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#ef4444]/10 border border-[#ef4444]/20 text-[#ef4444]">
                 {campaignsBehind} відстають
@@ -1569,11 +1604,11 @@ function AgentCard({
       )}
 
       {/* Expanded — Campaign Analysis */}
-      {expanded && campaigns.length > 0 && (
+      {expanded && agent.id === "campaign_analysis" && (campaigns.length > 0 || output.summary) && (
         <div className="border-t border-[var(--border)] px-4 py-4 space-y-3">
           {output.summary && <p className="text-sm text-[var(--muted)]">{output.summary}</p>}
           {campaigns.map((camp: any, i: number) => {
-            const statusColor = camp.status === "ahead" ? "#00e5c4" : camp.status === "on_track" ? "#86efac" : camp.status === "behind" ? "#fbbf24" : "#ef4444";
+            const statusColor = campaignStatusColor(camp.status);
             return (
               <div key={camp.campaign_id ?? i} className="border border-[var(--border)] rounded-xl p-3">
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
@@ -1581,7 +1616,7 @@ function AgentCard({
                   <span className="text-[9px] font-mono px-1.5 py-0.5 rounded" style={{ background: statusColor + "20", color: statusColor, border: `1px solid ${statusColor}30` }}>
                     {camp.status?.toUpperCase()}
                   </span>
-                  <span className="text-[9px] font-mono text-[var(--subtle)] ml-auto">{camp.days_running ?? 0}д · {camp.performance_score ?? 0}/10</span>
+                  <span className="text-[9px] font-mono text-[var(--subtle)] ml-auto">{campaignMetricLabel(camp)}</span>
                 </div>
                 {camp.actual_observation && <p className="text-[11px] text-[var(--muted)] mb-1">{camp.actual_observation}</p>}
                 {camp.next_action && <p className="text-[11px] text-[#00e5c4]">→ {camp.next_action}</p>}
