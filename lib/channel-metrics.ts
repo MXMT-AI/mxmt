@@ -20,12 +20,23 @@ export interface ChannelMetrics {
 
 const UNKNOWN_CHANNEL = "Невідомий канал";
 
-function channelFromSourceValues(sourceValues: unknown): string {
+function channelColumnKey(columns: unknown): string | null {
+  if (!Array.isArray(columns)) return null;
+  const column = columns.find((value) =>
+    value && typeof value === "object" && !Array.isArray(value) &&
+    (value as Record<string, unknown>).label === "sajt"
+  );
+  const key = column && (column as Record<string, unknown>).key;
+  return typeof key === "string" && key ? key : null;
+}
+
+function channelFromSourceValues(sourceValues: unknown, sourceKey: string | null): string {
   if (!sourceValues || typeof sourceValues !== "object" || Array.isArray(sourceValues)) {
     return UNKNOWN_CHANNEL;
   }
 
-  const rawValue = (sourceValues as Record<string, unknown>).sajt;
+  const values = sourceValues as Record<string, unknown>;
+  const rawValue = (sourceKey ? values[sourceKey] : undefined) ?? values.sajt ?? values.col_i;
   const value = typeof rawValue === "string" || typeof rawValue === "number"
     ? String(rawValue).trim()
     : "";
@@ -46,7 +57,7 @@ export async function getChannelMetrics(
     return { channels: [], totalStock: 0, topChannel: "—", bottomChannel: "—", periodDays };
   }
 
-  const [sales, products] = await Promise.all([
+  const [sales, products, snapshot] = await Promise.all([
     prisma.sourceSaleLine.findMany({
       where: {
         tenantId,
@@ -68,9 +79,14 @@ export async function getChannelMetrics(
       where: { tenantId, importRunId },
       select: { stockUnits: true },
     }),
+    prisma.dataSheetSnapshot.findUnique({
+      where: { importRunId_sheetKey: { importRunId, sheetKey: "zavod_api" } },
+      select: { columns: true },
+    }),
   ]);
 
   const totalStock = products.reduce((sum, product) => sum + Number(product.stockUnits), 0);
+  const channelSourceKey = channelColumnKey(snapshot?.columns);
   const grouped = new Map<string, {
     sold7: number;
     soldPeriod: number;
@@ -79,7 +95,7 @@ export async function getChannelMetrics(
   }>();
 
   for (const sale of sales) {
-    const channel = channelFromSourceValues(sale.sourceValues);
+    const channel = channelFromSourceValues(sale.sourceValues, channelSourceKey);
     const aggregate = grouped.get(channel) ?? {
       sold7: 0,
       soldPeriod: 0,

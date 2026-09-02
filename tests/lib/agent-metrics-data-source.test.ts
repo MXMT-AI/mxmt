@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   getActiveAgentImportRunId: vi.fn(),
   sourceProductFindMany: vi.fn(),
   sourceSaleLineFindMany: vi.fn(),
+  dataSheetSnapshotFindUnique: vi.fn(),
 }));
 
 vi.mock("@/lib/agent-data-source", () => ({
@@ -18,6 +19,7 @@ vi.mock("@/lib/prisma", () => ({
   prisma: {
     sourceProduct: { findMany: mocks.sourceProductFindMany },
     sourceSaleLine: { findMany: mocks.sourceSaleLineFindMany },
+    dataSheetSnapshot: { findUnique: mocks.dataSheetSnapshotFindUnique },
   },
 }));
 
@@ -33,6 +35,9 @@ describe("agent metrics use the active normalized import", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getActiveAgentImportRunId.mockResolvedValue("import-1");
+    mocks.dataSheetSnapshotFindUnique.mockResolvedValue({
+      columns: [{ key: "col_i", label: "sajt" }],
+    });
   });
 
   it("builds brand metrics from SourceProduct and SourceSaleLine", async () => {
@@ -68,9 +73,9 @@ describe("agent metrics use the active normalized import", () => {
   it("groups ZAVOD_API sales by its opaque sajt channel code", async () => {
     mocks.sourceProductFindMany.mockResolvedValue([{ stockUnits: 20 }, { stockUnits: 30 }]);
     mocks.sourceSaleLineFindMany.mockResolvedValue([
-      { resolvedProductId: "p1", paymentDate: date("2026-08-30"), normalizedQuantity: 5, normalizedSales: 500, sourceValues: { sajt: 38 } },
-      { resolvedProductId: "p2", paymentDate: date("2026-08-15"), normalizedQuantity: 2, normalizedSales: 150, sourceValues: { sajt: "79" } },
-      { resolvedProductId: "p2", paymentDate: date("2026-08-31"), normalizedQuantity: -1, normalizedSales: -75, sourceValues: { sajt: "88" } },
+      { resolvedProductId: "p1", paymentDate: date("2026-08-30"), normalizedQuantity: 5, normalizedSales: 500, sourceValues: { col_i: 38 } },
+      { resolvedProductId: "p2", paymentDate: date("2026-08-15"), normalizedQuantity: 2, normalizedSales: 150, sourceValues: { col_i: "79" } },
+      { resolvedProductId: "p2", paymentDate: date("2026-08-31"), normalizedQuantity: -1, normalizedSales: -75, sourceValues: { col_i: "88" } },
       { resolvedProductId: "p3", paymentDate: date("2026-08-29"), normalizedQuantity: 1, normalizedSales: 25, sourceValues: {} },
     ]);
 
