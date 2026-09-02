@@ -1126,7 +1126,7 @@ function AgentCard({
           <div className="flex items-center gap-2 mt-3 flex-wrap">
             {topChannel && (
               <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#00e5c4]/10 border border-[#00e5c4]/20 text-[#00e5c4]">
-                Топ: {topChannel}
+                Лідер за кількістю: {topChannel}
               </span>
             )}
             <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--input-bg)] border border-[var(--border)] text-[var(--muted)]">

@@ -36,7 +36,12 @@ const SYSTEM_PROMPT = `Ти аналітик каналів продажів у 
 best — самый высокий STR или быстрорастущий канал
 normal — работает в пределах нормы
 weak — STR низкий относительно других каналов
-inactive — нет продаж за 7 дней`;
+inactive — нет валовых продаж за 7 дней
+
+ВАЖНО:
+- gross_sales — продажи до возвратов, returns — возвраты, net_sales — продажи минус возвраты.
+- Возвраты являются бизнес-транзакциями. Никогда не называй отрицательный net_sales или наличие возвратов технической ошибкой, проблемой инвентаризации или отсутствием данных.
+- top_channel — лидер по чистому количеству проданных единиц за период. Канал с лучшим STR или выручкой может быть другим; явно объясни эту разницу, если она есть.`;
 
 export async function POST(req: NextRequest) {
   const { user, response } = await requireApiUser("ANALYST");
@@ -75,13 +80,16 @@ export async function POST(req: NextRequest) {
 ${metrics.channels
   .map(
     (c) =>
-      `• ${c.channel}: sold7d=${c.salesLast7d} sold30d=${c.salesLast30d} ` +
-      `revenue30d=${c.revenue30d.toFixed(0)} STR=${c.strPercent}%`
+      `• ${c.channel}: gross_sales_7d=${c.grossSalesLast7d} returns_7d=${c.returnsLast7d} ` +
+      `gross_sales_period=${c.grossSalesLast30d} returns_period=${c.returnsLast30d} ` +
+      `net_sales_period=${c.salesLast30d} gross_revenue_period=${c.grossRevenue30d.toFixed(0)} ` +
+      `returns_revenue_period=${c.returnsRevenue30d.toFixed(0)} net_revenue_period=${c.revenue30d.toFixed(0)} ` +
+      `STR=${c.strPercent}%`
   )
   .join("\n")}
 
 Общий сток: ${metrics.totalStock} шт
-Топ канал по продажам: ${metrics.topChannel}
+Лидер по чистому количеству проданных единиц: ${metrics.topChannel}
 Дата анализа: ${(asOf ?? new Date()).toISOString().slice(0, 10)}${dateFrom ? `\nПериод данных: с ${dateFrom.toISOString().slice(0, 10)} (скорость продаж и WOH рассчитаны за этот период; тренд = вторая половина периода vs первая)` : ""}`;
 
     const raw = await chat({
@@ -96,8 +104,8 @@ ${metrics.channels
     const output = parsed ?? {
       channels: metrics.channels.map((c) => ({
         channel: c.channel,
-        status: c.salesLast7d > 0 ? "normal" : "inactive",
-        insight: `Продаж за 7д: ${c.salesLast7d} шт`,
+        status: c.grossSalesLast7d > 0 ? "normal" : "inactive",
+        insight: `Продажі за 7 днів: ${c.grossSalesLast7d} шт; повернення: ${c.returnsLast7d} шт`,
         recommendation: "Недостатньо даних для рекомендації",
       })),
       top_channel: metrics.topChannel,

@@ -85,6 +85,12 @@ describe("agent metrics use the active normalized import", () => {
     expect(result.channels).toEqual([
       {
         channel: "Site 38",
+        grossSalesLast7d: 5,
+        returnsLast7d: 0,
+        grossSalesLast30d: 5,
+        returnsLast30d: 0,
+        grossRevenue30d: 500,
+        returnsRevenue30d: 0,
         salesLast7d: 5,
         salesLast30d: 5,
         revenue30d: 500,
@@ -93,6 +99,12 @@ describe("agent metrics use the active normalized import", () => {
       },
       {
         channel: "Site 79",
+        grossSalesLast7d: 0,
+        returnsLast7d: 0,
+        grossSalesLast30d: 2,
+        returnsLast30d: 0,
+        grossRevenue30d: 150,
+        returnsRevenue30d: 0,
         salesLast7d: 0,
         salesLast30d: 2,
         revenue30d: 150,
@@ -101,6 +113,12 @@ describe("agent metrics use the active normalized import", () => {
       },
       {
         channel: "Невідомий канал",
+        grossSalesLast7d: 1,
+        returnsLast7d: 0,
+        grossSalesLast30d: 1,
+        returnsLast30d: 0,
+        grossRevenue30d: 25,
+        returnsRevenue30d: 0,
         salesLast7d: 1,
         salesLast30d: 1,
         revenue30d: 25,
@@ -109,11 +127,17 @@ describe("agent metrics use the active normalized import", () => {
       },
       {
         channel: "Site 88",
+        grossSalesLast7d: 0,
+        returnsLast7d: 1,
+        grossSalesLast30d: 0,
+        returnsLast30d: 1,
+        grossRevenue30d: 0,
+        returnsRevenue30d: 75,
         salesLast7d: -1,
         salesLast30d: -1,
         revenue30d: -75,
-        skuCount: 1,
-        strPercent: -2,
+        skuCount: 0,
+        strPercent: 0,
       },
     ]);
     expect(mocks.sourceSaleLineFindMany).toHaveBeenCalledWith(expect.objectContaining({

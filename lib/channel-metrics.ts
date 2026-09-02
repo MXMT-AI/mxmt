@@ -3,11 +3,17 @@ import { getActiveAgentImportRunId } from "@/lib/agent-data-source";
 
 export interface ChannelMetric {
   channel: string;
+  grossSalesLast7d: number;
+  returnsLast7d: number;
+  grossSalesLast30d: number;
+  returnsLast30d: number;
+  grossRevenue30d: number;
+  returnsRevenue30d: number;
   salesLast7d: number;
   salesLast30d: number;
   revenue30d: number;
   skuCount: number;
-  strPercent: number; // sold_7d / total_stock * 100 per channel
+  strPercent: number; // gross sold_7d / total_stock * 100 per channel
 }
 
 export interface ChannelMetrics {
@@ -88,26 +94,53 @@ export async function getChannelMetrics(
   const totalStock = products.reduce((sum, product) => sum + Number(product.stockUnits), 0);
   const channelSourceKey = channelColumnKey(snapshot?.columns);
   const grouped = new Map<string, {
-    sold7: number;
-    soldPeriod: number;
-    revenuePeriod: number;
+    grossSold7: number;
+    returned7: number;
+    grossSoldPeriod: number;
+    returnedPeriod: number;
+    grossRevenuePeriod: number;
+    returnedRevenuePeriod: number;
+    netSold7: number;
+    netSoldPeriod: number;
+    netRevenuePeriod: number;
     recentProductIds: Set<string>;
   }>();
 
   for (const sale of sales) {
     const channel = channelFromSourceValues(sale.sourceValues, channelSourceKey);
     const aggregate = grouped.get(channel) ?? {
-      sold7: 0,
-      soldPeriod: 0,
-      revenuePeriod: 0,
+      grossSold7: 0,
+      returned7: 0,
+      grossSoldPeriod: 0,
+      returnedPeriod: 0,
+      grossRevenuePeriod: 0,
+      returnedRevenuePeriod: 0,
+      netSold7: 0,
+      netSoldPeriod: 0,
+      netRevenuePeriod: 0,
       recentProductIds: new Set<string>(),
     };
     const quantity = Number(sale.normalizedQuantity);
-    aggregate.soldPeriod += quantity;
-    aggregate.revenuePeriod += Number(sale.normalizedSales);
+    const revenue = Number(sale.normalizedSales);
+    aggregate.netSoldPeriod += quantity;
+    aggregate.netRevenuePeriod += revenue;
+
+    if (quantity < 0) {
+      aggregate.returnedPeriod += Math.abs(quantity);
+      aggregate.returnedRevenuePeriod += Math.abs(revenue);
+    } else {
+      aggregate.grossSoldPeriod += quantity;
+      aggregate.grossRevenuePeriod += revenue;
+    }
+
     if (sale.paymentDate && sale.paymentDate >= d7) {
-      aggregate.sold7 += quantity;
-      if (sale.resolvedProductId) aggregate.recentProductIds.add(sale.resolvedProductId);
+      aggregate.netSold7 += quantity;
+      if (quantity < 0) {
+        aggregate.returned7 += Math.abs(quantity);
+      } else {
+        aggregate.grossSold7 += quantity;
+        if (sale.resolvedProductId) aggregate.recentProductIds.add(sale.resolvedProductId);
+      }
     }
     grouped.set(channel, aggregate);
   }
@@ -116,12 +149,18 @@ export async function getChannelMetrics(
   // without guessing business names until an explicit mapping is configured.
   const channels: ChannelMetric[] = [...grouped].map(([channel, aggregate]) => ({
     channel,
-    salesLast7d: aggregate.sold7,
-    salesLast30d: aggregate.soldPeriod,
-    revenue30d: aggregate.revenuePeriod,
+    grossSalesLast7d: aggregate.grossSold7,
+    returnsLast7d: aggregate.returned7,
+    grossSalesLast30d: aggregate.grossSoldPeriod,
+    returnsLast30d: aggregate.returnedPeriod,
+    grossRevenue30d: aggregate.grossRevenuePeriod,
+    returnsRevenue30d: aggregate.returnedRevenuePeriod,
+    salesLast7d: aggregate.netSold7,
+    salesLast30d: aggregate.netSoldPeriod,
+    revenue30d: aggregate.netRevenuePeriod,
     skuCount: aggregate.recentProductIds.size,
     strPercent: totalStock > 0
-      ? Math.round((aggregate.sold7 / totalStock) * 100 * 10) / 10
+      ? Math.round((aggregate.grossSold7 / totalStock) * 100 * 10) / 10
       : 0,
   }));
 
