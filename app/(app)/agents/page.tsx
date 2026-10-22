@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import {
   Play, RefreshCw, AlertTriangle, CheckCircle2, Clock,
@@ -14,6 +15,7 @@ import { AGENTS, AGENT_ROUTES, BLOCKS } from "@/components/agents/agents.config"
 import type { AgentRunInfo, AgentStatus, BrandResult, BrandStatus } from "@/components/agents/agents.types";
 import { areAgentDependenciesReady, buildReorderParams, buildSimParams, duration, fmt, fmtDate, formatWohDays, statusColor, statusLabel } from "@/components/agents/agents.utils";
 import DebugSection from "@/components/agents/DebugSection";
+import RecommendationApprovalModal, { type ApprovalRecommendation } from "@/components/agents/RecommendationApprovalModal";
 import { useAgentRuns } from "@/components/agents/useAgentRuns";
 import {
   AGENT_PERIOD_STORAGE_KEY,
@@ -985,7 +987,7 @@ function AgentCard({
 }: {
   agent: (typeof AGENTS)[0];
   run?: AgentRunInfo;
-  onRun: () => void;
+  onRun: () => void | Promise<void>;
   isFirst: boolean;
   dependenciesReady: boolean;
 }) {
@@ -994,6 +996,7 @@ function AgentCard({
   const [showDebug, setShowDebug] = useState(false);
   const [simParams, setSimParams] = useState<PromoSimParams | null>(null);
   const [reorderParams, setReorderParams] = useState<ReorderSimParams | null>(null);
+  const [approvalTarget, setApprovalTarget] = useState<ApprovalRecommendation | null>(null);
   const [provider, setProvider] = useState<string>("openai");
   const Icon = agent.icon;
   const isStale = run?.isCurrent === false;
@@ -1030,6 +1033,9 @@ function AgentCard({
 
   // Calendar Agent
   const annotations: any[] = agent.id === "calendar_agent" ? (output.annotations ?? []) : [];
+  const planningRecommendations: ApprovalRecommendation[] = agent.id === "calendar_agent"
+    ? (output.planning_recommendations ?? [])
+    : [];
   const healthScore: any = output.health_score ?? null;
   const criticalAnnotations = annotations.filter((a: any) => a.priority === "critical").length;
 
@@ -1585,6 +1591,8 @@ function AgentCard({
           {annotations.map((ann: any, i: number) => {
             const prioColor = ann.priority === "critical" ? "#ef4444" : ann.priority === "high" ? "#fbbf24" : ann.priority === "medium" ? "#a78bfa" : "#6b7a8d";
             const typeIcon = ann.type === "suggestion" ? "+" : ann.type === "gap" ? "○" : ann.type === "conflict" ? "✕" : ann.type === "timing" ? "⏱" : "✓";
+            const recommendation = planningRecommendations.find((item) => item.recommendation_id === ann.id && item.status === "draft");
+            const scheduledRecommendation = planningRecommendations.find((item) => item.recommendation_id === ann.id && item.status === "scheduled");
             return (
               <div key={ann.id ?? i} className="border border-[var(--border)] rounded-xl p-3">
                 <div className="flex items-start gap-2 mb-1">
@@ -1596,6 +1604,23 @@ function AgentCard({
                 <p className="text-[12px] text-[var(--text)]">{ann.message}</p>
                 {ann.suggested_action && (
                   <p className="text-[11px] text-[#00e5c4] mt-1">→ {ann.suggested_action}</p>
+                )}
+                {recommendation && run?.id && (
+                  <button
+                    type="button"
+                    onClick={() => setApprovalTarget(recommendation)}
+                    className="mt-3 rounded-lg border border-[#fbbf24]/30 bg-[#fbbf24]/10 px-3 py-1.5 text-[10px] font-mono font-semibold text-[#fbbf24] hover:bg-[#fbbf24]/15"
+                  >
+                    Погодити й додати до календаря
+                  </button>
+                )}
+                {scheduledRecommendation && (
+                  <Link
+                    href="/calendar"
+                    className="mt-3 inline-flex rounded-lg border border-[#00e5c4]/30 bg-[#00e5c4]/10 px-3 py-1.5 text-[10px] font-mono font-semibold text-[#00e5c4] hover:bg-[#00e5c4]/15"
+                  >
+                    Відкрити в календарі
+                  </Link>
                 )}
               </div>
             );
@@ -1707,6 +1732,17 @@ function AgentCard({
       {/* Reorder simulation table (Reordering) */}
       {reorderParams && (
         <ReorderTableModal params={reorderParams} onClose={() => setReorderParams(null)} />
+      )}
+
+      {approvalTarget && run?.id && (
+        <RecommendationApprovalModal
+          key={approvalTarget.recommendation_id}
+          calendarRunId={run.id}
+          recommendation={approvalTarget}
+          weekKeys={Array.isArray(output.weeksAnalyzed) ? output.weeksAnalyzed : []}
+          onClose={() => setApprovalTarget(null)}
+          onApproved={onRun}
+        />
       )}
     </div>
   );

@@ -3,6 +3,9 @@ export type CalendarEventInput = {
   rowKey: string;
   type: string;
   label: string;
+  brandId?: string | null;
+  channel?: string | null;
+  recommendationKey?: string | null;
 };
 
 export type CalendarAnnotation = {
@@ -29,6 +32,15 @@ type MarketerBrand = {
 export type CalendarAnalysis = {
   week: string;
   annotations: CalendarAnnotation[];
+  planning_recommendations: Array<{
+    recommendation_id: string;
+    brand_id: string;
+    brand_name: string;
+    decision_summary: string;
+    channels: CalendarAnnotation["channel"][];
+    status: "draft" | "scheduled";
+    events: CalendarEventInput[];
+  }>;
   scheduled_campaigns: Array<{
     brand_id: string;
     brand_name: string;
@@ -163,11 +175,12 @@ export function buildCalendarAnalysis({
 
   let scheduledRecommendations = 0;
   const scheduledCampaigns: CalendarAnalysis["scheduled_campaigns"] = [];
+  const planningRecommendations: CalendarAnalysis["planning_recommendations"] = [];
   const recommendationAnnotations: CalendarAnnotation[] = recommendations.map((recommendation) => {
     const brandNeedle = normalizeText(recommendation.brandName);
-    const matchingEvents = brandNeedle
-      ? searchableEvents.filter(({ label }) => label.includes(brandNeedle))
-      : [];
+    const matchingEvents = searchableEvents.filter(({ event, label }) =>
+      event.brandId === recommendation.brandId || (brandNeedle ? label.includes(brandNeedle) : false)
+    );
     const channelList = recommendation.channels.length > 0
       ? recommendation.channels.join(", ")
       : "загальні активності";
@@ -175,6 +188,15 @@ export function buildCalendarAnalysis({
 
     if (matchingEvents.length > 0) {
       scheduledRecommendations += 1;
+      planningRecommendations.push({
+        recommendation_id: `recommendation-${recommendation.brandId}`,
+        brand_id: recommendation.brandId,
+        brand_name: recommendation.brandName,
+        decision_summary: recommendation.decisionSummary,
+        channels: recommendation.channels,
+        status: "scheduled",
+        events: matchingEvents.map(({ event }) => event),
+      });
       scheduledCampaigns.push({
         brand_id: recommendation.brandId,
         brand_name: recommendation.brandName,
@@ -196,6 +218,15 @@ export function buildCalendarAnalysis({
     const budgetNote = recommendation.channels.includes("ads")
       ? " Рекламний бюджет потрібно погодити окремо."
       : "";
+    planningRecommendations.push({
+      recommendation_id: `recommendation-${recommendation.brandId}`,
+      brand_id: recommendation.brandId,
+      brand_name: recommendation.brandName,
+      decision_summary: recommendation.decisionSummary,
+      channels: recommendation.channels,
+      status: "draft",
+      events: [],
+    });
     return {
       id: `recommendation-${recommendation.brandId}`,
       type: "suggestion",
@@ -232,6 +263,7 @@ export function buildCalendarAnalysis({
   return {
     week,
     annotations,
+    planning_recommendations: planningRecommendations,
     scheduled_campaigns: scheduledCampaigns,
     health_score: {
       coverage_percent: coveragePercent,

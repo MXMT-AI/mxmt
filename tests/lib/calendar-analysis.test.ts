@@ -67,8 +67,40 @@ describe("calendar planning analysis", () => {
         events: [expect.objectContaining({ weekKey: "w36", rowKey: "smm1" })],
       }),
     ]);
+    expect(result.planning_recommendations).toEqual([
+      expect.objectContaining({ brand_id: "zavod", status: "scheduled" }),
+      expect.objectContaining({ brand_id: "khvyli", status: "draft" }),
+    ]);
     expect(result.annotations.find((annotation) => annotation.brand === "ZAVOD")?.type).toBe("ok");
     expect(result.annotations.find((annotation) => annotation.brand === "KHVYLI")?.type).toBe("suggestion");
+  });
+
+  it("matches an approved event by brand id without relying on its label", () => {
+    const result = buildCalendarAnalysis({
+      now: new Date("2026-09-02T12:00:00.000Z"),
+      events: [{
+        weekKey: "w36",
+        rowKey: "smm1",
+        type: "agent",
+        label: "Текст без назви бренду",
+        brandId: "zavod",
+        recommendationKey: "run:recommendation-zavod",
+      }],
+      marketerOutput: {
+        brands: [{
+          brand_id: "zavod",
+          brand_name: "ZAVOD",
+          decision_summary: "Розпродаж −30%",
+          channels: { smm: { action_needed: true } },
+        }],
+      },
+    });
+
+    expect(result.health_score.scheduled_recommendations).toBe(1);
+    expect(result.planning_recommendations[0]).toMatchObject({
+      brand_id: "zavod",
+      status: "scheduled",
+    });
   });
 
   it("reports collisions between real calendar events as high-priority conflicts", () => {

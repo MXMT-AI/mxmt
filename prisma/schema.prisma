@@ -596,18 +596,26 @@ model CatalogItem {
 
 // ─── MARKETING CALENDAR EVENTS ────────────────────────────────────────────────
 model MarketingEvent {
-  id        String   @id @default(cuid())
-  tenantId  String
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  weekKey   String   // "w14", "w15", ...
-  rowKey    String   // "accent", "promo", "ban1", ...
-  type      String   // promo | holiday | agent | warn | sale | event | stock
-  label     String
-  source    String   @default("user") // user | agent | system
-  createdAt DateTime @default(now())
+  id                String    @id @default(cuid())
+  tenantId          String
+  tenant            Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  weekKey           String // "w14", "w15", ...
+  rowKey            String // "accent", "promo", "ban1", ...
+  type              String // promo | holiday | agent | warn | sale | event | stock
+  label             String
+  source            String    @default("user") // user | agent | system
+  sourceAgentRunId  String?
+  recommendationKey String?
+  brandId           String?
+  channel           String?
+  approvedAt        DateTime?
+  approvedBy        String?
+  createdAt         DateTime  @default(now())
 
+  @@unique([tenantId, recommendationKey, rowKey])
   @@index([tenantId])
   @@index([tenantId, weekKey])
+  @@index([tenantId, brandId])
 }
 
 // ─── AGENT RUNS ──────────────────────────────────────────────────────────────
