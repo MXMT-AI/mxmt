@@ -39,9 +39,31 @@ export function serverError(message = "Internal server error", requestId?: strin
 
 export async function parseJsonBody<T = unknown>(
   request: NextRequest,
-  requestId?: string
+  requestId?: string,
+  maxBytes?: number
 ): Promise<JsonParseResult<T>> {
   try {
+    if (maxBytes !== undefined) {
+      const reader = request.body?.getReader();
+      const chunks: Uint8Array[] = [];
+      let size = 0;
+      if (reader) try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          size += value.byteLength;
+          if (size > maxBytes) {
+            await reader.cancel();
+            return { data: null, response: apiError("Request body is too large", 413, "BODY_TOO_LARGE", undefined, requestId) };
+          }
+          chunks.push(value);
+        }
+      } finally { reader.releaseLock(); }
+      const bytes = new Uint8Array(size);
+      let offset = 0;
+      for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length; }
+      return { data: JSON.parse(new TextDecoder().decode(bytes)) as T, response: null };
+    }
     return { data: await request.json() as T, response: null };
   } catch {
     return {

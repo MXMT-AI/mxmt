@@ -1,4 +1,4 @@
-import { headers, cookies } from "next/headers";
+import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { getT } from "@/lib/translations";
 import { getDriveMode } from "@/lib/gdrive";
@@ -6,17 +6,21 @@ import OnboardingForm from "@/components/settings/OnboardingForm";
 import DriveSyncCard from "@/components/settings/DriveSyncCard";
 import AIProviderCard from "@/components/settings/AIProviderCard";
 import SettingsTabs from "@/components/settings/SettingsTabs";
+import SalesDriveConnectionCard from "@/components/settings/SalesDriveConnectionCard";
+import { requireCurrentUser } from "@/lib/server-auth";
+import { getSalesDriveConnection } from "@/lib/connectors/service";
 
 export default async function SettingsPage() {
-  const h = await headers();
-  const tenantId = h.get("x-tenant-id")!;
+  const user = await requireCurrentUser();
+  const tenantId = user.tenantId;
   const cookieStore = await cookies();
   const lang = (cookieStore.get("lang")?.value ?? "uk") as "uk" | "en";
   const t = getT(lang);
 
-  const [onboarding, driveSync] = await Promise.all([
+  const [onboarding, driveSync, salesDrive] = await Promise.all([
     prisma.onboardingBrief.findUnique({ where: { tenantId } }),
     prisma.googleDriveSync.findFirst({ where: { tenantId }, orderBy: { createdAt: "desc" } }),
+    getSalesDriveConnection(tenantId),
   ]);
 
   const generalContent = (
@@ -70,6 +74,8 @@ export default async function SettingsPage() {
       </section>
 
       {/* Google Drive sync */}
+      <SalesDriveConnectionCard initial={salesDrive} lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
+
       <section className="mb-10">
         <div className="mb-4">
           <h2 className="text-[var(--text)] font-semibold">
