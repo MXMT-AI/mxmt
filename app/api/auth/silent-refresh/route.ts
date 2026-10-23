@@ -5,18 +5,25 @@ import { prisma } from "@/lib/prisma";
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from "@/lib/auth";
 import { createRequestContext, logError, requestLogContext, withRequestId } from "@/lib/observability";
 
-function safeRedirectPath(value: string | null): string {
-  if (!value || !value.startsWith("/") || value.startsWith("//")) {
-    return "/dashboard";
+function safeRedirectUrl(value: string | null, requestUrl: string): URL {
+  const fallback = new URL("/dashboard", requestUrl);
+  if (!value || !value.startsWith("/") || value.startsWith("//") || value.includes("\\")) {
+    return fallback;
   }
-  return value;
+
+  try {
+    const destination = new URL(value, fallback.origin);
+    return destination.origin === fallback.origin ? destination : fallback;
+  } catch {
+    return fallback;
+  }
 }
 
 // Called by middleware when access token is expired but refresh token exists.
 // Refreshes tokens, sets cookies, then redirects back to the original page.
 export async function GET(request: NextRequest) {
   const context = createRequestContext(request, "api.auth.silent-refresh");
-  const next = safeRedirectPath(request.nextUrl.searchParams.get("next"));
+  const next = safeRedirectUrl(request.nextUrl.searchParams.get("next"), request.url);
 
   try {
     const cookieStore = await cookies();
@@ -75,7 +82,7 @@ export async function GET(request: NextRequest) {
       maxAge: 15 * 60,
     });
 
-    return withRequestId(NextResponse.redirect(new URL(next, request.url)), context.requestId);
+    return withRequestId(NextResponse.redirect(next), context.requestId);
   } catch (err) {
     logError("Silent refresh failed", err, requestLogContext(context));
     return withRequestId(NextResponse.redirect(new URL("/login", request.url)), context.requestId);
