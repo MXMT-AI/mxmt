@@ -2,6 +2,12 @@
 
 Status: approved for implementation
 
+Scope note: this approval applies to the existing Google Sheets import and
+reporting pipeline. Approved SalesDrive MVP policies and conflicts with this
+contract are tracked in the [MVP business decision register](mvp-business-decisions.md).
+Those policies do not replace this pipeline's rules until the new implementation
+is validated and activated.
+
 Timezone: `Europe/Kyiv`
 
 Source workbook: `1MzALTBxYTNx9zxIaQX0TEm3uAOntw6vAAzVnZx6wnGE`
