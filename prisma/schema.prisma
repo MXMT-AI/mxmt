@@ -17,31 +17,43 @@ model Tenant {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  users              User[]
-  brands             Brand[]
-  skus               Sku[]
-  salesRecords       SalesRecord[]
-  inventorySnapshots InventorySnapshot[]
-  promoEvents        PromoEvent[]
-  onboarding         OnboardingBrief?
-  driveSyncs         GoogleDriveSync[]
-  catalogUploads     CatalogUpload[]
-  catalogItems       CatalogItem[]
-  plannerCart        PlannerCart?
-  marketingEvents    MarketingEvent[]
-  agentRuns          AgentRun[]
-  dataSources        DataSource[]
-  dataImportRuns     DataImportRun[]
-  dataSheetSnapshots DataSheetSnapshot[]
-  dataSheetRows      DataSheetRow[]
-  sourceProducts     SourceProduct[]
-  sourceSaleLines    SourceSaleLine[]
-  importIssues       ImportIssue[]
-  reportRuns         ReportCalculationRun[]
-  articleResults     ArticleReportResult[]
-  brandResults       BrandReportResult[]
-  categoryResults    CategoryReportResult[]
-  tablePreferences   DataTablePreference[]
+  users                User[]
+  brands               Brand[]
+  skus                 Sku[]
+  salesRecords         SalesRecord[]
+  inventorySnapshots   InventorySnapshot[]
+  promoEvents          PromoEvent[]
+  onboarding           OnboardingBrief?
+  driveSyncs           GoogleDriveSync[]
+  catalogUploads       CatalogUpload[]
+  catalogItems         CatalogItem[]
+  plannerCart          PlannerCart?
+  marketingEvents      MarketingEvent[]
+  agentRuns            AgentRun[]
+  dataSources          DataSource[]
+  dataImportRuns       DataImportRun[]
+  dataSheetSnapshots   DataSheetSnapshot[]
+  dataSheetRows        DataSheetRow[]
+  sourceProducts       SourceProduct[]
+  sourceSaleLines      SourceSaleLine[]
+  importIssues         ImportIssue[]
+  reportRuns           ReportCalculationRun[]
+  articleResults       ArticleReportResult[]
+  brandResults         BrandReportResult[]
+  categoryResults      CategoryReportResult[]
+  tablePreferences     DataTablePreference[]
+  categories           Category[]
+  suppliers            Supplier[]
+  skuAliases           SkuAlias[]
+  sourceRecords        DataSourceRecord[]
+  orderLines           OrderLine[]
+  receipts             Receipt[]
+  receiptLines         ReceiptLine[]
+  priceHistory         PriceHistory[]
+  skuDaily             SkuDaily[]
+  merchandisingConfigs MerchandisingConfig[]
+  merchandisingActions MerchandisingAction[]
+  syncCursors          SyncCursor[]
 }
 
 // ─── USER ─────────────────────────────────────────────────────────────────────
@@ -57,7 +69,9 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  tablePreferences DataTablePreference[]
+  tablePreferences     DataTablePreference[]
+  merchandisingActions MerchandisingAction[]
+  approvedConfigs      MerchandisingConfig[]
 
   @@unique([id, tenantId])
   @@index([tenantId])
@@ -88,51 +102,75 @@ enum BusinessModel {
 
 // ─── BRAND / SUPPLIER ─────────────────────────────────────────────────────────
 model Brand {
-  id           String  @id @default(cuid())
-  tenantId     String
-  tenant       Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  name         String
-  leadTimeDays Int     @default(14)
-  moq          Int     @default(1)
-  currency     String  @default("EUR")
-  country      String?
-  contact      String?
+  id             String         @id @default(cuid())
+  tenantId       String
+  tenant         Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name           String
+  leadTimeDays   Int            @default(14)
+  moq            Int            @default(1)
+  currency       String         @default("EUR")
+  country        String?
+  contact        String?
   // Planner-specific
-  budget       Float   @default(0)
-  paymentDays  Int     @default(30)
+  budget         Float          @default(0)
+  paymentDays    Int            @default(30)
+  // New MVP values are explicit; legacy planner defaults above are unchanged.
+  ownership      StockOwnership @default(UNKNOWN)
+  commissionRate Decimal?       @db.Decimal(9, 8)
+  supplierId     String?
+  supplier       Supplier?      @relation(fields: [supplierId, tenantId], references: [id, tenantId], onDelete: NoAction, onUpdate: NoAction)
 
   skus           Sku[]
   catalogUploads CatalogUpload[]
   catalogItems   CatalogItem[]
 
+  @@unique([id, tenantId])
   @@index([tenantId])
 }
 
 // ─── INVENTORY SKU ────────────────────────────────────────────────────────────
 model Sku {
-  id            String    @id @default(cuid())
-  tenantId      String
-  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  brandId       String?
-  brand         Brand?    @relation(fields: [brandId], references: [id])
-  sku           String
-  name          String
-  category      String
-  subcategory   String?
-  priceRetail   Float
-  pricePurchase Float
-  season        String?
-  status        SkuStatus @default(ACTIVE)
-  dateAdded     DateTime  @default(now())
-  dateEol       DateTime?
-  tags          String[]  @default([])
+  id                     String                 @id @default(cuid())
+  tenantId               String
+  tenant                 Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  brandId                String?
+  brand                  Brand?                 @relation(fields: [brandId, tenantId], references: [id, tenantId], onDelete: NoAction, onUpdate: NoAction)
+  sku                    String
+  name                   String
+  category               String
+  subcategory            String?
+  priceRetail            Float
+  pricePurchase          Float
+  season                 String?
+  status                 SkuStatus              @default(ACTIVE)
+  dateAdded              DateTime               @default(now())
+  dateEol                DateTime?
+  tags                   String[]               @default([])
+  categoryId             String?
+  merchandisingCategory  Category?              @relation(fields: [categoryId, tenantId], references: [id, tenantId], onDelete: NoAction, onUpdate: NoAction)
+  supplierId             String?
+  supplier               Supplier?              @relation(fields: [supplierId, tenantId], references: [id, tenantId], onDelete: NoAction, onUpdate: NoAction)
+  // Null means inherit the brand policy; UNKNOWN explicitly overrides it.
+  ownershipOverride      StockOwnership?
+  commissionRateOverride Decimal?               @db.Decimal(9, 8)
+  productKind            MerchandiseProductKind @default(UNKNOWN)
+  barcode                String?
+  // Only verified external supplier receipts may populate this timestamp.
+  firstReceiptAt         DateTime?              @db.Timestamptz(3)
 
   salesRecords       SalesRecord[]
   inventorySnapshots InventorySnapshot[]
+  aliases            SkuAlias[]
+  orderLines         OrderLine[]
+  receiptLines       ReceiptLine[]
+  priceHistory       PriceHistory[]
+  daily              SkuDaily[]
 
+  @@unique([id, tenantId])
   @@unique([tenantId, sku])
   @@index([tenantId])
   @@index([tenantId, category])
+  @@index([tenantId, categoryId])
 }
 
 enum SkuStatus {
@@ -148,7 +186,7 @@ model SalesRecord {
   tenantId String
   tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   skuId    String
-  sku      Sku      @relation(fields: [skuId], references: [id], onDelete: Cascade)
+  sku      Sku      @relation(fields: [skuId, tenantId], references: [id, tenantId], onDelete: Cascade)
   date     DateTime @db.Date
   qtySold  Int
   revenue  Float
@@ -156,26 +194,38 @@ model SalesRecord {
   isPromo  Boolean  @default(false)
   returns  Int      @default(0)
 
+  @@unique([tenantId, skuId, date, channel])
   @@index([tenantId, date])
   @@index([skuId])
-  @@unique([tenantId, skuId, date, channel])
 }
 
 // ─── INVENTORY ────────────────────────────────────────────────────────────────
 model InventorySnapshot {
-  id           String   @id @default(cuid())
-  tenantId     String
-  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  skuId        String
-  sku          Sku      @relation(fields: [skuId], references: [id], onDelete: Cascade)
-  qtyOnHand    Int
-  qtyReserved  Int      @default(0)
-  qtyInTransit Int      @default(0)
-  snapshotDate DateTime @db.Date
+  id                  String         @id @default(cuid())
+  tenantId            String
+  tenant              Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  skuId               String
+  sku                 Sku            @relation(fields: [skuId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  qtyOnHand           Int
+  qtyReserved         Int            @default(0)
+  qtyInTransit        Int            @default(0)
+  snapshotDate        DateTime       @db.Date
+  // Null provenance on legacy rows is intentional: a date is not an observation time.
+  observedAt          DateTime?      @db.Timestamptz(3)
+  timezone            String?
+  costPrice           Decimal?       @db.Decimal(18, 4)
+  retailPrice         Decimal?       @db.Decimal(18, 4)
+  currency            String?
+  inTransitVerifiedAt DateTime?      @db.Timestamptz(3)
+  sourceId            String?
+  source              DataSource?    @relation(fields: [sourceId, tenantId], references: [id, tenantId], onDelete: NoAction, onUpdate: NoAction)
+  importRunId         String?
+  importRun           DataImportRun? @relation(fields: [importRunId, sourceId, tenantId], references: [id, sourceId, tenantId], onDelete: NoAction, onUpdate: NoAction)
+  sourceRecordKey     String?
 
+  @@unique([tenantId, skuId, snapshotDate])
   @@index([tenantId, snapshotDate])
   @@index([skuId])
-  @@unique([tenantId, skuId, snapshotDate])
 }
 
 // ─── PROMO ────────────────────────────────────────────────────────────────────
@@ -244,18 +294,30 @@ model DataSource {
   tenantId          String
   tenant            Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   name              String         @default("ZAVOD Google Sheets")
-  driveFileId       String
+  kind              DataSourceKind @default(GOOGLE_SHEETS)
+  driveFileId       String?
+  // Stable account/feed identity for non-Sheets connectors; never credentials.
+  sourceKey         String?
   timezone          String         @default("Europe/Kyiv")
   allowedSheets     Json           @default("[]")
   activeImportRunId String?        @unique
-  activeImportRun   DataImportRun? @relation("ActiveDataSourceImport", fields: [activeImportRunId], references: [id], onDelete: SetNull)
+  activeImportRun   DataImportRun? @relation("ActiveDataSourceImport", fields: [activeImportRunId, id, tenantId], references: [id, sourceId, tenantId], onDelete: NoAction, onUpdate: NoAction)
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
 
-  importRuns DataImportRun[] @relation("DataSourceImports")
+  importRuns         DataImportRun[]     @relation("DataSourceImports")
+  records            DataSourceRecord[]
+  aliases            SkuAlias[]
+  orderLines         OrderLine[]
+  receipts           Receipt[]
+  inventorySnapshots InventorySnapshot[]
+  priceHistory       PriceHistory[]
+  cursors            SyncCursor[]
 
   @@unique([id, tenantId])
+  @@unique([activeImportRunId, id, tenantId], map: "DataSource_active_run_scope_key")
   @@unique([tenantId, driveFileId])
+  @@unique([tenantId, kind, sourceKey])
   @@index([tenantId])
 }
 
@@ -278,14 +340,21 @@ model DataImportRun {
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 
-  activeForSource DataSource?            @relation("ActiveDataSourceImport")
-  sheets          DataSheetSnapshot[]
-  products        SourceProduct[]
-  saleLines       SourceSaleLine[]
-  issues          ImportIssue[]
-  calculations    ReportCalculationRun[]
+  activeForSource    DataSource?            @relation("ActiveDataSourceImport")
+  sheets             DataSheetSnapshot[]
+  products           SourceProduct[]
+  saleLines          SourceSaleLine[]
+  issues             ImportIssue[]
+  calculations       ReportCalculationRun[]
+  records            DataSourceRecord[]
+  orderLines         OrderLine[]
+  receipts           Receipt[]
+  inventorySnapshots InventorySnapshot[]
+  priceHistory       PriceHistory[]
+  cursors            SyncCursor[]
 
   @@unique([id, tenantId])
+  @@unique([id, sourceId, tenantId])
   @@unique([tenantId, idempotencyKey])
   @@index([tenantId, status, startedAt])
   @@index([sourceId, createdAt])
@@ -550,48 +619,49 @@ model DataTablePreference {
 
 // ─── CATALOG UPLOAD (one per brand per season) ────────────────────────────────
 model CatalogUpload {
-  id         String        @id @default(cuid())
+  id         String   @id @default(cuid())
   tenantId   String
-  tenant     Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   brandId    String
-  brand      Brand         @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  season     String        // e.g. "SS25", "AW25"
+  brand      Brand    @relation(fields: [brandId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  season     String // e.g. "SS25", "AW25"
   fileName   String?
-  itemCount  Int           @default(0)
-  uploadedAt DateTime      @default(now())
+  itemCount  Int      @default(0)
+  uploadedAt DateTime @default(now())
 
   items CatalogItem[]
 
+  @@unique([id, brandId, tenantId])
+  @@unique([tenantId, brandId, season])
   @@index([tenantId])
   @@index([brandId])
-  @@unique([tenantId, brandId, season])
 }
 
 // ─── CATALOG ITEM (individual line in a brand's wholesale catalog) ─────────────
 model CatalogItem {
-  id            String        @id @default(cuid())
-  tenantId      String
-  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  catalogId     String
-  catalog       CatalogUpload @relation(fields: [catalogId], references: [id], onDelete: Cascade)
-  brandId       String
-  brand         Brand         @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  sku           String
-  name          String
-  category      String
-  color         String?
-  style         String?
-  material      String?
+  id             String        @id @default(cuid())
+  tenantId       String
+  tenant         Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  catalogId      String
+  catalog        CatalogUpload @relation(fields: [catalogId, brandId, tenantId], references: [id, brandId, tenantId], onDelete: Cascade)
+  brandId        String
+  brand          Brand         @relation(fields: [brandId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  sku            String
+  name           String
+  category       String
+  color          String?
+  style          String?
+  material       String?
   priceWholesale Float
-  priceRetail   Float?
-  minOrder      Int           @default(1)
-  stockAvail    Int           @default(0)
-  leadTimeDays  Int           @default(28)
-  tags          String[]      @default([])
+  priceRetail    Float?
+  minOrder       Int           @default(1)
+  stockAvail     Int           @default(0)
+  leadTimeDays   Int           @default(28)
+  tags           String[]      @default([])
 
+  @@unique([tenantId, catalogId, sku])
   @@index([tenantId, catalogId])
   @@index([tenantId, category])
-  @@unique([tenantId, catalogId, sku])
 }
 
 // ─── MARKETING CALENDAR EVENTS ────────────────────────────────────────────────
@@ -623,7 +693,7 @@ model AgentRun {
   id         String    @id @default(cuid())
   tenantId   String
   tenant     Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  agentType  String    // "inventory_analyst" | "repricing" | "reordering" | ...
+  agentType  String // "inventory_analyst" | "repricing" | "reordering" | ...
   entityId   String    @default("all") // brandId or "all"
   status     String    @default("idle") // "running" | "done" | "error"
   input      Json      @default("{}")
@@ -643,4 +713,331 @@ model PlannerCart {
   tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   items     Json     @default("[]") // CartItem[]
   updatedAt DateTime @updatedAt
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// MERCHANDISING MVP — additive, versioned separately from legacy calculations
+// ══════════════════════════════════════════════════════════════════════════════
+
+enum DataSourceKind {
+  GOOGLE_SHEETS
+  SALESDRIVE
+  YML
+}
+
+enum StockOwnership {
+  UNKNOWN
+  OWN
+  CONSIGNMENT
+}
+
+enum MerchandiseProductKind {
+  UNKNOWN
+  MERCHANDISE
+  SERVICE
+  GIFT_CARD
+}
+
+enum SkuAliasType {
+  SKU
+  BARCODE
+  VENDOR_CODE
+  SOURCE_PRODUCT_ID
+}
+
+enum OrderLineKind {
+  UNKNOWN
+  SALE
+  RETURN
+  PREORDER
+  REFUSAL
+}
+
+enum ReceiptMovementType {
+  UNKNOWN
+  SUPPLIER_RECEIPT
+  TRANSFER
+  WRITE_OFF
+  INVENTORY_ADJUSTMENT
+}
+
+enum MerchandisingConfigType {
+  GENERAL
+  THRESHOLDS
+  SOURCE_MAPPING
+  EXCLUSIONS
+  REPRICING
+  REORDERING
+}
+
+model Category {
+  id               String    @id @default(cuid())
+  tenantId         String
+  tenant           Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  key              String
+  name             String
+  // Calendar months in Europe/Kyiv, not wholesale collection labels like SS25.
+  seasonMonths     Int[]     @default([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
+  seasonVerifiedAt DateTime? @db.Timestamptz(3)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  skus             Sku[]
+
+  @@unique([id, tenantId])
+  @@unique([tenantId, key])
+}
+
+model Supplier {
+  id              String    @id @default(cuid())
+  tenantId        String
+  tenant          Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  key             String
+  name            String
+  leadTimeDays    Int?
+  coverDays       Int?
+  moq             Int?
+  termsVerifiedAt DateTime? @db.Timestamptz(3)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  brands          Brand[]
+  skus            Sku[]
+  receipts        Receipt[]
+
+  @@unique([id, tenantId])
+  @@unique([tenantId, key])
+}
+
+model SkuAlias {
+  id        String       @id @default(cuid())
+  tenantId  String
+  tenant    Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  skuId     String
+  sku       Sku          @relation(fields: [skuId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  sourceId  String
+  source    DataSource   @relation(fields: [sourceId, tenantId], references: [id, tenantId], onDelete: NoAction, onUpdate: NoAction)
+  type      SkuAliasType
+  value     String
+  createdAt DateTime     @default(now())
+
+  @@unique([tenantId, sourceId, type, value])
+  @@index([tenantId, skuId])
+}
+
+// Generic API/YML payloads share the existing DataSource/DataImportRun lifecycle.
+// Immutable per run; normalized facts below retain source identity across runs.
+model DataSourceRecord {
+  id              String        @id @default(cuid())
+  tenantId        String
+  tenant          Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sourceId        String
+  source          DataSource    @relation(fields: [sourceId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  importRunId     String
+  importRun       DataImportRun @relation(fields: [importRunId, sourceId, tenantId], references: [id, sourceId, tenantId], onDelete: Cascade)
+  resource        String
+  externalId      String
+  payload         Json
+  payloadHash     String
+  observedAt      DateTime      @db.Timestamptz(3)
+  sourceUpdatedAt DateTime?     @db.Timestamptz(3)
+  createdAt       DateTime      @default(now())
+
+  @@unique([importRunId, resource, externalId])
+  @@index([tenantId, sourceId, resource, externalId])
+}
+
+model OrderLine {
+  id                String        @id @default(cuid())
+  tenantId          String
+  tenant            Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sourceId          String
+  source            DataSource    @relation(fields: [sourceId, tenantId], references: [id, tenantId], onDelete: NoAction, onUpdate: NoAction)
+  importRunId       String
+  importRun         DataImportRun @relation(fields: [importRunId, sourceId, tenantId], references: [id, sourceId, tenantId], onDelete: NoAction, onUpdate: NoAction)
+  externalOrderId   String
+  externalLineId    String
+  // Stable source event identity (e.g. partial refund ID); never the import run.
+  eventKey          String        @default("current")
+  skuId             String?
+  sku               Sku?          @relation(fields: [skuId, tenantId], references: [id, tenantId], onDelete: NoAction, onUpdate: NoAction)
+  externalProductId String?
+  statusId          Int?
+  channelId         String?
+  kind              OrderLineKind @default(UNKNOWN)
+  orderedAt         DateTime?     @db.Timestamptz(3)
+  paidAt            DateTime?     @db.Timestamptz(3)
+  returnedAt        DateTime?     @db.Timestamptz(3)
+  dateInferred      Boolean       @default(false)
+  quantity          Decimal       @db.Decimal(18, 4)
+  netAmount         Decimal?      @db.Decimal(18, 4)
+  costAmount        Decimal?      @db.Decimal(18, 4)
+  currency          String?
+  sourceRecordKey   String
+  sourceUpdatedAt   DateTime?     @db.Timestamptz(3)
+  observedAt        DateTime      @db.Timestamptz(3)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@unique([tenantId, sourceId, externalOrderId, externalLineId, eventKey], map: "OrderLine_source_identity_key")
+  @@index([tenantId, paidAt, statusId])
+  @@index([tenantId, returnedAt])
+  @@index([tenantId, skuId, paidAt])
+  @@index([tenantId, channelId, paidAt])
+  @@index([importRunId, sourceId, tenantId])
+}
+
+model Receipt {
+  id                String              @id @default(cuid())
+  tenantId          String
+  tenant            Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sourceId          String
+  source            DataSource          @relation(fields: [sourceId, tenantId], references: [id, tenantId], onDelete: NoAction, onUpdate: NoAction)
+  importRunId       String
+  importRun         DataImportRun       @relation(fields: [importRunId, sourceId, tenantId], references: [id, sourceId, tenantId], onDelete: NoAction, onUpdate: NoAction)
+  externalId        String
+  movementType      ReceiptMovementType @default(UNKNOWN)
+  sourceStatus      String?
+  postingVerifiedAt DateTime?           @db.Timestamptz(3)
+  supplierId        String?
+  supplier          Supplier?           @relation(fields: [supplierId, tenantId], references: [id, tenantId], onDelete: NoAction, onUpdate: NoAction)
+  receivedAt        DateTime?           @db.Timestamptz(3)
+  observedAt        DateTime            @db.Timestamptz(3)
+  sourceUpdatedAt   DateTime?           @db.Timestamptz(3)
+  sourceRecordKey   String
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  lines             ReceiptLine[]
+
+  @@unique([id, tenantId])
+  @@unique([tenantId, sourceId, externalId])
+  @@index([tenantId, movementType, receivedAt])
+  @@index([importRunId, sourceId, tenantId])
+}
+
+model ReceiptLine {
+  id                String   @id @default(cuid())
+  tenantId          String
+  tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  receiptId         String
+  receipt           Receipt  @relation(fields: [receiptId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  externalLineId    String
+  skuId             String?
+  sku               Sku?     @relation(fields: [skuId, tenantId], references: [id, tenantId], onDelete: NoAction, onUpdate: NoAction)
+  externalProductId String?
+  quantity          Decimal  @db.Decimal(18, 4)
+  unitCost          Decimal? @db.Decimal(18, 4)
+  currency          String?
+
+  @@unique([receiptId, externalLineId])
+  @@index([tenantId, skuId])
+}
+
+model PriceHistory {
+  id              String        @id @default(cuid())
+  tenantId        String
+  tenant          Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  skuId           String
+  sku             Sku           @relation(fields: [skuId, tenantId], references: [id, tenantId], onDelete: NoAction, onUpdate: NoAction)
+  sourceId        String
+  source          DataSource    @relation(fields: [sourceId, tenantId], references: [id, tenantId], onDelete: NoAction, onUpdate: NoAction)
+  importRunId     String
+  importRun       DataImportRun @relation(fields: [importRunId, sourceId, tenantId], references: [id, sourceId, tenantId], onDelete: NoAction, onUpdate: NoAction)
+  // Stable source revision/observation key deduplicates retries across runs.
+  sourceRecordKey String
+  effectiveAt     DateTime?     @db.Timestamptz(3)
+  observedAt      DateTime      @db.Timestamptz(3)
+  retailPrice     Decimal?      @db.Decimal(18, 4)
+  costPrice       Decimal?      @db.Decimal(18, 4)
+  currency        String?
+  createdAt       DateTime      @default(now())
+
+  @@unique([tenantId, sourceId, skuId, sourceRecordKey], map: "PriceHistory_source_identity_key")
+  @@index([tenantId, skuId, observedAt])
+  @@index([importRunId, sourceId, tenantId])
+}
+
+model MerchandisingConfig {
+  id                String                  @id @default(cuid())
+  tenantId          String
+  tenant            Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  configType        MerchandisingConfigType
+  key               String                  @default("default")
+  revision          Int
+  values            Json
+  // Approved values are not automatically activated. Active revision is unique in SQL.
+  isActive          Boolean                 @default(false)
+  approvedById      String?
+  approvedBy        User?                   @relation(fields: [approvedById, tenantId], references: [id, tenantId], onDelete: NoAction, onUpdate: NoAction)
+  approvedAt        DateTime?               @db.Timestamptz(3)
+  approvalReference String?
+  createdAt         DateTime                @default(now())
+  daily             SkuDaily[]
+  actions           MerchandisingAction[]
+
+  @@unique([id, tenantId])
+  @@unique([tenantId, configType, key, revision], map: "MerchandisingConfig_revision_key")
+}
+
+// Versioned derived daily results, not another raw inventory/product system.
+model SkuDaily {
+  id                 String              @id @default(cuid())
+  tenantId           String
+  tenant             Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  skuId              String
+  sku                Sku                 @relation(fields: [skuId, tenantId], references: [id, tenantId], onDelete: NoAction, onUpdate: NoAction)
+  businessDate       DateTime            @db.Date
+  configId           String
+  config             MerchandisingConfig @relation(fields: [configId, tenantId], references: [id, tenantId], onDelete: NoAction, onUpdate: NoAction)
+  calculationVersion Int
+  // Input run IDs/checksums, snapshot timestamps and coverage belong here.
+  inputProvenance    Json
+  salesQuantity      Decimal?            @db.Decimal(18, 4)
+  netRevenue         Decimal?            @db.Decimal(18, 4)
+  grossProfit        Decimal?            @db.Decimal(18, 4)
+  currency           String?
+  velocityPerWeek    Decimal?            @db.Decimal(20, 10)
+  weeksOnHand        Decimal?            @db.Decimal(20, 10)
+  classification     String?
+  diagnostics        Json                @default("[]")
+  calculatedAt       DateTime            @default(now()) @db.Timestamptz(3)
+
+  @@unique([tenantId, skuId, businessDate, configId, calculationVersion], map: "SkuDaily_version_key")
+  @@index([tenantId, businessDate, classification])
+}
+
+model MerchandisingAction {
+  id             String               @id @default(cuid())
+  tenantId       String
+  tenant         Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  actorId        String?
+  actor          User?                @relation(fields: [actorId, tenantId], references: [id, tenantId], onDelete: NoAction, onUpdate: NoAction)
+  configId       String?
+  config         MerchandisingConfig? @relation(fields: [configId, tenantId], references: [id, tenantId], onDelete: NoAction, onUpdate: NoAction)
+  action         String
+  entityType     String
+  entityId       String?
+  idempotencyKey String
+  before         Json?
+  after          Json?
+  context        Json                 @default("{}")
+  createdAt      DateTime             @default(now()) @db.Timestamptz(3)
+
+  @@unique([tenantId, idempotencyKey])
+  @@index([tenantId, createdAt])
+  @@index([tenantId, entityType, entityId])
+}
+
+model SyncCursor {
+  id                  String        @id @default(cuid())
+  tenantId            String
+  tenant              Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sourceId            String
+  source              DataSource    @relation(fields: [sourceId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  resource            String
+  // Only commit after a successful import; run status is checked by the sync worker.
+  checkpoint          Json
+  lastSuccessfulRunId String
+  lastSuccessfulRun   DataImportRun @relation(fields: [lastSuccessfulRunId, sourceId, tenantId], references: [id, sourceId, tenantId], onDelete: NoAction, onUpdate: NoAction)
+  updatedAt           DateTime      @updatedAt
+
+  @@unique([tenantId, sourceId, resource])
 }

@@ -1,4 +1,5 @@
 import { DataRunStatus, Prisma, type PrismaClient } from "@prisma/client";
+import { SHEETS_SOURCE_FILTER } from "@/lib/data-source";
 import { prisma } from "@/lib/prisma";
 import { kyivBusinessDate } from "@/lib/data-import-workbook";
 import { calculateGroupedReportRows } from "@/lib/grouped-reports";
@@ -349,6 +350,7 @@ export async function calculateArticleReport(
   const period = resolveArticleReportPeriod({ dateFrom, dateTo, asOfDate, now });
   const sourceImport = await db.dataImportRun.findFirst({
     where: {
+      source: SHEETS_SOURCE_FILTER,
       id: importRunId,
       tenantId,
       status: { in: [DataRunStatus.SUCCESS, DataRunStatus.WARNING] },

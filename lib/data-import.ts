@@ -111,6 +111,12 @@ async function pruneInactiveImportRuns(
       tenantId,
       sourceId,
       status: { in: PRUNABLE_IMPORT_STATUSES },
+      // Retain provenance while any merchandising fact/checkpoint uses the run.
+      orderLines: { none: {} },
+      receipts: { none: {} },
+      priceHistory: { none: {} },
+      inventorySnapshots: { none: {} },
+      cursors: { none: {} },
       ...(activeImportRunId ? { id: { not: activeImportRunId } } : {}),
     },
   });

@@ -1,6 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { DataImportTrigger } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { SHEETS_SOURCE_FILTER } from "@/lib/data-source";
 import { runDataPipeline, type DataPipelineResult } from "@/lib/data-pipeline";
 
 export const DATA_SCHEDULE_TIMEZONE = "Europe/Kyiv";
@@ -29,6 +30,7 @@ export interface ScheduledTenantResult {
 interface SchedulerDatabase {
   dataSource: {
     findMany(args: {
+      where: typeof SHEETS_SOURCE_FILTER;
       select: { tenantId: true };
       distinct: ["tenantId"];
       orderBy: { tenantId: "asc" };
@@ -114,6 +116,7 @@ export async function runScheduledDataPipelines(
   pipeline: Pipeline = runDataPipeline
 ): Promise<ScheduledTenantResult[]> {
   const sources = await db.dataSource.findMany({
+    where: SHEETS_SOURCE_FILTER,
     select: { tenantId: true },
     distinct: ["tenantId"],
     orderBy: { tenantId: "asc" },

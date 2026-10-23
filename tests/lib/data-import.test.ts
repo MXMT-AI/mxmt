@@ -167,7 +167,7 @@ describe("atomic raw import", () => {
     });
   });
 
-  it("prunes terminal inactive imports while preserving the active and running runs", async () => {
+  it("prunes only terminal inactive imports without merchandising dependents", async () => {
     const buffer = importBuffer();
     const db = fakeDatabase({
       activeChecksum: sourceWorkbookChecksum(parseRawWorkbook(buffer)),
@@ -186,6 +186,11 @@ describe("atomic raw import", () => {
         status: {
           in: [DataRunStatus.SUCCESS, DataRunStatus.WARNING, DataRunStatus.FAILED],
         },
+        orderLines: { none: {} },
+        receipts: { none: {} },
+        priceHistory: { none: {} },
+        inventorySnapshots: { none: {} },
+        cursors: { none: {} },
         id: { not: "active-run" },
       },
     });
@@ -196,6 +201,11 @@ describe("atomic raw import", () => {
         status: {
           in: [DataRunStatus.SUCCESS, DataRunStatus.WARNING, DataRunStatus.FAILED],
         },
+        orderLines: { none: {} },
+        receipts: { none: {} },
+        priceHistory: { none: {} },
+        inventorySnapshots: { none: {} },
+        cursors: { none: {} },
         id: { not: "run-1" },
       },
     });
