@@ -29,3 +29,6 @@ next-env.d.ts
 # Google service account key (keep out of git)
 service-account.json
 *.json.key
+
+# Local documentation and thesis materials
+/docs/

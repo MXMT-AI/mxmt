@@ -233,6 +233,14 @@ describe("merchandising migration on PostgreSQL", () => {
     await rejects('UPDATE "DataSource" SET "driveFileId"=\'sheet\' WHERE id=\'api-a\'', "23514");
   });
 
+  it.each(["SALESDRIVE", "YML"])("prevents a %s source from claiming a configured Sheets file", async (kind) => {
+    await rejects(`INSERT INTO "DataSource" (id,"tenantId",kind,"sourceKey","driveFileId","updatedAt")
+      VALUES ('wrong-kind','a','${kind}','account','sheet',now())`, "23514");
+    await rejects(`UPDATE "DataSource" SET kind='${kind}',"sourceKey"='account' WHERE id='sheets-a'`, "23514");
+    expect((await db.query('SELECT kind,"driveFileId" FROM "DataSource" WHERE id=\'sheets-a\'')).rows)
+      .toEqual([{ kind: "GOOGLE_SHEETS", driveFileId: "sheet" }]);
+  });
+
   it("supports whole-tenant deletion through the composite relation graph", async () => {
     await seedMerchandising();
     await db.exec(`UPDATE "DataSource" SET "activeImportRunId"='run-a' WHERE id='api-a';

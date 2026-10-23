@@ -64,8 +64,16 @@ new calculations or scheduling.
    import and report tables. Run the pending migration on staging with
    `npm run db:migrate:deploy`. It is one transaction and aborts on inconsistent
    tenant/source/brand links; investigate those records and resolve them through a
-   reviewed data correction before retrying. The migration never deletes or
-   reassigns inconsistent records.
+   reviewed data correction before retrying. Confirm that the transaction rolled
+   back and no migration DDL remains, inspect the failed entry in
+   `_prisma_migrations`, then run
+   `npx prisma migrate resolve --rolled-back 20261023000000_merchandising_data_model`
+   against that same staging database before retrying `npm run db:migrate:deploy`.
+   Otherwise Prisma blocks later deploys with P3009. This recovery applies only to
+   a failed migration whose changes have been rolled back; it does not reverse a
+   successful migration (see the rollback section below). The migration never
+   deletes or reassigns inconsistent records. See the
+   [Prisma failed-migration recovery guidance](https://www.prisma.io/docs/orm/v6/prisma-migrate/workflows/patching-and-hotfixing#option-1-mark-the-migration-as-rolled-back-and-re-deploy).
 4. Compare the recorded legacy counts/totals and active imports. Verify both tenants'
    reporting, scheduler selection, catalog upload and brand deletion. Optional
    SKU/brand links use `NO ACTION` to protect the required tenant column; the brand
