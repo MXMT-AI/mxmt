@@ -60,7 +60,12 @@ export interface ConnectorPage<T> {
   nextPage: number | null;
   observedAt: string;
 }
-export interface PageRequest { page?: number; limit?: number; updatedFrom?: string }
+export interface PageRequest {
+  page?: number;
+  limit?: number;
+  /** ISO UTC instant (YYYY-MM-DDTHH:mm:ss[.SSS]Z), including observedAt values. */
+  updatedFrom?: string;
+}
 export interface ConnectorCapabilities {
   orders: boolean;
   products: boolean;

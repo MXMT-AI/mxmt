@@ -3,6 +3,7 @@ import { XMLParser, XMLValidator } from "fast-xml-parser";
 import { isRecord } from "@/lib/api-contracts";
 import { fetchWithTimeout } from "@/lib/server-fetch";
 import { parseSalesDriveCredentials, type SalesDriveCredentials } from "./config";
+import { utcWatermark } from "./requests";
 import type { CheckCode, ConnectionCheck, ConnectorCapabilities, ConnectorPage, Dictionary, MerchandisingConnector, OrderDto, PageRequest, ProductDto, ReceiptDto, StockDto } from "./contract";
 
 export class ConnectorReadError extends Error {
@@ -51,7 +52,7 @@ export class SalesDriveConnector implements MerchandisingConnector {
   private readonly credentials: SalesDriveCredentials;
   private catalog: Promise<{ records: ProductDto[]; quantities: Array<string | null>; observedAt: string }> | null = null;
 
-  constructor(credentials: SalesDriveCredentials, private readonly fetcher: Fetcher = fetchWithTimeout) {
+  constructor(credentials: SalesDriveCredentials, private readonly fetcher: Fetcher = fetchWithTimeout, private readonly sourceTimezone = "Europe/Kyiv") {
     const parsed = parseSalesDriveCredentials(credentials);
     if (!parsed.credentials) throw new ConnectorReadError("NOT_CONFIGURED");
     this.credentials = parsed.credentials;
@@ -84,9 +85,17 @@ export class SalesDriveConnector implements MerchandisingConnector {
     const url = new URL(path, `https://${this.credentials.accountHost}`);
     if (path !== "/api/statuses/") {
       url.searchParams.set("page", String(page)); url.searchParams.set("limit", String(limit));
-      if (request.updatedFrom) {
-        if (!/^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d$/.test(request.updatedFrom)) throw new ConnectorReadError("INVALID_RESPONSE");
-        url.searchParams.set(path === "/api/order/list/" ? "filter[updateAt][from]" : "filter[updatedAt][from]", request.updatedFrom);
+      if (request.updatedFrom !== undefined) {
+        const instant = utcWatermark(request.updatedFrom);
+        if (!instant) throw new ConnectorReadError("INVALID_RESPONSE");
+        let localTime: string;
+        try {
+          const parts = new Intl.DateTimeFormat("en-CA", { timeZone: this.sourceTimezone, year: "numeric", month: "2-digit", day: "2-digit",
+            hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" }).formatToParts(instant);
+          const part = (name: string) => parts.find((value) => value.type === name)!.value;
+          localTime = `${part("year")}-${part("month")}-${part("day")} ${part("hour")}:${part("minute")}:${part("second")}`;
+        } catch { throw new ConnectorReadError("INVALID_RESPONSE"); }
+        url.searchParams.set(path === "/api/order/list/" ? "filter[updateAt][from]" : "filter[updatedAt][from]", localTime);
       }
     }
     try {
@@ -161,6 +170,7 @@ export class SalesDriveConnector implements MerchandisingConnector {
       });
       return { records, quantities: offers.map((offer) => decimal(offer.quantity_in_stock)), observedAt };
     })().catch((error) => {
+      this.catalog = null;
       if (error instanceof ConnectorReadError) throw error;
       throw new ConnectorReadError("INVALID_RESPONSE");
     });
@@ -182,8 +192,10 @@ export class SalesDriveConnector implements MerchandisingConnector {
   /** A current feed observation cannot supply historical or in-transit stock. */
   async getStock(request: PageRequest = {}): Promise<ConnectorPage<StockDto>> {
     const catalog = await this.loadCatalog();
-    return this.catalogPage(catalog.records.map((product, index) => ({ externalId: product.externalId, productId: product.externalId,
-      observedAt: catalog.observedAt, updatedAt: null, onHand: catalog.quantities[index], inTransit: null })), catalog.observedAt, request);
+    const page = this.catalogPage(catalog.records, catalog.observedAt, request);
+    const offset = ((request.page ?? 1) - 1) * (request.limit ?? 100);
+    return { ...page, records: page.records.map((product, index) => ({ externalId: product.externalId, productId: product.externalId,
+      observedAt: catalog.observedAt, updatedAt: null, onHand: catalog.quantities[offset + index], inTransit: null })) };
   }
 
   private safeName(value: string): string {

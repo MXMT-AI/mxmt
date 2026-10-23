@@ -1,4 +1,5 @@
 import type { ConnectionCheck, ConnectorCapabilities, ConnectorPage, Dictionary, MerchandisingConnector, OrderDto, PageRequest, ProductDto, ReceiptDto, StockDto } from "@/lib/connectors/contract";
+import { utcWatermark } from "@/lib/connectors/requests";
 
 /** In-memory adapter used by the same consumer contract suite as SalesDrive. */
 export class MockConnector implements MerchandisingConnector {
@@ -7,6 +8,7 @@ export class MockConnector implements MerchandisingConnector {
     channels: "complete", incrementalOrders: true, incrementalReceipts: true, historicalStock: false, writes: false };
   constructor(private readonly fixtures: { orders: OrderDto[]; products: ProductDto[]; stock: StockDto[]; receipts: ReceiptDto[] }) {}
   private page<T>(records: T[], request: PageRequest = {}): ConnectorPage<T> {
+    if (request.updatedFrom !== undefined && !utcWatermark(request.updatedFrom)) throw new Error("INVALID_RESPONSE");
     const page = request.page ?? 1, limit = request.limit ?? 100;
     return { records: structuredClone(records.slice((page - 1) * limit, page * limit)), nextPage: page * limit < records.length ? page + 1 : null, observedAt: new Date().toISOString() };
   }

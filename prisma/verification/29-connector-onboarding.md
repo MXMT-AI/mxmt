@@ -9,6 +9,16 @@ Shopify and CSV adapters implement this contract; formulas remain in calculation
 consumers. `tests/fixtures/mock-connector.ts` implements it independently and passes
 the same consumer assertions as SalesDrive.
 
+Incremental `PageRequest.updatedFrom` is an ISO UTC instant in
+`YYYY-MM-DDTHH:mm:ss[.SSS]Z` form, compatible with `ConnectorPage.observedAt`.
+The adapter converts it to the source timezone's `YYYY-MM-DD HH:mm:ss` filter;
+fractional seconds round down so the inclusive watermark does not skip records.
+The source timezone defaults to `Europe/Kyiv` and can be supplied explicitly to
+the adapter. Confirm the account timezone under E02 before durable ingestion;
+do not assume this default is universal. DST overlap windows and deduplication
+remain the responsibility of #30/#32. Ambiguous local, offset or invalid calendar
+input is rejected before an API request.
+
 The current official [SalesDrive Swagger](https://api.salesdrive.me/api/docs/) and
 [OpenAPI](https://api.salesdrive.me/swagger/openapi-uk.php) were checked October 23,
 2026. OpenAPI 3.1.1 SHA-256:
@@ -46,6 +56,9 @@ that bounded snapshot; future bulk ingestion must reuse the same adapter/feed
 instance to avoid mixing observations. There is no global shared credential/feed
 cache. Full refresh, durable raw storage/checkpoints, deduplication and calculation
 activation belong to #30–#38 rather than the onboarding probes.
+Failed catalog loads are evicted: concurrent callers share that failure and a
+later call may reload; successful observations remain shared. Stock DTO projection
+maps only the requested page and preserves the original quantities' indexes.
 
 ## Setup and public API
 
@@ -86,6 +99,11 @@ fails closed. No plaintext credentials are stored in source metadata, settings
 JSON, audit logs, local storage or response payloads. They necessarily pass through
 the administrator's input and same-origin HTTPS save request once; they are never
 returned to the browser by the server.
+Encryption and decryption both require 16-byte authentication tags; shortened tags
+are rejected, following the
+[Node.js GCM tag-length API](https://nodejs.org/api/crypto.html#deciphersetauthtagbuffer-encoding).
+API-key validation rejects characters above U+00FF before transport while retaining
+header-compatible Latin-1 values and the existing whitespace/control restrictions.
 
 Key rotation requires decrypting/re-encrypting existing rows under a controlled
 server-side procedure while retaining the old key for recovery. Do not simply

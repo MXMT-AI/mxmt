@@ -12,7 +12,7 @@ function encryptionKey(): Buffer {
 /** Authenticated tenant-bound encryption; swapping ciphertext across tenants fails. */
 export function encryptCredentials(value: unknown, tenantId: string): string {
   const nonce = randomBytes(12);
-  const cipher = createCipheriv("aes-256-gcm", encryptionKey(), nonce);
+  const cipher = createCipheriv("aes-256-gcm", encryptionKey(), nonce, { authTagLength: 16 });
   cipher.setAAD(Buffer.from(`connector:v1:${tenantId}:salesdrive`));
   const encrypted = Buffer.concat([cipher.update(JSON.stringify(value), "utf8"), cipher.final()]);
   return ["v1", nonce.toString("base64"), cipher.getAuthTag().toString("base64"), encrypted.toString("base64")].join(".");
@@ -23,7 +23,7 @@ export function decryptCredentials(value: string, tenantId: string): unknown {
   try {
     const [version, nonce, tag, payload, extra] = value.split(".");
     if (version !== "v1" || !nonce || !tag || !payload || extra) throw new Error();
-    const decipher = createDecipheriv("aes-256-gcm", encryptionKey(), Buffer.from(nonce, "base64"));
+    const decipher = createDecipheriv("aes-256-gcm", encryptionKey(), Buffer.from(nonce, "base64"), { authTagLength: 16 });
     decipher.setAAD(Buffer.from(`connector:v1:${tenantId}:salesdrive`));
     decipher.setAuthTag(Buffer.from(tag, "base64"));
     return JSON.parse(Buffer.concat([decipher.update(Buffer.from(payload, "base64")), decipher.final()]).toString("utf8"));

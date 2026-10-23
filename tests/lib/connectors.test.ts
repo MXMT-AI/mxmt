@@ -47,6 +47,13 @@ describe.each(["salesdrive", "mock"])("shared %s connector contract", (provider)
     expect((await connector.getChannels()).entries).toEqual([{ id: "10", name: "Shop" }]);
     expect((await connector.checkConnection()).ok).toBe(true);
   });
+  it("accepts an observed UTC instant as an incremental watermark", async () => {
+    const connector = await adapter();
+    const observedAt = (await connector.getOrders()).observedAt;
+    await expect(connector.getOrders({ updatedFrom: observedAt })).resolves.toMatchObject({ nextPage: null });
+    await expect(connector.getReceipts({ updatedFrom: observedAt })).resolves.toMatchObject({ nextPage: null });
+    await expect(connector.getOrders({ updatedFrom: "2026-10-01 00:00:00" })).rejects.toThrow();
+  });
 });
 
 describe("SalesDrive read transport", () => {
@@ -63,11 +70,31 @@ describe("SalesDrive read transport", () => {
   it("uses distinct update filter names and honours pagination", async () => {
     const fetcher = vi.fn(async () => Response.json({ status: "success", data: [], pagination: { pageCount: 3 } }));
     const connector = new SalesDriveConnector(credentials, fetcher);
-    expect((await connector.getOrders({ page: 2, limit: 50, updatedFrom: "2026-10-01 00:00:00" })).nextPage).toBe(3);
-    await connector.getReceipts({ updatedFrom: "2026-10-01 00:00:00" });
+    expect((await connector.getOrders({ page: 2, limit: 50, updatedFrom: "2026-10-01T00:00:00.000Z" })).nextPage).toBe(3);
+    await connector.getReceipts({ updatedFrom: "2026-10-01T00:00:00.000Z" });
     const calls = fetcher.mock.calls as unknown as Array<[URL, RequestInit]>;
-    expect(calls[0][0].searchParams.has("filter[updateAt][from]")).toBe(true);
-    expect(calls[1][0].searchParams.has("filter[updatedAt][from]")).toBe(true);
+    expect(calls[0][0].searchParams.get("filter[updateAt][from]")).toBe("2026-10-01 03:00:00");
+    expect(calls[1][0].searchParams.get("filter[updatedAt][from]")).toBe("2026-10-01 03:00:00");
+  });
+  it.each([
+    ["2026-01-01T22:00:00Z", "2026-01-02 00:00:00"],
+    ["2026-07-01T22:00:00.999Z", "2026-07-02 01:00:00"],
+    ["2026-03-29T00:59:59Z", "2026-03-29 02:59:59"],
+    ["2026-03-29T01:00:00Z", "2026-03-29 04:00:00"],
+  ])("converts UTC watermark %s using the source's Kyiv timezone and DST", async (updatedFrom, expected) => {
+    const fetcher = transport();
+    await new SalesDriveConnector(credentials, fetcher).getOrders({ updatedFrom });
+    expect(fetcher.mock.calls[0][0].searchParams.get("filter[updateAt][from]")).toBe(expected);
+  });
+  it("supports an explicitly configured source timezone", async () => {
+    const fetcher = transport();
+    await new SalesDriveConnector(credentials, fetcher, "UTC").getOrders({ updatedFrom: "2026-07-01T22:00:00Z" });
+    expect(fetcher.mock.calls[0][0].searchParams.get("filter[updateAt][from]")).toBe("2026-07-01 22:00:00");
+  });
+  it.each(["", "2026-02-30T00:00:00Z", "2026-10-01T00:00:00+02:00", "not-a-date"])("rejects an invalid watermark before making a request", async (updatedFrom) => {
+    const fetcher = transport();
+    await expect(new SalesDriveConnector(credentials, fetcher).getOrders({ updatedFrom })).rejects.toMatchObject({ code: "INVALID_RESPONSE" });
+    expect(fetcher).not.toHaveBeenCalled();
   });
   it.each([[401, "AUTH_FAILED"], [403, "AUTH_FAILED"], [429, "RATE_LIMITED"], [500, "NETWORK_ERROR"]] as const)("sanitizes HTTP %i failures", async (status, code) => {
     const connector = new SalesDriveConnector(credentials, async () => new Response("orders-secret feed-secret", { status }));
@@ -100,6 +127,25 @@ describe("SalesDrive read transport", () => {
     expect(products.observedAt).toBe(stock.observedAt);
     expect(stock.records[0].updatedAt).toBeNull();
   });
+  it("shares a failed load between concurrent callers, then retries and caches a successful observation", async () => {
+    const fetcher = vi.fn().mockRejectedValueOnce(new DOMException("timeout", "TimeoutError")).mockResolvedValueOnce(new Response(xml));
+    const connector = new SalesDriveConnector(credentials, fetcher);
+    const failed = await Promise.allSettled([connector.getProducts(), connector.getStock()]);
+    expect(failed).toEqual([{ status: "rejected", reason: expect.objectContaining({ code: "TIMEOUT" }) }, { status: "rejected", reason: expect.objectContaining({ code: "TIMEOUT" }) }]);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect((await connector.getStock()).records[0].productId).toBe("p1");
+    await connector.getProducts();
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+  it("preserves page-to-quantity alignment when projecting a later stock page", async () => {
+    const catalog = '<yml_catalog><shop><offers>' + [1, 2, 3].map((n) => `<offer id="p${n}"><quantity_in_stock>${n * 10}</quantity_in_stock></offer>`).join("") + '</offers></shop></yml_catalog>';
+    const connector = new SalesDriveConnector(credentials, async () => new Response(catalog));
+    const first = await connector.getStock({ page: 1, limit: 2 });
+    const second = await connector.getStock({ page: 2, limit: 2 });
+    expect(first.nextPage).toBe(2);
+    expect(second).toMatchObject({ nextPage: null, observedAt: first.observedAt, records: [{ productId: "p3", onHand: "30" }] });
+    await expect(connector.getStock({ page: 0 })).rejects.toMatchObject({ code: "INVALID_RESPONSE" });
+  });
   it("rejects oversized API bodies before parsing", async () => {
     const connector = new SalesDriveConnector(credentials, async () => new Response(" ".repeat(4 * 1024 * 1024 + 1)));
     await expect(connector.getOrders()).rejects.toMatchObject({ code: "RESPONSE_TOO_LARGE" });
@@ -127,6 +173,16 @@ describe("SalesDrive read transport", () => {
 });
 
 describe("credential validation and encryption", () => {
+  it.each(["ключ", "key-€", "key-😀"])("rejects non-ByteString API keys before they reach fetch", (key) => {
+    expect(parseSalesDriveCredentials({ ...credentials, ordersApiKey: key }).credentials).toBeNull();
+    expect(parseSalesDriveCredentials({ ...credentials, receiptsApiKey: key }).credentials).toBeNull();
+    expect(() => new Headers({ "X-Api-Key": key })).toThrow();
+  });
+  it.each(["key-\u0080", "key-é", "key-ÿ"])("preserves header-compatible Latin-1 keys", (key) => {
+    const parsed = parseSalesDriveCredentials({ ...credentials, ordersApiKey: key, receiptsApiKey: key });
+    expect(parsed.credentials).toMatchObject({ ordersApiKey: key, receiptsApiKey: key });
+    expect(new Headers({ "X-Api-Key": key }).get("X-Api-Key")).toBe(key);
+  });
   it.each(["localhost", "127.0.0.1", "demo.salesdrive.me.attacker.test", "https://demo.salesdrive.me", "demo.salesdrive.me:443"])("rejects unsafe account target %s", (accountHost) => {
     expect(parseSalesDriveCredentials({ ...credentials, accountHost }).credentials).toBeNull();
   });
@@ -145,5 +201,11 @@ describe("credential validation and encryption", () => {
   it("fails closed without a valid encryption key", () => {
     vi.stubEnv("CONNECTOR_ENCRYPTION_KEY", "not-a-key");
     expect(() => encryptCredentials(credentials, "a")).toThrow("CONNECTOR_STORAGE_UNAVAILABLE");
+  });
+  it.each([4, 8, 12, 13, 14, 15])("rejects a valid tag truncated to %i bytes", (length) => {
+    vi.stubEnv("CONNECTOR_ENCRYPTION_KEY", Buffer.alloc(32, 7).toString("base64"));
+    const parts = encryptCredentials(credentials, "a").split(".");
+    parts[2] = Buffer.from(parts[2], "base64").subarray(0, length).toString("base64");
+    expect(() => decryptCredentials(parts.join("."), "a")).toThrow("CONNECTOR_STORAGE_UNAVAILABLE");
   });
 });

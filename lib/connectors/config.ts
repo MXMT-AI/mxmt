@@ -36,6 +36,7 @@ export function parseSalesDriveCredentials(input: unknown): { credentials: Sales
   if (!salesDriveHost(accountHost)) issues.push("accountHost must be a SalesDrive account hostname");
   for (const key of [ordersApiKey, receiptsApiKey]) {
     if (key && /[\s\x00-\x1f\x7f]/.test(key)) issues.push("API keys must not contain whitespace or control characters");
+    if (key && /[^\x00-\xff]/.test(key)) issues.push("API keys must contain only HTTP header-compatible characters");
   }
   if (ymlUrl && !salesDriveYmlUrl(ymlUrl, accountHost)) issues.push("ymlUrl must be an HTTPS SalesDrive export link for this account with a publicKey");
   return { credentials: issues.length ? null : { accountHost, ordersApiKey, receiptsApiKey, ymlUrl }, issues };
