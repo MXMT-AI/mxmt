@@ -60,6 +60,9 @@ describe("data scheduler", () => {
       pipeline as never
     );
 
+    expect(db.dataSource.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { kind: "GOOGLE_SHEETS" },
+    }));
     expect(pipeline).toHaveBeenCalledWith({
       tenantId: "tenant-a",
       trigger: DataImportTrigger.CRON,

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { SHEETS_SOURCE_FILTER } from "@/lib/data-source";
 
 /**
  * Resolve the immutable source snapshot that currently powers reporting.
@@ -8,6 +9,7 @@ import { prisma } from "@/lib/prisma";
 export async function getActiveAgentImportRunId(tenantId: string): Promise<string | null> {
   const source = await prisma.dataSource.findFirst({
     where: {
+      ...SHEETS_SOURCE_FILTER,
       tenantId,
       activeImportRunId: { not: null },
       activeImportRun: { status: { in: ["SUCCESS", "WARNING"] } },

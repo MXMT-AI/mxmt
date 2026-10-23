@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { DataRunStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { SHEETS_SOURCE_FILTER } from "@/lib/data-source";
 import { requireApiUser } from "@/lib/server-auth";
 import { ARTICLE_CALCULATION_VERSION } from "@/lib/article-report";
 import { DATA_TABLE_KEYS } from "@/lib/data-table-api";
@@ -11,7 +12,7 @@ export async function GET() {
   const { user, response } = await requireApiUser();
   if (response) return response;
   const source = await prisma.dataSource.findFirst({
-    where: { tenantId: user.tenantId },
+    where: { tenantId: user.tenantId, ...SHEETS_SOURCE_FILTER },
     orderBy: { updatedAt: "desc" },
     include: {
       activeImportRun: true,

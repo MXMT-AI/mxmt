@@ -87,6 +87,11 @@ export async function DELETE(
   const brand = await prisma.brand.findFirst({ where: { id, tenantId } });
   if (!brand) return apiError("Not found", 404, "NOT_FOUND");
 
-  await prisma.brand.delete({ where: { id } });
+  // Composite tenant FKs cannot SET NULL on the required tenantId. Detach only
+  // this tenant's SKUs explicitly, retaining the existing delete behavior.
+  await prisma.$transaction(async (tx) => {
+    await tx.sku.updateMany({ where: { tenantId, brandId: id }, data: { brandId: null } });
+    await tx.brand.delete({ where: { id } });
+  });
   return NextResponse.json({ ok: true });
 }

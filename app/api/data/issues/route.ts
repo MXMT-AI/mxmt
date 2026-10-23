@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { DataIssueSeverity } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { SHEETS_SOURCE_FILTER } from "@/lib/data-source";
 import { requireApiUser } from "@/lib/server-auth";
 import { apiError } from "@/lib/api-contracts";
 
@@ -31,7 +32,7 @@ export async function GET(request: NextRequest) {
     const exists = await prisma.dataImportRun.findFirst({ where: { id: importRunId, tenantId: user.tenantId }, select: { id: true } });
     if (!exists) return apiError("Import run not found", 404, "IMPORT_NOT_FOUND");
   } else {
-    const source = await prisma.dataSource.findFirst({ where: { tenantId: user.tenantId, activeImportRunId: { not: null } }, select: { activeImportRunId: true } });
+    const source = await prisma.dataSource.findFirst({ where: { tenantId: user.tenantId, ...SHEETS_SOURCE_FILTER, activeImportRunId: { not: null } }, select: { activeImportRunId: true } });
     importRunId = source?.activeImportRunId ?? undefined;
   }
   if (!importRunId) return apiError("No active data import", 409, "NO_ACTIVE_IMPORT");

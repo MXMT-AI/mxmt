@@ -1,5 +1,6 @@
 import { DataRunStatus, Prisma, type PrismaClient } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { SHEETS_SOURCE_FILTER } from "@/lib/data-source";
 import { ARTICLE_CALCULATION_VERSION } from "@/lib/article-report";
 
 export const DATA_TABLE_KEYS = [
@@ -175,14 +176,14 @@ async function resolveImportRun(
 ): Promise<string> {
   if (requestedId) {
     const run = await db.dataImportRun.findFirst({
-      where: { id: requestedId, tenantId, status: { in: [DataRunStatus.SUCCESS, DataRunStatus.WARNING] } },
+      where: { id: requestedId, tenantId, source: SHEETS_SOURCE_FILTER, status: { in: [DataRunStatus.SUCCESS, DataRunStatus.WARNING] } },
       select: { id: true },
     });
     if (!run) throw new DataTableApiError("Import run not found", 404, "IMPORT_NOT_FOUND");
     return run.id;
   }
   const source = await db.dataSource.findFirst({
-    where: { tenantId, activeImportRunId: { not: null } },
+    where: { tenantId, ...SHEETS_SOURCE_FILTER, activeImportRunId: { not: null } },
     orderBy: { updatedAt: "desc" },
     select: { activeImportRunId: true },
   });

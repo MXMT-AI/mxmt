@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { SHEETS_SOURCE_FILTER } from "@/lib/data-source";
 import { requireApiUser } from "@/lib/server-auth";
 import { apiError, isRecord, parseOptionalJsonBody, serverError, validationError } from "@/lib/api-contracts";
 import {
@@ -31,7 +32,7 @@ export async function POST(request: NextRequest) {
   let importRunId = values.importRunId;
   if (!importRunId) {
     const source = await prisma.dataSource.findFirst({
-      where: { tenantId: user.tenantId, activeImportRunId: { not: null } },
+      where: { tenantId: user.tenantId, ...SHEETS_SOURCE_FILTER, activeImportRunId: { not: null } },
       orderBy: { updatedAt: "desc" },
       select: { activeImportRunId: true },
     });
