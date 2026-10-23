@@ -54,6 +54,7 @@ model Tenant {
   merchandisingConfigs MerchandisingConfig[]
   merchandisingActions MerchandisingAction[]
   syncCursors          SyncCursor[]
+  connectorConnections ConnectorConnection[]
 }
 
 // ─── USER ─────────────────────────────────────────────────────────────────────
@@ -305,7 +306,7 @@ model DataSource {
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
 
-  importRuns         DataImportRun[]     @relation("DataSourceImports")
+  importRuns         DataImportRun[]      @relation("DataSourceImports")
   records            DataSourceRecord[]
   aliases            SkuAlias[]
   orderLines         OrderLine[]
@@ -313,6 +314,7 @@ model DataSource {
   inventorySnapshots InventorySnapshot[]
   priceHistory       PriceHistory[]
   cursors            SyncCursor[]
+  connection         ConnectorConnection?
 
   @@unique([id, tenantId])
   @@unique([activeImportRunId, id, tenantId], map: "DataSource_active_run_scope_key")
@@ -1040,4 +1042,26 @@ model SyncCursor {
   updatedAt           DateTime      @updatedAt
 
   @@unique([tenantId, sourceId, resource])
+}
+
+// Write-only connector credentials; only explicit public projections leave the server.
+model ConnectorConnection {
+  id              String     @id @default(cuid())
+  tenantId        String
+  tenant          Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sourceId        String     @unique
+  source          DataSource @relation(fields: [sourceId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  provider        String     @default("salesdrive")
+  accountHost     String
+  encryptedConfig String
+  hasReceiptsKey  Boolean    @default(false)
+  hasYmlUrl       Boolean    @default(false)
+  revision        Int        @default(1)
+  lastCheck       Json?
+  checkedAt       DateTime?  @db.Timestamptz(3)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  @@unique([tenantId, provider])
+  @@unique([sourceId, tenantId])
 }
