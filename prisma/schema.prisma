@@ -55,6 +55,8 @@ model Tenant {
   merchandisingActions MerchandisingAction[]
   syncCursors          SyncCursor[]
   connectorConnections ConnectorConnection[]
+  connectorJobs        ConnectorSyncJob[]
+  orderImportStates    OrderImportState[]
 }
 
 // ─── USER ─────────────────────────────────────────────────────────────────────
@@ -314,6 +316,8 @@ model DataSource {
   inventorySnapshots InventorySnapshot[]
   priceHistory       PriceHistory[]
   cursors            SyncCursor[]
+  connectorJobs      ConnectorSyncJob[]
+  orderImportStates  OrderImportState[]
   connection         ConnectorConnection?
 
   @@unique([id, tenantId])
@@ -342,6 +346,8 @@ model DataImportRun {
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 
+  connectorJobs      ConnectorSyncJob[]
+  orderImportStates  OrderImportState[]
   activeForSource    DataSource?            @relation("ActiveDataSourceImport")
   sheets             DataSheetSnapshot[]
   products           SourceProduct[]
@@ -870,6 +876,11 @@ model OrderLine {
   returnedAt        DateTime?     @db.Timestamptz(3)
   dateInferred      Boolean       @default(false)
   quantity          Decimal       @db.Decimal(18, 4)
+  // Retain source facts independently of unverified financial formulas.
+  sourceSku         String?
+  sourceAmounts     Json          @default("{}")
+  datePrecision     Json          @default("{}")
+  identityDerived   Boolean       @default(false)
   netAmount         Decimal?      @db.Decimal(18, 4)
   costAmount        Decimal?      @db.Decimal(18, 4)
   currency          String?
@@ -1064,4 +1075,65 @@ model ConnectorConnection {
 
   @@unique([tenantId, provider])
   @@unique([sourceId, tenantId])
+}
+
+// One durable job per source at a time; leases fence interrupted workers.
+model ConnectorSyncJob {
+  id                 String        @id @default(cuid())
+  tenantId           String
+  tenant             Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sourceId           String
+  source             DataSource    @relation(fields: [sourceId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  importRunId        String        @unique
+  importRun          DataImportRun @relation(fields: [importRunId, sourceId, tenantId], references: [id, sourceId, tenantId], onDelete: NoAction, onUpdate: NoAction)
+  mode               String
+  state              String        @default("PENDING")
+  connectionRevision Int
+  checkpoint         Json
+  stats              Json          @default("{}")
+  attempts           Int           @default(0)
+  availableAt        DateTime      @default(now()) @db.Timestamptz(3)
+  leaseToken         String?
+  leaseExpiresAt     DateTime?     @db.Timestamptz(3)
+  errorCode          String?
+  createdAt          DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime      @updatedAt @db.Timestamptz(3)
+
+  @@index([state, availableAt])
+  @@index([tenantId, sourceId, createdAt])
+}
+
+// Order-level version guard also covers orders with zero lines.
+model OrderImportState {
+  id              String        @id @default(cuid())
+  tenantId        String
+  tenant          Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sourceId        String
+  source          DataSource    @relation(fields: [sourceId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  importRunId     String
+  importRun       DataImportRun @relation(fields: [importRunId, sourceId, tenantId], references: [id, sourceId, tenantId], onDelete: NoAction, onUpdate: NoAction)
+  externalOrderId String
+  sourceVersion   Int?
+  sourceUpdatedAt DateTime?     @db.Timestamptz(3)
+  payloadHash     String
+  projectionHash  String
+  observedAt      DateTime      @db.Timestamptz(3)
+
+  @@unique([tenantId, sourceId, externalOrderId])
+}
+
+// Account-scoped, shared by probes, backfill, increments and webhook reads.
+model ConnectorRequestBudget {
+  accountKey   String                    @id
+  blockedUntil DateTime?                 @db.Timestamptz(3)
+  attempts     ConnectorRequestAttempt[]
+}
+
+model ConnectorRequestAttempt {
+  id         String                 @id @default(cuid())
+  accountKey String
+  budget     ConnectorRequestBudget @relation(fields: [accountKey], references: [accountKey], onDelete: Cascade)
+  at         DateTime               @default(now()) @db.Timestamptz(3)
+
+  @@index([accountKey, at])
 }

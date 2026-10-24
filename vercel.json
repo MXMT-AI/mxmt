@@ -8,6 +8,10 @@
     {
       "path": "/api/cron/data-import/utc-05",
       "schedule": "0 5 * * *"
+    },
+    {
+      "path": "/api/cron/salesdrive-orders",
+      "schedule": "* * * * *"
     }
   ]
 }

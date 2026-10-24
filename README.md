@@ -486,6 +486,7 @@ Unit tests не повинні звертатися до real AI providers аб�
 | [`docs/api-contracts.md`](./docs/api-contracts.md) | Загальні API conventions |
 | [`docs/frontend-architecture.md`](./docs/frontend-architecture.md) | Frontend boundaries і performance rules |
 | [`docs/testing.md`](./docs/testing.md) | Testing workflow |
+| [SalesDrive order ingestion](./prisma/verification/30-salesdrive-order-import.md) | Queue, recovery, source mapping, webhook relay and activation checks |
 
 ## Ліцензія та доступ
 

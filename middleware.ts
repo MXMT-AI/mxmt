@@ -11,7 +11,9 @@ const PUBLIC_PATHS = ["/login", "/register", "/api/auth", "/api/health", "/api/c
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
+  // This single receiver authenticates a per-source relay token in its Node route.
+  const salesDriveReceiver = /^\/api\/webhooks\/salesdrive\/[^/]+\/?$/.test(pathname);
+  if (salesDriveReceiver || PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
     return NextResponse.next();
   }
 

@@ -117,6 +117,8 @@ async function pruneInactiveImportRuns(
       priceHistory: { none: {} },
       inventorySnapshots: { none: {} },
       cursors: { none: {} },
+      connectorJobs: { none: {} },
+      orderImportStates: { none: {} },
       ...(activeImportRunId ? { id: { not: activeImportRunId } } : {}),
     },
   });

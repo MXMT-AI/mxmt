@@ -22,6 +22,9 @@ export interface StockDto extends SourceContext {
   inTransit: DecimalValue | null;
 }
 export interface OrderDto extends SourceContext {
+  /** Original provider record, retained server-side only. */
+  raw?: Record<string, unknown>;
+  sourceVersion?: number | null;
   statusId: string | null;
   channelId: string | null;
   // Source calendar timestamps; timezone/date policies are applied by normalization.
@@ -56,6 +59,8 @@ export interface Dictionary {
   reason: string | null;
 }
 export interface ConnectorPage<T> {
+  /** Original response text for server-side audit; never expose to client progress. */
+  rawResponse?: string;
   records: T[];
   nextPage: number | null;
   observedAt: string;
@@ -65,6 +70,10 @@ export interface PageRequest {
   limit?: number;
   /** ISO UTC instant (YYYY-MM-DDTHH:mm:ss[.SSS]Z), including observedAt values. */
   updatedFrom?: string;
+  updatedTo?: string;
+  orderedFrom?: string;
+  orderedTo?: string;
+  orderId?: string;
 }
 export interface ConnectorCapabilities {
   orders: boolean;
