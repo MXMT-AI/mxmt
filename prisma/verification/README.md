@@ -164,3 +164,6 @@ No production migration or backfill is performed by preparing this task.
 
 For SalesDrive scheduling, webhook relay, manual refresh and the external worker,
 see [automatic sync verification (#32)](32-automatic-sync.md).
+
+For canonical brands, product types and source-linked diagnostics, see
+[product normalization verification (#33)](33-product-normalization.md).

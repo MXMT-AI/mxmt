@@ -1,3 +1,4 @@
+import { normalizedBrandKey } from "@/lib/data-normalization";
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -54,7 +55,8 @@ export async function PUT(
     const updated = await prisma.brand.update({
       where: { id },
       data: {
-        name,
+        name: name.trim(),
+        normalizationKey: normalizedBrandKey(name),
         budget,
         paymentDays,
         currency,
@@ -86,6 +88,10 @@ export async function DELETE(
 
   const brand = await prisma.brand.findFirst({ where: { id, tenantId } });
   if (!brand) return apiError("Not found", 404, "NOT_FOUND");
+
+  if (await prisma.brandAlias.count({where:{tenantId,brandId:id}})) {
+    return apiError("Remove this brand's aliases before deleting it",409,"BRAND_HAS_ALIASES");
+  }
 
   // Composite tenant FKs cannot SET NULL on the required tenantId. Detach only
   // this tenant's SKUs explicitly, retaining the existing delete behavior.

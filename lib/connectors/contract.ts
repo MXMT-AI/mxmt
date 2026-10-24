@@ -34,6 +34,8 @@ export interface OrderDto extends SourceContext {
   // Source calendar timestamps; timezone/date policies are applied by normalization.
   orderedAt: string | null;
   paidAt: string | null;
+  /** Optional independently verified return-event timestamp, never generic updateAt. */
+  returnedAt?: string | null;
   lines: Array<{
     externalLineId: string | null;
     productId: string | null;

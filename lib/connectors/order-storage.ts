@@ -1,4 +1,5 @@
 import "server-only";
+import { recordOrderQuality } from "./product-quality";
 import { createHash, randomUUID } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import type { OrderDto } from "./contract";
@@ -24,7 +25,7 @@ export async function storeOrder(tx: SqlClient, scope: OrderScope, order: OrderD
   const aliases = order.lines.length ? await tx.$queryRaw<Array<{ type: string; value: string; skuId: string }>>(Prisma.sql`
     SELECT type,value,"skuId" FROM "SkuAlias" WHERE "tenantId"=${tenantId} AND "sourceId"=${sourceId}
     AND ((type='SOURCE_PRODUCT_ID' AND value IN (${Prisma.join(productIds.length ? productIds : [""])})) OR (type IN ('SKU','VENDOR_CODE') AND value IN (${Prisma.join(skus.length ? skus : [""])}))) ORDER BY type,value,"skuId"`) : [];
-  const projectionHash = payloadHash({ version: 1, timezone, policy, aliases });
+  const projectionHash = payloadHash({ version: 2, timezone, policy, aliases });
   const rawKey = `${order.externalId}:${hash}`;
   await tx.$executeRaw(Prisma.sql`INSERT INTO "DataSourceRecord" (id,"tenantId","sourceId","importRunId",resource,"externalId",payload,"payloadHash","observedAt","sourceUpdatedAt")
     VALUES (${randomUUID()},${tenantId},${sourceId},${importRunId},'orders',${rawKey},${JSON.stringify(order.raw)}::jsonb,${hash},${observedAt},${normalized.updatedAt})
@@ -51,18 +52,19 @@ export async function storeOrder(tx: SqlClient, scope: OrderScope, order: OrderD
     const skuId = candidates.size === 1 ? [...candidates][0] : null;
     if (!skuId) normalized.issues.push(candidates.size > 1 ? "SKU_ALIAS_CONFLICT" : "SKU_ALIAS_UNRESOLVED");
     return Prisma.sql`(${randomUUID()},${tenantId},${sourceId},${importRunId},${order.externalId},${line.externalLineId},'current',${skuId},${line.externalProductId},${line.sourceSku},${line.statusId},${line.channelId},${line.kind}::"OrderLineKind",
-      ${line.orderedAt},${line.paidAt},NULL,false,${line.quantity.toString()}::numeric,${line.netAmount?.toFixed(4) ?? null}::numeric,${line.costAmount?.toFixed(4) ?? null}::numeric,${line.currency},
-      ${JSON.stringify(line.sourceAmounts)}::jsonb,${JSON.stringify(line.datePrecision)}::jsonb,${line.identityDerived},${rawKey},${normalized.updatedAt},${observedAt},now())`;
+      ${line.orderedAt},${line.paidAt},${line.returnedAt},${line.dateInferred},${line.quantity!.toString()}::numeric,${line.netAmount?.toFixed(4) ?? null}::numeric,${line.costAmount?.toFixed(4) ?? null}::numeric,${line.currency},
+      ${JSON.stringify(line.sourceAmounts)}::jsonb,${JSON.stringify(line.datePrecision)}::jsonb,${line.identityDerived},${rawKey},${normalized.updatedAt},${observedAt},now(),${line.signedQuantity?.toString() ?? null}::numeric,${line.signedRevenue?.toFixed(4) ?? null}::numeric,${line.signedCost?.toFixed(4) ?? null}::numeric,${JSON.stringify(line.normalization)}::jsonb)`;
   });
   // Bound each statement's parameter count while keeping the whole order atomic.
   for (let offset = 0; offset < rows.length; offset += 500) {
     await tx.$executeRaw(Prisma.sql`INSERT INTO "OrderLine" (id,"tenantId","sourceId","importRunId","externalOrderId","externalLineId","eventKey",
       "skuId","externalProductId","sourceSku","statusId","channelId",kind,"orderedAt","paidAt","returnedAt","dateInferred",quantity,"netAmount","costAmount",currency,
-      "sourceAmounts","datePrecision","identityDerived","sourceRecordKey","sourceUpdatedAt","observedAt","updatedAt") VALUES ${Prisma.join(rows.slice(offset, offset + 500))}`);
+      "sourceAmounts","datePrecision","identityDerived","sourceRecordKey","sourceUpdatedAt","observedAt","updatedAt","signedQuantity","signedRevenue","signedCost",normalization) VALUES ${Prisma.join(rows.slice(offset, offset + 500))}`);
   }
   await tx.$executeRaw(Prisma.sql`INSERT INTO "OrderImportState" (id,"tenantId","sourceId","importRunId","externalOrderId","sourceVersion","sourceUpdatedAt","payloadHash","projectionHash","observedAt")
     VALUES (${randomUUID()},${tenantId},${sourceId},${importRunId},${order.externalId},${order.sourceVersion ?? null},${normalized.updatedAt},${hash},${projectionHash},${observedAt})
     ON CONFLICT ("tenantId","sourceId","externalOrderId") DO UPDATE SET "importRunId"=EXCLUDED."importRunId","sourceVersion"=EXCLUDED."sourceVersion",
       "sourceUpdatedAt"=EXCLUDED."sourceUpdatedAt","payloadHash"=EXCLUDED."payloadHash","projectionHash"=EXCLUDED."projectionHash","observedAt"=EXCLUDED."observedAt"`);
+  await recordOrderQuality(tx,scope,order.externalId);
   return { outcome: "imported", issues: normalized.issues };
 }

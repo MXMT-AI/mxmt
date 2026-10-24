@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import type { SkuFlag, ClassifiedSku } from "@/lib/analyst-types";
-import { classify, getThresholds } from "@/lib/classify";
+import { classify, getThresholds, snapshotStock, canClassifyProduct } from "@/lib/classify";
 import { requireApiUser } from "@/lib/server-auth";
 
 export type { SkuFlag, ClassifiedSku };
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     prisma.sku.findMany({
       where: {
         tenantId,
-        status: { in: ["ACTIVE", "NEW"] },
+        productKind:{notIn:["SERVICE","GIFT_CARD"]}, status: { in: ["ACTIVE", "NEW"] },
         ...(filterBrand ? { brand: { name: { contains: filterBrand, mode: "insensitive" } } } : {}),
         ...(filterCategory ? { category: { contains: filterCategory, mode: "insensitive" } } : {}),
       },
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
       where: { tenantId },
       orderBy: { snapshotDate: "desc" },
       distinct: ["skuId"],
-      select: { skuId: true, qtyOnHand: true },
+      select: { skuId: true, qtyOnHand: true, quantity:true },
     }),
     prisma.salesRecord.groupBy({
       by: ["skuId"],
@@ -51,12 +51,12 @@ export async function GET(request: NextRequest) {
   ]);
 
   const thresholds = getThresholds(onboarding?.businessModel ?? null);
-  const stockMap = Object.fromEntries(snapshots.map((s) => [s.skuId, s.qtyOnHand]));
+  const stockMap = Object.fromEntries(snapshots.map((s) => [s.skuId, snapshotStock(s)]));
   const s30Map = Object.fromEntries(sales30raw.map((s) => [s.skuId, s._sum.qtySold ?? 0]));
   const s7Map = Object.fromEntries(sales7raw.map((s) => [s.skuId, s._sum.qtySold ?? 0]));
 
-  const classified: ClassifiedSku[] = skus.map((sku) => {
-    const stock = stockMap[sku.id] ?? 0;
+  const classified: ClassifiedSku[] = skus.filter(sku=>canClassifyProduct(sku,stockMap[sku.id])).map((sku) => {
+    const stock = stockMap[sku.id]!;
     const sold30 = s30Map[sku.id] ?? 0;
     const sold7 = s7Map[sku.id] ?? 0;
     const leadTime = sku.brand?.leadTimeDays ?? 14;

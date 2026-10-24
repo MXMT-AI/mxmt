@@ -35,3 +35,16 @@ export function classify(
   if (days > t.deadDays) return "dead";
   return "ok";
 }
+
+/** Retain exact fractional observations; unknown stock cannot become a zero-stock signal. */
+export function snapshotStock(snapshot: {quantity?: unknown;qtyOnHand:number|null}): number|null {
+  const value=snapshot.quantity==null?snapshot.qtyOnHand:Number(snapshot.quantity);
+  return value!==null && Number.isFinite(value)?value:null;
+}
+/** Explicit non-merchandise and unverified imported products never enter classification. */
+export function canClassifyProduct(product:{productKind?:string;catalogAttributes?:unknown},stock:number|null|undefined) {
+  if(stock==null || stock<0 || !Number.isFinite(stock) || product.productKind==='SERVICE' || product.productKind==='GIFT_CARD')return false;
+  const attributes=product.catalogAttributes;
+  const imported=attributes && typeof attributes==='object' && 'sourceId' in attributes;
+  return !imported || product.productKind==='MERCHANDISE';
+}

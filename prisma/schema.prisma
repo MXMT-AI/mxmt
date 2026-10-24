@@ -59,6 +59,7 @@ model Tenant {
   orderImportStates       OrderImportState[]
   syncCycles              ConnectorSyncCycle[]
   connectorRecalculations ConnectorRecalculation[]
+  brandAliases            BrandAlias[]
 }
 
 // ─── USER ─────────────────────────────────────────────────────────────────────
@@ -125,11 +126,14 @@ model Brand {
   supplierId     String?
   supplier       Supplier?      @relation(fields: [supplierId, tenantId], references: [id, tenantId], onDelete: NoAction, onUpdate: NoAction)
 
-  skus           Sku[]
-  catalogUploads CatalogUpload[]
-  catalogItems   CatalogItem[]
+  skus             Sku[]
+  catalogUploads   CatalogUpload[]
+  catalogItems     CatalogItem[]
+  normalizationKey String?
+  aliases          BrandAlias[]
 
   @@unique([id, tenantId])
+  @@unique([tenantId, normalizationKey])
   @@index([tenantId])
 }
 
@@ -464,9 +468,9 @@ model SourceSaleLine {
   productParameter   String?
   sourceProductId    String?
   manufacturer       String?
-  quantity           Decimal            @db.Decimal(18, 4)
-  salesAmount        Decimal            @db.Decimal(18, 4)
-  costAmount         Decimal            @db.Decimal(18, 4)
+  quantity           Decimal?           @db.Decimal(18, 4)
+  salesAmount        Decimal?           @db.Decimal(18, 4)
+  costAmount         Decimal?           @db.Decimal(18, 4)
   normalizedQuantity Decimal?           @db.Decimal(18, 4)
   normalizedSales    Decimal?           @db.Decimal(18, 4)
   normalizedCost     Decimal?           @db.Decimal(18, 4)
@@ -498,7 +502,9 @@ model ImportIssue {
   message     String
   context     Json              @default("{}")
   createdAt   DateTime          @default(now())
+  entityKey   String?
 
+  @@unique([importRunId, code, entityKey])
   @@index([tenantId, severity, createdAt])
   @@index([importRunId, code])
 }
@@ -765,6 +771,7 @@ enum SkuAliasType {
 }
 
 enum OrderLineKind {
+  CORRECTION
   UNKNOWN
   SALE
   RETURN
@@ -900,6 +907,10 @@ model OrderLine {
   observedAt        DateTime      @db.Timestamptz(3)
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
+  signedQuantity    Decimal?      @db.Decimal(18, 4)
+  signedRevenue     Decimal?      @db.Decimal(18, 4)
+  signedCost        Decimal?      @db.Decimal(18, 4)
+  normalization     Json          @default("{}")
 
   @@unique([tenantId, sourceId, externalOrderId, externalLineId, eventKey], map: "OrderLine_source_identity_key")
   @@index([tenantId, paidAt, statusId])
@@ -1202,4 +1213,18 @@ model ConnectorRecalculation {
 
   @@unique([importRunId, sourceId, tenantId])
   @@index([tenantId, sourceId, requestedAt])
+}
+
+// Explicit tenant mappings resolve source spellings without merging supplier terms.
+model BrandAlias {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  value     String
+  brandId   String
+  brand     Brand    @relation(fields: [brandId, tenantId], references: [id, tenantId], onDelete: NoAction, onUpdate: NoAction)
+  revision  Int      @default(1)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  @@unique([tenantId, value])
 }

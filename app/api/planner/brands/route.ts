@@ -1,3 +1,4 @@
+import { normalizedBrandKey } from "@/lib/data-normalization";
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -59,7 +60,8 @@ export async function POST(request: NextRequest) {
     const brand = await prisma.brand.create({
       data: {
         tenantId,
-        name: name!,
+        name: name!.trim(),
+        normalizationKey: normalizedBrandKey(name),
         budget,
         paymentDays,
         currency,

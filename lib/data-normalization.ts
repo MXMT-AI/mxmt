@@ -36,9 +36,9 @@ export interface NormalizedSaleLine {
   productParameter: string | null;
   sourceProductId: string | null;
   manufacturer: string | null;
-  quantity: Prisma.Decimal;
-  salesAmount: Prisma.Decimal;
-  costAmount: Prisma.Decimal;
+  quantity: Prisma.Decimal | null;
+  salesAmount: Prisma.Decimal | null;
+  costAmount: Prisma.Decimal | null;
   normalizedQuantity: Prisma.Decimal | null;
   normalizedSales: Prisma.Decimal | null;
   normalizedCost: Prisma.Decimal | null;
@@ -485,9 +485,9 @@ function normalizeSales(
       productParameter,
       sourceProductId,
       manufacturer: optionalText(read(row, "product.manufacturer")),
-      quantity: quantity ?? new Prisma.Decimal(0),
-      salesAmount: salesAmount ?? new Prisma.Decimal(0),
-      costAmount: costAmount ?? new Prisma.Decimal(0),
+      quantity,
+      salesAmount,
+      costAmount,
       normalizedQuantity: excluded ? null : quantity!.abs().mul(sign),
       normalizedSales: excluded ? null : salesAmount!.abs().mul(sign),
       normalizedCost: excluded ? null : costAmount!.abs().mul(sign),
@@ -513,4 +513,29 @@ export function normalizeRawWorkbook(parsed: ParsedRawWorkbook): NormalizedWorkb
     issues: [...productResult.issues, ...salesResult.issues],
     blockingIssues: productResult.blockingIssues,
   };
+}
+
+/** Canonical tenant brand key. Raw spellings remain in source records. */
+export function normalizedBrandKey(name: string | null | undefined): string | null {
+  return name?.trim().toUpperCase() || null;
+}
+
+/** Separate non-merchandise components before any financial or stock aggregation. */
+export function productEligibility(kind: string) {
+  return { isService: kind==='SERVICE', isGiftCard: kind==='GIFT_CARD',
+    merchandiseRevenue: kind==='MERCHANDISE', serviceRevenue: kind==='SERVICE',
+    merchandiseMargin: kind==='MERCHANDISE', stock: kind==='MERCHANDISE', classification: kind==='MERCHANDISE' };
+}
+
+/** A first-sale proxy is labelled and never replaces the verified receipt/cohort date. */
+export function productAgeReference(receiptAt: Date | null, firstSaleAt: Date | null, observedAt: Date) {
+  const chosen=receiptAt ?? firstSaleAt;
+  if (!chosen || chosen>observedAt) return {date:null,basis:'UNAVAILABLE',inferred:false,issue:chosen?'NEGATIVE_PRODUCT_AGE':'MISSING_RECEIPT_DATE'};
+  return {date:chosen,basis:receiptAt?'VERIFIED_RECEIPT':'FIRST_SALE_PROXY',inferred:!receiptAt,issue:receiptAt?null:'INFERRED_PRODUCT_AGE'};
+}
+
+/** Negative or invalid derived metrics are missing data with an explicit exception. */
+export function nonnegativeMetric(value: string | null) {
+  const parsed=decimal(value);
+  return !parsed || parsed.isNegative() ? {value:null,issue:parsed?'NEGATIVE_METRIC':'INVALID_METRIC'} : {value:parsed,issue:null};
 }
