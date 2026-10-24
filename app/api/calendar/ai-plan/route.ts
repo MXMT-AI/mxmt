@@ -76,6 +76,7 @@ export interface AiPlanChip {
   label: string;
 }
 
+/** Generate the tenant’s calendar plan from eligible inventory and sales signals. */
 export async function POST() {
   const { user, response } = await requireApiUser("ANALYST");
   if (response) return response;

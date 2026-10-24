@@ -39,7 +39,7 @@ export async function storeCatalog(tx: SqlClient, scope: OrderScope, snapshot: C
     ON CONFLICT ("tenantId",key) DO UPDATE SET name=EXCLUDED.name,"updatedAt"=now()`);
   await tx.$executeRaw(Prisma.sql`UPDATE mxmt_catalog_stage t SET "canonicalCategoryId"=c.id FROM "Category" c WHERE c."tenantId"=${tenantId} AND c.key=${`salesdrive:${sourceId}:`} || t."categoryId"`);
   // Serialize tenant identity edits with catalogue activation, without merging financial terms.
-  await tx.$queryRaw(Prisma.sql`SELECT id FROM "Tenant" WHERE id=${tenantId} FOR UPDATE`);
+  await tx.$queryRaw(Prisma.sql`SELECT id FROM "Tenant" WHERE id=${tenantId} FOR NO KEY UPDATE`);
   await tx.$executeRaw(Prisma.sql`INSERT INTO "Brand" (id,"tenantId",name,"normalizationKey",currency)
     SELECT ${randomUUID()} || ':' || t.vendor,${tenantId},t.vendor,t.vendor,'UNKNOWN' FROM mxmt_catalog_stage t
     WHERE t.vendor IS NOT NULL AND NOT EXISTS (SELECT 1 FROM "BrandAlias" a WHERE a."tenantId"=${tenantId} AND a.value=t.vendor)

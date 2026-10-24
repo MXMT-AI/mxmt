@@ -25,6 +25,7 @@ function currentISOWeek(): number {
   return Math.ceil((((date.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
 }
 
+/** Build calendar signals from eligible products without fabricating stock observations. */
 export async function GET() {
   const { user, response } = await requireApiUser();
   if (response) return response;

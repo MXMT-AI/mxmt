@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiUser } from "@/lib/server-auth";
 
+/** Aggregate observed merchandise stock by brand, retaining the Unbranded group. */
 export async function GET() {
   const { user, response } = await requireApiUser();
   if (response) return response;

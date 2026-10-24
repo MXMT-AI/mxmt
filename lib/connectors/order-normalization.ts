@@ -9,6 +9,7 @@ export interface OrderPolicy {
   /** Enable only after customer evidence verifies API price and discount semantics. */
   amounts?: { price: "gross_unit" | "net_unit"; absoluteDiscount: "line" | "unit"; currency: string; cost?: "unit" };
 }
+/** Parse source-local dates with explicit precision and reject ambiguous or invalid times. */
 export function sourceDate(value: string | null, timezone: string): { date: Date | null; precision: "instant" | "date" | "unknown" } {
   if (!value) return { date: null, precision: "unknown" };
   try {

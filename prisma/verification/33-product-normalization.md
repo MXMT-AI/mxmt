@@ -117,8 +117,8 @@ The view includes Unbranded stock, order components and raw-to-normalized record
 
 `POST /api/data/quality` requires ADMIN/SUPER_ADMIN and a body no larger than 4 KiB.
 Actions change an alias or product type using the signed session tenant/actor.
-Cross-tenant targets fail. Tenant row locks serialize metadata edits with catalog
-identity activation. The UI shows save failures, saved-but-refresh-failed outcomes,
+Cross-tenant targets fail. Tenant `FOR NO KEY UPDATE` row locks serialize metadata edits with catalog
+identity activation without conflicting with foreign-key key-share checks. The UI shows save failures, saved-but-refresh-failed outcomes,
 read-only states, source lineage and a warning before leaving unsaved alias input.
 
 ImportIssue.entityKey identifies each SKU/order line within a run/code. Unique
@@ -162,3 +162,11 @@ Final local validation (2026-10-24):
 - Generated schema SQL matches the migration before explicit brand-key backfill/check.
 - Synthetic browser checks passed for type/alias saves, failed saves, empty/viewer
   states, keyboard lineage disclosure, Ukrainian/light and English/dark at 320 px.
+
+CodeRabbit follow-up: ordinary planner-term edits preserve both the original name
+and a NULL normalizationKey for ambiguous legacy brands. Case/spacing-only edits
+do not implicitly choose a canonical identity; an explicit rename to a different
+normalized name can establish a new key. Regression tests exercise the route
+against PostgreSQL/PGlite constraints for both ambiguous records. Lock mode
+compatibility follows the [PostgreSQL row-lock matrix](https://www.postgresql.org/docs/current/explicit-locking.html#LOCKING-ROWS);
+PGlite checks exercise the SQL path, not a multi-session concurrency benchmark.

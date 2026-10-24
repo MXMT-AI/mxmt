@@ -15,7 +15,7 @@ async function audit(tx: SqlClient, tenantId:string, actorId:string, action:stri
 export async function saveBrandAlias(tenantId:string,actorId:string,alias:string,brandId:string|null,db:SqlDatabase=prisma) {
  const key=normalizedBrandKey(alias); if(!key || key.length>200)throw new Error('INVALID_ALIAS');
  return db.$transaction(async tx=>{
-  await tx.$queryRaw(Prisma.sql`SELECT id FROM "Tenant" WHERE id=${tenantId} FOR UPDATE`);
+  await tx.$queryRaw(Prisma.sql`SELECT id FROM "Tenant" WHERE id=${tenantId} FOR NO KEY UPDATE`);
   const [before]=await tx.$queryRaw<Array<{brandId:string;revision:number}>>(Prisma.sql`SELECT "brandId",revision FROM "BrandAlias" WHERE "tenantId"=${tenantId} AND value=${key}`);
   if(before?.brandId===brandId || !before && brandId===null)return;
   if(brandId){
@@ -31,7 +31,7 @@ export async function saveBrandAlias(tenantId:string,actorId:string,alias:string
 export async function saveProductKind(tenantId:string,actorId:string,skuId:string,kind:string,db:SqlDatabase=prisma) {
  if(!['UNKNOWN','MERCHANDISE','SERVICE','GIFT_CARD'].includes(kind))throw new Error('INVALID_PRODUCT_KIND');
  return db.$transaction(async tx=>{
-  await tx.$queryRaw(Prisma.sql`SELECT id FROM "Tenant" WHERE id=${tenantId} FOR UPDATE`);
+  await tx.$queryRaw(Prisma.sql`SELECT id FROM "Tenant" WHERE id=${tenantId} FOR NO KEY UPDATE`);
   const [before]=await tx.$queryRaw<Array<{productKind:string;sourceId:string|null}>>(Prisma.sql`SELECT "productKind","catalogAttributes"->>'sourceId' "sourceId" FROM "Sku" WHERE "tenantId"=${tenantId} AND id=${skuId} FOR UPDATE`);
   if(!before)throw new Error('SKU_NOT_FOUND');
   if(before.productKind===kind)return;

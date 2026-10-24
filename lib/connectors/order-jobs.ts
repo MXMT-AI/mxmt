@@ -25,6 +25,7 @@ const emptyStats = (): Stats => ({ pages: 0, orders: 0, imported: 0, duplicate: 
 // Failed jobs require explicit recovery before any newer job can hide their checkpoint.
 const active = Prisma.sql`('PENDING','RUNNING','RETRY','PAUSED','FAILED')`;
 
+/** Validate approved status, channel, amount and event-date mappings before freezing a job. */
 function parsePolicy(value: unknown): OrderPolicy {
   if (!isRecord(value)) throw new Error("INVALID_SOURCE_MAPPING");
   const policy: OrderPolicy = {};

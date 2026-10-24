@@ -18,6 +18,7 @@ export default function DataQualityCard({lang,canManage}:{lang:'uk'|'en';canMana
  useEffect(()=>{const c=new AbortController();setError('');load(c.signal).catch(()=>{if(!c.signal.aborted)setError(uk?'Не вдалося завантажити якість даних. Спробуйте ще раз.':'Could not load data quality. Try again.');});return()=>c.abort();},[load,uk]);
  useEffect(()=>{if(error)errorRef.current?.focus();},[error]);
  useEffect(()=>{if(!dirty)return;const warn=(event:BeforeUnloadEvent)=>{event.preventDefault();event.returnValue='';};window.addEventListener('beforeunload',warn);return()=>window.removeEventListener('beforeunload',warn);},[dirty]);
+ /** Persist an administrative change, then distinguish save failure from refresh failure. */
  async function save(body:Record<string,unknown>){
   setBusy(true);setError('');setMessage('');let saved=false;try{
    const response=await apiFetch('/api/data/quality',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});

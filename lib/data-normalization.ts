@@ -351,6 +351,7 @@ function productResolver(products: NormalizedProduct[]) {
   };
 }
 
+/** Retain raw Sheets transaction facts and apply the existing report inclusion contract. */
 function normalizeSales(
   sheet: ParsedRawSheet,
   products: NormalizedProduct[]
@@ -501,6 +502,7 @@ function normalizeSales(
   return { saleLines, issues };
 }
 
+/** Normalize required source sheets while keeping row-level issues and raw lineage. */
 export function normalizeRawWorkbook(parsed: ParsedRawWorkbook): NormalizedWorkbook {
   const productResult = normalizeProducts(sheetByKey(parsed, "product_yml"));
   const salesResult = normalizeSales(
