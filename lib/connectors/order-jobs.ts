@@ -11,6 +11,8 @@ import { ConnectorReadError } from "./salesdrive";
 import { loadSalesDriveRuntime } from "./service";
 import { storeOrder, payloadHash } from "./order-storage";
 import { completeConnectorInputs } from "@/lib/data-pipeline";
+import { validateClientSettings } from "@/lib/merchandising-settings";
+import { applyClientOrderSettings } from "@/lib/merchandising-order-policy";
 import type { OrderPolicy } from "./order-normalization";
 
 export type ImportMode = "BACKFILL" | "INCREMENTAL" | "WEBHOOK";
@@ -68,10 +70,13 @@ export async function enqueueOrderImport(tenantId: string, mode: ImportMode, opt
     if (busy && mode !== "WEBHOOK" && !options.requestKey) return busy;
     const [cursor] = await tx.$queryRaw<Array<{ checkpoint: { through: string } }>>(Prisma.sql`SELECT checkpoint FROM "SyncCursor" WHERE "tenantId"=${tenantId} AND "sourceId"=${connection.sourceId} AND resource='orders'`);
     const [config] = await tx.$queryRaw<Array<{ values: unknown }>>(Prisma.sql`SELECT values FROM "MerchandisingConfig" WHERE "tenantId"=${tenantId} AND "configType"='SOURCE_MAPPING' AND key=${`salesdrive:${connection.sourceId}`} AND "isActive"=true AND "approvedAt" IS NOT NULL`);
+    const [clientConfig]=await tx.$queryRaw<Array<{id:string;revision:number;values:unknown}>>(Prisma.sql`SELECT id,revision,values FROM "MerchandisingConfig" WHERE "tenantId"=${tenantId} AND "configType"='GENERAL' AND key='settings:client' AND "isActive" AND "approvedAt" IS NOT NULL`);
+    const sourcePolicy=config?parsePolicy(config.values):{};
+    const policy=clientConfig?applyClientOrderSettings(sourcePolicy,validateClientSettings(clientConfig.values),clientConfig):sourcePolicy;
     const to = now.toISOString();
     const from = mode === "INCREMENTAL" ? new Date(new Date(cursor?.checkpoint.through ?? now).getTime() - 2 * 3600_000).toISOString()
       : Temporal.Instant.from(to).toZonedDateTimeISO(connection.timezone).subtract({ years: 2 }).toInstant().toString({ smallestUnit: "second" });
-    const checkpoint: Checkpoint = { stage: mode === "WEBHOOK" ? "orders" : "statuses", page: 1, from, to, ...(options.orderId ? { orderId: options.orderId } : {}), policy: config ? parsePolicy(config.values) : {} };
+    const checkpoint: Checkpoint = { stage: mode === "WEBHOOK" ? "orders" : "statuses", page: 1, from, to, ...(options.orderId ? { orderId: options.orderId } : {}), policy };
     const runId = randomUUID(), id = randomUUID();
     await tx.$executeRaw(Prisma.sql`INSERT INTO "DataImportRun" (id,"tenantId","sourceId",trigger,status,"idempotencyKey","businessDate","updatedAt") VALUES (${runId},${tenantId},${connection.sourceId},${options.trigger ?? 'MANUAL'}::"DataImportTrigger",'PENDING',${key},${now},${now})`);
     const [job] = await tx.$queryRaw<OrderJob[]>(Prisma.sql`INSERT INTO "ConnectorSyncJob" (id,"tenantId","sourceId","importRunId",mode,"connectionRevision",checkpoint,stats,"updatedAt")

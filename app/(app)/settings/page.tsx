@@ -122,7 +122,7 @@ export default async function SettingsPage() {
         {lang === "uk" ? "Онбординг, джерела даних, інтеграції" : "Onboarding, data sources, integrations"}
       </p>
 
-      <SettingsTabs lang={lang} generalContent={generalContent} />
+      <SettingsTabs lang={lang} generalContent={generalContent} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
     </div>
   );
 }
