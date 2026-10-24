@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { isRecord } from "@/lib/api-contracts";
 import type { SqlDatabase, SqlClient } from "./database";
 import type { MerchandisingConnector } from "./contract";
+import { claimConnectorJob, resumeConnectorJob, getConnectorProgress, recordIssues, failConnectorJob } from "./jobs";
 import { ConnectorReadError } from "./salesdrive";
 import { loadSalesDriveRuntime } from "./service";
 import { storeOrder, payloadHash } from "./order-storage";
@@ -15,7 +16,7 @@ export type ImportMode = "BACKFILL" | "INCREMENTAL" | "WEBHOOK";
 interface Checkpoint { stage: "statuses" | "channels" | "orders"; page: number; from: string; to: string; orderId?: string; policy: OrderPolicy }
 interface Stats { pages: number; orders: number; imported: number; duplicate: number; stale: number; quarantined: number; warnings: number }
 export interface OrderJob {
-  id: string; tenantId: string; sourceId: string; importRunId: string; mode: ImportMode; state: string;
+  id: string; tenantId: string; sourceId: string; importRunId: string; resource: string; mode: ImportMode; state: string;
   connectionRevision: number; checkpoint: Checkpoint; stats: Stats; attempts: number;
   availableAt: Date; leaseToken: string | null; leaseExpiresAt: Date | null; errorCode: string | null;
 }
@@ -54,7 +55,7 @@ export async function enqueueOrderImport(tenantId: string, mode: ImportMode, opt
     const [existing] = await tx.$queryRaw<OrderJob[]>(Prisma.sql`SELECT j.* FROM "ConnectorSyncJob" j JOIN "DataImportRun" r ON r.id=j."importRunId" WHERE j."tenantId"=${tenantId} AND r."idempotencyKey"=${key}`);
     if (existing) return existing;
     const [busy] = await tx.$queryRaw<OrderJob[]>(Prisma.sql`SELECT * FROM "ConnectorSyncJob" WHERE "tenantId"=${tenantId} AND "sourceId"=${connection.sourceId} AND state IN ${active}`);
-    if (busy) { if (mode === "WEBHOOK") throw new Error("IMPORT_BUSY"); return busy; }
+    if (busy) { if (mode === "WEBHOOK" || busy.resource !== "orders") throw new Error("IMPORT_BUSY"); return busy; }
     const [cursor] = await tx.$queryRaw<Array<{ checkpoint: { through: string } }>>(Prisma.sql`SELECT checkpoint FROM "SyncCursor" WHERE "tenantId"=${tenantId} AND "sourceId"=${connection.sourceId} AND resource='orders'`);
     if (mode === "INCREMENTAL" && !cursor?.checkpoint.through) throw new Error("BACKFILL_REQUIRED");
     const [config] = await tx.$queryRaw<Array<{ values: unknown }>>(Prisma.sql`SELECT values FROM "MerchandisingConfig" WHERE "tenantId"=${tenantId} AND "configType"='SOURCE_MAPPING' AND key=${`salesdrive:${connection.sourceId}`} AND "isActive"=true AND "approvedAt" IS NOT NULL`);
@@ -72,38 +73,12 @@ export async function enqueueOrderImport(tenantId: string, mode: ImportMode, opt
   });
 }
 
-/** Claim one available or expired job atomically; concurrent workers skip locked rows. */
+/** Claim only order jobs; other resources share the same source admission lock. */
 export async function claimOrderJob(db: SqlDatabase = prisma, tenantId?: string, now = new Date()) {
-  const token = randomUUID();
-  const [job] = await db.$queryRaw<OrderJob[]>(Prisma.sql`UPDATE "ConnectorSyncJob" SET state='RUNNING',"leaseToken"=${token},"leaseExpiresAt"=${new Date(now.getTime() + 120_000)},"updatedAt"=${now}
-    WHERE id=(SELECT id FROM "ConnectorSyncJob" WHERE ((state IN ('PENDING','RETRY') AND "availableAt"<=${now}) OR (state='RUNNING' AND "leaseExpiresAt"<=${now}))
-      ${tenantId ? Prisma.sql`AND "tenantId"=${tenantId}` : Prisma.empty} ORDER BY "availableAt", "createdAt" FOR UPDATE SKIP LOCKED LIMIT 1) RETURNING *`);
-  return job ?? null;
+  return claimConnectorJob<OrderJob>("orders", db, tenantId, now);
 }
-
-/** Resume the tenant’s latest recoverable job with its checkpoint and current connection revision. */
-export async function resumeOrderImport(tenantId: string, db: SqlDatabase = prisma) {
-  // Explicit resume acknowledges the current credential revision, preserving the page.
-  return db.$executeRaw(Prisma.sql`UPDATE "ConnectorSyncJob" j SET state='PENDING',attempts=0,"errorCode"=NULL,"availableAt"=now(),"updatedAt"=now(),"connectionRevision"=c.revision
-    FROM "ConnectorConnection" c WHERE j."tenantId"=${tenantId} AND c."tenantId"=j."tenantId" AND c."sourceId"=j."sourceId" AND j.state IN ('PAUSED','FAILED')
-    AND NOT EXISTS (SELECT 1 FROM "ConnectorSyncJob" other WHERE other."tenantId"=j."tenantId" AND other."sourceId"=j."sourceId" AND other.id<>j.id AND other.state IN ${active})
-    AND j.id=(SELECT id FROM "ConnectorSyncJob" WHERE "tenantId"=${tenantId} AND "sourceId"=j."sourceId" ORDER BY "createdAt" DESC LIMIT 1)`);
-}
-
-/** Expose sanitized progress and issue codes for the current tenant connection only. */
-export async function getOrderImportProgress(tenantId: string, db: SqlClient = prisma) {
-  const [job] = await db.$queryRaw<Array<{ id: string; mode: string; state: string; stats: Stats; errorCode: string | null; availableAt: Date; updatedAt: Date; issues: string[] }>>(Prisma.sql`
-    SELECT j.id,j.mode,j.state,j.stats,j."errorCode",j."availableAt",j."updatedAt", ARRAY(SELECT DISTINCT i.code FROM "ImportIssue" i WHERE i."importRunId"=j."importRunId" AND i."tenantId"=j."tenantId" ORDER BY i.code LIMIT 100) AS issues FROM "ConnectorSyncJob" j JOIN "ConnectorConnection" c ON c."sourceId"=j."sourceId" AND c."tenantId"=j."tenantId"
-    WHERE j."tenantId"=${tenantId} ORDER BY j."createdAt" DESC LIMIT 1`);
-  return job ?? null;
-}
-
-/** Keep one diagnostic per run/code without storing source customer data in the message. */
-export async function recordIssues(tx: SqlClient, job: OrderJob, codes: Set<string>) {
-  for (const code of codes) await tx.$executeRaw(Prisma.sql`INSERT INTO "ImportIssue" (id,"tenantId","importRunId",code,severity,message)
-    SELECT ${randomUUID()},${job.tenantId},${job.importRunId},${code},'WARNING',${code}
-    WHERE NOT EXISTS (SELECT 1 FROM "ImportIssue" WHERE "importRunId"=${job.importRunId} AND code=${code})`);
-}
+export async function resumeOrderImport(tenantId: string, db: SqlDatabase = prisma) { return resumeConnectorJob(tenantId, "orders", db); }
+export async function getOrderImportProgress(tenantId: string, db: SqlClient = prisma) { return getConnectorProgress(tenantId, "orders", db); }
 
 type RuntimeLoader = (tenantId: string) => Promise<{ sourceId: string; revision: number; timezone: string; connector: MerchandisingConnector }>;
 /** One bounded remote page per invocation. No sleeping, recursive drains or request-lifetime backfills. */
@@ -170,16 +145,7 @@ export async function processOrderJob(tenantId?: string, db: SqlDatabase = prism
     }, { timeout: 45_000, maxWait: 5_000 });
     return { processed: true };
   } catch (error) {
-    const changed = error instanceof Error && error.message === "CONNECTOR_CONFIG_CHANGED";
-    const code = changed ? "CONNECTOR_CONFIG_CHANGED" : error instanceof ConnectorReadError ? error.code : error instanceof Error && error.message === "NOT_CONFIGURED" ? "NOT_CONFIGURED" : "IMPORT_FAILED";
-    const attempts = job.attempts + 1;
-    const pause = changed || code === "AUTH_FAILED" || code === "NOT_CONFIGURED";
-    const state = pause ? "PAUSED" : attempts >= 8 && code !== "RATE_LIMITED" ? "FAILED" : "RETRY";
-    const retry = error instanceof ConnectorReadError && error.retryAt ? error.retryAt : new Date(Date.now() + Math.min(3600_000, 15_000 * 2 ** Math.min(attempts, 8)) + Math.floor(Math.random() * 1000));
-    await db.$transaction(async (tx) => {
-      const updated = await tx.$executeRaw(Prisma.sql`UPDATE "ConnectorSyncJob" SET state=${state},attempts=${attempts},"errorCode"=${code},"availableAt"=${retry},"leaseToken"=NULL,"leaseExpiresAt"=NULL,"updatedAt"=now() WHERE id=${job.id} AND "leaseToken"=${job.leaseToken} AND state='RUNNING'`);
-      if (updated && (state === "FAILED" || state === "PAUSED")) await tx.$executeRaw(Prisma.sql`UPDATE "DataImportRun" SET status='FAILED',"errorMessage"=${code},"completedAt"=now(),"updatedAt"=now() WHERE id=${job.importRunId} AND "tenantId"=${job.tenantId}`);
-    });
+    await failConnectorJob(job, error, db);
     return { processed: true };
   }
 }

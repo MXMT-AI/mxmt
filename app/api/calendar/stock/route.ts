@@ -31,8 +31,10 @@ export async function GET() {
     const brandId = snap.sku.brand?.id;
     const brandName = snap.sku.brand?.name;
     if (!brandId || !brandName) continue;
+    const quantity = snap.quantity == null ? snap.qtyOnHand : Number(snap.quantity);
+    if (quantity === null) continue;
     if (!brandStock[brandId]) brandStock[brandId] = { name: brandName, stock: 0, sales30: 0 };
-    brandStock[brandId].stock += snap.qtyOnHand;
+    brandStock[brandId].stock += quantity;
   }
 
   for (const sale of sales) {

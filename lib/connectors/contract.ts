@@ -7,6 +7,10 @@ export interface SourceContext {
   updatedAt: string | null;
 }
 export interface ProductDto extends SourceContext {
+  oldPrice?: DecimalValue | null;
+  sourceStatus?: string | null;
+  categoryName?: string | null;
+  raw?: Record<string, unknown>;
   sku: string | null;
   name: string;
   barcode: string | null;
@@ -44,14 +48,17 @@ export interface OrderDto extends SourceContext {
   }>;
 }
 export interface ReceiptDto extends SourceContext {
+  supplierName?: string | null;
+  raw?: Record<string, unknown>;
   movementType: "supplier_receipt" | "transfer" | "write_off" | "inventory_adjustment" | "unknown";
   statusId: string | null;
   supplierId: string | null;
   receivedAt: string | null;
   // Posting semantics are customer evidence, not inferred from a successful HTTP call.
   postingVerified: false;
-  lines: Array<{ externalLineId: string | null; productId: string | null; quantity: DecimalValue | null; unitCost: DecimalValue | null }>;
+  lines: Array<{ externalLineId: string | null; productId: string | null; sourceProductId?: string | null; sku?: string | null; quantity: DecimalValue | null; unitCost: DecimalValue | null }>;
 }
+export interface CatalogSnapshot { products: ProductDto[]; stock: StockDto[]; rawResponse: string; observedAt: string }
 export interface DictionaryEntry { id: string; name: string }
 export interface Dictionary {
   entries: DictionaryEntry[];
@@ -100,6 +107,7 @@ export interface ConnectionCheck {
 export interface MerchandisingConnector {
   readonly provider: ConnectorProvider;
   readonly capabilities: ConnectorCapabilities;
+  getCatalogSnapshot?(): Promise<CatalogSnapshot>;
   getOrders(request?: PageRequest): Promise<ConnectorPage<OrderDto>>;
   getProducts(request?: PageRequest): Promise<ConnectorPage<ProductDto>>;
   getStock(request?: PageRequest): Promise<ConnectorPage<StockDto>>;

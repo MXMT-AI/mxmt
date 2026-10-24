@@ -77,6 +77,7 @@ export default async function SettingsPage() {
       {/* Google Drive sync */}
       <SalesDriveConnectionCard initial={salesDrive} lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
 
+      <SalesDriveImportCard resource="inventory" lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
       <SalesDriveImportCard lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
 
       <section className="mb-10">
