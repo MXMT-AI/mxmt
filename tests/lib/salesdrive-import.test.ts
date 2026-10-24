@@ -170,8 +170,7 @@ describe("queue checkpoints and worker", () => {
     return Response.json({ data: [{ id: 300 + page, version: 1, updateAt: "2026-10-24 14:00:00", orderTime: "2026-10-24 14:00:00", products: [{ amount: 1, price: 100 }] }], pagination: { pageCount: 2 } });
   });
   const runtime = async () => ({ sourceId: "source-a", revision: 1, timezone: "Europe/Kyiv", connector });
-  it("requires baseline, persists each page, retries without advancing, then commits a completed cursor", async () => {
-    await expect(enqueueOrderImport("a", "INCREMENTAL", {}, db)).rejects.toThrow("BACKFILL_REQUIRED");
+  it("persists each page, retries without advancing, then commits a completed cursor", async () => {
     const job = await enqueueOrderImport("a", "BACKFILL", {}, db);
     expect((await enqueueOrderImport("a", "BACKFILL", {}, db)).id).toBe(job.id);
     await processOrderJob("a", db, runtime); // statuses
@@ -213,9 +212,11 @@ describe("queue checkpoints and worker", () => {
     expect((await getOrderImportProgress("a", db))?.state).toBe("RUNNING");
     expect((await pg.query('SELECT "leaseToken" FROM "ConnectorSyncJob" WHERE "tenantId"=\'a\' ORDER BY "createdAt" DESC LIMIT 1')).rows).toEqual([{ leaseToken: "stolen" }]);
   });
-  it("deduplicates webhook jobs and refuses busy delivery without acknowledging it", async () => {
+  it("deduplicates webhook jobs queued behind a leased source", async () => {
     const event = { orderId: "301", eventKey: "a".repeat(64), payload: { synthetic: true } };
-    await expect(enqueueOrderImport("a", "WEBHOOK", event, db)).rejects.toThrow("IMPORT_BUSY");
+    const queued = await enqueueOrderImport("a", "WEBHOOK", event, db);
+    expect(queued.state).toBe("PENDING");
+    expect(await claimOrderJob(db,"a")).toBeNull();
     // Release the deliberately stolen fixture lease; failed-job recovery is tested below.
     await pg.exec(`UPDATE "ConnectorSyncJob" SET state='COMPLETE', "leaseToken"=NULL, "leaseExpiresAt"=NULL WHERE "tenantId"='a' AND state='RUNNING'; UPDATE "DataImportRun" SET status='WARNING' WHERE "tenantId"='a' AND status='RUNNING'`);
     const one = await enqueueOrderImport("a", "WEBHOOK", event, db);
@@ -247,8 +248,6 @@ describe("page transaction recovery", () => {
     expect((await pg.query('SELECT count(*)::int n FROM "DataSourceRecord" WHERE "tenantId"=\'b\' AND resource=\'orders\'')).rows).toEqual([{ n: 0 }]);
     expect((await pg.query('SELECT status FROM "DataImportRun" WHERE id=$1', [job.importRunId])).rows).toEqual([{ status: "FAILED" }]);
     expect((await pg.query('SELECT * FROM "SyncCursor" WHERE "tenantId"=\'b\'')).rows).toEqual([]);
-    const event = { orderId: "301", eventKey: "b".repeat(64) };
-    await expect(enqueueOrderImport("b", "WEBHOOK", event, db)).rejects.toThrow("IMPORT_BUSY");
     expect((await enqueueOrderImport("b", "BACKFILL", {}, db)).id).toBe(job.id);
     expect(await getOrderImportProgress("b", db)).toMatchObject({ id: job.id, state: "FAILED" });
     expect((await pg.query('SELECT count(*)::int n FROM "ConnectorSyncJob" WHERE "tenantId"=\'b\'')).rows).toEqual([{ n: 1 }]);

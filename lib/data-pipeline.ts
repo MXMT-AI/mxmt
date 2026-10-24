@@ -1,4 +1,6 @@
-import { DataImportTrigger } from "@prisma/client";
+import type { SqlClient } from "@/lib/connectors/database";
+import type { ConnectorJob } from "@/lib/connectors/jobs";
+import { DataImportTrigger, Prisma } from "@prisma/client";
 import { calculateArticleReport, type ArticleCalculationResult } from "@/lib/article-report";
 import { importRawDataFromDrive, type RawImportResult } from "@/lib/data-import";
 
@@ -33,4 +35,13 @@ export async function runDataPipeline({
       })
     : null;
   return { import: importResult, calculation: calculationResult };
+}
+
+// SalesDrive inputs share the import lifecycle; their new financial engine is separate.
+/** Commit an idempotent recalculation intent alongside the successful import inputs. */
+export async function completeConnectorInputs(tx: SqlClient, job: Pick<ConnectorJob, "tenantId" | "sourceId" | "importRunId" | "resource">) {
+  await tx.$executeRaw(Prisma.sql`INSERT INTO "ConnectorRecalculation" ("importRunId","tenantId","sourceId","inputProvenance")
+    SELECT ${job.importRunId},${job.tenantId},${job.sourceId},jsonb_build_object('resource',${job.resource}::text,'importRunId',${job.importRunId}::text,'activeCatalogRunId',s."activeImportRunId",'orderWatermark',c.checkpoint,'engine','salesdrive-v1-pending-35-37','inputConsistency','source-watermarks-not-frozen-financial-snapshot')
+    FROM "DataSource" s LEFT JOIN "SyncCursor" c ON c."tenantId"=s."tenantId" AND c."sourceId"=s.id AND c.resource='orders'
+    WHERE s.id=${job.sourceId} AND s."tenantId"=${job.tenantId} ON CONFLICT DO NOTHING`);
 }

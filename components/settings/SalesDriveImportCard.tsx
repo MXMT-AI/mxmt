@@ -5,32 +5,46 @@ import { apiFetch } from "@/lib/fetch";
 import { readApiJson } from "@/lib/api-response";
 
 interface Progress { id: string; state: string; mode: string; stats: Record<string, number>; issues: string[]; errorCode: string | null; availableAt: string; updatedAt: string }
+interface ImportResponse extends Record<string, unknown> {
+  job?: Progress | null;
+  coverage?: { firstObservedAt: string | null; observedDays: number; missingDays?: number };
+  resources?: Array<{resource:string;lastSuccess:string|null;lagSeconds:number|null;pending:number;errorCode:string|null}>;
+  calculation?: {state:string}|null;
+  backfill?: {id:string;state:string;stats:{pages?:number;orders?:number}}|null;
+  lastTickAt?: string|null;
+  code?: string; error?: string;
+}
 /** Poll jobs that are queued, leased or waiting for an automatic retry. */
 const running = (job: Progress | null) => Boolean(job && ["PENDING", "RUNNING", "RETRY"].includes(job.state));
 /** Share import progress and recovery controls across order and inventory resources. */
-export default function SalesDriveImportCard({ lang, canManage, resource = "orders" }: { lang: "uk" | "en"; canManage: boolean; resource?: "orders" | "inventory" }) {
+export default function SalesDriveImportCard({ lang, canManage, resource = "orders" }: { lang: "uk" | "en"; canManage: boolean; resource?: "orders" | "inventory" | "sync" }) {
   const uk = lang === "uk";
-  const inventory = resource === "inventory";
-  const endpoint = inventory ? "/api/connectors/salesdrive/inventory" : "/api/connectors/salesdrive/import";
+  const inventory = resource === "inventory", sync = resource === "sync";
+  const endpoint = sync ? "/api/connectors/salesdrive/sync" : inventory ? "/api/connectors/salesdrive/inventory" : "/api/connectors/salesdrive/import";
   const headingId = `salesdrive-${resource}-import-title`;
+  const [syncInfo, setSyncInfo] = useState<ImportResponse>({});
   const [coverage, setCoverage] = useState<{ firstObservedAt: string | null; observedDays: number; missingDays?: number } | null>(null);
   const [job, setJob] = useState<Progress | null>(null), [loaded, setLoaded] = useState(false);
   const errorRef = useRef<HTMLParagraphElement>(null);
   const [busy, setBusy] = useState(false), [error, setError] = useState("");
   useEffect(() => { if (error) errorRef.current?.focus(); }, [error]);
+  const applyProgress = useCallback((result: ImportResponse) => {
+    setError(""); setJob(result.job ?? null); setSyncInfo(result); setCoverage(result.coverage ?? null); setLoaded(true);
+  }, []);
   const load = useCallback(async (signal?: AbortSignal) => {
     const response = await apiFetch(endpoint, { signal, cache: "no-store" });
-    const result = await readApiJson<{ job?: Progress | null; coverage?: { firstObservedAt: string | null; observedDays: number; missingDays?: number }; code?: string; error?: string }>(response);
+    const result = await readApiJson<ImportResponse>(response);
     if (!response.ok || result.job === undefined) throw new Error("IMPORT_UNAVAILABLE");
-    setError(""); setJob(result.job); setCoverage(result.coverage ?? null); setLoaded(true);
-  }, [endpoint]);
+    applyProgress(result);
+  }, [endpoint, applyProgress]);
   useEffect(() => {
     const controller = new AbortController();
     load(controller.signal).catch(() => { if (!controller.signal.aborted) { setError(uk ? "Не вдалося завантажити прогрес." : "Could not load import progress."); setLoaded(true); } });
     return () => controller.abort();
   }, [load, uk]);
+  const polling = running(job) || sync && Boolean(syncInfo.resources?.some((r)=>r.pending>0));
   useEffect(() => {
-    if (!running(job)) return;
+    if (!polling) return;
     const controller = new AbortController();
     let timer: ReturnType<typeof setTimeout>;
     const poll = async () => {
@@ -40,14 +54,14 @@ export default function SalesDriveImportCard({ lang, canManage, resource = "orde
     };
     timer = setTimeout(poll, 10_000);
     return () => { clearTimeout(timer); controller.abort(); };
-  }, [job?.state, load, uk]);
+  }, [polling, load, uk]);
   async function act(action: string) {
     setBusy(true); setError("");
     try {
       const response = await apiFetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action }) });
-      const result = await readApiJson<{ job?: Progress | null; coverage?: { firstObservedAt: string | null; observedDays: number; missingDays?: number }; code?: string; error?: string }>(response);
+      const result = await readApiJson<ImportResponse>(response);
       if (!response.ok || result.job === undefined) throw new Error(result.code === "IMPORT_BUSY" ? "IMPORT_BUSY" : result.code === "CATALOG_NOT_CONFIGURED" ? "CATALOG_NOT_CONFIGURED" : "IMPORT_UNAVAILABLE");
-      setJob(result.job); setCoverage(result.coverage ?? null); setLoaded(true);
+      applyProgress(result);
     } catch (error) { setError(error instanceof Error && error.message === "IMPORT_BUSY" ? (uk ? "Завершіть або відновіть інший імпорт SalesDrive перед запуском цього." : "Finish or resume the other SalesDrive import before starting this one.") : error instanceof Error && error.message === "CATALOG_NOT_CONFIGURED" ? (uk ? "Збережіть YML-посилання в налаштуваннях SalesDrive перед імпортом каталогу." : "Save a YML feed URL in SalesDrive settings before importing the catalogue.") : uk ? "Не вдалося виконати дію. Перевірте з’єднання та налаштування джерела." : "Import action failed. Check the connection and source settings."); }
     finally { setBusy(false); }
   }
@@ -55,17 +69,26 @@ export default function SalesDriveImportCard({ lang, canManage, resource = "orde
     : { PENDING: "Queued", RUNNING: "Importing", RETRY: "Waiting to retry", PAUSED: "Paused", FAILED: "Failed", COMPLETE: "Complete" };
   const button = "touch-manipulation focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--text)] rounded-lg border border-[var(--border)] px-3 py-2 text-sm text-[var(--text)] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--bg)]";
   return <section className="mb-10 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5" aria-labelledby={headingId} aria-busy={busy}>
-    <h2 id={headingId} className="font-semibold text-[var(--text)]">{inventory ? (uk ? "Каталог і залишки SalesDrive" : "SalesDrive catalogue and stock") : (uk ? "Історія замовлень SalesDrive" : "SalesDrive order history")}</h2>
-    <p className="mt-1 text-sm text-[var(--muted)]">{inventory ? (uk ? "Надходження, каталог і поточні залишки. Історія залишків починається з першого спостереження." : "Receipts, catalogue and current stock. Stock history starts with the first observation.") : (uk ? "Історія за два роки, потім — оновлені замовлення. Імпорт зберігає прогрес між запусками." : "Two years of history, then updated orders. Progress is saved between runs.")}</p>
+    <h2 id={headingId} className="font-semibold text-[var(--text)]">{sync ? (uk ? "Синхронізація SalesDrive" : "SalesDrive synchronization") : inventory ? (uk ? "Каталог і залишки SalesDrive" : "SalesDrive catalogue and stock") : (uk ? "Історія замовлень SalesDrive" : "SalesDrive order history")}</h2>
+    <p className="mt-1 text-sm text-[var(--muted)]">{sync ? (uk ? "Замовлення — кожні дві години. Залишки — о 03:00 за Києвом. Автоматичні оновлення потребують підключеного зовнішнього планувальника." : "Orders every two hours; stock at 03:00 Kyiv. Automatic updates require a connected external scheduler.") : inventory ? (uk ? "Надходження, каталог і поточні залишки. Історія залишків починається з першого спостереження." : "Receipts, catalogue and current stock. Stock history starts with the first observation.") : (uk ? "Історія за два роки, потім — оновлені замовлення. Імпорт зберігає прогрес між запусками." : "Two years of history, then updated orders. Progress is saved between runs.")}</p>
     <p className="mt-3 text-sm text-[var(--text)]" role="status">{!loaded ? (uk ? "Завантаження…" : "Loading…") : job ? labels[job.state] ?? job.state : (uk ? "Імпорт ще не запускався." : "No import has been started.")}</p>
     {job && <>
-      <dl className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+      {!sync && <dl className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
         {(inventory ? [[uk ? "Надходження" : "Receipts", job.stats.receipts], [uk ? "Товари" : "Products", job.stats.products], [uk ? "Знімки" : "Snapshots", job.stats.snapshots], [uk ? "Зміни цін" : "Price changes", job.stats.prices]] : [[uk ? "Сторінки" : "Pages", job.stats.pages], [uk ? "Замовлення" : "Orders", job.stats.orders], [uk ? "Оновлено" : "Imported", job.stats.imported], [uk ? "Дублікати" : "Duplicates", job.stats.duplicate], [uk ? "Застарілі" : "Stale", job.stats.stale], [uk ? "Потребують перевірки" : "Quarantined", job.stats.quarantined]]).map(([label, count]) => <div key={label}><dt className="text-[var(--muted)]">{label}</dt><dd className="tabular-nums text-[var(--text)]">{typeof count === "number" ? count.toLocaleString(uk ? "uk-UA" : "en-GB") : count}</dd></div>)}
-      </dl>
+      </dl>}
       {job.stats.warnings > 0 && <p className="mt-3 text-sm text-[var(--text)]">{uk ? "Є попередження якості даних. Перевірте ці попередження перед використанням у звітах." : "Data quality warnings exist. Review these warnings before using records in reports."}</p>}
       {job.issues?.length > 0 && <details className="mt-3 text-sm text-[var(--text)]"><summary className="cursor-pointer">{uk ? "Попередження якості даних" : "Data quality warnings"}</summary><ul className="mt-2 list-disc space-y-1 pl-5">{job.issues.map((code) => <li key={code} className="break-words">{issueLabel(code, uk)}</li>)}</ul></details>}
       {job.errorCode && <p className="mt-3 break-words text-sm text-[var(--text)]">{uk ? "Причина" : "Reason"}: {errorLabel(job.errorCode, uk)}</p>}
       {job.state === "RETRY" && <p className="mt-2 text-sm text-[var(--muted)]">{uk ? "Наступна спроба не раніше" : "Next attempt after"}: {new Date(job.availableAt).toLocaleString(uk ? "uk-UA" : "en-GB")}</p>}
+    </>}
+    {sync && <>
+      {job && <p className="mt-2 break-all text-sm text-[var(--muted)]">{uk ? "Цикл" : "Cycle"}: {job.id}</p>}
+      {job?.state==='COMPLETE' && <p className="mt-2 text-sm text-[var(--muted)]">{uk?'Завершено':'Completed'}: {new Date(job.updatedAt).toLocaleString(uk?'uk-UA':'en-GB')}</p>}
+      <p className="mt-2 text-sm text-[var(--muted)]">{uk?'Останній виклик планувальника':'Last scheduler tick'}: {syncInfo.lastTickAt?new Date(syncInfo.lastTickAt).toLocaleString(uk?'uk-UA':'en-GB'):(uk?'ще немає — підключіть зовнішній планувальник':'none yet — connect an external scheduler')}</p>
+      {syncInfo.backfill && <p className="mt-2 text-sm text-[var(--muted)]">{uk?'Історичний імпорт':'Historical import'}: {labels[syncInfo.backfill.state]??syncInfo.backfill.state}; {uk?'сторінок':'pages'} {syncInfo.backfill.stats.pages??0}; {uk?'замовлень':'orders'} {syncInfo.backfill.stats.orders??0}.</p>}
+      {syncInfo.resources?.map((r)=><p key={r.resource} className="mt-3 text-sm text-[var(--muted)]">{r.resource==='orders' ? (uk?'Замовлення':'Orders') : (uk?'Залишки':'Stock')}: {uk?'останнє завершення':'last completion'} {r.lastSuccess?new Date(r.lastSuccess).toLocaleString(uk?'uk-UA':'en-GB'):(uk?'ще немає':'none yet')}; {uk?'у черзі':'pending'} {r.pending.toLocaleString(uk?'uk-UA':'en-GB')}. {r.lagSeconds!==null && `${uk?'Відставання (хв)':'Lag (min)'}: ${Math.ceil(r.lagSeconds/60).toLocaleString(uk?'uk-UA':'en-GB')}.`} {r.errorCode && errorLabel(r.errorCode,uk)}</p>)}
+      {syncInfo.calculation?.state==='WAITING_ENGINE' && <p className="mt-3 text-sm text-[var(--muted)]">{uk?'Дані імпортовано. Перерахунок очікує нового фінансового калькулятора.':'Inputs imported. Recalculation is waiting for the new financial engine.'}</p>}
+      {sync && job?.state==='PAUSED' && <p className="mt-3 text-sm text-[var(--muted)]">{uk?'Відновіть цикл після виправлення з’єднання або налаштувань.':'Resume this cycle after correcting the connection or source settings.'}</p>}
     </>}
     {inventory && coverage && <p className="mt-3 text-sm text-[var(--muted)]">{coverage.firstObservedAt
       ? `${uk ? "Перше спостереження" : "First observation"}: ${new Date(coverage.firstObservedAt).toLocaleString(uk ? "uk-UA" : "en-GB")}. ${uk ? "Днів зі знімками" : "Days with snapshots"}: ${coverage.observedDays}. ${uk ? "Пропущених днів" : "Missing days"}: ${coverage.missingDays ?? 0}. ${uk ? "Раніша історія недоступна." : "Earlier history is unavailable."}`
@@ -73,10 +96,11 @@ export default function SalesDriveImportCard({ lang, canManage, resource = "orde
     {error && <p ref={errorRef} tabIndex={-1} className="mt-3 text-sm text-red-500" role="alert">{error}</p>}
     <div className="mt-4 flex flex-wrap gap-2">
       {canManage && <>
-        <button className={button} disabled={!loaded || busy || running(job) || job?.state === "PAUSED" || job?.state === "FAILED"} onClick={() => act(inventory ? "start" : "backfill")}>{inventory ? (uk ? "Оновити каталог і залишки" : "Refresh catalogue and stock") : (uk ? "Імпортувати два роки" : "Import two years")}</button>
-        {!inventory && <button className={button} disabled={!loaded || busy || !job || job.state !== "COMPLETE"} onClick={() => act("incremental")}>{uk ? "Імпортувати зміни" : "Import changes"}</button>}
+        <button className={button} disabled={!loaded || busy || running(job) || job?.state === "PAUSED" || job?.state === "FAILED"} onClick={() => act(sync ? "refresh" : inventory ? "start" : "backfill")}>{sync ? (uk ? "Оновити дані" : "Refresh data") : inventory ? (uk ? "Оновити каталог і залишки" : "Refresh catalogue and stock") : (uk ? "Імпортувати два роки" : "Import two years")}</button>
+        {!inventory && !sync && <button className={button} disabled={!loaded || busy || !job || job.state !== "COMPLETE"} onClick={() => act("incremental")}>{uk ? "Імпортувати зміни" : "Import changes"}</button>}
         {job && ["PAUSED", "FAILED"].includes(job.state) && <button className={button} disabled={busy} onClick={() => act("resume")}>{uk ? "Відновити" : "Resume"}</button>}
-        {running(job) && <button className={button} disabled={busy || job?.state === "RUNNING"} onClick={() => act("step")}>{uk ? "Обробити наступну сторінку" : "Process next page"}</button>}
+        {sync && syncInfo.backfill && ["PAUSED","FAILED"].includes(syncInfo.backfill.state) && <button className={button} disabled={busy} onClick={()=>act("resumeBackfill")}>{uk?"Відновити історичний імпорт":"Resume historical import"}</button>}
+        {polling && <button className={button} disabled={busy || !sync && job?.state === "RUNNING"} onClick={() => act("step")}>{uk ? "Обробити наступну сторінку" : "Process next page"}</button>}
       </>}
       <button className={button} disabled={busy} onClick={() => { setError(""); load().catch(() => setError(uk ? "Не вдалося оновити прогрес." : "Could not refresh progress.")); }}>{uk ? "Оновити прогрес" : "Refresh progress"}</button>
     </div>

@@ -74,11 +74,11 @@ describe("authenticated webhook relay", () => {
     expect(m.enqueue).not.toHaveBeenCalled();
     expect(parseOrderWebhook({ ...event, data: { id: Number("9007199254740993") } }, "demo.salesdrive.me")).toBeNull();
   });
-  it("accepts a verified event for refetch; returns retryable 503 when busy", async () => {
+  it("accepts a verified event for refetch; returns retryable 503 on queue capacity failure", async () => {
     const headers = { authorization: `Bearer ${salesDriveWebhookToken("source-a")}` };
     expect((await WEBHOOK(req("POST", event, headers), context)).status).toBe(202);
     expect(m.enqueue).toHaveBeenCalledWith("a", "WEBHOOK", expect.objectContaining({ orderId: "123", eventKey: expect.stringMatching(/^[a-f0-9]{64}$/) }));
-    m.enqueue.mockRejectedValueOnce(new Error("IMPORT_BUSY"));
+    m.enqueue.mockRejectedValueOnce(new Error("SYNC_QUEUE_FULL"));
     const response = await WEBHOOK(req("POST", event, headers), context);
     expect(response.status).toBe(503); expect(response.headers.get("Retry-After")).toBe("60");
   });

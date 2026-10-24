@@ -4,15 +4,25 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { ConnectorReadError } from "./salesdrive";
 import type { SqlClient, SqlDatabase } from "./database";
+import { logWarn } from "@/lib/observability";
 export interface ConnectorJob { id: string; tenantId: string; sourceId: string; importRunId: string; resource: string; connectionRevision: number; attempts: number; leaseToken: string | null }
-const active = Prisma.sql`('PENDING','RUNNING','RETRY','PAUSED','FAILED')`;
 
 /** Claim one available or expired job atomically; concurrent workers skip locked rows. */
-export async function claimConnectorJob<T extends ConnectorJob>(resource: string, db: SqlDatabase = prisma, tenantId?: string, now = new Date()) {
+export async function claimConnectorJob<T extends ConnectorJob>(resource: string | null, db: SqlDatabase = prisma, tenantId?: string, now = new Date()) {
   const token = randomUUID();
-  const [job] = await db.$queryRaw<T[]>(Prisma.sql`UPDATE "ConnectorSyncJob" SET state='RUNNING',"leaseToken"=${token},"leaseExpiresAt"=${new Date(now.getTime() + 120_000)},"updatedAt"=${now}
-    WHERE id=(SELECT id FROM "ConnectorSyncJob" WHERE resource=${resource} AND ((state IN ('PENDING','RETRY') AND "availableAt"<=${now}) OR (state='RUNNING' AND "leaseExpiresAt"<=${now}))
-      ${tenantId ? Prisma.sql`AND "tenantId"=${tenantId}` : Prisma.empty} ORDER BY "availableAt", "createdAt" FOR UPDATE SKIP LOCKED LIMIT 1) RETURNING *`);
+  const [job] = await db.$queryRaw<T[]>(Prisma.sql`WITH candidate AS (
+    SELECT j.id FROM "ConnectorConnection" c JOIN LATERAL (
+      SELECT q.id,q.mode,q.state,q."availableAt",q."updatedAt" FROM "ConnectorSyncJob" q
+      WHERE q."tenantId"=c."tenantId" AND q."sourceId"=c."sourceId"
+        AND (${resource}::text IS NULL OR q.resource=${resource})
+        AND ((q.state IN ('PENDING','RETRY') AND q."availableAt"<=${now}) OR (q.state='RUNNING' AND q."leaseExpiresAt"<=${now}))
+        AND NOT EXISTS (SELECT 1 FROM "ConnectorSyncJob" held WHERE held."tenantId"=q."tenantId" AND held."sourceId"=q."sourceId" AND held.state='RUNNING' AND (held."leaseExpiresAt">${now} OR held.id<>q.id))
+      ORDER BY CASE WHEN q.state='RUNNING' THEN 0 WHEN q.mode='BACKFILL' THEN 2 ELSE 1 END,q."updatedAt",q."createdAt" LIMIT 1
+    ) j ON true WHERE (${tenantId ?? null}::text IS NULL OR c."tenantId"=${tenantId ?? null})
+    ORDER BY CASE WHEN j.state='RUNNING' THEN 0 WHEN j.mode='BACKFILL' THEN 2 ELSE 1 END,j."updatedAt"
+    FOR UPDATE OF c SKIP LOCKED LIMIT 1
+  ) UPDATE "ConnectorSyncJob" SET state='RUNNING',"leaseToken"=${token},"leaseExpiresAt"=${new Date(now.getTime()+120_000)},"updatedAt"=${now}
+    WHERE id=(SELECT id FROM candidate) RETURNING *`);
   return job ?? null;
 }
 
@@ -21,8 +31,7 @@ export async function resumeConnectorJob(tenantId: string, resource: string, db:
   // Explicit resume acknowledges the current credential revision, preserving the page.
   return db.$executeRaw(Prisma.sql`UPDATE "ConnectorSyncJob" j SET state='PENDING',attempts=0,"errorCode"=NULL,"availableAt"=now(),"updatedAt"=now(),"connectionRevision"=c.revision
     FROM "ConnectorConnection" c WHERE j."tenantId"=${tenantId} AND c."tenantId"=j."tenantId" AND c."sourceId"=j."sourceId" AND j.resource=${resource} AND j.state IN ('PAUSED','FAILED')
-    AND NOT EXISTS (SELECT 1 FROM "ConnectorSyncJob" other WHERE other."tenantId"=j."tenantId" AND other."sourceId"=j."sourceId" AND other.id<>j.id AND other.state IN ${active})
-    AND j.id=(SELECT id FROM "ConnectorSyncJob" WHERE "tenantId"=${tenantId} AND "sourceId"=j."sourceId" AND resource=${resource} ORDER BY "createdAt" DESC LIMIT 1)`);
+    AND j.id=(SELECT id FROM "ConnectorSyncJob" WHERE "tenantId"=${tenantId} AND "sourceId"=j."sourceId" AND resource=${resource} AND state IN ('PAUSED','FAILED') ORDER BY "createdAt" DESC LIMIT 1)`);
 }
 
 /** Expose sanitized progress and issue codes for the current tenant connection only. */
@@ -49,8 +58,10 @@ export async function failConnectorJob(job: ConnectorJob, error: unknown, db: Sq
     const pause = changed || code === "AUTH_FAILED" || code === "NOT_CONFIGURED";
     const state = pause ? "PAUSED" : attempts >= 8 && code !== "RATE_LIMITED" ? "FAILED" : "RETRY";
     const retry = error instanceof ConnectorReadError && error.retryAt ? error.retryAt : new Date(Date.now() + Math.min(3600_000, 15_000 * 2 ** Math.min(attempts, 8)) + Math.floor(Math.random() * 1000));
-    await db.$transaction(async (tx) => {
+    const persisted = await db.$transaction(async (tx) => {
       const updated = await tx.$executeRaw(Prisma.sql`UPDATE "ConnectorSyncJob" SET state=${state},attempts=${attempts},"errorCode"=${code},"availableAt"=${retry},"leaseToken"=NULL,"leaseExpiresAt"=NULL,"updatedAt"=now() WHERE id=${job.id} AND "leaseToken"=${job.leaseToken} AND state='RUNNING'`);
       if (updated && (state === "FAILED" || state === "PAUSED")) await tx.$executeRaw(Prisma.sql`UPDATE "DataImportRun" SET status='FAILED',"errorMessage"=${code},"completedAt"=now(),"updatedAt"=now() WHERE id=${job.importRunId} AND "tenantId"=${job.tenantId}`);
+      return updated;
     });
+    if (persisted) logWarn("connector.sync.retry", { jobId: job.id, sourceId: job.sourceId, resource: job.resource, state, code, attempts });
 }

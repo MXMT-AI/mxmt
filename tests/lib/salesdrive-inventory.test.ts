@@ -113,7 +113,7 @@ describe("shared queue resources",()=>{
   it("keeps inventory jobs separate from order workers and commits receipt cursors only with a complete catalog",async()=>{
     const id=await enqueueInventoryImport("a",db);
     expect(await claimOrderJob(db,"a")).toBeNull();
-    await expect(enqueueOrderImport("a","BACKFILL",{},db)).rejects.toThrow("IMPORT_BUSY");
+    expect((await enqueueOrderImport("a","BACKFILL",{},db)).state).toBe("PENDING");
     const connector=new SalesDriveConnector(credentials,async(url)=>url.pathname.includes('export.yml')?new Response(xml):Response.json({data:[],pagination:{pageCount:1}}));
     const load=async()=>({sourceId:"source-a",revision:1,timezone:"Europe/Kyiv",connector});
     await processInventoryJob("a",db,load);
