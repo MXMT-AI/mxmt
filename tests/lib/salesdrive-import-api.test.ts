@@ -53,6 +53,27 @@ describe("authenticated webhook relay", () => {
     expect((await WEBHOOK(req("POST", event, { authorization: `Bearer ${salesDriveWebhookToken("source-b")}` }), context)).status).toBe(401);
     expect(parseOrderWebhook({ ...event, info: { ...event.info, account: "other" } }, "demo.salesdrive.me")).toBeNull();
   });
+  it.each(["9007199254740993", "9223372036854775807"])("preserves raw numeric order ID %s before enqueue", async (id) => {
+    const request = new NextRequest("https://app.example/api/webhooks/salesdrive/source-a", { method: "POST",
+      headers: { "Content-Type": "application/json", authorization: `Bearer ${salesDriveWebhookToken("source-a")}` },
+      body: `{"info":{"webhookType":"order","webhookEvent":"status_change","account":"demo"},"data":{"id":${id},"version":4}}` });
+    expect((await WEBHOOK(request, context)).status).toBe(202);
+    expect(m.enqueue).toHaveBeenCalledWith("a", "WEBHOOK", expect.objectContaining({ orderId: id, payload: expect.objectContaining({ data: { id, version: 4 } }) }));
+  });
+  it.each(["9007199254740991.1", "[123]", "true", "null"])("rejects invalid raw order ID %s without acknowledging it", async (id) => {
+    const request = new NextRequest("https://app.example/api/webhooks/salesdrive/source-a", { method: "POST",
+      headers: { "Content-Type": "application/json", authorization: `Bearer ${salesDriveWebhookToken("source-a")}` },
+      body: `{"info":{"webhookType":"order","webhookEvent":"status_change","account":"demo"},"data":{"id":${id}}}` });
+    expect((await WEBHOOK(request, context)).status).toBe(400);
+    expect(m.enqueue).not.toHaveBeenCalled();
+  });
+  it("retains webhook body limits and malformed JSON errors with the lossless parser", async () => {
+    const headers = { "Content-Type": "application/json", authorization: `Bearer ${salesDriveWebhookToken("source-a")}` };
+    expect((await WEBHOOK(new NextRequest("https://app.example/api/webhooks/salesdrive/source-a", { method: "POST", headers, body: "{" }), context)).status).toBe(400);
+    expect((await WEBHOOK(new NextRequest("https://app.example/api/webhooks/salesdrive/source-a", { method: "POST", headers, body: "x".repeat(262_145) }), context)).status).toBe(413);
+    expect(m.enqueue).not.toHaveBeenCalled();
+    expect(parseOrderWebhook({ ...event, data: { id: Number("9007199254740993") } }, "demo.salesdrive.me")).toBeNull();
+  });
   it("accepts a verified event for refetch; returns retryable 503 when busy", async () => {
     const headers = { authorization: `Bearer ${salesDriveWebhookToken("source-a")}` };
     expect((await WEBHOOK(req("POST", event, headers), context)).status).toBe(202);

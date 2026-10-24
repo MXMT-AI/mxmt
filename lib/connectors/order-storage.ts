@@ -7,9 +7,10 @@ import { normalizeOrder, type OrderPolicy } from "./order-normalization";
 
 function canonical(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(canonical);
-  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b)).map(([key, entry]) => [key, canonical(entry)]));
+  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([key, entry]) => [key, canonical(entry)]));
   return value;
 }
+/** Hash recursively ordered source content independently of host locale and ICU versions. */
 export const payloadHash = (value: unknown): string => createHash("sha256").update(JSON.stringify(canonical(value))).digest("hex");
 export interface OrderScope { tenantId: string; sourceId: string; importRunId: string; timezone: string }
 

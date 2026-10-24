@@ -1,5 +1,5 @@
 import "server-only";
-import { parse as parseLosslessJson } from "lossless-json";
+import { parseSourceJson } from "./json";
 import { Prisma } from "@prisma/client";
 import { XMLParser, XMLValidator } from "fast-xml-parser";
 import { isRecord } from "@/lib/api-contracts";
@@ -119,8 +119,7 @@ export class SalesDriveConnector implements MerchandisingConnector {
     }
     try {
       const rawResponse = await this.request(url, key);
-      const result: unknown = parseLosslessJson(rawResponse, null, { parseNumber: (value: string) =>
-        /^-?\d+$/.test(value) && Number.isSafeInteger(Number(value)) ? Number(value) : value });
+      const result: unknown = parseSourceJson(rawResponse);
       if (!isRecord(result) || !Array.isArray(result.data) || result.success === false || result.status === "error") throw new ConnectorReadError("INVALID_RESPONSE");
       return { ...result, ...(path === "/api/order/list/" ? { originalResponse: rawResponse } : {}) };
     } catch (error) {

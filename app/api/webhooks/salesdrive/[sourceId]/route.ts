@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { parseJsonBody } from "@/lib/api-contracts";
+import { parseSourceJson } from "@/lib/connectors/json";
 import { enqueueOrderImport } from "@/lib/connectors/order-jobs";
 import { parseOrderWebhook, webhookAuthorized } from "@/lib/connectors/order-webhook";
 
@@ -12,7 +13,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ so
   const { sourceId } = await context.params;
   const headers = { "Cache-Control": "no-store" };
   if (!webhookAuthorized(sourceId, request.headers.get("authorization"))) return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers });
-  const body = await parseJsonBody(request, crypto.randomUUID(), 262_144);
+  const body = await parseJsonBody(request, crypto.randomUUID(), 262_144, parseSourceJson);
   if (body.response) return body.response;
   try {
     const connection = await prisma.connectorConnection.findUnique({ where: { sourceId }, select: { tenantId: true, accountHost: true } });

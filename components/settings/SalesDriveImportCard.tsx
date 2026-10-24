@@ -65,7 +65,7 @@ export default function SalesDriveImportCard({ lang, canManage }: { lang: "uk" |
     {error && <p ref={errorRef} tabIndex={-1} className="mt-3 text-sm text-red-500" role="alert">{error}</p>}
     <div className="mt-4 flex flex-wrap gap-2">
       {canManage && <>
-        <button className={button} disabled={!loaded || busy || running(job) || job?.state === "PAUSED"} onClick={() => act("backfill")}>{uk ? "Імпортувати два роки" : "Import two years"}</button>
+        <button className={button} disabled={!loaded || busy || running(job) || job?.state === "PAUSED" || job?.state === "FAILED"} onClick={() => act("backfill")}>{uk ? "Імпортувати два роки" : "Import two years"}</button>
         <button className={button} disabled={!loaded || busy || !job || job.state !== "COMPLETE"} onClick={() => act("incremental")}>{uk ? "Імпортувати зміни" : "Import changes"}</button>
         {job && ["PAUSED", "FAILED"].includes(job.state) && <button className={button} disabled={busy} onClick={() => act("resume")}>{uk ? "Відновити" : "Resume"}</button>}
         {running(job) && <button className={button} disabled={busy || job?.state === "RUNNING"} onClick={() => act("step")}>{uk ? "Обробити наступну сторінку" : "Process next page"}</button>}

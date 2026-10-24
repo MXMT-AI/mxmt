@@ -5,7 +5,7 @@ import { processOrderJob } from "@/lib/connectors/order-jobs";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
-/** External scheduler/Vercel invokes once per minute; each invocation processes one page. */
+/** A trusted external scheduler invokes once per minute on Hobby; process one leased page. */
 export async function GET(request: NextRequest) {
   const headers = { "Cache-Control": "no-store" };
   if (!cronSecretMatches(request.headers.get("authorization"), process.env.CRON_SECRET)) return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers });

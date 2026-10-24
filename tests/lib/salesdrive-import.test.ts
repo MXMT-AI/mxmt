@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { readFile, readdir } from "node:fs/promises";
 import { PGlite } from "@electric-sql/pglite";
 import { Prisma } from "@prisma/client";
@@ -8,7 +9,7 @@ import type { SqlClient, SqlDatabase } from "@/lib/connectors/database";
 import type { OrderDto } from "@/lib/connectors/contract";
 import { sourceDate, normalizeOrder } from "@/lib/connectors/order-normalization";
 import { reserveRequest, retryAfter, budgetedFetcher } from "@/lib/connectors/budget";
-import { storeOrder } from "@/lib/connectors/order-storage";
+import { storeOrder, payloadHash } from "@/lib/connectors/order-storage";
 import { claimOrderJob, enqueueOrderImport, getOrderImportProgress, processOrderJob, resumeOrderImport } from "@/lib/connectors/order-jobs";
 import { SalesDriveConnector, ConnectorReadError } from "@/lib/connectors/salesdrive";
 
@@ -36,6 +37,14 @@ beforeAll(async () => {
 }, 30_000);
 afterAll(async () => pg?.close());
 
+describe("portable source hashes", () => {
+  it("uses stable Unicode code-unit ordering through nested objects and arrays", () => {
+    const expected = createHash("sha256").update('{"A":{"z":1,"ä":2},"a":[{"Z":1,"ß":2}],"z":3,"ä":4}').digest("hex");
+    expect(payloadHash({ ä: 4, z: 3, a: [{ ß: 2, Z: 1 }], A: { ä: 2, z: 1 } })).toBe(expected);
+    expect(payloadHash({ A: { z: 1, ä: 2 }, a: [{ Z: 1, ß: 2 }], z: 3, ä: 4 })).toBe(expected);
+    expect(payloadHash([{ A: 1 }, { a: 2 }])).not.toBe(payloadHash([{ a: 2 }, { A: 1 }]));
+  });
+});
 describe("source normalization", () => {
   it("rejects invalid, nonexistent and ambiguous local dates; retains day precision", () => {
     expect(sourceDate("2026-03-29 03:30:00", "Europe/Kyiv").date).toBeNull();
@@ -207,7 +216,8 @@ describe("queue checkpoints and worker", () => {
   it("deduplicates webhook jobs and refuses busy delivery without acknowledging it", async () => {
     const event = { orderId: "301", eventKey: "a".repeat(64), payload: { synthetic: true } };
     await expect(enqueueOrderImport("a", "WEBHOOK", event, db)).rejects.toThrow("IMPORT_BUSY");
-    await pg.exec(`UPDATE "ConnectorSyncJob" SET state='FAILED'; UPDATE "DataImportRun" SET status='FAILED' WHERE status='RUNNING'`);
+    // Release the deliberately stolen fixture lease; failed-job recovery is tested below.
+    await pg.exec(`UPDATE "ConnectorSyncJob" SET state='COMPLETE', "leaseToken"=NULL, "leaseExpiresAt"=NULL WHERE "tenantId"='a' AND state='RUNNING'; UPDATE "DataImportRun" SET status='WARNING' WHERE "tenantId"='a' AND status='RUNNING'`);
     const one = await enqueueOrderImport("a", "WEBHOOK", event, db);
     expect((await enqueueOrderImport("a", "WEBHOOK", event, db)).id).toBe(one.id);
     expect((await pg.query('SELECT count(*)::int n FROM "DataSourceRecord" WHERE resource=\'order-webhooks\'')).rows).toEqual([{ n: 1 }]);
@@ -237,6 +247,15 @@ describe("page transaction recovery", () => {
     expect((await pg.query('SELECT count(*)::int n FROM "DataSourceRecord" WHERE "tenantId"=\'b\' AND resource=\'orders\'')).rows).toEqual([{ n: 0 }]);
     expect((await pg.query('SELECT status FROM "DataImportRun" WHERE id=$1', [job.importRunId])).rows).toEqual([{ status: "FAILED" }]);
     expect((await pg.query('SELECT * FROM "SyncCursor" WHERE "tenantId"=\'b\'')).rows).toEqual([]);
+    const event = { orderId: "301", eventKey: "b".repeat(64) };
+    await expect(enqueueOrderImport("b", "WEBHOOK", event, db)).rejects.toThrow("IMPORT_BUSY");
+    expect((await enqueueOrderImport("b", "BACKFILL", {}, db)).id).toBe(job.id);
+    expect(await getOrderImportProgress("b", db)).toMatchObject({ id: job.id, state: "FAILED" });
+    expect((await pg.query('SELECT count(*)::int n FROM "ConnectorSyncJob" WHERE "tenantId"=\'b\'')).rows).toEqual([{ n: 1 }]);
+    expect(await resumeOrderImport("b", db)).toBe(1);
+    const recovered = { ...connector, getOrders: async () => ({ records: [good], nextPage: null, observedAt }) } as unknown as SalesDriveConnector;
+    await processOrderJob("b", db, async () => ({ ...await runtime(), connector: recovered }));
+    expect(await getOrderImportProgress("b", db)).toMatchObject({ id: job.id, state: "COMPLETE", stats: { pages: 1, orders: 1 } });
   });
 });
 describe("two-year import volume", () => {
@@ -257,7 +276,7 @@ describe("two-year import volume", () => {
     for (let i = 0; i < 102; i++) await processOrderJob("b", db, async () => ({ sourceId: "source-b", revision: 1, timezone: "Europe/Kyiv", connector }));
     expect(requests).toBe(102);
     expect(await getOrderImportProgress("b", db)).toMatchObject({ state: "COMPLETE", stats: { pages: 100, orders: 10000, imported: 10000 } });
-    expect((await pg.query('SELECT count(*)::int n FROM "OrderLine" WHERE "tenantId"=\'b\'')).rows).toEqual([{ n: 10000 }]);
+    expect((await pg.query('SELECT count(*)::int n FROM "OrderLine" WHERE "tenantId"=\'b\' AND "importRunId"=$1', [job.importRunId])).rows).toEqual([{ n: 10000 }]);
     expect((await pg.query('SELECT "lastSuccessfulRunId" FROM "SyncCursor" WHERE "tenantId"=\'b\'')).rows).toEqual([{ lastSuccessfulRunId: job.importRunId }]);
   }, 120_000);
 });

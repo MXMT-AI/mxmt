@@ -20,7 +20,8 @@ export interface OrderJob {
   availableAt: Date; leaseToken: string | null; leaseExpiresAt: Date | null; errorCode: string | null;
 }
 const emptyStats = (): Stats => ({ pages: 0, orders: 0, imported: 0, duplicate: 0, stale: 0, quarantined: 0, warnings: 0 });
-const active = Prisma.sql`('PENDING','RUNNING','RETRY','PAUSED')`;
+// Failed jobs require explicit recovery before any newer job can hide their checkpoint.
+const active = Prisma.sql`('PENDING','RUNNING','RETRY','PAUSED','FAILED')`;
 
 function parsePolicy(value: unknown): OrderPolicy {
   if (!isRecord(value)) throw new Error("INVALID_SOURCE_MAPPING");
@@ -71,6 +72,7 @@ export async function enqueueOrderImport(tenantId: string, mode: ImportMode, opt
   });
 }
 
+/** Claim one available or expired job atomically; concurrent workers skip locked rows. */
 export async function claimOrderJob(db: SqlDatabase = prisma, tenantId?: string, now = new Date()) {
   const token = randomUUID();
   const [job] = await db.$queryRaw<OrderJob[]>(Prisma.sql`UPDATE "ConnectorSyncJob" SET state='RUNNING',"leaseToken"=${token},"leaseExpiresAt"=${new Date(now.getTime() + 120_000)},"updatedAt"=${now}
@@ -79,6 +81,7 @@ export async function claimOrderJob(db: SqlDatabase = prisma, tenantId?: string,
   return job ?? null;
 }
 
+/** Resume the tenant’s latest recoverable job with its checkpoint and current connection revision. */
 export async function resumeOrderImport(tenantId: string, db: SqlDatabase = prisma) {
   // Explicit resume acknowledges the current credential revision, preserving the page.
   return db.$executeRaw(Prisma.sql`UPDATE "ConnectorSyncJob" j SET state='PENDING',attempts=0,"errorCode"=NULL,"availableAt"=now(),"updatedAt"=now(),"connectionRevision"=c.revision
@@ -87,6 +90,7 @@ export async function resumeOrderImport(tenantId: string, db: SqlDatabase = pris
     AND j.id=(SELECT id FROM "ConnectorSyncJob" WHERE "tenantId"=${tenantId} AND "sourceId"=j."sourceId" ORDER BY "createdAt" DESC LIMIT 1)`);
 }
 
+/** Expose sanitized progress and issue codes for the current tenant connection only. */
 export async function getOrderImportProgress(tenantId: string, db: SqlClient = prisma) {
   const [job] = await db.$queryRaw<Array<{ id: string; mode: string; state: string; stats: Stats; errorCode: string | null; availableAt: Date; updatedAt: Date; issues: string[] }>>(Prisma.sql`
     SELECT j.id,j.mode,j.state,j.stats,j."errorCode",j."availableAt",j."updatedAt", ARRAY(SELECT DISTINCT i.code FROM "ImportIssue" i WHERE i."importRunId"=j."importRunId" AND i."tenantId"=j."tenantId" ORDER BY i.code LIMIT 100) AS issues FROM "ConnectorSyncJob" j JOIN "ConnectorConnection" c ON c."sourceId"=j."sourceId" AND c."tenantId"=j."tenantId"
@@ -94,6 +98,7 @@ export async function getOrderImportProgress(tenantId: string, db: SqlClient = p
   return job ?? null;
 }
 
+/** Keep one diagnostic per run/code without storing source customer data in the message. */
 export async function recordIssues(tx: SqlClient, job: OrderJob, codes: Set<string>) {
   for (const code of codes) await tx.$executeRaw(Prisma.sql`INSERT INTO "ImportIssue" (id,"tenantId","importRunId",code,severity,message)
     SELECT ${randomUUID()},${job.tenantId},${job.importRunId},${code},'WARNING',${code}

@@ -37,8 +37,9 @@ pauses the job; explicit resume preserves its checkpoint. Authentication failure
 pause immediately; other errors back off exponentially with jitter, failing after
 eight consecutive attempts. Rate limits remain retryable, using persisted delay
 rather than sleeping in a function. Failed/paused runs are marked failed without
-advancing the cursor and can be resumed. Job/state provenance is excluded from
-legacy import pruning.
+advancing the cursor and can be resumed. Failed jobs block new source jobs until
+explicit recovery, keeping their checkpoint visible and resumable in Settings.
+Job/state provenance is excluded from legacy import pruning.
 
 ## Raw data, identity and financial safety
 
@@ -140,14 +141,40 @@ migration workflow. Neither production migration nor a live account import was r
 while implementing this task. Configure `CONNECTOR_ENCRYPTION_KEY`, save the account,
 verify its timezone/scopes, and configure `CRON_SECRET` before activation.
 
-`vercel.json` adds a once-per-minute worker cron. This requires Vercel Pro/Enterprise;
+The project uses Vercel Hobby. `vercel.json` retains only the two existing daily
+Google Sheets cron slots; it does not schedule the SalesDrive worker.
 [Vercel Hobby rejects subdaily cron expressions at deployment](https://vercel.com/docs/cron-jobs/usage-and-pricing).
-Confirm the deployment plan before pushing/deploying. If the project uses Hobby,
-remove that cron entry and configure an external scheduler to call the same protected
-endpoint once per minute; the worker itself is hosting-independent. No hosting plan
-was changed or purchased. An idle worker does not fetch SalesDrive. Automatic
-recurring **enqueue** policy/tenant schedules remain #32; this cron drains queued
-backfill/incremental/webhook jobs only.
+
+Before activating SalesDrive ingestion, configure a trusted external scheduler:
+
+- Schedule: `* * * * *` (once per minute).
+- Method/URL: `GET https://<production-host>/api/cron/salesdrive-orders`.
+- Header: `Authorization: Bearer <CRON_SECRET>`, supplied from the scheduler's
+  secret storage. Never put the secret in the URL or committed configuration.
+- Allow up to 60 seconds for the response. Retry non-2xx responses on a later
+  invocation; overlapping calls are safe because claims use leases and row locks.
+
+For a manual operator check after deployment, with these environment variables
+already configured in a trusted shell:
+
+```sh
+curl --fail --silent --show-error --max-time 60 \
+  --header "Authorization: Bearer $CRON_SECRET" \
+  "$APP_BASE_URL/api/cron/salesdrive-orders"
+```
+
+An idle worker returns `processed: false` without fetching SalesDrive. A processed
+step returns `processed: true`; inspect Settings for the persisted outcome, retry
+time or recovery action. Do not substitute a daily SalesDrive invocation: each
+request handles only one page, so a daily cadence would leave the history import
+unfinished for months. Manual Settings steps remain available while the external
+scheduler is being configured.
+
+No external scheduler was provisioned or activated, no hosting plan was changed,
+and no worker request was made against production while implementing this task.
+Until a scheduler is configured, queued imports advance only through manual steps.
+Automatic recurring **enqueue** policy/tenant schedules remain #32; the worker
+drains queued backfill/incremental/webhook jobs only.
 
 ## Webhook relay boundary
 
@@ -156,9 +183,11 @@ middleware; the Node route requires a per-source bearer token derived by
 `salesDriveWebhookToken(sourceId)` from server-only `SALESDRIVE_WEBHOOK_SECRET`
 (minimum 32 bytes). Tokens never appear in URLs, Settings, progress or logs. Provision
 the token through trusted operator tooling to the relay, not client JavaScript.
-Requests are limited to 256 KiB, verify account identity and documented order event
-shape, and enqueue an exact-ID **API refetch** rather than trusting event money.
-Repeated event content maps to the same durable job. Another active source job
+Requests are limited to 256 KiB and use the same lossless JSON parser as API reads
+before validating IDs, including numeric IDs above JavaScript’s safe integer range.
+Non-scalar or fractional IDs are rejected. Requests verify account identity and
+documented order event shape, and enqueue an exact-ID **API refetch** rather than trusting event money.
+Repeated event content maps to the same durable job. Another active or failed source job
 returns 503/Retry-After rather than acknowledging and dropping an event; the relay
 must durably retry until accepted (including during a long backfill). Completed
 replays return 202 without a new job or duplicate lines.
@@ -194,10 +223,11 @@ replay history after the source window settles if pages changed during ingestion
 E01 frozen benchmark and E02/E03 customer payloads, account quota/timezone, stable
 line/refund identity, return dates and approved mappings remain explicit activation
 gates from #27/#29. A completed ingestion job is not approval of financial reporting.
+Source/projection hashes use deterministic code-unit key ordering, independent of runtime locale.
 
 Final local checks (October 24, 2026):
 
-- `npm test`: 34 files, 271 tests passed, including the 10,000-order scenario.
+- `npm test`: 34 files, 279 tests passed, including the 10,000-order scenario.
 - `npx tsc --noEmit`: passed.
 - `npx prisma validate`: passed.
 - `npm run build`: passed.
