@@ -35,15 +35,19 @@ export async function storeReceipt(tx: SqlClient, scope: OrderScope, receipt: Re
   if (previous && previous.sourceRecordKey !== key && (!updatedAt || !previous.sourceUpdatedAt || updatedAt <= previous.sourceUpdatedAt)) return { imported: 0, issues: ["RECEIPT_VERSION_CONFLICT"] };
   const issues = new Set<string>();
   const ids = new Set<string>();
-  const lines = receipt.lines.map((line, index) => {
+  const candidates = receipt.lines.map((line, index) => {
     const externalLineId = line.externalLineId ? `native:${line.externalLineId}` : `position:${index}`;
     const quantity = exact(line.quantity), unitCost = line.unitCost === null ? null : exact(line.unitCost);
-    if (!quantity || line.unitCost !== null && (!unitCost || unitCost.isNegative()) || ids.has(externalLineId)) throw new Error("INVALID_RECEIPT_LINE");
+    if (!quantity || line.unitCost !== null && (!unitCost || unitCost.isNegative()) || ids.has(externalLineId)) return null;
     ids.add(externalLineId);
     if (quantity.isNegative()) issues.add("NEGATIVE_MOVEMENT_QUANTITY");
     if (!line.externalLineId) issues.add("DERIVED_RECEIPT_LINE_IDENTITY");
     return { ...line, quantity, unitCost, externalLineId };
   });
+  const lines = candidates.filter((line) => line !== null);
+  // Keep the raw document for review, but never replace any part of a receipt
+  // with invalid lines or prevent unrelated current-stock observations.
+  if (lines.length !== candidates.length) return { imported: 0, issues: ["INVALID_RECEIPT_LINE"] };
   const mapping = policy.receipts;
   const mappedSupplier = receipt.supplierId ? mapping?.suppliers[receipt.supplierId] : null;
   const [supplier] = mappedSupplier ? await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`SELECT id FROM "Supplier" WHERE "tenantId"=${tenantId} AND id=${mappedSupplier}`) : [];

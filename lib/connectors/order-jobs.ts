@@ -77,7 +77,9 @@ export async function enqueueOrderImport(tenantId: string, mode: ImportMode, opt
 export async function claimOrderJob(db: SqlDatabase = prisma, tenantId?: string, now = new Date()) {
   return claimConnectorJob<OrderJob>("orders", db, tenantId, now);
 }
+/** Resume the latest recoverable order job without discarding its checkpoint. */
 export async function resumeOrderImport(tenantId: string, db: SqlDatabase = prisma) { return resumeConnectorJob(tenantId, "orders", db); }
+/** Read tenant-scoped order progress through the shared sanitized projection. */
 export async function getOrderImportProgress(tenantId: string, db: SqlClient = prisma) { return getConnectorProgress(tenantId, "orders", db); }
 
 type RuntimeLoader = (tenantId: string) => Promise<{ sourceId: string; revision: number; timezone: string; connector: MerchandisingConnector }>;

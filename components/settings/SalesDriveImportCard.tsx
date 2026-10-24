@@ -5,7 +5,9 @@ import { apiFetch } from "@/lib/fetch";
 import { readApiJson } from "@/lib/api-response";
 
 interface Progress { id: string; state: string; mode: string; stats: Record<string, number>; issues: string[]; errorCode: string | null; availableAt: string; updatedAt: string }
+/** Poll jobs that are queued, leased or waiting for an automatic retry. */
 const running = (job: Progress | null) => Boolean(job && ["PENDING", "RUNNING", "RETRY"].includes(job.state));
+/** Share import progress and recovery controls across order and inventory resources. */
 export default function SalesDriveImportCard({ lang, canManage, resource = "orders" }: { lang: "uk" | "en"; canManage: boolean; resource?: "orders" | "inventory" }) {
   const uk = lang === "uk";
   const inventory = resource === "inventory";
@@ -81,6 +83,7 @@ export default function SalesDriveImportCard({ lang, canManage, resource = "orde
   </section>;
 }
 
+/** Explain sanitized data-quality codes without displaying private source payloads. */
 function issueLabel(code: string, uk: boolean) {
   const labels: Record<string, [string, string]> = {
     NEGATIVE_SOURCE_STOCK: ["Negative source stock is retained as a data-quality exception; inventory values are unavailable.", "Від’ємний залишок збережено як помилку якості даних; вартість залишку недоступна."],
@@ -89,6 +92,7 @@ function issueLabel(code: string, uk: boolean) {
     HISTORICAL_STOCK_UNAVAILABLE: ["Earlier stock cannot be reconstructed from a current feed. Only recorded observations are available.", "З поточного файлу неможливо відновити минулі залишки. Доступні лише зафіксовані спостереження."],
     RECEIPT_POSTING_UNVERIFIED: ["Verify receipt posting statuses and supplier mapping before using purchase cost.", "Перевірте статуси проведення й відповідність постачальників перед використанням закупівельної ціни."],
     RECEIPT_DATE_UNAVAILABLE: ["Some receipt dates are missing or invalid.", "Деякі дати надходжень відсутні або некоректні."],
+    INVALID_RECEIPT_LINE: ["Some receipts have invalid quantities or costs and were skipped. Correct them in SalesDrive and import again.", "Деякі надходження містять некоректні кількості або собівартість і пропущені. Виправте їх у SalesDrive й повторіть імпорт."],
     RECEIPTS_NOT_CONFIGURED: ["A receipts read key is not configured. Purchase cost coverage is incomplete.", "Ключ читання надходжень не налаштовано. Покриття закупівельної собівартості неповне."],
     DERIVED_RECEIPT_LINE_IDENTITY: ["Receipt line identity is derived; current document lines are replaced together.", "ID рядків надходжень похідні; поточні рядки документа оновлюються разом."],
     RECEIPT_VERSION_CONFLICT: ["Conflicting receipt versions were retained for review.", "Суперечливі версії надходження збережено для перевірки."],
@@ -117,6 +121,7 @@ function issueLabel(code: string, uk: boolean) {
   return labels[code]?.[uk ? 1 : 0] ?? (uk ? "Дані потребують перевірки." : "Source data needs review.");
 }
 
+/** Translate recoverable import failures into a concrete next action. */
 function errorLabel(code: string, uk: boolean) {
   const labels: Record<string, [string, string]> = {
     RATE_LIMITED: ["The account request limit was reached. The import will retry automatically.", "Досягнуто ліміту запитів акаунта. Імпорт повториться автоматично."],

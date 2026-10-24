@@ -123,6 +123,13 @@ imports use the successful `updatedAt` cursor with a two-hour overlap and a fixe
 upper bound. A changed approved receipt-policy hash forces full receipt replay so
 old unverified records are not skipped. Policy values are frozen in the job.
 Unconfigured receipt access is diagnosed and cannot advance a receipts cursor.
+Invalid receipt quantities, costs, precision overflow or duplicate line identities
+quarantine the whole document: its raw record is retained, no receipt lines are
+partially replaced, and `INVALID_RECEIPT_LINE` is exposed for review. Other receipts
+and the current catalog observation continue. A previously accepted version remains
+unchanged. Correct the document in SalesDrive and update its source timestamp so
+the next incremental import can process it; unrelated storage failures still retry
+the page without advancing its checkpoint.
 
 Products and quantities must belong to the same observation. Parse/validate the
 entire feed, then use transaction-local staging and set-based catalogue writes.

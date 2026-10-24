@@ -42,6 +42,7 @@ export async function getInventoryProgress(tenantId: string, db: SqlClient = pri
     FROM "InventorySnapshot" i JOIN "ConnectorConnection" c ON c."sourceId"=i."sourceId" AND c."tenantId"=i."tenantId" JOIN "DataSource" s ON s.id=c."sourceId" AND s."tenantId"=c."tenantId" WHERE i."tenantId"=${tenantId}`);
   return { job, coverage: { ...coverage, historicalStockAvailable: false } };
 }
+/** Resume a failed or paused inventory job at its retained receipt/catalog stage. */
 export const resumeInventoryImport = (tenantId: string, db: SqlDatabase = prisma) => resumeConnectorJob(tenantId, "inventory", db);
 type Runtime = (tenantId: string) => Promise<{ sourceId: string; revision: number; timezone: string; connector: MerchandisingConnector }>;
 /** One receipt page or one validated atomic catalogue refresh per worker invocation. */
