@@ -22,7 +22,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ so
     await enqueueOrderImport(connection.tenantId, "WEBHOOK", event);
     return NextResponse.json({ accepted: true }, { status: 202, headers });
   } catch {
-    // Do not acknowledge and drop an event while the source is busy. The relay must retry.
+    // Acknowledge only after durable enqueue; capacity/storage failures require relay retry.
     return NextResponse.json({ error: "Retry delivery later" }, { status: 503, headers: { ...headers, "Retry-After": "60" } });
   }
 }

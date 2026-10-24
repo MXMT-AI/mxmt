@@ -19,6 +19,7 @@ export function sourceDate(value: string | null, timezone: string): { date: Date
     return { date: new Date(instant.epochMilliseconds), precision: dateOnly ? "date" : "instant" };
   } catch { return { date: null, precision: "unknown" }; }
 }
+/** Accept only decimal source values that fit Decimal(18,4) without rounding. */
 export function exact(value: string | null): Prisma.Decimal | null {
   // Reject precision overflow rather than letting PostgreSQL silently round source facts.
   if (value === null || !/^-?\d{1,14}(?:\.\d{1,4})?$/.test(value)) return null;

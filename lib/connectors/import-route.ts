@@ -6,6 +6,7 @@ import { withRequestId } from "@/lib/observability";
 
 /** Share the tenant/RBAC, bounded-input and sanitized-error boundary for connector import controls. */
 export function importHandlers(config: { read: (tenantId: string) => Promise<unknown>; actions: Record<string, (tenantId: string) => Promise<unknown>>; knownErrors: string[] }) {
+  /** Authenticate the tenant, validate write actions and return uncached progress. */
   async function handle(request: NextRequest, read: boolean) {
     const requestId = crypto.randomUUID();
     const respond = (response: NextResponse) => { response.headers.set("Cache-Control", "no-store"); return withRequestId(response, requestId); };

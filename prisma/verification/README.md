@@ -161,3 +161,6 @@ The test's SQL reapplication proves reversibility, not a production history rese
 The rollout follows the existing [runbook](../../RUNBOOK.md) and the
 [Prisma expand-and-contract guidance](https://www.prisma.io/docs/guides/database/data-migration).
 No production migration or backfill is performed by preparing this task.
+
+For SalesDrive scheduling, webhook relay, manual refresh and the external worker,
+see [automatic sync verification (#32)](32-automatic-sync.md).

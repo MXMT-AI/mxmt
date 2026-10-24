@@ -10,6 +10,7 @@ import { claimConnectorJob, resumeConnectorJob, getConnectorProgress, recordIssu
 import { ConnectorReadError } from "./salesdrive";
 import { loadSalesDriveRuntime } from "./service";
 import { storeOrder, payloadHash } from "./order-storage";
+import { completeConnectorInputs } from "@/lib/data-pipeline";
 import type { OrderPolicy } from "./order-normalization";
 
 export type ImportMode = "BACKFILL" | "INCREMENTAL" | "WEBHOOK";
@@ -44,27 +45,29 @@ function parsePolicy(value: unknown): OrderPolicy {
 }
 
 /** Serialize enqueue with credential changes; incremental cannot skip the initial history. */
-export async function enqueueOrderImport(tenantId: string, mode: ImportMode, options: { orderId?: string; eventKey?: string; payload?: Record<string, unknown> } = {}, db: SqlDatabase = prisma, now = new Date()) {
+export async function enqueueOrderImport(tenantId: string, mode: ImportMode, options: { orderId?: string; eventKey?: string; payload?: Record<string, unknown>; requestKey?: string; expectedSourceId?: string; trigger?: "MANUAL" | "CRON" } = {}, db: SqlDatabase = prisma, now = new Date()) {
   return db.$transaction(async (tx) => {
     const [connection] = await tx.$queryRaw<Array<{ sourceId: string; revision: number; timezone: string }>>(Prisma.sql`
       SELECT c."sourceId",c.revision,s.timezone FROM "ConnectorConnection" c JOIN "DataSource" s ON s.id=c."sourceId" AND s."tenantId"=c."tenantId"
       WHERE c."tenantId"=${tenantId} AND c.provider='salesdrive' FOR UPDATE OF c`);
     if (!connection) throw new Error("NOT_CONFIGURED");
+    if (options.expectedSourceId && connection.sourceId !== options.expectedSourceId) throw new Error("CONNECTOR_CONFIG_CHANGED");
     if (mode === "WEBHOOK" && (!options.orderId || !/^\d{1,20}$/.test(options.orderId) || !options.eventKey || !/^[a-f0-9]{64}$/.test(options.eventKey))) throw new Error("INVALID_WEBHOOK");
-    const key = `salesdrive:${connection.sourceId}:${mode}:${mode === "WEBHOOK" ? options.eventKey : randomUUID()}`;
+    const key = `salesdrive:${connection.sourceId}:${mode}:${mode === "WEBHOOK" ? options.eventKey : options.requestKey ?? randomUUID()}`;
     const [existing] = await tx.$queryRaw<OrderJob[]>(Prisma.sql`SELECT j.* FROM "ConnectorSyncJob" j JOIN "DataImportRun" r ON r.id=j."importRunId" WHERE j."tenantId"=${tenantId} AND r."idempotencyKey"=${key}`);
     if (existing) return existing;
-    const [busy] = await tx.$queryRaw<OrderJob[]>(Prisma.sql`SELECT * FROM "ConnectorSyncJob" WHERE "tenantId"=${tenantId} AND "sourceId"=${connection.sourceId} AND state IN ${active}`);
-    if (busy) { if (mode === "WEBHOOK" || busy.resource !== "orders") throw new Error("IMPORT_BUSY"); return busy; }
+    const [queued] = await tx.$queryRaw<Array<{n:number}>>(Prisma.sql`SELECT count(*)::int n FROM "ConnectorSyncJob" WHERE "tenantId"=${tenantId} AND "sourceId"=${connection.sourceId} AND state IN ('PENDING','RUNNING','RETRY')`);
+    if (queued.n >= 200) throw new Error("SYNC_QUEUE_FULL");
+    const [busy] = await tx.$queryRaw<OrderJob[]>(Prisma.sql`SELECT * FROM "ConnectorSyncJob" WHERE "tenantId"=${tenantId} AND "sourceId"=${connection.sourceId} AND resource='orders' AND mode=${mode} AND state IN ${active} ORDER BY "createdAt" DESC LIMIT 1`);
+    if (busy && mode !== "WEBHOOK" && !options.requestKey) return busy;
     const [cursor] = await tx.$queryRaw<Array<{ checkpoint: { through: string } }>>(Prisma.sql`SELECT checkpoint FROM "SyncCursor" WHERE "tenantId"=${tenantId} AND "sourceId"=${connection.sourceId} AND resource='orders'`);
-    if (mode === "INCREMENTAL" && !cursor?.checkpoint.through) throw new Error("BACKFILL_REQUIRED");
     const [config] = await tx.$queryRaw<Array<{ values: unknown }>>(Prisma.sql`SELECT values FROM "MerchandisingConfig" WHERE "tenantId"=${tenantId} AND "configType"='SOURCE_MAPPING' AND key=${`salesdrive:${connection.sourceId}`} AND "isActive"=true AND "approvedAt" IS NOT NULL`);
     const to = now.toISOString();
-    const from = mode === "INCREMENTAL" ? new Date(new Date(cursor.checkpoint.through).getTime() - 2 * 3600_000).toISOString()
+    const from = mode === "INCREMENTAL" ? new Date(new Date(cursor?.checkpoint.through ?? now).getTime() - 2 * 3600_000).toISOString()
       : Temporal.Instant.from(to).toZonedDateTimeISO(connection.timezone).subtract({ years: 2 }).toInstant().toString({ smallestUnit: "second" });
     const checkpoint: Checkpoint = { stage: mode === "WEBHOOK" ? "orders" : "statuses", page: 1, from, to, ...(options.orderId ? { orderId: options.orderId } : {}), policy: config ? parsePolicy(config.values) : {} };
     const runId = randomUUID(), id = randomUUID();
-    await tx.$executeRaw(Prisma.sql`INSERT INTO "DataImportRun" (id,"tenantId","sourceId",trigger,status,"idempotencyKey","businessDate","updatedAt") VALUES (${runId},${tenantId},${connection.sourceId},'MANUAL','PENDING',${key},${now},${now})`);
+    await tx.$executeRaw(Prisma.sql`INSERT INTO "DataImportRun" (id,"tenantId","sourceId",trigger,status,"idempotencyKey","businessDate","updatedAt") VALUES (${runId},${tenantId},${connection.sourceId},${options.trigger ?? 'MANUAL'}::"DataImportTrigger",'PENDING',${key},${now},${now})`);
     const [job] = await tx.$queryRaw<OrderJob[]>(Prisma.sql`INSERT INTO "ConnectorSyncJob" (id,"tenantId","sourceId","importRunId",mode,"connectionRevision",checkpoint,stats,"updatedAt")
       VALUES (${id},${tenantId},${connection.sourceId},${runId},${mode},${connection.revision},${JSON.stringify(checkpoint)}::jsonb,${JSON.stringify(emptyStats())}::jsonb,${now}) RETURNING *`);
     if (mode === "WEBHOOK" && options.payload) await tx.$executeRaw(Prisma.sql`INSERT INTO "DataSourceRecord" (id,"tenantId","sourceId","importRunId",resource,"externalId",payload,"payloadHash","observedAt")
@@ -77,16 +80,18 @@ export async function enqueueOrderImport(tenantId: string, mode: ImportMode, opt
 export async function claimOrderJob(db: SqlDatabase = prisma, tenantId?: string, now = new Date()) {
   return claimConnectorJob<OrderJob>("orders", db, tenantId, now);
 }
+/** Resume the latest recoverable order job without discarding its checkpoint. */
 export async function resumeOrderImport(tenantId: string, db: SqlDatabase = prisma) { return resumeConnectorJob(tenantId, "orders", db); }
+/** Read tenant-scoped order progress through the shared sanitized projection. */
 export async function getOrderImportProgress(tenantId: string, db: SqlClient = prisma) { return getConnectorProgress(tenantId, "orders", db); }
 
-type RuntimeLoader = (tenantId: string) => Promise<{ sourceId: string; revision: number; timezone: string; connector: MerchandisingConnector }>;
+type RuntimeLoader = (tenantId: string, backfill?: boolean) => Promise<{ sourceId: string; revision: number; timezone: string; connector: MerchandisingConnector }>;
 /** One bounded remote page per invocation. No sleeping, recursive drains or request-lifetime backfills. */
-export async function processOrderJob(tenantId?: string, db: SqlDatabase = prisma, loadRuntime: RuntimeLoader = loadSalesDriveRuntime) {
-  const job = await claimOrderJob(db, tenantId);
+export async function processOrderJob(tenantId?: string, db: SqlDatabase = prisma, loadRuntime: RuntimeLoader = loadSalesDriveRuntime, claimed?: OrderJob) {
+  const job = claimed ?? await claimOrderJob(db, tenantId);
   if (!job) return { processed: false };
   try {
-    const runtime = await loadRuntime(job.tenantId);
+    const runtime = await loadRuntime(job.tenantId, job.mode === "BACKFILL");
     if (runtime.sourceId !== job.sourceId || runtime.revision !== job.connectionRevision) throw new Error("CONNECTOR_CONFIG_CHANGED");
     const checkpoint = { ...job.checkpoint }, stats = { ...job.stats }, codes = new Set<string>();
     let dictionary: unknown = null;
@@ -140,6 +145,7 @@ export async function processOrderJob(tenantId?: string, db: SqlDatabase = prism
           ON CONFLICT ("tenantId","sourceId",resource) DO UPDATE SET checkpoint=EXCLUDED.checkpoint,"lastSuccessfulRunId"=EXCLUDED."lastSuccessfulRunId","updatedAt"=now()
           WHERE ("SyncCursor".checkpoint->>'through')::timestamptz <= ${checkpoint.to}::timestamptz`);
       }
+      if (complete) await completeConnectorInputs(tx, job);
       await tx.$executeRaw(Prisma.sql`UPDATE "ConnectorSyncJob" SET state=${complete ? "COMPLETE" : "PENDING"},checkpoint=${JSON.stringify(checkpoint)}::jsonb,stats=${JSON.stringify(stats)}::jsonb,
         attempts=0,"errorCode"=NULL,"leaseToken"=NULL,"leaseExpiresAt"=NULL,"availableAt"=now(),"updatedAt"=now() WHERE id=${job.id}`);
     }, { timeout: 45_000, maxWait: 5_000 });

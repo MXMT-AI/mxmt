@@ -10,26 +10,35 @@ import { claimConnectorJob, failConnectorJob, getConnectorProgress, recordIssues
 import { inventoryPolicy, type InventoryPolicy } from "./inventory-normalization";
 import { storeReceipt, retainRecord } from "./receipt-storage";
 import { storeCatalog } from "./catalog-storage";
+import { completeConnectorInputs } from "@/lib/data-pipeline";
 import { ConnectorReadError } from "./salesdrive";
 
-interface InventoryJob extends ConnectorJob {
+export interface InventoryJob extends ConnectorJob {
   checkpoint: { stage: "receipts" | "catalog"; page: number; from?: string; to: string; policyHash: string; policy: InventoryPolicy };
   stats: Record<string, number>;
 }
 /** Queue receipt changes followed by one complete, current catalogue observation. */
-export async function enqueueInventoryImport(tenantId: string, db: SqlDatabase = prisma) {
+export async function enqueueInventoryImport(tenantId: string, db: SqlDatabase = prisma, options: { requestKey?: string; expectedSourceId?: string; trigger?: "MANUAL" | "CRON" } = {}) {
   return db.$transaction(async (tx) => {
     const [connection] = await tx.$queryRaw<Array<{ sourceId: string; revision: number; hasYmlUrl: boolean; hasReceiptsKey: boolean }>>(Prisma.sql`SELECT "sourceId",revision,"hasYmlUrl","hasReceiptsKey" FROM "ConnectorConnection" WHERE "tenantId"=${tenantId} AND provider='salesdrive' FOR UPDATE`);
     if (!connection?.hasYmlUrl) throw new Error("CATALOG_NOT_CONFIGURED");
-    const [busy] = await tx.$queryRaw<Array<{ id: string; resource: string }>>(Prisma.sql`SELECT id,resource FROM "ConnectorSyncJob" WHERE "tenantId"=${tenantId} AND "sourceId"=${connection.sourceId} AND state IN ('PENDING','RUNNING','RETRY','PAUSED','FAILED')`);
-    if (busy) { if (busy.resource !== "inventory") throw new Error("IMPORT_BUSY"); return busy.id; }
+    if (options.expectedSourceId && connection.sourceId !== options.expectedSourceId) throw new Error("CONNECTOR_CONFIG_CHANGED");
+    if (options.requestKey) {
+      const [existing] = await tx.$queryRaw<Array<{id:string}>>(Prisma.sql`SELECT j.id FROM "ConnectorSyncJob" j JOIN "DataImportRun" r ON r.id=j."importRunId" WHERE j."tenantId"=${tenantId} AND r."idempotencyKey"=${`inventory:${connection.sourceId}:${options.requestKey}`}`);
+      if (existing) return existing.id;
+    } else {
+      const [busy] = await tx.$queryRaw<Array<{id:string}>>(Prisma.sql`SELECT id FROM "ConnectorSyncJob" WHERE "tenantId"=${tenantId} AND "sourceId"=${connection.sourceId} AND resource='inventory' AND state IN ('PENDING','RUNNING','RETRY','PAUSED','FAILED') ORDER BY "createdAt" DESC LIMIT 1`);
+      if (busy) return busy.id;
+    }
+    const [queued] = await tx.$queryRaw<Array<{n:number}>>(Prisma.sql`SELECT count(*)::int n FROM "ConnectorSyncJob" WHERE "tenantId"=${tenantId} AND "sourceId"=${connection.sourceId} AND state IN ('PENDING','RUNNING','RETRY')`);
+    if (queued.n >= 200) throw new Error("SYNC_QUEUE_FULL");
     const [cursor] = await tx.$queryRaw<Array<{ checkpoint: { through?: string; policyHash?: string } }>>(Prisma.sql`SELECT checkpoint FROM "SyncCursor" WHERE "tenantId"=${tenantId} AND "sourceId"=${connection.sourceId} AND resource='receipts'`);
     const [config] = await tx.$queryRaw<Array<{ values: unknown }>>(Prisma.sql`SELECT values FROM "MerchandisingConfig" WHERE "tenantId"=${tenantId} AND "configType"='SOURCE_MAPPING' AND key=${`salesdrive:${connection.sourceId}`} AND "isActive"=true AND "approvedAt" IS NOT NULL`);
     const now = new Date(), id = randomUUID(), runId = randomUUID();
     const policy = inventoryPolicy(config?.values), policyHash = payloadHash(policy);
     const checkpoint = { stage: connection.hasReceiptsKey ? "receipts" : "catalog", page: 1, to: now.toISOString(),
       ...(cursor?.checkpoint.through && cursor.checkpoint.policyHash === policyHash ? { from: new Date(new Date(cursor.checkpoint.through).getTime()-2*3600_000).toISOString() } : {}), policy, policyHash };
-    await tx.$executeRaw(Prisma.sql`INSERT INTO "DataImportRun" (id,"tenantId","sourceId",trigger,status,"idempotencyKey","businessDate","updatedAt") VALUES (${runId},${tenantId},${connection.sourceId},'MANUAL','PENDING',${`inventory:${id}`},${now},${now})`);
+    await tx.$executeRaw(Prisma.sql`INSERT INTO "DataImportRun" (id,"tenantId","sourceId",trigger,status,"idempotencyKey","businessDate","updatedAt") VALUES (${runId},${tenantId},${connection.sourceId},${options.trigger ?? 'MANUAL'}::"DataImportTrigger",'PENDING',${`inventory:${connection.sourceId}:${options.requestKey ?? id}`},${now},${now})`);
     await tx.$executeRaw(Prisma.sql`INSERT INTO "ConnectorSyncJob" (id,"tenantId","sourceId","importRunId",resource,mode,"connectionRevision",checkpoint,stats,"updatedAt") VALUES (${id},${tenantId},${connection.sourceId},${runId},'inventory','REFRESH',${connection.revision},${JSON.stringify(checkpoint)}::jsonb,'{"pages":0,"receipts":0,"products":0,"snapshots":0,"prices":0,"warnings":0}',${now})`);
     if (!connection.hasReceiptsKey) await recordIssues(tx, { tenantId, importRunId: runId }, new Set(["RECEIPTS_NOT_CONFIGURED"]));
     return id;
@@ -42,11 +51,12 @@ export async function getInventoryProgress(tenantId: string, db: SqlClient = pri
     FROM "InventorySnapshot" i JOIN "ConnectorConnection" c ON c."sourceId"=i."sourceId" AND c."tenantId"=i."tenantId" JOIN "DataSource" s ON s.id=c."sourceId" AND s."tenantId"=c."tenantId" WHERE i."tenantId"=${tenantId}`);
   return { job, coverage: { ...coverage, historicalStockAvailable: false } };
 }
+/** Resume a failed or paused inventory job at its retained receipt/catalog stage. */
 export const resumeInventoryImport = (tenantId: string, db: SqlDatabase = prisma) => resumeConnectorJob(tenantId, "inventory", db);
 type Runtime = (tenantId: string) => Promise<{ sourceId: string; revision: number; timezone: string; connector: MerchandisingConnector }>;
 /** One receipt page or one validated atomic catalogue refresh per worker invocation. */
-export async function processInventoryJob(tenantId?: string, db: SqlDatabase = prisma, load: Runtime = loadSalesDriveRuntime) {
-  const job = await claimConnectorJob<InventoryJob>("inventory", db, tenantId);
+export async function processInventoryJob(tenantId?: string, db: SqlDatabase = prisma, load: Runtime = loadSalesDriveRuntime, claimed?: InventoryJob) {
+  const job = claimed ?? await claimConnectorJob<InventoryJob>("inventory", db, tenantId);
   if (!job) return { processed: false };
   try {
     const runtime = await load(job.tenantId);
@@ -85,6 +95,7 @@ export async function processInventoryJob(tenantId?: string, db: SqlDatabase = p
       // An unconfigured receipt scope cannot establish a successful receipts watermark.
       if (complete && (stats.pages ?? 0)>0) await tx.$executeRaw(Prisma.sql`INSERT INTO "SyncCursor" (id,"tenantId","sourceId",resource,checkpoint,"lastSuccessfulRunId","updatedAt") VALUES (${randomUUID()},${job.tenantId},${job.sourceId},'receipts',${JSON.stringify({ through: checkpoint.to, policyHash: checkpoint.policyHash })}::jsonb,${job.importRunId},now())
         ON CONFLICT ("tenantId","sourceId",resource) DO UPDATE SET checkpoint=EXCLUDED.checkpoint,"lastSuccessfulRunId"=EXCLUDED."lastSuccessfulRunId","updatedAt"=now() WHERE ("SyncCursor".checkpoint->>'through')::timestamptz<=${checkpoint.to}::timestamptz`);
+      if (complete && !issues.has("STALE_CATALOG_OBSERVATION")) await completeConnectorInputs(tx, job);
       await tx.$executeRaw(Prisma.sql`UPDATE "ConnectorSyncJob" SET state=${complete ? "COMPLETE" : "PENDING"},checkpoint=${JSON.stringify(checkpoint)}::jsonb,stats=${JSON.stringify(stats)}::jsonb,attempts=0,"errorCode"=NULL,"leaseToken"=NULL,"leaseExpiresAt"=NULL,"availableAt"=now(),"updatedAt"=now() WHERE id=${job.id}`);
     }, { timeout: 45_000, maxWait: 5_000 });
     return { processed: true };

@@ -17,46 +17,48 @@ model Tenant {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  users                User[]
-  brands               Brand[]
-  skus                 Sku[]
-  salesRecords         SalesRecord[]
-  inventorySnapshots   InventorySnapshot[]
-  promoEvents          PromoEvent[]
-  onboarding           OnboardingBrief?
-  driveSyncs           GoogleDriveSync[]
-  catalogUploads       CatalogUpload[]
-  catalogItems         CatalogItem[]
-  plannerCart          PlannerCart?
-  marketingEvents      MarketingEvent[]
-  agentRuns            AgentRun[]
-  dataSources          DataSource[]
-  dataImportRuns       DataImportRun[]
-  dataSheetSnapshots   DataSheetSnapshot[]
-  dataSheetRows        DataSheetRow[]
-  sourceProducts       SourceProduct[]
-  sourceSaleLines      SourceSaleLine[]
-  importIssues         ImportIssue[]
-  reportRuns           ReportCalculationRun[]
-  articleResults       ArticleReportResult[]
-  brandResults         BrandReportResult[]
-  categoryResults      CategoryReportResult[]
-  tablePreferences     DataTablePreference[]
-  categories           Category[]
-  suppliers            Supplier[]
-  skuAliases           SkuAlias[]
-  sourceRecords        DataSourceRecord[]
-  orderLines           OrderLine[]
-  receipts             Receipt[]
-  receiptLines         ReceiptLine[]
-  priceHistory         PriceHistory[]
-  skuDaily             SkuDaily[]
-  merchandisingConfigs MerchandisingConfig[]
-  merchandisingActions MerchandisingAction[]
-  syncCursors          SyncCursor[]
-  connectorConnections ConnectorConnection[]
-  connectorJobs        ConnectorSyncJob[]
-  orderImportStates    OrderImportState[]
+  users                   User[]
+  brands                  Brand[]
+  skus                    Sku[]
+  salesRecords            SalesRecord[]
+  inventorySnapshots      InventorySnapshot[]
+  promoEvents             PromoEvent[]
+  onboarding              OnboardingBrief?
+  driveSyncs              GoogleDriveSync[]
+  catalogUploads          CatalogUpload[]
+  catalogItems            CatalogItem[]
+  plannerCart             PlannerCart?
+  marketingEvents         MarketingEvent[]
+  agentRuns               AgentRun[]
+  dataSources             DataSource[]
+  dataImportRuns          DataImportRun[]
+  dataSheetSnapshots      DataSheetSnapshot[]
+  dataSheetRows           DataSheetRow[]
+  sourceProducts          SourceProduct[]
+  sourceSaleLines         SourceSaleLine[]
+  importIssues            ImportIssue[]
+  reportRuns              ReportCalculationRun[]
+  articleResults          ArticleReportResult[]
+  brandResults            BrandReportResult[]
+  categoryResults         CategoryReportResult[]
+  tablePreferences        DataTablePreference[]
+  categories              Category[]
+  suppliers               Supplier[]
+  skuAliases              SkuAlias[]
+  sourceRecords           DataSourceRecord[]
+  orderLines              OrderLine[]
+  receipts                Receipt[]
+  receiptLines            ReceiptLine[]
+  priceHistory            PriceHistory[]
+  skuDaily                SkuDaily[]
+  merchandisingConfigs    MerchandisingConfig[]
+  merchandisingActions    MerchandisingAction[]
+  syncCursors             SyncCursor[]
+  connectorConnections    ConnectorConnection[]
+  connectorJobs           ConnectorSyncJob[]
+  orderImportStates       OrderImportState[]
+  syncCycles              ConnectorSyncCycle[]
+  connectorRecalculations ConnectorRecalculation[]
 }
 
 // ─── USER ─────────────────────────────────────────────────────────────────────
@@ -314,17 +316,19 @@ model DataSource {
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
 
-  importRuns         DataImportRun[]      @relation("DataSourceImports")
-  records            DataSourceRecord[]
-  aliases            SkuAlias[]
-  orderLines         OrderLine[]
-  receipts           Receipt[]
-  inventorySnapshots InventorySnapshot[]
-  priceHistory       PriceHistory[]
-  cursors            SyncCursor[]
-  connectorJobs      ConnectorSyncJob[]
-  orderImportStates  OrderImportState[]
-  connection         ConnectorConnection?
+  importRuns              DataImportRun[]          @relation("DataSourceImports")
+  records                 DataSourceRecord[]
+  aliases                 SkuAlias[]
+  orderLines              OrderLine[]
+  receipts                Receipt[]
+  inventorySnapshots      InventorySnapshot[]
+  priceHistory            PriceHistory[]
+  cursors                 SyncCursor[]
+  connectorJobs           ConnectorSyncJob[]
+  orderImportStates       OrderImportState[]
+  connection              ConnectorConnection?
+  syncCycles              ConnectorSyncCycle[]
+  connectorRecalculations ConnectorRecalculation[]
 
   @@unique([id, tenantId])
   @@unique([activeImportRunId, id, tenantId], map: "DataSource_active_run_scope_key")
@@ -352,20 +356,21 @@ model DataImportRun {
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 
-  connectorJobs      ConnectorSyncJob[]
-  orderImportStates  OrderImportState[]
-  activeForSource    DataSource?            @relation("ActiveDataSourceImport")
-  sheets             DataSheetSnapshot[]
-  products           SourceProduct[]
-  saleLines          SourceSaleLine[]
-  issues             ImportIssue[]
-  calculations       ReportCalculationRun[]
-  records            DataSourceRecord[]
-  orderLines         OrderLine[]
-  receipts           Receipt[]
-  inventorySnapshots InventorySnapshot[]
-  priceHistory       PriceHistory[]
-  cursors            SyncCursor[]
+  connectorJobs          ConnectorSyncJob[]
+  orderImportStates      OrderImportState[]
+  activeForSource        DataSource?             @relation("ActiveDataSourceImport")
+  sheets                 DataSheetSnapshot[]
+  products               SourceProduct[]
+  saleLines              SourceSaleLine[]
+  issues                 ImportIssue[]
+  calculations           ReportCalculationRun[]
+  records                DataSourceRecord[]
+  orderLines             OrderLine[]
+  receipts               Receipt[]
+  inventorySnapshots     InventorySnapshot[]
+  priceHistory           PriceHistory[]
+  cursors                SyncCursor[]
+  connectorRecalculation ConnectorRecalculation?
 
   @@unique([id, tenantId])
   @@unique([id, sourceId, tenantId])
@@ -1086,6 +1091,7 @@ model ConnectorConnection {
   checkedAt       DateTime?  @db.Timestamptz(3)
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
+  lastScheduledAt DateTime?  @db.Timestamptz(3)
 
   @@unique([tenantId, provider])
   @@unique([sourceId, tenantId])
@@ -1093,27 +1099,30 @@ model ConnectorConnection {
 
 // One durable job per source at a time; leases fence interrupted workers.
 model ConnectorSyncJob {
-  id                 String        @id @default(cuid())
+  id                 String               @id @default(cuid())
   tenantId           String
-  tenant             Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant             Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   sourceId           String
-  source             DataSource    @relation(fields: [sourceId, tenantId], references: [id, tenantId], onDelete: Cascade)
-  importRunId        String        @unique
-  importRun          DataImportRun @relation(fields: [importRunId, sourceId, tenantId], references: [id, sourceId, tenantId], onDelete: NoAction, onUpdate: NoAction)
-  resource           String        @default("orders")
+  source             DataSource           @relation(fields: [sourceId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  importRunId        String               @unique
+  importRun          DataImportRun        @relation(fields: [importRunId, sourceId, tenantId], references: [id, sourceId, tenantId], onDelete: NoAction, onUpdate: NoAction)
+  resource           String               @default("orders")
   mode               String
-  state              String        @default("PENDING")
+  state              String               @default("PENDING")
   connectionRevision Int
   checkpoint         Json
-  stats              Json          @default("{}")
-  attempts           Int           @default(0)
-  availableAt        DateTime      @default(now()) @db.Timestamptz(3)
+  stats              Json                 @default("{}")
+  attempts           Int                  @default(0)
+  availableAt        DateTime             @default(now()) @db.Timestamptz(3)
   leaseToken         String?
-  leaseExpiresAt     DateTime?     @db.Timestamptz(3)
+  leaseExpiresAt     DateTime?            @db.Timestamptz(3)
   errorCode          String?
-  createdAt          DateTime      @default(now()) @db.Timestamptz(3)
-  updatedAt          DateTime      @updatedAt @db.Timestamptz(3)
+  createdAt          DateTime             @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime             @updatedAt @db.Timestamptz(3)
+  orderCycles        ConnectorSyncCycle[] @relation("CycleOrders")
+  inventoryCycles    ConnectorSyncCycle[] @relation("CycleInventory")
 
+  @@unique([id, sourceId, tenantId], map: "ConnectorSyncJob_scoped_id")
   @@index([state, availableAt])
   @@index([tenantId, sourceId, createdAt])
 }
@@ -1151,4 +1160,46 @@ model ConnectorRequestAttempt {
   at         DateTime               @default(now()) @db.Timestamptz(3)
 
   @@index([accountKey, at])
+}
+
+// Durable sync intents survive worker restarts and deduplicate schedule slots.
+model ConnectorSyncCycle {
+  availableAt    DateTime          @default(now()) @db.Timestamptz(3)
+  attempts       Int               @default(0)
+  id             String            @id
+  tenantId       String
+  sourceId       String
+  requestKey     String
+  reason         String
+  resource       String
+  ordersJobId    String?
+  inventoryJobId String?
+  requestedAt    DateTime          @default(now()) @db.Timestamptz(3)
+  dispatchedAt   DateTime?         @db.Timestamptz(3)
+  completedAt    DateTime?         @db.Timestamptz(3)
+  errorCode      String?
+  tenant         Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  source         DataSource        @relation(fields: [sourceId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  ordersJob      ConnectorSyncJob? @relation("CycleOrders", fields: [ordersJobId, sourceId, tenantId], references: [id, sourceId, tenantId], onDelete: NoAction, onUpdate: NoAction)
+  inventoryJob   ConnectorSyncJob? @relation("CycleInventory", fields: [inventoryJobId, sourceId, tenantId], references: [id, sourceId, tenantId], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([tenantId, sourceId, requestKey])
+  @@index([dispatchedAt, requestedAt])
+  @@index([dispatchedAt, availableAt])
+}
+
+// Imported inputs wait explicitly for the versioned SalesDrive engine (#35–#37).
+model ConnectorRecalculation {
+  importRunId     String        @id
+  tenantId        String
+  sourceId        String
+  state           String        @default("WAITING_ENGINE")
+  inputProvenance Json
+  requestedAt     DateTime      @default(now()) @db.Timestamptz(3)
+  tenant          Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  source          DataSource    @relation(fields: [sourceId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  importRun       DataImportRun @relation(fields: [importRunId, sourceId, tenantId], references: [id, sourceId, tenantId], onDelete: Cascade)
+
+  @@unique([importRunId, sourceId, tenantId])
+  @@index([tenantId, sourceId, requestedAt])
 }

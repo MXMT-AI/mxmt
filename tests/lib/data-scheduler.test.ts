@@ -75,3 +75,18 @@ describe("data scheduler", () => {
     ]);
   });
 });
+
+describe('SalesDrive schedule (Sheets remains at 07:00)',()=>{
+ it('keeps winter/summer Kyiv stock on the current date and uses two-hour order slots',async()=>{
+  const {salesDriveScheduleDecision}=await import('@/lib/data-scheduler');
+  expect(salesDriveScheduleDecision(new Date('2026-01-15T01:00:00Z'))).toMatchObject({stockDue:true,businessDate:'2026-01-15'});
+  expect(salesDriveScheduleDecision(new Date('2026-07-15T00:00:00Z'))).toMatchObject({stockDue:true,businessDate:'2026-07-15'});
+  expect(salesDriveScheduleDecision(new Date('2026-07-14T23:59:00Z')).stockDue).toBe(false);
+ });
+ it('catches a missing spring hour and deduplicates a repeated autumn hour by date',async()=>{
+  const {salesDriveScheduleDecision}=await import('@/lib/data-scheduler');
+  expect(salesDriveScheduleDecision(new Date('2026-03-29T01:00:00Z'))).toMatchObject({stockDue:true,businessDate:'2026-03-29'});
+  expect(salesDriveScheduleDecision(new Date('2026-10-25T00:00:00Z'))).toMatchObject({stockDue:true,businessDate:'2026-10-25'});
+  expect(salesDriveScheduleDecision(new Date('2026-10-25T01:00:00Z'))).toMatchObject({stockDue:true,businessDate:'2026-10-25'});
+ });
+});

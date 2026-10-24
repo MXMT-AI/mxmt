@@ -113,7 +113,7 @@ describe("shared queue resources",()=>{
   it("keeps inventory jobs separate from order workers and commits receipt cursors only with a complete catalog",async()=>{
     const id=await enqueueInventoryImport("a",db);
     expect(await claimOrderJob(db,"a")).toBeNull();
-    await expect(enqueueOrderImport("a","BACKFILL",{},db)).rejects.toThrow("IMPORT_BUSY");
+    expect((await enqueueOrderImport("a","BACKFILL",{},db)).state).toBe("PENDING");
     const connector=new SalesDriveConnector(credentials,async(url)=>url.pathname.includes('export.yml')?new Response(xml):Response.json({data:[],pagination:{pageCount:1}}));
     const load=async()=>({sourceId:"source-a",revision:1,timezone:"Europe/Kyiv",connector});
     await processInventoryJob("a",db,load);
@@ -175,5 +175,42 @@ describe("inventory recovery and policy changes",()=>{
     const result=await db.$transaction((tx)=>storeCatalog(tx,scope,snapshot));
     expect(result.issues).toContain('NEGATIVE_SOURCE_STOCK');
     expect((await pg.query('SELECT quantity,"costValue","retailValue",diagnostics->>\'negativeStock\' negative FROM "InventorySnapshot" WHERE "tenantId"=\'a\' ORDER BY "snapshotDate" DESC LIMIT 1')).rows).toEqual([{quantity:'-2.5000',costValue:null,retailValue:null,negative:'true'}]);
+  });
+});
+
+describe("invalid receipt quarantine", () => {
+  it("retains invalid raw documents without replacing current receipts or partially importing lines", async () => {
+    const base = receipt("1");
+    const before = (await pg.query('SELECT * FROM "ReceiptLine" WHERE "receiptId" IN (SELECT id FROM "Receipt" WHERE "externalId"=\'1\' AND "tenantId"=\'a\')')).rows;
+    const invalid = [
+      { quantity: null }, { quantity: "invalid" }, { quantity: "100000000000000" }, { quantity: "1.00001" },
+      { unitCost: "invalid" }, { unitCost: "-1" }, { unitCost: "100000000000000" }, { unitCost: "1.00001" },
+    ];
+    for (const [index, fields] of invalid.entries()) {
+      const value = { ...base, externalId: `invalid-${index}`, lines: [base.lines[0], { ...base.lines[0], ...fields }], raw: { id: `invalid-${index}`, fields } };
+      expect(await db.$transaction((tx) => storeReceipt(tx, scope, value, policy))).toEqual({ imported: 0, issues: ["INVALID_RECEIPT_LINE"] });
+    }
+    const duplicate = { ...base, lines: [base.lines[0], base.lines[0]].map((line) => ({ ...line, externalLineId: "same" })), raw: { id: "1", duplicate: true }, updatedAt: "2026-10-27 12:00:00" };
+    expect(await db.$transaction((tx) => storeReceipt(tx, scope, duplicate, policy))).toEqual({ imported: 0, issues: ["INVALID_RECEIPT_LINE"] });
+    expect((await pg.query('SELECT * FROM "ReceiptLine" WHERE "receiptId" IN (SELECT id FROM "Receipt" WHERE "externalId"=\'1\' AND "tenantId"=\'a\')')).rows).toEqual(before);
+    expect((await pg.query('SELECT count(*)::int n FROM "Receipt" WHERE "externalId" LIKE \'invalid-%\'')).rows).toEqual([{ n: 0 }]);
+    expect((await pg.query('SELECT count(*)::int n FROM "DataSourceRecord" WHERE resource=\'receipts\' AND (payload ? \'fields\' OR payload ? \'duplicate\')')).rows).toEqual([{ n: 9 }]);
+  });
+
+  it("completes the catalogue after a page containing both invalid and valid receipts", async () => {
+    await pg.exec(`INSERT INTO "Tenant" (id,name,slug,"updatedAt") VALUES ('d','D','d',now());
+      INSERT INTO "DataSource" (id,"tenantId",kind,"sourceKey","updatedAt") VALUES ('source-d','d','SALESDRIVE','fourth.salesdrive.me',now());
+      INSERT INTO "ConnectorConnection" (id,"tenantId","sourceId","accountHost","encryptedConfig","hasYmlUrl","hasReceiptsKey","updatedAt") VALUES ('conn-d','d','source-d','fourth.salesdrive.me','encrypted',true,true,now());`);
+    const connector = new SalesDriveConnector(credentials, async (url) => url.pathname.includes('export.yml') ? new Response(xml) : Response.json({
+      data: [null, 2].map((count, i) => ({ id: i + 1, date: "2026-10-20", updatedAt: "2026-10-24 12:00:00", type: 1, status: { id: 2 }, counterparty: { id: 42 }, documentItems: [{ count, price: 40, product: { id: 1, parameter: "p1", sku: "SKU1" } }] })), pagination: { pageCount: 1 },
+    }));
+    const load = async () => ({ sourceId: "source-d", revision: 1, timezone: "Europe/Kyiv", connector });
+    await enqueueInventoryImport("d", db);
+    await processInventoryJob("d", db, load);
+    expect((await getInventoryProgress("d", db)).job).toMatchObject({ state: "PENDING", stats: { receipts: 1 }, issues: expect.arrayContaining(["INVALID_RECEIPT_LINE"]) });
+    await processInventoryJob("d", db, load);
+    expect((await getInventoryProgress("d", db)).job).toMatchObject({ state: "COMPLETE", stats: { snapshots: 1 } });
+    expect((await pg.query('SELECT count(*)::int n FROM "DataSourceRecord" WHERE "tenantId"=\'d\' AND resource=\'receipts\'')).rows).toEqual([{ n: 2 }]);
+    expect((await pg.query('SELECT count(*)::int n FROM "Receipt" WHERE "tenantId"=\'d\'')).rows).toEqual([{ n: 1 }]);
   });
 });

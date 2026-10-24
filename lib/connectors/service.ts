@@ -55,18 +55,18 @@ export async function checkSalesDriveConnection(tenantId: string): Promise<Publi
 }
 
 /** Load secrets only inside the server; source identity and timezone travel with the adapter. */
-export async function loadSalesDriveRuntime(tenantId: string) {
+export async function loadSalesDriveRuntime(tenantId: string, backfill = false) {
   const row = await prisma.connectorConnection.findUnique({
     where: { tenantId_provider: { tenantId, provider: "salesdrive" } },
     include: { source: { select: { timezone: true } } },
   });
   if (!row) throw new Error("NOT_CONFIGURED");
   return { sourceId: row.sourceId, revision: row.revision, timezone: row.source.timezone,
-    connector: connectorFor(row.encryptedConfig, tenantId, row.source.timezone) };
+    connector: connectorFor(row.encryptedConfig, tenantId, row.source.timezone, backfill) };
 }
 
-function connectorFor(encrypted: string, tenantId: string, timezone: string) {
+function connectorFor(encrypted: string, tenantId: string, timezone: string, backfill = false) {
   const parsed = parseSalesDriveCredentials(decryptCredentials(encrypted, tenantId));
   if (!parsed.credentials) throw new Error("CONNECTOR_STORAGE_UNAVAILABLE");
-  return new SalesDriveConnector(parsed.credentials, budgetedFetcher(parsed.credentials.accountHost), timezone);
+  return new SalesDriveConnector(parsed.credentials, budgetedFetcher(parsed.credentials.accountHost, prisma, undefined, backfill), timezone);
 }
