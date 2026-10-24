@@ -6,6 +6,7 @@ import OnboardingForm from "@/components/settings/OnboardingForm";
 import DriveSyncCard from "@/components/settings/DriveSyncCard";
 import AIProviderCard from "@/components/settings/AIProviderCard";
 import SettingsTabs from "@/components/settings/SettingsTabs";
+import SalesDriveImportCard from "@/components/settings/SalesDriveImportCard";
 import SalesDriveConnectionCard from "@/components/settings/SalesDriveConnectionCard";
 import { requireCurrentUser } from "@/lib/server-auth";
 import { getSalesDriveConnection } from "@/lib/connectors/service";
@@ -75,6 +76,8 @@ export default async function SettingsPage() {
 
       {/* Google Drive sync */}
       <SalesDriveConnectionCard initial={salesDrive} lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
+
+      <SalesDriveImportCard lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
 
       <section className="mb-10">
         <div className="mb-4">

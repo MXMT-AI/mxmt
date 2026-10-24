@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 vi.mock("server-only", () => ({}));
+// The durable budget is integration-tested against PostgreSQL separately.
+vi.mock("@/lib/connectors/budget", () => ({ budgetedFetcher: () => (url: URL, init: RequestInit) => fetch(url, init) }));
 
 const mocks = vi.hoisted(() => ({ cookies: new Map<string, string>(), find: vi.fn(), upsert: vi.fn(), update: vi.fn(), source: vi.fn(), transaction: vi.fn() }));
 vi.mock("next/headers", () => ({ cookies: async () => ({ get: (key: string) => ({ value: mocks.cookies.get(key) }) }) }));
@@ -12,7 +14,7 @@ import { signAccessToken } from "@/lib/auth";
 import { encryptCredentials } from "@/lib/connectors/secrets";
 
 const credentials = { accountHost: "demo.salesdrive.me", ordersApiKey: "orders-private-key", receiptsApiKey: null, ymlUrl: null };
-const row = () => ({ accountHost: credentials.accountHost, hasReceiptsKey: false, hasYmlUrl: false, revision: 3, lastCheck: null,
+const row = () => ({ accountHost: credentials.accountHost, hasReceiptsKey: false, hasYmlUrl: false, revision: 3, lastCheck: null, source: { timezone: "Europe/Kyiv" },
   encryptedConfig: encryptCredentials(credentials, "tenant-a") });
 
 function request(method = "GET", body?: unknown) {

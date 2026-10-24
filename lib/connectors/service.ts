@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { parseSalesDriveCredentials, type SalesDriveCredentials } from "./config";
 import { decryptCredentials, encryptCredentials } from "./secrets";
+import { budgetedFetcher } from "./budget";
 import { SalesDriveConnector } from "./salesdrive";
 import type { ConnectionCheck, PublicConnection } from "./contract";
 
@@ -41,16 +42,31 @@ export async function saveSalesDriveConnection(tenantId: string, credentials: Sa
 export async function checkSalesDriveConnection(tenantId: string): Promise<PublicConnection | null> {
   const row = await prisma.connectorConnection.findUnique({
     where: { tenantId_provider: { tenantId, provider: "salesdrive" } },
-    select: { ...publicSelect, encryptedConfig: true },
+    select: { ...publicSelect, encryptedConfig: true, source: { select: { timezone: true } } },
   });
   if (!row) return null;
-  const parsed = parseSalesDriveCredentials(decryptCredentials(row.encryptedConfig, tenantId));
-  if (!parsed.credentials) throw new Error("CONNECTOR_STORAGE_UNAVAILABLE");
-  const result = await new SalesDriveConnector(parsed.credentials).checkConnection();
+  const result = await connectorFor(row.encryptedConfig, tenantId, row.source.timezone).checkConnection();
   const updated = await prisma.connectorConnection.updateMany({
     where: { tenantId, provider: "salesdrive", revision: row.revision },
     data: { lastCheck: result as unknown as Prisma.InputJsonValue, checkedAt: new Date(result.checkedAt) },
   });
   if (updated.count !== 1) throw new Error("CONNECTOR_CONFIG_CHANGED");
   return publicConnection({ ...row, lastCheck: result as unknown as Prisma.JsonValue });
+}
+
+/** Load secrets only inside the server; source identity and timezone travel with the adapter. */
+export async function loadSalesDriveRuntime(tenantId: string) {
+  const row = await prisma.connectorConnection.findUnique({
+    where: { tenantId_provider: { tenantId, provider: "salesdrive" } },
+    include: { source: { select: { timezone: true } } },
+  });
+  if (!row) throw new Error("NOT_CONFIGURED");
+  return { sourceId: row.sourceId, revision: row.revision, timezone: row.source.timezone,
+    connector: connectorFor(row.encryptedConfig, tenantId, row.source.timezone) };
+}
+
+function connectorFor(encrypted: string, tenantId: string, timezone: string) {
+  const parsed = parseSalesDriveCredentials(decryptCredentials(encrypted, tenantId));
+  if (!parsed.credentials) throw new Error("CONNECTOR_STORAGE_UNAVAILABLE");
+  return new SalesDriveConnector(parsed.credentials, budgetedFetcher(parsed.credentials.accountHost), timezone);
 }

@@ -191,6 +191,8 @@ describe("atomic raw import", () => {
         priceHistory: { none: {} },
         inventorySnapshots: { none: {} },
         cursors: { none: {} },
+        connectorJobs: { none: {} },
+        orderImportStates: { none: {} },
         id: { not: "active-run" },
       },
     });
@@ -206,6 +208,8 @@ describe("atomic raw import", () => {
         priceHistory: { none: {} },
         inventorySnapshots: { none: {} },
         cursors: { none: {} },
+        connectorJobs: { none: {} },
+        orderImportStates: { none: {} },
         id: { not: "run-1" },
       },
     });

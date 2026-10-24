@@ -37,10 +37,12 @@ export function serverError(message = "Internal server error", requestId?: strin
   return apiError(message, 500, "INTERNAL_SERVER_ERROR", undefined, requestId);
 }
 
+/** Bound body bytes before decoding; optionally preserve source-specific JSON numeric precision. */
 export async function parseJsonBody<T = unknown>(
   request: NextRequest,
   requestId?: string,
-  maxBytes?: number
+  maxBytes?: number,
+  parser?: (body: string) => unknown
 ): Promise<JsonParseResult<T>> {
   try {
     if (maxBytes !== undefined) {
@@ -62,9 +64,9 @@ export async function parseJsonBody<T = unknown>(
       const bytes = new Uint8Array(size);
       let offset = 0;
       for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length; }
-      return { data: JSON.parse(new TextDecoder().decode(bytes)) as T, response: null };
+      return { data: (parser ?? JSON.parse)(new TextDecoder().decode(bytes)) as T, response: null };
     }
-    return { data: await request.json() as T, response: null };
+    return { data: (parser ? parser(await request.text()) : await request.json()) as T, response: null };
   } catch {
     return {
       data: null,

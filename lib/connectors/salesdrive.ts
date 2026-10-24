@@ -1,4 +1,6 @@
 import "server-only";
+import { parseSourceJson } from "./json";
+import { Prisma } from "@prisma/client";
 import { XMLParser, XMLValidator } from "fast-xml-parser";
 import { isRecord } from "@/lib/api-contracts";
 import { fetchWithTimeout } from "@/lib/server-fetch";
@@ -7,7 +9,7 @@ import { utcWatermark } from "./requests";
 import type { CheckCode, ConnectionCheck, ConnectorCapabilities, ConnectorPage, Dictionary, MerchandisingConnector, OrderDto, PageRequest, ProductDto, ReceiptDto, StockDto } from "./contract";
 
 export class ConnectorReadError extends Error {
-  constructor(readonly code: Exclude<CheckCode, "OK">) { super(code); this.name = "ConnectorReadError"; }
+  constructor(readonly code: Exclude<CheckCode, "OK">, readonly retryAt?: Date) { super(code); this.name = "ConnectorReadError"; }
 }
 type Fetcher = (url: URL, init: RequestInit) => Promise<Response>;
 const emptyDictionary = (reason: string): Dictionary => ({ entries: [], complete: false, reason });
@@ -15,7 +17,12 @@ const text = (value: unknown): string | null => typeof value === "string" && val
 const id = (value: unknown): string | null => text(value) ?? (typeof value === "number" && Number.isSafeInteger(value) ? String(value) : null);
 const decimal = (value: unknown): string | null => {
   const result = typeof value === "number" && Number.isFinite(value) ? String(value) : text(value);
-  return result && /^-?\d+(\.\d+)?$/.test(result) ? result : null;
+  if (result && /^-?\d+(\.\d+)?$/.test(result)) return result;
+  if (result && result.length <= 128 && /^-?\d+(?:\.\d+)?e[+-]?\d+$/i.test(result)) {
+    const parsed = new Prisma.Decimal(result);
+    if (Math.abs(parsed.e) <= 32) return parsed.toFixed();
+  }
+  return null;
 };
 const object = (value: unknown): Record<string, unknown> => isRecord(value) ? value : {};
 const array = (value: unknown): Record<string, unknown>[] => {
@@ -76,7 +83,7 @@ export class SalesDriveConnector implements MerchandisingConnector {
     }
   }
 
-  private async api(path: "/api/order/list/" | "/api/statuses/" | "/api/arrival-product/list/", request: PageRequest = {}) {
+  private async api(path: "/api/order/list/" | "/api/statuses/" | "/api/arrival-product/list/", request: PageRequest = {}): Promise<Record<string, unknown>> {
     const page = request.page ?? 1;
     const limit = request.limit ?? 100;
     if (!Number.isSafeInteger(page) || page < 1 || !Number.isSafeInteger(limit) || limit < 1 || limit > 100) throw new ConnectorReadError("INVALID_RESPONSE");
@@ -85,8 +92,12 @@ export class SalesDriveConnector implements MerchandisingConnector {
     const url = new URL(path, `https://${this.credentials.accountHost}`);
     if (path !== "/api/statuses/") {
       url.searchParams.set("page", String(page)); url.searchParams.set("limit", String(limit));
-      if (request.updatedFrom !== undefined) {
-        const instant = utcWatermark(request.updatedFrom);
+      const filters = path === "/api/order/list/"
+        ? [["updateAt", "from", request.updatedFrom], ["updateAt", "to", request.updatedTo], ["orderTime", "from", request.orderedFrom], ["orderTime", "to", request.orderedTo]]
+        : [["updatedAt", "from", request.updatedFrom], ["updatedAt", "to", request.updatedTo]];
+      for (const [field, bound, value] of filters) {
+        if (value === undefined) continue;
+        const instant = utcWatermark(value);
         if (!instant) throw new ConnectorReadError("INVALID_RESPONSE");
         let localTime: string;
         try {
@@ -95,13 +106,22 @@ export class SalesDriveConnector implements MerchandisingConnector {
           const part = (name: string) => parts.find((value) => value.type === name)!.value;
           localTime = `${part("year")}-${part("month")}-${part("day")} ${part("hour")}:${part("minute")}:${part("second")}`;
         } catch { throw new ConnectorReadError("INVALID_RESPONSE"); }
-        url.searchParams.set(path === "/api/order/list/" ? "filter[updateAt][from]" : "filter[updatedAt][from]", localTime);
+        url.searchParams.set(`filter[${field}][${bound}]`, localTime);
+      }
+      if (path === "/api/order/list/") {
+        url.searchParams.set("filter[statusId]", "__ALL__");
+        if (request.orderId !== undefined) {
+          if (!/^\d{1,20}$/.test(request.orderId)) throw new ConnectorReadError("INVALID_RESPONSE");
+          url.searchParams.set("filter[id][from]", request.orderId);
+          url.searchParams.set("filter[id][to]", request.orderId);
+        }
       }
     }
     try {
-      const result: unknown = JSON.parse(await this.request(url, key));
+      const rawResponse = await this.request(url, key);
+      const result: unknown = parseSourceJson(rawResponse);
       if (!isRecord(result) || !Array.isArray(result.data) || result.success === false || result.status === "error") throw new ConnectorReadError("INVALID_RESPONSE");
-      return result;
+      return { ...result, ...(path === "/api/order/list/" ? { originalResponse: rawResponse } : {}) };
     } catch (error) {
       if (error instanceof ConnectorReadError) throw error;
       throw new ConnectorReadError("INVALID_RESPONSE");
@@ -112,6 +132,7 @@ export class SalesDriveConnector implements MerchandisingConnector {
     const currentPage = request.page ?? 1;
     const pagination = object(data.pagination);
     if (typeof pagination.pageCount !== "number" || !Number.isSafeInteger(pagination.pageCount) || pagination.pageCount < 0) throw new ConnectorReadError("INVALID_RESPONSE");
+    if (pagination.currentPage !== undefined && pagination.currentPage !== currentPage || pagination.pageCount === 0 && records.length > 0) throw new ConnectorReadError("INVALID_RESPONSE");
     return { records, observedAt, nextPage: currentPage < pagination.pageCount ? currentPage + 1 : null };
   }
 
@@ -121,15 +142,15 @@ export class SalesDriveConnector implements MerchandisingConnector {
     const observedAt = new Date().toISOString();
     const records = array(result.data).map((row): OrderDto => {
       const externalId = id(row.id);
-      if (!externalId) throw new ConnectorReadError("INVALID_RESPONSE");
-      return { externalId, observedAt, updatedAt: text(row.updateAt), statusId: id(row.statusId), channelId: id(row.sajt),
+      if (!externalId || !Array.isArray(row.products)) throw new ConnectorReadError("INVALID_RESPONSE");
+      return { raw: row, sourceVersion: typeof row.version === "number" && Number.isSafeInteger(row.version) && row.version >= 0 && row.version <= 2147483647 ? row.version : null, externalId, observedAt, updatedAt: text(row.updateAt), statusId: id(row.statusId), channelId: id(row.sajt),
         orderedAt: text(row.orderTime), paidAt: text(row.paymentDate), lines: array(row.products).map((line) => ({
           externalLineId: id(line.id), productId: id(line.productId) ?? id(line.parameter), sku: text(line.sku),
           quantity: decimal(line.amount), unitPrice: decimal(line.price), discount: decimal(line.discount), discountUnit: unit(line.percentDiscount),
           commission: decimal(line.commission), commissionUnit: unit(line.percentCommission), costPrice: decimal(line.costPrice),
         })) };
     });
-    return this.page(result, records, observedAt, request);
+    return { ...this.page(result, records, observedAt, request), rawResponse: result.originalResponse as string };
   }
 
   /** All movement types remain distinct; posting and supplier mappings stay unverified. */
