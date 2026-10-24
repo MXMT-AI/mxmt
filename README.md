@@ -487,6 +487,7 @@ Unit tests не повинні звертатися до real AI providers аб�
 | [`docs/frontend-architecture.md`](./docs/frontend-architecture.md) | Frontend boundaries і performance rules |
 | [`docs/testing.md`](./docs/testing.md) | Testing workflow |
 | [SalesDrive order ingestion](./prisma/verification/30-salesdrive-order-import.md) | Queue, recovery, source mapping, webhook relay and activation checks |
+| [SalesDrive catalogue and stock](./prisma/verification/31-catalog-receipts-history.md) | YML, verified receipt costs, observed snapshots, price changes and history gaps |
 
 ## Ліцензія та доступ
 

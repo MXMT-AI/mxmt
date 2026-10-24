@@ -13,8 +13,8 @@ export interface ClassifiedSku {
   name: string;
   category: string;
   brand: string | null;
-  priceRetail: number;
-  pricePurchase: number;
+  priceRetail: number | null;
+  pricePurchase: number | null;
   stock: number;
   sold7: number;
   sold30: number;

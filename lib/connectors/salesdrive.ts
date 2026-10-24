@@ -6,7 +6,7 @@ import { isRecord } from "@/lib/api-contracts";
 import { fetchWithTimeout } from "@/lib/server-fetch";
 import { parseSalesDriveCredentials, type SalesDriveCredentials } from "./config";
 import { utcWatermark } from "./requests";
-import type { CheckCode, ConnectionCheck, ConnectorCapabilities, ConnectorPage, Dictionary, MerchandisingConnector, OrderDto, PageRequest, ProductDto, ReceiptDto, StockDto } from "./contract";
+import type { CatalogSnapshot, CheckCode, ConnectionCheck, ConnectorCapabilities, ConnectorPage, Dictionary, MerchandisingConnector, OrderDto, PageRequest, ProductDto, ReceiptDto, StockDto } from "./contract";
 
 export class ConnectorReadError extends Error {
   constructor(readonly code: Exclude<CheckCode, "OK">, readonly retryAt?: Date) { super(code); this.name = "ConnectorReadError"; }
@@ -57,7 +57,7 @@ export class SalesDriveConnector implements MerchandisingConnector {
   readonly provider = "salesdrive" as const;
   readonly capabilities: ConnectorCapabilities;
   private readonly credentials: SalesDriveCredentials;
-  private catalog: Promise<{ records: ProductDto[]; quantities: Array<string | null>; observedAt: string }> | null = null;
+  private catalog: Promise<{ records: ProductDto[]; quantities: Array<string | null>; observedAt: string; rawResponse: string }> | null = null;
 
   constructor(credentials: SalesDriveCredentials, private readonly fetcher: Fetcher = fetchWithTimeout, private readonly sourceTimezone = "Europe/Kyiv") {
     const parsed = parseSalesDriveCredentials(credentials);
@@ -121,7 +121,7 @@ export class SalesDriveConnector implements MerchandisingConnector {
       const rawResponse = await this.request(url, key);
       const result: unknown = parseSourceJson(rawResponse);
       if (!isRecord(result) || !Array.isArray(result.data) || result.success === false || result.status === "error") throw new ConnectorReadError("INVALID_RESPONSE");
-      return { ...result, ...(path === "/api/order/list/" ? { originalResponse: rawResponse } : {}) };
+      return { ...result, ...(path !== "/api/statuses/" ? { originalResponse: rawResponse } : {}) };
     } catch (error) {
       if (error instanceof ConnectorReadError) throw error;
       throw new ConnectorReadError("INVALID_RESPONSE");
@@ -160,14 +160,14 @@ export class SalesDriveConnector implements MerchandisingConnector {
     const types = { "1": "supplier_receipt", "2": "transfer", "3": "write_off", "4": "inventory_adjustment" } as const;
     const records = array(result.data).map((row): ReceiptDto => {
       const externalId = id(row.id);
-      if (!externalId) throw new ConnectorReadError("INVALID_RESPONSE");
-      return { externalId, observedAt, updatedAt: text(row.updatedAt), receivedAt: text(row.date),
+      if (!externalId || !Array.isArray(row.documentItems)) throw new ConnectorReadError("INVALID_RESPONSE");
+      return { raw: row, externalId, observedAt, updatedAt: text(row.updatedAt), receivedAt: text(row.date),
         movementType: types[String(row.type) as keyof typeof types] ?? "unknown", statusId: id(object(row.status).id),
-        supplierId: null, postingVerified: false, lines: array(row.documentItems).map((line) => ({
-          externalLineId: id(line.id), productId: id(object(line.product).id), quantity: decimal(line.count), unitCost: decimal(line.price),
+        supplierId: id(object(row.counterparty).id), supplierName: text(object(row.counterparty).title), postingVerified: false, lines: array(row.documentItems).map((line) => ({
+          externalLineId: id(line.id), productId: id(object(line.product).id), sourceProductId: id(object(line.product).parameter), sku: text(object(line.product).sku), quantity: decimal(line.count), unitCost: decimal(line.price),
         })) };
     });
-    return this.page(result, records, observedAt, request);
+    return { ...this.page(result, records, observedAt, request), rawResponse: result.originalResponse as string };
   }
 
   private loadCatalog() {
@@ -177,19 +177,28 @@ export class SalesDriveConnector implements MerchandisingConnector {
       const xml = await this.request(url, null, true);
       if (/<!DOCTYPE|<!ENTITY/i.test(xml) || XMLValidator.validate(xml) !== true) throw new ConnectorReadError("INVALID_RESPONSE");
       const root = new XMLParser({ ignoreAttributes: false, parseTagValue: false, parseAttributeValue: false, processEntities: false,
-        isArray: (name) => name === "offer" }).parse(xml);
+        isArray: (name) => name === "offer" || name === "category" }).parse(xml);
       const shop = object(object(object(root).yml_catalog).shop);
       if (shop.offers !== "" && !isRecord(shop.offers)) throw new ConnectorReadError("INVALID_RESPONSE");
       const offers = array(object(shop.offers).offer ?? []);
       const observedAt = new Date().toISOString();
+      const categories = new Map(array(object(shop.categories).category ?? []).map((category) => [id(category["@_id"]), text(category["#text"])]));
+      const seen = new Set<string>();
       const records = offers.map((offer): ProductDto => {
         const externalId = id(offer["@_id"]);
-        if (!externalId) throw new ConnectorReadError("INVALID_RESPONSE");
-        return { externalId, observedAt, updatedAt: null, sku: text(offer.vendorCode) ?? text(offer.article), name: text(offer.name_ua) ?? text(offer.name) ?? externalId,
+        if (!externalId || seen.has(externalId)) throw new ConnectorReadError("INVALID_RESPONSE");
+        seen.add(externalId);
+        for (const field of ["price", "oldprice", "vendorprice", "quantity_in_stock"]) {
+          if (offer[field] !== undefined && offer[field] !== "" && (decimal(offer[field]) === null || field !== "quantity_in_stock" && new Prisma.Decimal(decimal(offer[field])!).isNegative())) throw new ConnectorReadError("INVALID_RESPONSE");
+        }
+        const available = text(offer["@_available"]);
+        if (available !== null && !["true", "false", "1", "0"].includes(available)) throw new ConnectorReadError("INVALID_RESPONSE");
+        return { raw: offer, oldPrice: decimal(offer.oldprice), sourceStatus: available,
+          categoryName: categories.get(id(offer.categoryId)) ?? null, externalId, observedAt, updatedAt: null, sku: text(offer.vendorCode) ?? text(offer.article), name: text(offer.name_ua) ?? text(offer.name) ?? externalId,
           barcode: text(offer.barcode), brand: text(offer.vendor), categoryId: id(offer.categoryId),
           retailPrice: decimal(offer.price), costPrice: decimal(offer.vendorprice), currency: text(offer.currencyId) };
       });
-      return { records, quantities: offers.map((offer) => decimal(offer.quantity_in_stock)), observedAt };
+      return { records, quantities: offers.map((offer) => decimal(offer.quantity_in_stock)), observedAt, rawResponse: xml };
     })().catch((error) => {
       this.catalog = null;
       if (error instanceof ConnectorReadError) throw error;
@@ -202,6 +211,13 @@ export class SalesDriveConnector implements MerchandisingConnector {
     const page = request.page ?? 1, limit = request.limit ?? 100;
     if (!Number.isSafeInteger(page) || page < 1 || !Number.isSafeInteger(limit) || limit < 1 || limit > 100) throw new ConnectorReadError("INVALID_RESPONSE");
     return { records: records.slice((page - 1) * limit, page * limit), observedAt, nextPage: page * limit < records.length ? page + 1 : null };
+  }
+
+  /** One validated feed observation supplies products and stock together; never refetch per page. */
+  async getCatalogSnapshot(): Promise<CatalogSnapshot> {
+    const catalog = await this.loadCatalog();
+    return { products: catalog.records, stock: catalog.records.map((product, index) => ({ externalId: product.externalId, productId: product.externalId,
+      observedAt: catalog.observedAt, updatedAt: null, onHand: catalog.quantities[index], inTransit: null })), observedAt: catalog.observedAt, rawResponse: catalog.rawResponse };
   }
 
   /** Read catalog values as exact strings; missing cost is null, never zero. */

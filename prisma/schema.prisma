@@ -142,8 +142,9 @@ model Sku {
   name                   String
   category               String
   subcategory            String?
-  priceRetail            Float
-  pricePurchase          Float
+  priceRetail            Float?
+  pricePurchase          Float?
+  catalogAttributes      Json                   @default("{}")
   season                 String?
   status                 SkuStatus              @default(ACTIVE)
   dateAdded              DateTime               @default(now())
@@ -209,7 +210,12 @@ model InventorySnapshot {
   tenant              Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   skuId               String
   sku                 Sku            @relation(fields: [skuId, tenantId], references: [id, tenantId], onDelete: Cascade)
-  qtyOnHand           Int
+  qtyOnHand           Int?
+  quantity            Decimal?       @db.Decimal(18, 4)
+  costValue           Decimal?       @db.Decimal(18, 4)
+  retailValue         Decimal?       @db.Decimal(18, 4)
+  costProvenance      Json           @default("{}")
+  diagnostics         Json           @default("[]")
   qtyReserved         Int            @default(0)
   qtyInTransit        Int            @default(0)
   snapshotDate        DateTime       @db.Date
@@ -899,26 +905,29 @@ model OrderLine {
 }
 
 model Receipt {
-  id                String              @id @default(cuid())
-  tenantId          String
-  tenant            Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  sourceId          String
-  source            DataSource          @relation(fields: [sourceId, tenantId], references: [id, tenantId], onDelete: NoAction, onUpdate: NoAction)
-  importRunId       String
-  importRun         DataImportRun       @relation(fields: [importRunId, sourceId, tenantId], references: [id, sourceId, tenantId], onDelete: NoAction, onUpdate: NoAction)
-  externalId        String
-  movementType      ReceiptMovementType @default(UNKNOWN)
-  sourceStatus      String?
-  postingVerifiedAt DateTime?           @db.Timestamptz(3)
-  supplierId        String?
-  supplier          Supplier?           @relation(fields: [supplierId, tenantId], references: [id, tenantId], onDelete: NoAction, onUpdate: NoAction)
-  receivedAt        DateTime?           @db.Timestamptz(3)
-  observedAt        DateTime            @db.Timestamptz(3)
-  sourceUpdatedAt   DateTime?           @db.Timestamptz(3)
-  sourceRecordKey   String
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  lines             ReceiptLine[]
+  id                     String              @id @default(cuid())
+  tenantId               String
+  tenant                 Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sourceId               String
+  source                 DataSource          @relation(fields: [sourceId, tenantId], references: [id, tenantId], onDelete: NoAction, onUpdate: NoAction)
+  importRunId            String
+  importRun              DataImportRun       @relation(fields: [importRunId, sourceId, tenantId], references: [id, sourceId, tenantId], onDelete: NoAction, onUpdate: NoAction)
+  externalId             String
+  movementType           ReceiptMovementType @default(UNKNOWN)
+  sourceStatus           String?
+  sourceCounterpartyId   String?
+  sourceCounterpartyName String?
+  postingVerifiedAt      DateTime?           @db.Timestamptz(3)
+  supplierId             String?
+  supplier               Supplier?           @relation(fields: [supplierId, tenantId], references: [id, tenantId], onDelete: NoAction, onUpdate: NoAction)
+  datePrecision          String              @default("unknown")
+  receivedAt             DateTime?           @db.Timestamptz(3)
+  observedAt             DateTime            @db.Timestamptz(3)
+  sourceUpdatedAt        DateTime?           @db.Timestamptz(3)
+  sourceRecordKey        String
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
+  lines                  ReceiptLine[]
 
   @@unique([id, tenantId])
   @@unique([tenantId, sourceId, externalId])
@@ -927,17 +936,20 @@ model Receipt {
 }
 
 model ReceiptLine {
-  id                String   @id @default(cuid())
+  id                String    @id @default(cuid())
   tenantId          String
-  tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant            Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   receiptId         String
-  receipt           Receipt  @relation(fields: [receiptId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  receipt           Receipt   @relation(fields: [receiptId, tenantId], references: [id, tenantId], onDelete: Cascade)
   externalLineId    String
   skuId             String?
-  sku               Sku?     @relation(fields: [skuId, tenantId], references: [id, tenantId], onDelete: NoAction, onUpdate: NoAction)
+  sku               Sku?      @relation(fields: [skuId, tenantId], references: [id, tenantId], onDelete: NoAction, onUpdate: NoAction)
   externalProductId String?
-  quantity          Decimal  @db.Decimal(18, 4)
-  unitCost          Decimal? @db.Decimal(18, 4)
+  sourceSku         String?
+  identityDerived   Boolean   @default(false)
+  costVerifiedAt    DateTime? @db.Timestamptz(3)
+  quantity          Decimal   @db.Decimal(18, 4)
+  unitCost          Decimal?  @db.Decimal(18, 4)
   currency          String?
 
   @@unique([receiptId, externalLineId])
@@ -958,6 +970,8 @@ model PriceHistory {
   sourceRecordKey String
   effectiveAt     DateTime?     @db.Timestamptz(3)
   observedAt      DateTime      @db.Timestamptz(3)
+  oldPrice        Decimal?      @db.Decimal(18, 4)
+  costProvenance  Json          @default("{}")
   retailPrice     Decimal?      @db.Decimal(18, 4)
   costPrice       Decimal?      @db.Decimal(18, 4)
   currency        String?
@@ -1086,6 +1100,7 @@ model ConnectorSyncJob {
   source             DataSource    @relation(fields: [sourceId, tenantId], references: [id, tenantId], onDelete: Cascade)
   importRunId        String        @unique
   importRun          DataImportRun @relation(fields: [importRunId, sourceId, tenantId], references: [id, sourceId, tenantId], onDelete: NoAction, onUpdate: NoAction)
+  resource           String        @default("orders")
   mode               String
   state              String        @default("PENDING")
   connectionRevision Int
