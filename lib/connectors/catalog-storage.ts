@@ -2,6 +2,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { Temporal } from "@js-temporal/polyfill";
 import { Prisma } from "@prisma/client";
+import { recordCatalogQuality } from "./product-quality";
 import type { CatalogSnapshot } from "./contract";
 import type { SqlClient } from "./database";
 import type { OrderScope } from "./order-storage";
@@ -37,14 +38,21 @@ export async function storeCatalog(tx: SqlClient, scope: OrderScope, snapshot: C
     FROM mxmt_catalog_stage t WHERE t."categoryId" IS NOT NULL GROUP BY t."categoryId"
     ON CONFLICT ("tenantId",key) DO UPDATE SET name=EXCLUDED.name,"updatedAt"=now()`);
   await tx.$executeRaw(Prisma.sql`UPDATE mxmt_catalog_stage t SET "canonicalCategoryId"=c.id FROM "Category" c WHERE c."tenantId"=${tenantId} AND c.key=${`salesdrive:${sourceId}:`} || t."categoryId"`);
-  await tx.$executeRaw(Prisma.sql`INSERT INTO "Brand" (id,"tenantId",name,currency)
-    SELECT ${randomUUID()} || ':' || t.vendor,${tenantId},t.vendor,'UNKNOWN' FROM mxmt_catalog_stage t
-    WHERE t.vendor IS NOT NULL AND NOT EXISTS (SELECT 1 FROM "Brand" b WHERE b."tenantId"=${tenantId} AND b.name=t.vendor) GROUP BY t.vendor`);
-  await tx.$executeRaw(Prisma.sql`UPDATE mxmt_catalog_stage t SET "brandId"=(SELECT MIN(b.id) FROM "Brand" b WHERE b."tenantId"=${tenantId} AND b.name=t.vendor HAVING count(*)=1)`);
+  // Serialize tenant identity edits with catalogue activation, without merging financial terms.
+  await tx.$queryRaw(Prisma.sql`SELECT id FROM "Tenant" WHERE id=${tenantId} FOR NO KEY UPDATE`);
+  await tx.$executeRaw(Prisma.sql`INSERT INTO "Brand" (id,"tenantId",name,"normalizationKey",currency)
+    SELECT ${randomUUID()} || ':' || t.vendor,${tenantId},t.vendor,t.vendor,'UNKNOWN' FROM mxmt_catalog_stage t
+    WHERE t.vendor IS NOT NULL AND NOT EXISTS (SELECT 1 FROM "BrandAlias" a WHERE a."tenantId"=${tenantId} AND a.value=t.vendor)
+      AND NOT EXISTS (SELECT 1 FROM "Brand" b WHERE b."tenantId"=${tenantId} AND (b."normalizationKey"=t.vendor OR upper(btrim(b.name))=t.vendor)) GROUP BY t.vendor
+    ON CONFLICT ("tenantId","normalizationKey") DO NOTHING`);
+  await tx.$executeRaw(Prisma.sql`UPDATE mxmt_catalog_stage t SET "brandId"=COALESCE(
+    (SELECT a."brandId" FROM "BrandAlias" a WHERE a."tenantId"=${tenantId} AND a.value=t.vendor),
+    (SELECT MIN(b.id) FROM "Brand" b WHERE b."tenantId"=${tenantId} AND (b."normalizationKey"=t.vendor OR upper(btrim(b.name))=t.vendor) HAVING count(*)=1))`);
+  await tx.$executeRaw(Prisma.sql`UPDATE mxmt_catalog_stage t SET attributes=attributes||jsonb_build_object('normalization',jsonb_build_object('version',1,'brandKey',t.vendor,'brandId',t."brandId",'aliasRevision',(SELECT a.revision FROM "BrandAlias" a WHERE a."tenantId"=${tenantId} AND a.value=t.vendor)))`);
   await tx.$executeRaw(Prisma.sql`INSERT INTO "Sku" (id,"tenantId",sku,name,category,"categoryId","brandId",barcode,"priceRetail","pricePurchase","catalogAttributes")
     SELECT t."skuId",${tenantId},t."canonicalSku",t.name,COALESCE(t."categoryName",t."categoryId",''),t."canonicalCategoryId",t."brandId",t.barcode,t."retailPrice"::double precision,NULL,
       t.attributes || jsonb_build_object('sourceId',${sourceId}::text,'importRunId',${importRunId}::text,'sourceRecordKey',${rawKey}::text) FROM mxmt_catalog_stage t
-    ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name,category=EXCLUDED.category,"categoryId"=EXCLUDED."categoryId",
+    ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name,category=EXCLUDED.category,"categoryId"=EXCLUDED."categoryId","brandId"=EXCLUDED."brandId",
       barcode=EXCLUDED.barcode,"priceRetail"=EXCLUDED."priceRetail","catalogAttributes"=EXCLUDED."catalogAttributes"`);
   await tx.$executeRaw(Prisma.sql`INSERT INTO "SkuAlias" (id,"tenantId","sourceId","skuId",type,value)
     SELECT ${randomUUID()} || ':' || t."externalId" || ':id',${tenantId},${sourceId},t."skuId",'SOURCE_PRODUCT_ID'::"SkuAliasType",t."externalId" FROM mxmt_catalog_stage t
@@ -88,5 +96,6 @@ export async function storeCatalog(tx: SqlClient, scope: OrderScope, snapshot: C
     ON CONFLICT ("tenantId","skuId","snapshotDate") DO UPDATE SET "qtyOnHand"=EXCLUDED."qtyOnHand",quantity=EXCLUDED.quantity,"observedAt"=EXCLUDED."observedAt",timezone=EXCLUDED.timezone,
       "costPrice"=EXCLUDED."costPrice","retailPrice"=EXCLUDED."retailPrice","costValue"=EXCLUDED."costValue","retailValue"=EXCLUDED."retailValue",currency=EXCLUDED.currency,"sourceId"=EXCLUDED."sourceId","importRunId"=EXCLUDED."importRunId","sourceRecordKey"=EXCLUDED."sourceRecordKey","costProvenance"=EXCLUDED."costProvenance",diagnostics=EXCLUDED.diagnostics
     WHERE "InventorySnapshot"."observedAt" IS NULL OR "InventorySnapshot"."observedAt"<=EXCLUDED."observedAt"`);
+  await recordCatalogQuality(tx, scope, rawKey);
   return { products: rows.length, snapshots, prices: priceChanges, issues: [...issues], observedAt: snapshot.observedAt, businessDate };
 }

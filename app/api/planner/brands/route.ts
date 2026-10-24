@@ -1,9 +1,11 @@
+import { normalizedBrandKey } from "@/lib/data-normalization";
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireApiUser } from "@/lib/server-auth";
 import { apiError, isRecord, numberField, parseJsonBody, stringField, validationError } from "@/lib/api-contracts";
 
+/** List this tenant’s planner brands with catalog usage counts. */
 export async function GET() {
   const { user, response } = await requireApiUser();
   if (response) return response;
@@ -20,6 +22,7 @@ export async function GET() {
   return NextResponse.json(brands);
 }
 
+/** Create a planner brand with a canonical key and validated commercial terms. */
 export async function POST(request: NextRequest) {
   const { user, response } = await requireApiUser("ANALYST");
   if (response) return response;
@@ -59,7 +62,8 @@ export async function POST(request: NextRequest) {
     const brand = await prisma.brand.create({
       data: {
         tenantId,
-        name: name!,
+        name: name!.trim(),
+        normalizationKey: normalizedBrandKey(name),
         budget,
         paymentDays,
         currency,

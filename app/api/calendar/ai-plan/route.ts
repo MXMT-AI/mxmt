@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { chat } from "@/lib/ai";
-import { classify, getThresholds } from "@/lib/classify";
+import { classify, getThresholds, snapshotStock, canClassifyProduct } from "@/lib/classify";
 import type { SkuFlag } from "@/lib/analyst-types";
 import { requireApiUser } from "@/lib/server-auth";
 import { parseAgentJson } from "@/lib/agent-output";
@@ -76,6 +76,7 @@ export interface AiPlanChip {
   label: string;
 }
 
+/** Generate the tenant’s calendar plan from eligible inventory and sales signals. */
 export async function POST() {
   const { user, response } = await requireApiUser("ANALYST");
   if (response) return response;
@@ -86,14 +87,14 @@ export async function POST() {
 
   const [skus, snapshots, sales30raw, sales7raw, onboarding] = await Promise.all([
     prisma.sku.findMany({
-      where: { tenantId, status: { in: ["ACTIVE", "NEW"] } },
+      where: { tenantId, productKind:{notIn:["SERVICE","GIFT_CARD"]}, status: { in: ["ACTIVE", "NEW"] } },
       include: { brand: { select: { name: true, leadTimeDays: true } } },
     }),
     prisma.inventorySnapshot.findMany({
       where: { tenantId },
       orderBy: { snapshotDate: "desc" },
       distinct: ["skuId"],
-      select: { skuId: true, qtyOnHand: true },
+      select: { skuId: true, qtyOnHand: true, quantity:true },
     }),
     prisma.salesRecord.groupBy({
       by: ["skuId"],
@@ -109,12 +110,12 @@ export async function POST() {
   ]);
 
   const thresholds = getThresholds(onboarding?.businessModel ?? null);
-  const stockMap = Object.fromEntries(snapshots.map((s) => [s.skuId, s.qtyOnHand]));
+  const stockMap = Object.fromEntries(snapshots.map((s) => [s.skuId, snapshotStock(s)]));
   const s30Map = Object.fromEntries(sales30raw.map((s) => [s.skuId, s._sum.qtySold ?? 0]));
   const s7Map = Object.fromEntries(sales7raw.map((s) => [s.skuId, s._sum.qtySold ?? 0]));
 
-  const classified = skus.map((s) => {
-    const stock = stockMap[s.id] ?? 0;
+  const classified = skus.filter(s=>canClassifyProduct(s,stockMap[s.id])).map((s) => {
+    const stock = stockMap[s.id]!;
     const sold30 = s30Map[s.id] ?? 0;
     const sold7 = s7Map[s.id] ?? 0;
     const leadTime = s.brand?.leadTimeDays ?? 14;

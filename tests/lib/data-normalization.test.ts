@@ -214,3 +214,11 @@ describe("typed source normalization", () => {
     );
   });
 });
+
+describe("invalid source facts",()=>{
+ it("keeps malformed raw transaction values null instead of synthesizing zero",()=>{
+  const result=normalize([["SKU-1","First",100,"",40,3,"active","Cat","Brand","VC-1","ART-1"]],[["order-1","bad-line","2026-08-02T10:00:00Z",5,"2026-08-02","bad","","","","SKU-1","bad","bad"]]);
+  expect(result.saleLines[0]).toMatchObject({quantity:null,salesAmount:null,costAmount:null,normalizedSales:null});
+  expect(result.issues.some(issue=>issue.code==='INVALID_TRANSACTION_VALUE')).toBe(true);
+ });
+});

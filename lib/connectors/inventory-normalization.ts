@@ -1,3 +1,4 @@
+import { normalizedBrandKey } from "@/lib/data-normalization";
 import { randomUUID } from "node:crypto";
 import { isRecord } from "@/lib/api-contracts";
 import type { CatalogSnapshot } from "./contract";
@@ -31,9 +32,10 @@ export function normalizeCatalog(snapshot: CatalogSnapshot, sourceId: string) {
   const ids = new Set<string>(), skus = new Set<string>(), issues = new Set<string>(["HISTORICAL_STOCK_UNAVAILABLE"]);
   const rows = snapshot.products.map((product): CatalogEntry => {
     if (!product.externalId || ids.has(product.externalId)) throw new Error("DUPLICATE_CATALOG_ID"); ids.add(product.externalId);
-    for (const [value, max] of [[product.externalId,200],[product.sku,200],[product.name,1000],[product.categoryId,200],[product.categoryName,500],[product.brand,200],[product.barcode,200]] as const) {
+    for (const [value, max] of [[product.externalId,200],[product.sku,200],[product.name,1000],[product.categoryId,200],[product.categoryName,500],[product.barcode,200]] as const) {
       if (value != null && (value.length>max || !value.trim())) throw new Error("INVALID_CATALOG");
     }
+    if (product.brand && product.brand.length>200) throw new Error("INVALID_CATALOG");
     const observation = stock.get(product.externalId);
     if (!observation || observation.observedAt !== snapshot.observedAt || product.observedAt !== snapshot.observedAt) throw new Error("MIXED_CATALOG_OBSERVATION");
     const money = (value: string | null | undefined, signed = false) => {
@@ -52,8 +54,8 @@ export function normalizeCatalog(snapshot: CatalogSnapshot, sourceId: string) {
     if (!product.sku) issues.add("MISSING_SOURCE_SKU");
     if (skus.has(canonicalSku)) throw new Error("DUPLICATE_CATALOG_SKU"); skus.add(canonicalSku);
     return { proposedId: randomUUID(), externalId: product.externalId, article: product.sku, canonicalSku, name: product.name,
-      categoryId: product.categoryId, categoryName: product.categoryName ?? null, vendor: product.brand, barcode: product.barcode,
-      retailPrice, oldPrice, quantity, currency, attributes: { sourceStatus: product.sourceStatus ?? null, sourceSku: product.sku,
+      categoryId: product.categoryId, categoryName: product.categoryName ?? null, vendor: normalizedBrandKey(product.brand), barcode: product.barcode,
+      retailPrice, oldPrice, quantity, currency, attributes: { observedAt:snapshot.observedAt, sourceStatus: product.sourceStatus ?? null, sourceSku: product.sku,
         vendor: product.brand, categoryId: product.categoryId, categoryName: product.categoryName ?? null,
         exportedCost: product.costPrice, identityDerived: !product.sku } };
   });

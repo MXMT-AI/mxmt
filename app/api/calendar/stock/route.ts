@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiUser } from "@/lib/server-auth";
 
+/** Aggregate observed merchandise stock by brand, retaining the Unbranded group. */
 export async function GET() {
   const { user, response } = await requireApiUser();
   if (response) return response;
@@ -9,7 +10,7 @@ export async function GET() {
 
   // Get latest inventory snapshot per SKU
   const snapshots = await prisma.inventorySnapshot.findMany({
-    where: { tenantId },
+    where: { tenantId,sku:{productKind:{notIn:["SERVICE","GIFT_CARD"]}} },
     orderBy: { snapshotDate: "desc" },
     distinct: ["skuId"],
     include: { sku: { include: { brand: { select: { id: true, name: true } } } } },
@@ -20,7 +21,7 @@ export async function GET() {
   since.setDate(since.getDate() - 30);
 
   const sales = await prisma.salesRecord.findMany({
-    where: { tenantId, date: { gte: since } },
+    where: { tenantId,sku:{productKind:{notIn:["SERVICE","GIFT_CARD"]}}, date: { gte: since } },
     include: { sku: { include: { brand: { select: { id: true, name: true } } } } },
   });
 
@@ -28,9 +29,8 @@ export async function GET() {
   const brandStock: Record<string, { name: string; stock: number; sales30: number }> = {};
 
   for (const snap of snapshots) {
-    const brandId = snap.sku.brand?.id;
-    const brandName = snap.sku.brand?.name;
-    if (!brandId || !brandName) continue;
+    const brandId = snap.sku.brand?.id ?? "__unbranded__";
+    const brandName = snap.sku.brand?.name ?? "Unbranded";
     const quantity = snap.quantity == null ? snap.qtyOnHand : Number(snap.quantity);
     if (quantity === null) continue;
     if (!brandStock[brandId]) brandStock[brandId] = { name: brandName, stock: 0, sales30: 0 };
@@ -38,7 +38,7 @@ export async function GET() {
   }
 
   for (const sale of sales) {
-    const brandId = sale.sku.brand?.id;
+    const brandId = sale.sku.brand?.id ?? "__unbranded__";
     if (!brandId || !brandStock[brandId]) continue;
     brandStock[brandId].sales30 += sale.qtySold;
   }

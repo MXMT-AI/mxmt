@@ -1,9 +1,11 @@
+import { normalizedBrandKey } from "@/lib/data-normalization";
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireApiUser } from "@/lib/server-auth";
 import { apiError, isRecord, numberField, parseJsonBody, stringField, validationError } from "@/lib/api-contracts";
 
+/** Edit planner terms without implicitly resolving an ambiguous legacy identity. */
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -37,11 +39,14 @@ export async function PUT(
     return validationError(issues);
   }
 
+  const nameKey = normalizedBrandKey(name);
+  const preserveIdentity = brand.normalizationKey === null && nameKey === normalizedBrandKey(brand.name);
+  const nextName = preserveIdentity ? brand.name : name.trim();
   const existing = await prisma.brand.findFirst({
     where: {
       tenantId,
       id: { not: id },
-      name: { equals: name, mode: "insensitive" },
+      name: { equals: nextName, mode: "insensitive" },
     },
     select: { id: true },
   });
@@ -54,7 +59,8 @@ export async function PUT(
     const updated = await prisma.brand.update({
       where: { id },
       data: {
-        name,
+        name: nextName,
+        normalizationKey: preserveIdentity ? null : nameKey,
         budget,
         paymentDays,
         currency,
@@ -75,6 +81,7 @@ export async function PUT(
   }
 }
 
+/** Delete a tenant brand only after its explicit aliases have been removed. */
 export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -86,6 +93,10 @@ export async function DELETE(
 
   const brand = await prisma.brand.findFirst({ where: { id, tenantId } });
   if (!brand) return apiError("Not found", 404, "NOT_FOUND");
+
+  if (await prisma.brandAlias.count({where:{tenantId,brandId:id}})) {
+    return apiError("Remove this brand's aliases before deleting it",409,"BRAND_HAS_ALIASES");
+  }
 
   // Composite tenant FKs cannot SET NULL on the required tenantId. Detach only
   // this tenant's SKUs explicitly, retaining the existing delete behavior.
