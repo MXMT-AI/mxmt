@@ -167,3 +167,6 @@ see [automatic sync verification (#32)](32-automatic-sync.md).
 
 For canonical brands, product types and source-linked diagnostics, see
 [product normalization verification (#33)](33-product-normalization.md).
+
+For versioned client policies, ownership overrides, supplier terms and category
+seasons, see [merchandising settings verification (#34)](34-merchandising-settings.md).

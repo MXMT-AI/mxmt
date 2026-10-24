@@ -1,4 +1,7 @@
 import "server-only";
+import { readClientSettings } from "./merchandising-settings-store";
+import { defaultClientSettings } from "./merchandising-settings";
+import { clientOrderFilterFingerprint } from "./merchandising-order-policy";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import type { SqlClient } from "@/lib/connectors/database";
@@ -30,6 +33,8 @@ function qualityBase(tenantId:string) {
 
 /** Return bounded diagnostics and currency-separated components, not a replacement financial report. */
 export async function getProductQuality(tenantId:string,options:{page?:number;q?:string}={},db:SqlClient=prisma) {
+ const currentClient=await readClientSettings(tenantId,db);
+ const currentFilter=clientOrderFilterFingerprint(currentClient.values),defaultFilter=clientOrderFilterFingerprint(defaultClientSettings());
  const page=options.page??1,search=options.q?.trim()??'';
  const base=qualityBase(tenantId),filter=Prisma.sql`(${search}='' OR sku ILIKE ${`%${search}%`} OR name ILIKE ${`%${search}%`})`;
  const [rows,total,summary,brands,aliases,components,stock,replay,orderExceptions]=await Promise.all([
@@ -42,9 +47,9 @@ export async function getProductQuality(tenantId:string,options:{page?:number;q?
    CASE WHEN s."productKind"='GIFT_CARD' THEN 'GIFT_CARD' WHEN s."productKind"='SERVICE' THEN 'SERVICE' WHEN l.normalization->>'movement'='CORRECTION' OR l.kind='RETURN' THEN 'RETURNS_CORRECTIONS' WHEN s."productKind"='MERCHANDISE' THEN 'MERCHANDISE' ELSE 'UNKNOWN' END component,
    l.currency,count(*)::int "lineCount",sum(l."signedRevenue")::text revenue,sum(l."signedCost")::text cost,count(*) FILTER(WHERE l."signedRevenue" IS NULL)::int "missingAmountCount"
    FROM "OrderLine" l JOIN "ConnectorConnection" c ON c."sourceId"=l."sourceId" AND c."tenantId"=l."tenantId" LEFT JOIN "Sku" s ON s.id=l."skuId" AND s."tenantId"=l."tenantId"
-   WHERE l."tenantId"=${tenantId} AND l."eventKey"='current' AND l.kind IN ('SALE','RETURN','CORRECTION') GROUP BY component,l.currency ORDER BY component,l.currency`),
+   WHERE l."tenantId"=${tenantId} AND l."eventKey"='current' AND COALESCE((l.normalization->>'excluded')::boolean,false)=false AND l.kind IN ('SALE','RETURN','CORRECTION') GROUP BY component,l.currency ORDER BY component,l.currency`),
   db.$queryRaw<Array<{brandKey:string;currency:string|null;quantity:string|null;costValue:string|null}>>(Prisma.sql`${base} SELECT "brandKey",currency,sum(quantity)::text quantity,sum("costValue")::text "costValue" FROM base WHERE "productKind"='MERCHANDISE' GROUP BY "brandKey",currency ORDER BY "brandKey",currency`),
-  db.$queryRaw<Array<{n:number}>>(Prisma.sql`SELECT count(*)::int n FROM "OrderLine" l JOIN "ConnectorConnection" c ON c."sourceId"=l."sourceId" AND c."tenantId"=l."tenantId" WHERE l."tenantId"=${tenantId} AND l.normalization='{}'::jsonb`),
+  db.$queryRaw<Array<{n:number}>>(Prisma.sql`SELECT count(*)::int n FROM "OrderLine" l JOIN "ConnectorConnection" c ON c."sourceId"=l."sourceId" AND c."tenantId"=l."tenantId" WHERE l."tenantId"=${tenantId} AND (l.normalization='{}'::jsonb OR COALESCE(l.normalization->>'filterFingerprint',${defaultFilter})<>${currentFilter})`),
   db.$queryRaw<Array<{code:string;sourceSku:string|null;orderId:string;lineId:string}>>(Prisma.sql`SELECT q.code,l."sourceSku",l."externalOrderId" "orderId",l."externalLineId" "lineId" FROM "ImportIssue" q
     JOIN "OrderLine" l ON l."tenantId"=q."tenantId" AND l."importRunId"=q."importRunId" AND q."entityKey"='order:'||l."externalOrderId"||':'||l."externalLineId"
     JOIN "ConnectorConnection" c ON c."sourceId"=l."sourceId" AND c."tenantId"=l."tenantId" WHERE q."tenantId"=${tenantId} AND l."eventKey"='current' ORDER BY q."createdAt" DESC,q.id LIMIT 25`)

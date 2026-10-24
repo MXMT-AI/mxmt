@@ -5,6 +5,7 @@ import type { OrderDto } from "./contract";
 export interface OrderPolicy {
   statuses?: Record<string, OrderLineKind>;
   channels?: Record<string, string>;
+  settings?: {configId:string;revision:number;filterFingerprint:string;excludedChannels:string[];excludedProjects:string[];projectField:string|null};
   dates?: { saleOrderTimeFallback?: boolean; returnDateField?: string };
   /** Enable only after customer evidence verifies API price and discount semantics. */
   amounts?: { price: "gross_unit" | "net_unit"; absoluteDiscount: "line" | "unit"; currency: string; cost?: "unit" };
@@ -43,6 +44,16 @@ export function normalizeOrder(order: OrderDto, timezone: string, policy: OrderP
   if (dateInferred) issues.add("INFERRED_PAYMENT_DATE");
   if (kind === "RETURN" && !returned.date) issues.add("RETURN_DATE_UNAVAILABLE");
   if (kind === "SALE" && !effectivePaid.date) issues.add("PAYMENT_DATE_UNAVAILABLE");
+  const settings=policy.settings;
+  const projectMapped=Boolean(settings?.projectField&&order.raw&&Object.hasOwn(order.raw,settings.projectField));
+  const projectValue=projectMapped?order.raw![settings!.projectField!]:null;
+  const scalar=(value:unknown)=>typeof value==='string'||typeof value==='number'&&Number.isSafeInteger(value);
+  const projectShapeValid=projectValue===null||scalar(projectValue)||Array.isArray(projectValue)&&projectValue.every(scalar);
+  const projectMappingUnavailable=Boolean(settings?.excludedProjects.length&&(!projectMapped||!projectShapeValid));
+  const projectIds=Array.isArray(projectValue)?projectValue.map(String):projectValue==null?[]:[String(projectValue)];
+  const exclusionReason=settings?.excludedChannels.includes(order.channelId??'')?'EXCLUDED_CHANNEL':settings?.excludedProjects.some(id=>projectIds.includes(id))?'EXCLUDED_PROJECT':null;
+  if(exclusionReason)issues.add(exclusionReason);
+  if(projectMappingUnavailable)issues.add('PROJECT_MAPPING_UNVERIFIED');
   const ids = new Set<string>();
   let valid = true;
   const lines = order.lines.map((line, index) => {
@@ -70,14 +81,14 @@ export function normalizeOrder(order: OrderDto, timezone: string, policy: OrderP
     const correction=kind==='CORRECTION' || kind!=='RETURN' && Boolean(quantity?.isNegative() || netAmount?.isNegative());
     if (correction) issues.add("SIGNED_CORRECTION");
     const signed=(value:Prisma.Decimal|null)=>!value?null:kind==='RETURN'?value.abs().neg():value;
-    const financial=kind==='RETURN'?Boolean(returned.date):['SALE','CORRECTION'].includes(kind) && Boolean(effectivePaid.date);
+    const financial=!exclusionReason&&!projectMappingUnavailable&&(kind==='RETURN'?Boolean(returned.date):['SALE','CORRECTION'].includes(kind) && Boolean(effectivePaid.date));
     return { externalLineId, identityDerived: !line.externalLineId, externalProductId: line.productId, sourceSku: line.sku,
       statusId: order.statusId && /^\d+$/.test(order.statusId) && Number(order.statusId) <= 2147483647 ? Number(order.statusId) : null,
       channelId: order.channelId, kind, orderedAt: ordered.date, paidAt: effectivePaid.date, returnedAt: returned.date, dateInferred,
       datePrecision: { orderedAt: ordered.precision, paidAt: effectivePaid.precision, returnedAt: returned.precision },
       quantity, netAmount, costAmount,
-      signedQuantity:signed(quantity), signedRevenue:financial?signed(netAmount):null,signedCost:financial?signed(costAmount):null,
-      normalization:{version:2,movement:correction?'CORRECTION':kind,dateInferred,dateAvailable:financial,missingCost:costAmount===null}, currency: policy.amounts?.currency ?? null,
+      signedQuantity:exclusionReason||projectMappingUnavailable?null:signed(quantity), signedRevenue:financial?signed(netAmount):null,signedCost:financial?signed(costAmount):null,
+      normalization:{filterFingerprint:settings?.filterFingerprint??null,settingsConfigId:settings?.configId??null,settingsRevision:settings?.revision??null,excluded:Boolean(exclusionReason),exclusionReason,projectMappingUnavailable,version:2,movement:correction?'CORRECTION':kind,dateInferred,dateAvailable:financial,missingCost:costAmount===null}, currency: policy.amounts?.currency ?? null,
       sourceAmounts: { unitPrice: line.unitPrice, unitCost: line.costPrice, discount: line.discount, discountUnit: line.discountUnit,
         commission: line.commission, commissionUnit: line.commissionUnit } };
   });
