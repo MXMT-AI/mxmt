@@ -13,9 +13,8 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useLang } from "@/components/LanguageProvider";
 import { merchandisingCopy } from "@/lib/merchandising-copy";
 import {
-  applyMerchandisingFilters,
+  applyMerchandisingSelection,
   readMerchandisingFilters,
-  presetPeriod,
   type MerchandisingFilters,
   type PeriodMode,
 } from "@/lib/merchandising-navigation";
@@ -43,11 +42,17 @@ export default function MerchandisingShell({
     pathname = usePathname();
   const { lang } = useLang(),
     copy = merchandisingCopy[lang];
+  const [appliedAt, setAppliedAt] = useState<string | null>(null);
+  // Initial rendering uses the server clock for hydration. Apply advances it so
+  // a new URL is not rejected by the persistent layout's older timestamp.
+  const readingClock = new Date(
+    Math.max(Date.parse(now), Date.parse(appliedAt ?? now)),
+  );
   let filters: MerchandisingFilters | null = null;
   try {
     filters = readMerchandisingFilters(
       new URLSearchParams(params),
-      new Date(now),
+      readingClock,
     );
   } catch {
     /* Show a recoverable invalid-link state. */
@@ -85,7 +90,7 @@ export default function MerchandisingShell({
               <FilterForm
                 key={params.toString()}
                 filters={filters}
-                now={now}
+                onApply={setAppliedAt}
                 options={options}
               />
               {children}
@@ -101,11 +106,11 @@ export default function MerchandisingShell({
 function FilterForm({
   filters,
   options,
-  now,
+  onApply,
 }: {
   filters: MerchandisingFilters;
   options: NavigationOptions;
-  now: string;
+  onApply: (appliedAt: string) => void;
 }) {
   const { lang } = useLang(),
     copy = merchandisingCopy[lang];
@@ -122,22 +127,15 @@ function FilterForm({
   function apply(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     try {
-      const dates =
-        draft.period === "custom"
-          ? draft
-          : (() => {
-              const period = presetPeriod(draft.period, anchor, new Date(now));
-              return { ...draft, dateFrom: period.from, dateTo: period.to };
-            })();
-      // An invalid existing URL is handled by the parent and cannot reach this form.
-      const next = applyMerchandisingFilters(
+      const selection = applyMerchandisingSelection(
         new URLSearchParams(params),
-        dates,
-        new Date(now),
+        draft,
+        anchor,
       );
       setError(false);
+      onApply(selection.appliedAt);
       startTransition(() =>
-        router.push(`${pathname}?${next}`, { scroll: false }),
+        router.push(`${pathname}?${selection.query}`, { scroll: false }),
       );
     } catch {
       setError(true);

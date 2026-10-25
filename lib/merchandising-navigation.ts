@@ -158,6 +158,24 @@ export function applyMerchandisingFilters(
   return next;
 }
 
+/** Apply against one fresh clock reading, independently of the cached layout timestamp. */
+export function applyMerchandisingSelection(
+  params: URLSearchParams,
+  draft: MerchandisingFilters,
+  anchor: string,
+  now = new Date(),
+) {
+  const period =
+    draft.period === "custom" ? null : presetPeriod(draft.period, anchor, now);
+  const filters = period
+    ? { ...draft, dateFrom: period.from, dateTo: period.to }
+    : draft;
+  return {
+    query: applyMerchandisingFilters(params, filters, now),
+    appliedAt: now.toISOString(),
+  };
+}
+
 /** Monobrand profiles skip brand grouping even when an old deep link asks for it. */
 export function merchandisingGroup(
   params: URLSearchParams,

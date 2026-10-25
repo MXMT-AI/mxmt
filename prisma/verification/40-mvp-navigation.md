@@ -46,6 +46,13 @@ screen tasks. They do not display fixture values or call the legacy calculators.
   Upcoming data screens should use the same helper when translating UI state to
   API parameters.
 
+Applying a new selection reads the current clock once, even when the Next.js
+layout was cached before a Kyiv date boundary. The shell advances its validation
+clock with that successful Apply so the new interval remains valid immediately.
+Reading an existing explicit URL does not automatically expand its interval;
+custom dates remain unchanged. Regression checks cover month/quarter/year Apply
+across midnight in Kyiv and retention of custom dates and their pinned snapshot.
+
 ## Tenant settings, existing tools and access
 
 The merchandising layout authenticates the session with `VIEWER` access and reads

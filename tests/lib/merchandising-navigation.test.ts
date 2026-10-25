@@ -1,6 +1,7 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   applyMerchandisingFilters,
+  applyMerchandisingSelection,
   readMerchandisingFilters,
   presetPeriod,
   merchandisingHref,
@@ -11,6 +12,58 @@ const now = new Date("2026-10-25T10:00:00Z");
 const read = (s = "", clock = now) =>
   readMerchandisingFilters(new URLSearchParams(s), clock);
 describe("URL-owned MVP navigation", () => {
+  it.each(["month", "quarter", "year"] as const)(
+    "applies %s with a fresh clock after a Kyiv date boundary",
+    (mode) => {
+      vi.useFakeTimers();
+      try {
+        const opened = new Date("2026-10-25T20:59:59Z");
+        const period = presetPeriod(mode, "2026-10-01", opened);
+        const params = new URLSearchParams({
+          period: mode,
+          dateFrom: period.from,
+          dateTo: period.to,
+          snapshotId: "old",
+          channelId: "2",
+        });
+        const draft = readMerchandisingFilters(params, opened);
+        vi.setSystemTime(new Date("2026-10-25T22:00:00Z")); // October 26 in Kyiv (after DST ends).
+        const applied = applyMerchandisingSelection(
+          params,
+          draft,
+          draft.dateFrom,
+        );
+        expect(applied.query.get("dateTo")).toBe("2026-10-25");
+        expect(applied.query.has("snapshotId")).toBe(false);
+        expect(applied.query.get("channelId")).toBe("2");
+        expect(
+          readMerchandisingFilters(applied.query, new Date(applied.appliedAt))
+            .dateTo,
+        ).toBe("2026-10-25");
+        expect(
+          readMerchandisingFilters(params, new Date(applied.appliedAt)),
+        ).toEqual(draft);
+      } finally {
+        vi.useRealTimers();
+      }
+    },
+  );
+  it("retains custom dates and their snapshot when Apply advances the clock", () => {
+    const params = new URLSearchParams(
+      "period=custom&dateFrom=2026-09-01&dateTo=2026-09-30&snapshotId=old",
+    );
+    const draft = readMerchandisingFilters(params, now);
+    const applied = applyMerchandisingSelection(
+      params,
+      draft,
+      draft.dateFrom,
+      new Date("2026-10-26T10:00:00Z"),
+    );
+    expect(
+      readMerchandisingFilters(applied.query, new Date(applied.appliedAt)),
+    ).toEqual(draft);
+    expect(applied.query.get("snapshotId")).toBe("old");
+  });
   it("retains an explicit partial preset when reloaded on a later day", () => {
     const params =
       "period=month&dateFrom=2026-10-01&dateTo=2026-10-24&channelId=2";
