@@ -179,3 +179,7 @@ see [daily SKU metrics verification (#36)](36-daily-sku-metrics.md).
 
 For canonical SKU status, shortage union, K4 brand signals and the phased sync
 recalculation consumer, see [classification verification (#37)](37-sku-classification.md).
+
+For Stage 1 benchmark comparison, private frozen evidence and Sasha/Olia sign-off,
+see [Zavod reconciliation (#38)](38-zavod-reconciliation.md). Customer acceptance
+remains pending until the required source package and approvals are supplied.

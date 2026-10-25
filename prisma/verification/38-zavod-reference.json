@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "referenceId": "zavod-september-2026-reference-v0.1",
+  "authority": "PROVISIONAL",
+  "source": "https://claude.ai/artifact/NKECTQztioMNUsgsRjMhwq#artboard-4a9b5111b2ae",
+  "specificationDate": "2026-10-12",
+  "sectionsVerifiedOn": "2026-10-25",
+  "sections": ["11", "12", "O1", "O3", "K1", "K4", "S1"],
+  "period": {
+    "from": "2026-09-01",
+    "to": "2026-09-30",
+    "lyFrom": "2025-09-01",
+    "lyTo": "2025-09-30"
+  },
+  "timezone": "Europe/Kyiv",
+  "currency": "UAH",
+  "stockDate": null,
+  "metrics": {
+    "revenue": "1156812",
+    "grossProfit": "525595",
+    "marginPercentDisplay": "45.4",
+    "stockCost": "11250000",
+    "stockUnits": "4871",
+    "lyRevenue": "1583791",
+    "lyGrossProfit": "726565",
+    "orderCount": "309",
+    "salesUnits": "312"
+  },
+  "channels": [
+    { "id": null, "revenue": "522126" },
+    { "id": null, "revenue": "499927" },
+    { "id": null, "revenue": "73465" },
+    { "id": null, "revenue": "61293" }
+  ],
+  "oldClassification": {
+    "ruleVersion": null,
+    "dead": { "stockCost": "7340000", "skuCount": "1013" },
+    "risk": { "stockCost": "3450000", "skuCount": "353" },
+    "healthy": { "stockCost": "450000", "skuCount": "90" },
+    "alternativeDead": { "stockCost": "6290000", "skuCount": "874" }
+  },
+  "precisionNotes": [
+    "Stock cost and old classification values are rounded reference observations, not exact confirmed totals.",
+    "Channel identities and stock observation date require confirmation from frozen source evidence.",
+    "Section 11 is now visible; its reference values do not establish a frozen customer dataset or approval."
+  ]
+}
