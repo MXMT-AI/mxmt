@@ -16,8 +16,9 @@ const columns: DataColumnMetadata[] = [
 
 describe("data reporting UI helpers", () => {
   it("uses valid saved columns in their saved order", () => {
-    expect(resolveVisibleColumns(columns, ["sales", "missing", "article"]))
-      .toEqual(["sales", "article"]);
+    expect(
+      resolveVisibleColumns(columns, ["sales", "missing", "article"]),
+    ).toEqual(["sales", "article"]);
   });
 
   it("falls back to default columns when no preference is saved", () => {
@@ -49,4 +50,12 @@ describe("data reporting UI helpers", () => {
     expect(validateReportPeriod("2026-09-01", "2026-08-31")).toBe("reversed");
     expect(validateReportPeriod("2026-08-01", "2026-08-31")).toBeNull();
   });
+});
+
+it("formats long financial decimal strings without binary floating-point rounding", () => {
+  expect(formatTableValue("999999999999999999.99", "money", "en-GB")).toBe(
+    "999,999,999,999,999,999.99",
+  );
+  expect(formatTableValue("-1000.005", "money", "en-GB")).toBe("-1,000.01");
+  expect(formatTableValue("1.12345", "quantity", "en-GB")).toBe("1.1235");
 });

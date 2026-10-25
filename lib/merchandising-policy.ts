@@ -4,6 +4,10 @@ import {
   type ClientMerchandisingSettings,
   type Ownership,
 } from "./merchandising-settings";
+const FinancialDecimal = Prisma.Decimal.clone({ precision: 48 });
+/** High precision is local to financial calculations; legacy Decimal defaults stay unchanged. */
+export const financialDecimal = (value: string | number) =>
+  new FinancialDecimal(value);
 export interface PolicyInputs {
   ownershipOverride?: Ownership | null;
   commissionRateOverride?: string | null;
@@ -62,6 +66,23 @@ export function resolveMerchandisingPolicy(
     newProductWeeks: client.newProductWeeks,
   };
 }
+/** Shared own-stock/consignment formula; zero ordinary-product cost remains unverified. */
+export function grossProfitForPolicy(
+  policy: { ownership: Ownership; commissionRate: string | null },
+  revenue: string,
+  cost: string | null,
+): Prisma.Decimal | null {
+  const amount = financialDecimal(revenue);
+  if (
+    policy.ownership === "OWN" &&
+    cost !== null &&
+    !financialDecimal(cost).isZero()
+  )
+    return amount.sub(cost);
+  if (policy.ownership === "CONSIGNMENT" && policy.commissionRate !== null)
+    return amount.mul(policy.commissionRate);
+  return null;
+}
 /** Deterministic preview consumes persisted policy, with unknown-profit/transit coverage explicit. */
 export function previewMerchandisingCalculations(
   policy: ReturnType<typeof resolveMerchandisingPolicy>,
@@ -74,14 +95,8 @@ export function previewMerchandisingCalculations(
     month: number;
   },
 ) {
-  const revenue = new Prisma.Decimal(input.revenue),
-    cost = input.cost === null ? null : new Prisma.Decimal(input.cost);
-  const profit =
-    policy.ownership === "OWN" && cost !== null
-      ? revenue.sub(cost)
-      : policy.ownership === "CONSIGNMENT" && policy.commissionRate !== null
-        ? revenue.mul(policy.commissionRate)
-        : null;
+  const revenue = financialDecimal(input.revenue);
+  const profit = grossProfitForPolicy(policy, input.revenue, input.cost);
   const margin =
     profit !== null && !revenue.isZero() ? profit.div(revenue).mul(100) : null;
   const velocity = new Prisma.Decimal(input.weeklyVelocity),

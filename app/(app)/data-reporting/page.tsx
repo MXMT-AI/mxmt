@@ -2,9 +2,10 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireCurrentUser } from "@/lib/server-auth";
 import { DATA_TABLE_KEYS, type DataTableKey } from "@/lib/data-table-api";
-import DataReportingWorkspace, {
+import {
   type InitialTablePreference,
 } from "@/components/data-reporting/DataReportingWorkspace";
+import DataReportingHub from "@/components/data-reporting/DataReportingHub";
 
 export const dynamic = "force-dynamic";
 
@@ -41,5 +42,5 @@ export default async function DataReportingPage() {
     ])
   ) as Partial<Record<DataTableKey, InitialTablePreference>>;
 
-  return <DataReportingWorkspace userRole={user.role} initialPreferences={initialPreferences} />;
+  return <DataReportingHub userRole={user.role} initialPreferences={initialPreferences} />;
 }

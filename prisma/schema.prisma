@@ -519,6 +519,9 @@ model ReportCalculationRun {
   dateTo             DateTime      @db.Date
   asOfDate           DateTime      @db.Date
   calculationVersion Int           @default(1)
+  reportKind         String        @default("SHEETS")
+  inputKey           String        @default("legacy")
+  financialResult    Json?
   status             DataRunStatus @default(PENDING)
   warnings           Json          @default("[]")
   errorMessage       String?
@@ -532,7 +535,7 @@ model ReportCalculationRun {
   categoryResults CategoryReportResult[]
 
   @@unique([id, tenantId])
-  @@unique([tenantId, importRunId, dateFrom, dateTo, asOfDate, calculationVersion], map: "ReportCalcRun_cache_key")
+  @@unique([tenantId, importRunId, dateFrom, dateTo, asOfDate, calculationVersion, inputKey], map: "ReportCalcRun_cache_key")
   @@index([tenantId, status, createdAt])
   @@index([importRunId, createdAt])
 }

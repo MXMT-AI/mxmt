@@ -3,8 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
-  ArrowDown,
-  ArrowUp,
   CalendarDays,
   Calculator,
   CheckCircle2,
@@ -16,6 +14,7 @@ import {
   Search,
   UploadCloud,
 } from "lucide-react";
+import ReportTable from "./ReportTable";
 import { useLang } from "@/components/LanguageProvider";
 import type {
   DataColumnMetadata,
@@ -24,7 +23,6 @@ import type {
 } from "@/lib/data-table-api";
 import {
   currentKyivMonth,
-  formatTableValue,
   nextSortDirection,
   resolveVisibleColumns,
   validateReportPeriod,
@@ -587,42 +585,8 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
           ) : visibleColumns.length === 0 ? (
             <div className="h-80 flex items-center justify-center px-5 text-sm text-[var(--muted)] text-center">{copy.noColumns}</div>
           ) : (
-            <div className="overflow-auto max-h-[62vh]">
-              <table className="w-full min-w-max border-collapse text-xs">
-                <thead className="sticky top-0 z-10 bg-[var(--surface2)]">
-                  <tr>
-                    {visibleColumns.map((column) => {
-                      const sortable = activeTab === "product_yml" || activeTab === "zavod_api"
-                        ? column.key === "rowNumber"
-                        : !column.sourceOnly;
-                      const sorted = preference.sortColumn === column.key;
-                      return (
-                        <th key={column.key} scope="col" className="border-b border-r last:border-r-0 border-[var(--border)] px-3 py-2.5 text-left font-semibold text-[var(--muted)] whitespace-nowrap">
-                          <button type="button" disabled={!sortable} onClick={() => sortBy(column)}
-                            className="inline-flex items-center gap-1.5 disabled:cursor-default hover:text-[var(--text)] disabled:hover:text-inherit">
-                            {column.label}
-                            {sorted && (preference.sortDirection === "asc" ? <ArrowUp size={11} /> : <ArrowDown size={11} />)}
-                          </button>
-                        </th>
-                      );
-                    })}
-                  </tr>
-                </thead>
-                <tbody>
-                  {table?.rows.map((row, rowIndex) => (
-                    <tr key={`${table.pagination.page}-${rowIndex}`} className="border-b last:border-b-0 border-[var(--border-faint)] hover:bg-[var(--input-bg)]">
-                      {visibleColumns.map((column) => (
-                        <td key={column.key} className={`max-w-md border-r last:border-r-0 border-[var(--border-faint)] px-3 py-2 text-[var(--text)] ${column.type === "text" || column.type === "source" ? "text-left" : "text-right tabular-nums"}`}>
-                          <span className="block truncate" title={formatTableValue(row[column.key], column.type, locale)}>
-                            {formatTableValue(row[column.key], column.type, locale)}
-                          </span>
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <ReportTable columns={visibleColumns} rows={table?.rows??[]} locale={locale} sortColumn={preference.sortColumn} direction={preference.sortDirection} onSort={sortBy} isSortable={column=>activeTab==='product_yml'||activeTab==='zavod_api'?column.key==='rowNumber':!column.sourceOnly}/>
+
           )}
         </div>
 

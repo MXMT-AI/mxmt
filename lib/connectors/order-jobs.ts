@@ -1,9 +1,9 @@
+import {parseOrderPolicy} from "./order-policy";
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { Temporal } from "@js-temporal/polyfill";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { isRecord } from "@/lib/api-contracts";
 import type { SqlDatabase, SqlClient } from "./database";
 import type { MerchandisingConnector } from "./contract";
 import { claimConnectorJob, resumeConnectorJob, getConnectorProgress, recordIssues, failConnectorJob } from "./jobs";
@@ -27,31 +27,6 @@ const emptyStats = (): Stats => ({ pages: 0, orders: 0, imported: 0, duplicate: 
 // Failed jobs require explicit recovery before any newer job can hide their checkpoint.
 const active = Prisma.sql`('PENDING','RUNNING','RETRY','PAUSED','FAILED')`;
 
-/** Validate approved status, channel, amount and event-date mappings before freezing a job. */
-function parsePolicy(value: unknown): OrderPolicy {
-  if (!isRecord(value)) throw new Error("INVALID_SOURCE_MAPPING");
-  const policy: OrderPolicy = {};
-  if (value.statuses !== undefined) {
-    if (!isRecord(value.statuses) || Object.entries(value.statuses).some(([id, kind]) => !/^\d+$/.test(id) || !["UNKNOWN", "SALE", "RETURN", "CORRECTION", "PREORDER", "REFUSAL"].includes(String(kind)))) throw new Error("INVALID_SOURCE_MAPPING");
-    policy.statuses = value.statuses as OrderPolicy["statuses"];
-  }
-  if (value.channels !== undefined) {
-    if (!isRecord(value.channels) || Object.entries(value.channels).some(([id, name]) => !/^\d+$/.test(id) || typeof name !== "string" || !name.trim() || name.length > 200)) throw new Error("INVALID_SOURCE_MAPPING");
-    policy.channels = value.channels as Record<string, string>;
-  }
-  if (value.dates !== undefined) {
-    const d=value.dates;
-    if (!isRecord(d) || d.saleOrderTimeFallback!==undefined && typeof d.saleOrderTimeFallback!=='boolean' || d.returnDateField!==undefined && (typeof d.returnDateField!=='string' || !/^[a-zA-Z][a-zA-Z0-9_]{0,99}$/.test(d.returnDateField))) throw new Error("INVALID_SOURCE_MAPPING");
-    policy.dates=d as OrderPolicy['dates'];
-  }
-  if (value.amounts !== undefined) {
-    const a = value.amounts;
-    if (!isRecord(a) || !["gross_unit", "net_unit"].includes(String(a.price)) || !["line", "unit"].includes(String(a.absoluteDiscount)) || typeof a.currency !== "string" || !/^[A-Z]{3}$/.test(a.currency) || a.cost !== undefined && a.cost !== "unit") throw new Error("INVALID_SOURCE_MAPPING");
-    policy.amounts = a as unknown as OrderPolicy["amounts"];
-  }
-  return policy;
-}
-
 /** Serialize enqueue with credential changes; incremental cannot skip the initial history. */
 export async function enqueueOrderImport(tenantId: string, mode: ImportMode, options: { orderId?: string; eventKey?: string; payload?: Record<string, unknown>; requestKey?: string; expectedSourceId?: string; trigger?: "MANUAL" | "CRON" } = {}, db: SqlDatabase = prisma, now = new Date()) {
   return db.$transaction(async (tx) => {
@@ -71,7 +46,7 @@ export async function enqueueOrderImport(tenantId: string, mode: ImportMode, opt
     const [cursor] = await tx.$queryRaw<Array<{ checkpoint: { through: string } }>>(Prisma.sql`SELECT checkpoint FROM "SyncCursor" WHERE "tenantId"=${tenantId} AND "sourceId"=${connection.sourceId} AND resource='orders'`);
     const [config] = await tx.$queryRaw<Array<{ values: unknown }>>(Prisma.sql`SELECT values FROM "MerchandisingConfig" WHERE "tenantId"=${tenantId} AND "configType"='SOURCE_MAPPING' AND key=${`salesdrive:${connection.sourceId}`} AND "isActive"=true AND "approvedAt" IS NOT NULL`);
     const [clientConfig]=await tx.$queryRaw<Array<{id:string;revision:number;values:unknown}>>(Prisma.sql`SELECT id,revision,values FROM "MerchandisingConfig" WHERE "tenantId"=${tenantId} AND "configType"='GENERAL' AND key='settings:client' AND "isActive" AND "approvedAt" IS NOT NULL`);
-    const sourcePolicy=config?parsePolicy(config.values):{};
+    const sourcePolicy=config?parseOrderPolicy(config.values):{};
     const policy=clientConfig?applyClientOrderSettings(sourcePolicy,validateClientSettings(clientConfig.values),clientConfig):sourcePolicy;
     const to = now.toISOString();
     const from = mode === "INCREMENTAL" ? new Date(new Date(cursor?.checkpoint.through ?? now).getTime() - 2 * 3600_000).toISOString()

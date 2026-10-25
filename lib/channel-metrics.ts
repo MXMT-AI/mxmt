@@ -1,3 +1,4 @@
+import {calculateSalesGroupedRows} from "./grouped-reports";
 import { prisma } from "@/lib/prisma";
 import { getActiveAgentImportRunId } from "@/lib/agent-data-source";
 
@@ -172,3 +173,6 @@ export async function getChannelMetrics(
 
   return { channels, totalStock, topChannel, bottomChannel, periodDays };
 }
+
+/** Deterministic financial channels are separate from the legacy Sheets agent/stock contract. */
+export function calculateSalesChannelRows(facts:import('./sales-metrics').SalesFact[],context:import('./sales-metrics').SalesMetricContext){return calculateSalesGroupedRows(facts,'channel',context);}

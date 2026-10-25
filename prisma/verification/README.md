@@ -170,3 +170,6 @@ For canonical brands, product types and source-linked diagnostics, see
 
 For versioned client policies, ownership overrides, supplier terms and category
 seasons, see [merchandising settings verification (#34)](34-merchandising-settings.md).
+
+For deterministic financial reports, LY comparisons, covered margin and frozen
+exports, see [sales metrics verification (#35)](35-sales-financial-metrics.md).
