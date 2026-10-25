@@ -59,6 +59,35 @@ describe("private offline reconciliation CLI", () => {
     expect(run("--reference-only", "--out", output).status).toBe(1);
     expect(existsSync(output)).toBe(false);
   });
+  it("writes a blocked report when legacy evidence exists but daily.json is missing", () => {
+    const dir = directory();
+    expect(run("--template", dir).status).toBe(0);
+    writeFileSync(
+      resolve(dir, "legacy.json"),
+      JSON.stringify({
+        ruleVersion: "TEST-old",
+        asOf: "2026-09-30",
+        currency: "UAH",
+        valuation: "COST",
+        rows: [
+          { skuId: "TEST-SKU", classification: "DEAD", stockCostValue: "100" },
+        ],
+      }),
+    );
+    const result = run(resolve(dir, "manifest.json"));
+    expect(result.status).toBe(2);
+    expect(result.stderr).toBe("");
+    const report = JSON.parse(
+      readFileSync(resolve(dir, "reconciliation-report.json"), "utf8"),
+    );
+    expect(report).toMatchObject({ status: "BLOCKED", classification: null });
+    expect(report.blockers).toEqual(
+      expect.arrayContaining([
+        "FROZEN_DAILY_EVIDENCE_REQUIRED",
+        "OLD_CLASSIFICATION_SCOPE_UNCONFIRMED",
+      ]),
+    );
+  });
   it("does not print malformed private JSON or parser exception text", () => {
     const path = resolve(directory(), "invalid.json");
     writeFileSync(path, '{"customer-secret":private-financial-data}');

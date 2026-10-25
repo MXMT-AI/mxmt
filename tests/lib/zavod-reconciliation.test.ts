@@ -338,6 +338,30 @@ describe("frozen reconciliation and acceptance gates", () => {
   });
 });
 describe("old/new classification and alternative population bridge", () => {
+  it.each([
+    undefined,
+    null,
+    {},
+    { rows: null },
+    { rows: [] },
+    { rows: [null] },
+    { rows: [{ productKind: "SERVICE", currency: "UAH" }] },
+    { rows: [{ productKind: "MERCHANDISE", currency: "USD" }] },
+  ])(
+    "does not invent a missing current merchandise population: %j",
+    (daily) => {
+      const input = fixture();
+      expect(
+        compareClassification(input.legacy, daily, input.alternative, "UAH"),
+      ).toBeNull();
+    },
+  );
+  it("returns a blocked report when old classification is available before daily results", () => {
+    const input = fixture();
+    const result = reconcileZavod({ ...input, daily: undefined });
+    expect(result).toMatchObject({ status: "BLOCKED", classification: null });
+    expect(result.blockers).toContain("OLD_CLASSIFICATION_SCOPE_UNCONFIRMED");
+  });
   it("attributes value changes to population differences and shared SKU valuation", () => {
     const input = fixture();
     input.legacy.rows = [
