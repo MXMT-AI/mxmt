@@ -81,103 +81,104 @@ export async function calculateSkuDaily(
   input: { asOf?: string; now?: Date } = {},
   db: SqlDatabase = prisma,
 ): Promise<DailySkuCalculation> {
-  return withCalculationSnapshot(db, async (tx) => {
-    const [source] = await tx.$queryRaw<
-      Array<{ id: string; timezone: string }>
-    >(
-      Prisma.sql`SELECT s.id,s.timezone FROM "DataSource" s JOIN "ConnectorConnection" c ON c."sourceId"=s.id AND c."tenantId"=s."tenantId" WHERE s."tenantId"=${tenantId} AND c.provider='salesdrive' AND s.kind='SALESDRIVE'`,
-    );
-    if (!source) throw new DailySkuError("SALESDRIVE_NOT_CONFIGURED");
-    const period = resolveDailySkuPeriod(
-        input.asOf,
-        input.now,
-        source.timezone,
-      ),
-      client = await readClientSettings(tenantId, tx);
-    const configs = await tx.$queryRaw<
-      Array<{ id: string; configType: string; key: string; values: unknown }>
-    >(
-      Prisma.sql`SELECT id,"configType",key,values FROM "MerchandisingConfig" WHERE "tenantId"=${tenantId} AND "isActive" AND "approvedAt" IS NOT NULL ORDER BY key,id`,
-    );
-    const mapping = configs.find(
-      (c) =>
-        c.configType === "SOURCE_MAPPING" &&
-        c.key === `salesdrive:${source.id}`,
-    );
-    const basePolicy = mapping ? parseOrderPolicy(mapping.values) : {},
-      policy = client.id
-        ? applyClientOrderSettings(basePolicy, client.values, {
-            id: client.id,
-            revision: client.revision,
-          })
-        : basePolicy;
-    const trusted = trustedOrderProjectionSql(policy, client.values);
-    const [anchor] = await tx.$queryRaw<
-      Array<{ id: string; quarantined: number }>
-    >(
-      Prisma.sql`SELECT r.id,COALESCE((j.stats->>'quarantined')::int,0) quarantined FROM "DataImportRun" r JOIN "ConnectorSyncJob" j ON j."importRunId"=r.id AND j."tenantId"=r."tenantId" AND j."sourceId"=r."sourceId" WHERE r."tenantId"=${tenantId} AND r."sourceId"=${source.id} AND r.status IN ('SUCCESS','WARNING') AND j.resource='orders' AND j.state='COMPLETE' ORDER BY r."completedAt" DESC,r.id DESC LIMIT 1`,
-    );
-    const windows = await tx.$queryRaw<Array<{ from: string; to: string }>>(
-      Prisma.sql`SELECT j.checkpoint->>'from' "from",j.checkpoint->>'to' "to" FROM "ConnectorSyncJob" j JOIN "DataImportRun" r ON r.id=j."importRunId" AND r."tenantId"=j."tenantId" WHERE j."tenantId"=${tenantId} AND j."sourceId"=${source.id} AND j.resource='orders' AND j.mode='BACKFILL' AND j.state='COMPLETE' AND r.status IN ('SUCCESS','WARNING') ORDER BY j."createdAt" LIMIT 1001`,
-    );
-    if (windows.length > 1000)
-      throw new DailySkuError("DAILY_HISTORY_LIMIT", 422);
-    const [cursor] = await tx.$queryRaw<Array<{ through: string | null }>>(
-      Prisma.sql`SELECT checkpoint->>'through' through FROM "SyncCursor" WHERE "tenantId"=${tenantId} AND "sourceId"=${source.id} AND resource='orders'`,
-    );
-    const [pending] = await tx.$queryRaw<Array<{ n: number }>>(
-      Prisma.sql`SELECT count(*)::int n FROM "ConnectorSyncJob" WHERE "tenantId"=${tenantId} AND "sourceId"=${source.id} AND resource IN ('orders','inventory','catalog','receipts') AND state<>'COMPLETE'`,
-    );
-    const preorderGuard = Prisma.sql`NOT COALESCE(l."statusId"=33 AND ${basePolicy.statuses?.["33"] === "PREORDER"},false)`;
-    const receiptPolicy = inventoryPolicy(mapping?.values),
-      receiptPolicyHash = payloadHash(receiptPolicy);
-    const [receiptState] = await tx.$queryRaw<
-      Array<{
-        through: string | null;
-        policyHash: string | null;
-        baseline: boolean;
-        unassigned: number;
-        invalid: boolean;
-      }>
-    >(Prisma.sql`SELECT c.checkpoint->>'through' through,c.checkpoint->>'policyHash' "policyHash",
+  return withCalculationSnapshot(db, (tx) =>
+    calculateSkuDailyInSnapshot(tenantId, input, tx),
+  );
+}
+/** Reuse an existing calculation transaction; the caller owns snapshot isolation. */
+export async function calculateSkuDailyInSnapshot(
+  tenantId: string,
+  input: { asOf?: string; now?: Date },
+  tx: SqlClient,
+): Promise<DailySkuCalculation> {
+  const [source] = await tx.$queryRaw<Array<{ id: string; timezone: string }>>(
+    Prisma.sql`SELECT s.id,s.timezone FROM "DataSource" s JOIN "ConnectorConnection" c ON c."sourceId"=s.id AND c."tenantId"=s."tenantId" WHERE s."tenantId"=${tenantId} AND c.provider='salesdrive' AND s.kind='SALESDRIVE'`,
+  );
+  if (!source) throw new DailySkuError("SALESDRIVE_NOT_CONFIGURED");
+  const period = resolveDailySkuPeriod(input.asOf, input.now, source.timezone),
+    client = await readClientSettings(tenantId, tx);
+  const configs = await tx.$queryRaw<
+    Array<{ id: string; configType: string; key: string; values: unknown }>
+  >(
+    Prisma.sql`SELECT id,"configType",key,values FROM "MerchandisingConfig" WHERE "tenantId"=${tenantId} AND "isActive" AND "approvedAt" IS NOT NULL ORDER BY key,id`,
+  );
+  const mapping = configs.find(
+    (c) =>
+      c.configType === "SOURCE_MAPPING" && c.key === `salesdrive:${source.id}`,
+  );
+  const basePolicy = mapping ? parseOrderPolicy(mapping.values) : {},
+    policy = client.id
+      ? applyClientOrderSettings(basePolicy, client.values, {
+          id: client.id,
+          revision: client.revision,
+        })
+      : basePolicy;
+  const trusted = trustedOrderProjectionSql(policy, client.values);
+  const [anchor] = await tx.$queryRaw<
+    Array<{ id: string; quarantined: number }>
+  >(
+    Prisma.sql`SELECT r.id,COALESCE((j.stats->>'quarantined')::int,0) quarantined FROM "DataImportRun" r JOIN "ConnectorSyncJob" j ON j."importRunId"=r.id AND j."tenantId"=r."tenantId" AND j."sourceId"=r."sourceId" WHERE r."tenantId"=${tenantId} AND r."sourceId"=${source.id} AND r.status IN ('SUCCESS','WARNING') AND j.resource='orders' AND j.state='COMPLETE' ORDER BY r."completedAt" DESC,r.id DESC LIMIT 1`,
+  );
+  const windows = await tx.$queryRaw<Array<{ from: string; to: string }>>(
+    Prisma.sql`SELECT j.checkpoint->>'from' "from",j.checkpoint->>'to' "to" FROM "ConnectorSyncJob" j JOIN "DataImportRun" r ON r.id=j."importRunId" AND r."tenantId"=j."tenantId" WHERE j."tenantId"=${tenantId} AND j."sourceId"=${source.id} AND j.resource='orders' AND j.mode='BACKFILL' AND j.state='COMPLETE' AND r.status IN ('SUCCESS','WARNING') ORDER BY j."createdAt" LIMIT 1001`,
+  );
+  if (windows.length > 1000)
+    throw new DailySkuError("DAILY_HISTORY_LIMIT", 422);
+  const [cursor] = await tx.$queryRaw<Array<{ through: string | null }>>(
+    Prisma.sql`SELECT checkpoint->>'through' through FROM "SyncCursor" WHERE "tenantId"=${tenantId} AND "sourceId"=${source.id} AND resource='orders'`,
+  );
+  const [pending] = await tx.$queryRaw<Array<{ n: number }>>(
+    Prisma.sql`SELECT count(*)::int n FROM "ConnectorSyncJob" WHERE "tenantId"=${tenantId} AND "sourceId"=${source.id} AND resource IN ('orders','inventory','catalog','receipts') AND state<>'COMPLETE'`,
+  );
+  const preorderGuard = Prisma.sql`NOT COALESCE(l."statusId"=33 AND ${basePolicy.statuses?.["33"] === "PREORDER"},false)`;
+  const receiptPolicy = inventoryPolicy(mapping?.values),
+    receiptPolicyHash = payloadHash(receiptPolicy);
+  const [receiptState] = await tx.$queryRaw<
+    Array<{
+      through: string | null;
+      policyHash: string | null;
+      baseline: boolean;
+      unassigned: number;
+      invalid: boolean;
+    }>
+  >(Prisma.sql`SELECT c.checkpoint->>'through' through,c.checkpoint->>'policyHash' "policyHash",
       EXISTS(SELECT 1 FROM "ConnectorSyncJob" j JOIN "DataImportRun" r ON r.id=j."importRunId" AND r."tenantId"=j."tenantId" WHERE j."tenantId"=${tenantId} AND j."sourceId"=${source.id} AND j.resource='inventory' AND j.state='COMPLETE' AND r.status IN ('SUCCESS','WARNING') AND j.checkpoint->>'policyHash'=${receiptPolicyHash} AND NOT(j.checkpoint?'from') AND COALESCE((j.stats->>'pages')::int,0)>0 AND NOT EXISTS(SELECT 1 FROM "ImportIssue" i WHERE i."tenantId"=j."tenantId" AND i."importRunId"=j."importRunId" AND i.code IN ('INVALID_RECEIPT_LINE','RECEIPT_VERSION_CONFLICT'))) baseline,
       (SELECT count(*)::int FROM "ReceiptLine" l JOIN "Receipt" r ON r.id=l."receiptId" AND r."tenantId"=l."tenantId" WHERE r."tenantId"=${tenantId} AND r."sourceId"=${source.id} AND r."movementType"='SUPPLIER_RECEIPT' AND r."postingVerifiedAt" IS NOT NULL AND r."receivedAt"<${period.cutoff}::timestamptz AND l.quantity>0 AND l."skuId" IS NULL) unassigned,
       EXISTS(SELECT 1 FROM "ImportIssue" i WHERE i."tenantId"=c."tenantId" AND i."importRunId"=c."lastSuccessfulRunId" AND i.code IN ('INVALID_RECEIPT_LINE','RECEIPT_VERSION_CONFLICT')) invalid
       FROM (SELECT 1) seed LEFT JOIN "SyncCursor" c ON c."tenantId"=${tenantId} AND c."sourceId"=${source.id} AND c.resource='receipts'`);
-    const receiptPolicyCurrent = Boolean(
-      receiptPolicy.receipts &&
-        receiptState?.baseline &&
-        receiptState.policyHash === receiptPolicyHash &&
-        !receiptState.invalid &&
-        receiptState.unassigned === 0,
-    );
-    const receiptHistoryCovered =
-      receiptPolicyCurrent &&
-      receiptState?.through != null &&
-      Temporal.Instant.from(receiptState.through)
-        .toZonedDateTimeISO(source.timezone)
-        .toPlainDate()
-        .toString() > period.windowTo;
-    const eventAt = Prisma.sql`CASE WHEN l.kind='RETURN' THEN l."returnedAt" ELSE l."paidAt" END`;
-    const [orderScope] = await tx.$queryRaw<
-      Array<{ n: number; unassigned: number }>
-    >(
-      Prisma.sql`SELECT count(*)::int n,count(*) FILTER(WHERE l."skuId" IS NULL AND l.kind IN ('SALE','RETURN','CORRECTION') AND ${preorderGuard} AND (NOT COALESCE(${trusted},false) OR NOT COALESCE((l.normalization->>'excluded')::boolean,false)))::int unassigned FROM "OrderLine" l LEFT JOIN "ConnectorSyncJob" j ON j."importRunId"=l."importRunId" AND j."sourceId"=l."sourceId" AND j."tenantId"=l."tenantId" WHERE l."tenantId"=${tenantId} AND l."sourceId"=${source.id} AND l."eventKey"='current' AND (${eventAt}<${period.cutoff}::timestamptz OR ${eventAt} IS NULL)`,
-    );
-    if (orderScope.n > 500000)
-      throw new DailySkuError("DAILY_INPUT_LIMIT", 422);
-    const historyBlocked =
-      !anchor ||
-      pending.n > 0 ||
-      (anchor?.quarantined ?? 0) > 0 ||
-      orderScope.unassigned > 0;
-    const history = createOrderHistoryCoverage(
-      windows,
-      cursor?.through ?? null,
-      source.timezone,
-      historyBlocked,
-    );
-    const rows = await tx.$queryRaw<AggregateInput[]>(Prisma.sql`
+  const receiptPolicyCurrent = Boolean(
+    receiptPolicy.receipts &&
+      receiptState?.baseline &&
+      receiptState.policyHash === receiptPolicyHash &&
+      !receiptState.invalid &&
+      receiptState.unassigned === 0,
+  );
+  const receiptHistoryCovered =
+    receiptPolicyCurrent &&
+    receiptState?.through != null &&
+    Temporal.Instant.from(receiptState.through)
+      .toZonedDateTimeISO(source.timezone)
+      .toPlainDate()
+      .toString() > period.windowTo;
+  const eventAt = Prisma.sql`CASE WHEN l.kind='RETURN' THEN l."returnedAt" ELSE l."paidAt" END`;
+  const [orderScope] = await tx.$queryRaw<
+    Array<{ n: number; unassigned: number }>
+  >(
+    Prisma.sql`SELECT count(*)::int n,count(*) FILTER(WHERE l."skuId" IS NULL AND l.kind IN ('SALE','RETURN','CORRECTION') AND ${preorderGuard} AND (NOT COALESCE(${trusted},false) OR NOT COALESCE((l.normalization->>'excluded')::boolean,false)))::int unassigned FROM "OrderLine" l LEFT JOIN "ConnectorSyncJob" j ON j."importRunId"=l."importRunId" AND j."sourceId"=l."sourceId" AND j."tenantId"=l."tenantId" WHERE l."tenantId"=${tenantId} AND l."sourceId"=${source.id} AND l."eventKey"='current' AND (${eventAt}<${period.cutoff}::timestamptz OR ${eventAt} IS NULL)`,
+  );
+  if (orderScope.n > 500000) throw new DailySkuError("DAILY_INPUT_LIMIT", 422);
+  const historyBlocked =
+    !anchor ||
+    pending.n > 0 ||
+    (anchor?.quarantined ?? 0) > 0 ||
+    orderScope.unassigned > 0;
+  const history = createOrderHistoryCoverage(
+    windows,
+    cursor?.through ?? null,
+    source.timezone,
+    historyBlocked,
+  );
+  const rows = await tx.$queryRaw<AggregateInput[]>(Prisma.sql`
    WITH products AS (
     SELECT s.id "skuId",s.sku,s.name,COALESCE(s."brandId",${client.values.profileMode === "MONOBRAND" ? client.values.monoBrandId : null}) "brandId",s."categoryId",s."productKind",b.name "brandName",b.ownership "brandOwnership",s."ownershipOverride",COALESCE(s."supplierId",b."supplierId") "supplierId",sup."leadTimeDays" "leadDays",(sup."termsVerifiedAt" IS NOT NULL) "supplierTermsVerified",COALESCE(c."seasonMonths",ARRAY[1,2,3,4,5,6,7,8,9,10,11,12]) "seasonMonths",
      r."firstReceiptDate",r."lastReceiptDate",r."firstReceiptAt",r."receiptHash",snap.id "snapshotId",snap."observedAt"::text "observedAt",snap.quantity::text quantity,snap."costPrice"::text "costPrice",snap."retailPrice"::text "retailPrice",snap.currency,snap."sourceRecordKey" "snapshotRawKey",snap."importRunId" "snapshotImportRunId"
@@ -209,120 +210,117 @@ export async function calculateSkuDaily(
      md5(string_agg(jsonb_build_array(id,"importRunId","sourceRecordKey","eventAt","signedQuantity","signedCost",currency,trusted,included)::text,'|' ORDER BY id)) "orderHash"
     FROM events
    ) o ON true ORDER BY p."skuId"`);
-    if (rows.length > 20000) throw new DailySkuError("DAILY_SKU_LIMIT", 422);
-    const receiptActivityCovered = rows.map((row) => ({
-      ...row,
-      receiptHistoryCovered,
-      velocitySalesCovered: history.covers(period.windowFrom, period.windowTo),
-      activitySalesCovered: history.covers(
-        period.activityFrom,
-        period.windowTo,
-      ),
-      cohortSalesCovered:
-        row.firstReceiptDate !== null &&
-        history.covers(row.firstReceiptDate, period.windowTo),
-      cogsHistoryCovered: history.covers(period.cogsFrom, period.cogsTo),
-    }));
-    const metrics = receiptActivityCovered.map((row) => {
-      const metric = calculateDailySku(row, {
-        ...period,
-        sourceBusy: pending.n > 0,
-        turnoverNormMonths: client.values.turnoverMonths,
-      });
-      return {
-        ...metric,
-        ...classifyDailySku(
-          metric,
-          resolveMerchandisingPolicy(row, client.values),
-        ),
-        brandName: row.brandName,
-        brandOwnership: row.brandOwnership ?? ("UNKNOWN" as const),
-      };
+  if (rows.length > 20000) throw new DailySkuError("DAILY_SKU_LIMIT", 422);
+  const receiptActivityCovered = rows.map((row) => ({
+    ...row,
+    receiptHistoryCovered,
+    velocitySalesCovered: history.covers(period.windowFrom, period.windowTo),
+    activitySalesCovered: history.covers(period.activityFrom, period.windowTo),
+    cohortSalesCovered:
+      row.firstReceiptDate !== null &&
+      history.covers(row.firstReceiptDate, period.windowTo),
+    cogsHistoryCovered: history.covers(period.cogsFrom, period.cogsTo),
+  }));
+  const metrics = receiptActivityCovered.map((row) => {
+    const metric = calculateDailySku(row, {
+      ...period,
+      sourceBusy: pending.n > 0,
+      turnoverNormMonths: client.values.turnoverMonths,
     });
-    const inputHash = payloadHash(rows),
-      inputKey = payloadHash({
-        version: SKU_DAILY_CALCULATION_VERSION,
-        asOf: period.asOf,
-        windowFrom: period.windowFrom,
-        cogsFrom: period.cogsFrom,
-        cogsTo: period.cogsTo,
-        sourceId: source.id,
-        timezone: source.timezone,
-        client: client.values,
-        configs,
-        inputHash,
-        historySpans: history.spans,
-        historyBlocked,
-        receiptHistoryCovered,
-        receiptPolicyHash,
-        receiptThrough: receiptState?.through ?? null,
-        quarantinedOrders: anchor?.quarantined ?? 0,
-        unassignedOrderLines: orderScope.unassigned,
-        orderThrough: cursor?.through ?? null,
-      });
-    const key = `calculation:sku-daily:${source.id}:${period.asOf}:${inputKey}`;
-    const [cached] = await tx.$queryRaw<
-      Array<{ id: string; values: { calculation: DailySkuCalculation } }>
-    >(
-      Prisma.sql`SELECT id,values FROM "MerchandisingConfig" WHERE "tenantId"=${tenantId} AND "configType"='GENERAL' AND key=${key} AND revision=1`,
-    );
-    if (cached) return cached.values.calculation;
-    const calculation: DailySkuCalculation = {
-      calculationId: randomUUID(),
-      inputKey,
-      calculationVersion: SKU_DAILY_CALCULATION_VERSION,
-      asOf: period.asOf,
-      calculatedAt: new Date().toISOString(),
-      rowCount: metrics.length,
-      period,
-      summary: {
-        ...summarizeDailySkus(metrics, client.values.turnoverMonths),
-        ...summarizeSkuClassification(metrics),
-      },
-      brands: summarizeDailyBrands(
-        metrics,
-        resolveMerchandisingPolicy({}, client.values),
+    return {
+      ...metric,
+      ...classifyDailySku(
+        metric,
+        resolveMerchandisingPolicy(row, client.values),
       ),
-      provenance: {
-        sourceId: source.id,
-        configIds: configs.map((c) => c.id),
-        clientConfigId: client.id,
-        orderThrough: cursor?.through ?? null,
-        sourceBusy: pending.n > 0,
-        quarantinedOrders: anchor?.quarantined ?? 0,
-        unassignedOrderLines: orderScope.unassigned,
-        receiptHistoryIsVerifiedEventsOnly: true,
-        receiptHistoryComplete: receiptHistoryCovered,
-        receiptThrough: receiptState?.through ?? null,
-        unassignedReceiptLines: receiptState?.unassigned ?? 0,
-        historyBasis: "COMPLETED_CREATION_WINDOWS_AND_OBSERVED_STOCK_DAYS",
-        inputHash,
-      },
+      brandName: row.brandName,
+      brandOwnership: row.brandOwnership ?? ("UNKNOWN" as const),
     };
-    await tx.$executeRaw(
-      Prisma.sql`INSERT INTO "MerchandisingConfig" (id,"tenantId","configType",key,revision,values,"isActive") VALUES (${calculation.calculationId},${tenantId},'GENERAL',${key},1,${JSON.stringify({ kind: "SKU_DAILY_INPUTS_V1", calculation })}::jsonb,false) ON CONFLICT ("tenantId","configType",key,revision) DO NOTHING`,
-    );
-    const [manifest] = await tx.$queryRaw<
-      Array<{ id: string; values: { calculation: DailySkuCalculation } }>
-    >(
-      Prisma.sql`SELECT id,values FROM "MerchandisingConfig" WHERE "tenantId"=${tenantId} AND "configType"='GENERAL' AND key=${key} AND revision=1`,
-    );
-    if (manifest.id !== calculation.calculationId)
-      return manifest.values.calculation;
-    for (let offset = 0; offset < metrics.length; offset += 200) {
-      const batch = metrics
-        .slice(offset, offset + 200)
-        .map(
-          (row, index) =>
-            Prisma.sql`(${randomUUID()},${tenantId},${row.skuId},${period.asOf}::date,${calculation.calculationId},${SKU_DAILY_CALCULATION_VERSION},${JSON.stringify({ sourceId: source.id, inputKey, inputHash: rows[offset + index]?.inputHash ?? null, sourceObservedAt: row.sourceObservedAt, snapshotId: row.snapshotId, snapshotRawKey: rows[offset + index]?.snapshotRawKey ?? null, snapshotImportRunId: rows[offset + index]?.snapshotImportRunId ?? null })}::jsonb,${row.currency},${row.velocityPerWeek}::numeric,${row.weeksOnHand}::numeric,${row.quantity}::numeric,${row.stockCostValue}::numeric,${row.stockRetailValue}::numeric,${row.daysToZero}::numeric,${row.sellThroughRatio}::numeric,${row.active},${row.classification},${JSON.stringify(row)}::jsonb,${JSON.stringify(row.diagnostics)}::jsonb)`,
-        );
-      await tx.$executeRaw(
-        Prisma.sql`INSERT INTO "SkuDaily" (id,"tenantId","skuId","businessDate","configId","calculationVersion","inputProvenance",currency,"velocityPerWeek","weeksOnHand",quantity,"stockCostValue","stockRetailValue","daysToZero","sellThroughRatio",active,classification,metrics,diagnostics) VALUES ${Prisma.join(batch)} ON CONFLICT ("tenantId","skuId","businessDate","configId","calculationVersion") DO NOTHING`,
-      );
-    }
-    return calculation;
   });
+  const inputHash = payloadHash(rows),
+    inputKey = payloadHash({
+      version: SKU_DAILY_CALCULATION_VERSION,
+      asOf: period.asOf,
+      windowFrom: period.windowFrom,
+      cogsFrom: period.cogsFrom,
+      cogsTo: period.cogsTo,
+      sourceId: source.id,
+      timezone: source.timezone,
+      client: client.values,
+      configs,
+      inputHash,
+      historySpans: history.spans,
+      historyBlocked,
+      receiptHistoryCovered,
+      receiptPolicyHash,
+      receiptThrough: receiptState?.through ?? null,
+      quarantinedOrders: anchor?.quarantined ?? 0,
+      unassignedOrderLines: orderScope.unassigned,
+      orderThrough: cursor?.through ?? null,
+    });
+  const key = `calculation:sku-daily:${source.id}:${period.asOf}:${inputKey}`;
+  const [cached] = await tx.$queryRaw<
+    Array<{ id: string; values: { calculation: DailySkuCalculation } }>
+  >(
+    Prisma.sql`SELECT id,values FROM "MerchandisingConfig" WHERE "tenantId"=${tenantId} AND "configType"='GENERAL' AND key=${key} AND revision=1`,
+  );
+  if (cached) return cached.values.calculation;
+  const calculation: DailySkuCalculation = {
+    calculationId: randomUUID(),
+    inputKey,
+    calculationVersion: SKU_DAILY_CALCULATION_VERSION,
+    asOf: period.asOf,
+    calculatedAt: new Date().toISOString(),
+    rowCount: metrics.length,
+    period,
+    summary: {
+      ...summarizeDailySkus(metrics, client.values.turnoverMonths),
+      ...summarizeSkuClassification(metrics),
+    },
+    brands: summarizeDailyBrands(
+      metrics,
+      resolveMerchandisingPolicy({}, client.values),
+    ),
+    provenance: {
+      sourceId: source.id,
+      configIds: configs.map((c) => c.id),
+      clientConfigId: client.id,
+      orderThrough: cursor?.through ?? null,
+      sourceBusy: pending.n > 0,
+      quarantinedOrders: anchor?.quarantined ?? 0,
+      unassignedOrderLines: orderScope.unassigned,
+      receiptHistoryIsVerifiedEventsOnly: true,
+      receiptHistoryComplete: receiptHistoryCovered,
+      receiptThrough: receiptState?.through ?? null,
+      unassignedReceiptLines: receiptState?.unassigned ?? 0,
+      historyBasis: "COMPLETED_CREATION_WINDOWS_AND_OBSERVED_STOCK_DAYS",
+      inputHash,
+    },
+  };
+  await tx.$executeRaw(
+    Prisma.sql`INSERT INTO "MerchandisingConfig" (id,"tenantId","configType",key,revision,values,"isActive") VALUES (${calculation.calculationId},${tenantId},'GENERAL',${key},1,${JSON.stringify({ kind: "SKU_DAILY_INPUTS_V1", calculation })}::jsonb,false) ON CONFLICT ("tenantId","configType",key,revision) DO NOTHING`,
+  );
+  const [manifest] = await tx.$queryRaw<
+    Array<{ id: string; values: { calculation: DailySkuCalculation } }>
+  >(
+    Prisma.sql`SELECT id,values FROM "MerchandisingConfig" WHERE "tenantId"=${tenantId} AND "configType"='GENERAL' AND key=${key} AND revision=1`,
+  );
+  if (manifest.id !== calculation.calculationId)
+    return manifest.values.calculation;
+  for (let offset = 0; offset < metrics.length; offset += 200) {
+    const batch = metrics
+      .slice(offset, offset + 200)
+      .map(
+        (row, index) =>
+          Prisma.sql`(${randomUUID()},${tenantId},${row.skuId},${period.asOf}::date,${calculation.calculationId},${SKU_DAILY_CALCULATION_VERSION},${JSON.stringify({ sourceId: source.id, inputKey, inputHash: rows[offset + index]?.inputHash ?? null, sourceObservedAt: row.sourceObservedAt, snapshotId: row.snapshotId, snapshotRawKey: rows[offset + index]?.snapshotRawKey ?? null, snapshotImportRunId: rows[offset + index]?.snapshotImportRunId ?? null })}::jsonb,${row.currency},${row.velocityPerWeek}::numeric,${row.weeksOnHand}::numeric,${row.quantity}::numeric,${row.stockCostValue}::numeric,${row.stockRetailValue}::numeric,${row.daysToZero}::numeric,${row.sellThroughRatio}::numeric,${row.active},${row.classification},${JSON.stringify(row)}::jsonb,${JSON.stringify(row.diagnostics)}::jsonb)`,
+      );
+    await tx.$executeRaw(
+      Prisma.sql`INSERT INTO "SkuDaily" (id,"tenantId","skuId","businessDate","configId","calculationVersion","inputProvenance",currency,"velocityPerWeek","weeksOnHand",quantity,"stockCostValue","stockRetailValue","daysToZero","sellThroughRatio",active,classification,metrics,diagnostics) VALUES ${Prisma.join(batch)} ON CONFLICT ("tenantId","skuId","businessDate","configId","calculationVersion") DO NOTHING`,
+    );
+  }
+  return calculation;
 }
+
 export const DAILY_SKU_SORTS = [
   "sku",
   "velocityPerWeek",
