@@ -75,7 +75,7 @@ export interface FinancialIssue {
   examples: string[];
 }
 const D = financialDecimal;
-function profitable(f: SalesFact) {
+export function salesFactProfit(f: SalesFact) {
   if (f.productKind !== "MERCHANDISE") return null;
   return f.revenue === null ? null : grossProfitForPolicy(f, f.revenue, f.cost);
 }
@@ -121,7 +121,7 @@ export function aggregateSalesFacts(
     const key = JSON.stringify([f.sourceId, f.orderId]);
     if (f.kind === "RETURN") returns.add(key);
     else if (f.kind === "SALE") orders.add(key);
-    const gp = profitable(f);
+    const gp = salesFactProfit(f);
     if (gp === null) missingProfitCount++;
     else {
       profit = profit.add(gp);
@@ -129,37 +129,75 @@ export function aggregateSalesFacts(
       covered++;
     }
   }
-  const anyKnown = missingRevenueCount < facts.length || facts.length === 0;
+  return finalizeSalesTotals(
+    {
+      revenue: revenue.toString(),
+      units: units.toString(),
+      coveredRevenue: coveredRevenue.toString(),
+      profit: profit.toString(),
+      covered,
+      lineCount: facts.length,
+      missingRevenueCount,
+      missingProfitCount,
+      orderCount: orders.size,
+      returnOrderCount: returns.size,
+    },
+    currency,
+    historyCovered,
+  );
+}
+export interface SalesTotalsInput {
+  revenue: string;
+  units: string;
+  coveredRevenue: string;
+  profit: string;
+  covered: number;
+  lineCount: number;
+  missingRevenueCount: number;
+  missingProfitCount: number;
+  orderCount: number;
+  returnOrderCount: number;
+}
+/** The fact engine and SQL read models share coverage, null and margin semantics. */
+export function finalizeSalesTotals(
+  input: SalesTotalsInput,
+  currency: string | null,
+  historyCovered: boolean,
+): FinancialTotals {
+  const { covered, missingRevenueCount, missingProfitCount } = input;
+  const anyKnown =
+    missingRevenueCount < input.lineCount || input.lineCount === 0;
   return {
     currency,
     revenue:
-      anyKnown && (facts.length > 0 || historyCovered)
-        ? revenue.toString()
+      anyKnown && (input.lineCount > 0 || historyCovered)
+        ? D(input.revenue).toString()
         : null,
-    units: units.toString(),
-    orderCount: orders.size,
-    returnOrderCount: returns.size,
-    coveredRevenue: coveredRevenue.toString(),
+    units: D(input.units).toString(),
+    orderCount: input.orderCount,
+    returnOrderCount: input.returnOrderCount,
+    coveredRevenue: D(input.coveredRevenue).toString(),
     coveredGrossProfit: covered
-      ? profit.toString()
-      : facts.length === 0 && historyCovered
+      ? D(input.profit).toString()
+      : input.lineCount === 0 && historyCovered
         ? "0"
         : null,
     gmPct:
-      covered && !coveredRevenue.isZero()
-        ? profit.div(coveredRevenue).toString()
+      covered && !D(input.coveredRevenue).isZero()
+        ? D(input.profit).div(input.coveredRevenue).toString()
         : null,
-    lineCount: facts.length,
+    lineCount: input.lineCount,
     missingRevenueCount,
     missingProfitCount,
     coverage:
       !historyCovered || missingRevenueCount || missingProfitCount
-        ? covered || (anyKnown && facts.length)
+        ? covered || (anyKnown && input.lineCount)
           ? "PARTIAL"
           : "UNAVAILABLE"
         : "COMPLETE",
   };
 }
+
 export function salesMetricRow(
   id: string,
   name: string,
@@ -178,6 +216,16 @@ export function salesMetricRow(
     currency,
     context.history.ly,
   );
+  return compareSalesTotals(id, name, currency, current, ly, context);
+}
+export function compareSalesTotals(
+  id: string,
+  name: string,
+  currency: string | null,
+  current: FinancialTotals,
+  ly: FinancialTotals,
+  context: SalesMetricContext,
+): SalesMetricRow {
   const reason =
     !context.history.current || !context.history.ly
       ? "INSUFFICIENT_HISTORY"

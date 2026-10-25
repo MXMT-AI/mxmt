@@ -120,12 +120,12 @@ function positiveInteger(value: string | null, fallback: number, min: number, ma
   return Math.min(parsed, max);
 }
 
-export function parseDataTableQuery(searchParams: URLSearchParams): DataTableQuery {
+export function parseDataTableQuery(searchParams: URLSearchParams, limits: {pageSizeMin?:number;pageSizeDefault?:number} = {}): DataTableQuery {
   const search = searchParams.get("search")?.trim().slice(0, 200) || null;
   const sort = searchParams.get("sort")?.trim().slice(0, 80) || null;
   return {
     page: positiveInteger(searchParams.get("page"), 1, 1, 1_000_000),
-    pageSize: positiveInteger(searchParams.get("pageSize"), 50, 10, 200),
+    pageSize: positiveInteger(searchParams.get("pageSize"), limits.pageSizeDefault ?? 50, limits.pageSizeMin ?? 10, 200),
     search,
     sort,
     direction: searchParams.get("direction") === "desc" ? "desc" : "asc",
@@ -215,7 +215,7 @@ async function resolveCalculationRun(
   return run;
 }
 
-function pagination(page: number, pageSize: number, totalRows: number) {
+export function dataTablePagination(page: number, pageSize: number, totalRows: number) {
   return { page, pageSize, totalRows, totalPages: Math.ceil(totalRows / pageSize) };
 }
 
@@ -250,7 +250,7 @@ async function rawTable(
     sheetKey,
     columns: [{ key: "rowNumber", label: "Row", type: "number", defaultVisible: true }, ...rawColumns(snapshot.columns)],
     rows: rows.map((row) => ({ rowNumber: row.rowNumber, ...jsonObject(row.data) })),
-    pagination: pagination(query.page, query.pageSize, totalRows),
+    pagination: dataTablePagination(query.page, query.pageSize, totalRows),
     context: { importRunId, calculationRunId: null, dateFrom: null, dateTo: null, asOfDate: null },
   };
 }
@@ -330,7 +330,7 @@ async function articleTable(
         ...sourceFields,
       }) as Record<string, unknown>;
     }),
-    pagination: pagination(query.page, query.pageSize, totalRows),
+    pagination: dataTablePagination(query.page, query.pageSize, totalRows),
     context: {
       importRunId,
       calculationRunId: calculation.id,
@@ -390,7 +390,7 @@ async function groupedTable(
       avgSalesLastTwoWeeks: row.avgSalesLastTwoWeeks,
       woh: row.woh,
     }) as Record<string, unknown>),
-    pagination: pagination(query.page, query.pageSize, totalRows),
+    pagination: dataTablePagination(query.page, query.pageSize, totalRows),
     context: {
       importRunId,
       calculationRunId: calculation.id,

@@ -295,35 +295,21 @@ export function summarizeDailySkus(
           (total, r) => (r[field] === null ? total : total.add(r[field]!)),
           D(0),
         );
-      const cost = sum("stockCostValue"),
-        cogs = sum("cogs3Months"),
-        allCogs = items.every((r) => r.cogs3Months !== null),
-        turnover =
-          !missingCost && allCogs && currency !== null && cogs.gt(0)
-            ? cost.div(cogs.div(3))
-            : null;
-      return {
-        currency,
-        skuCount: items.length,
-        quantity: missingQuantity ? null : sum("quantity").toString(),
-        coveredStockCost: cost.toString(),
-        stockCost: missingCost ? null : cost.toString(),
-        coveredStockRetail: sum("stockRetailValue").toString(),
-        stockRetail: missingRetail ? null : sum("stockRetailValue").toString(),
-        missingCostSkuCount: missingCost,
-        missingRetailSkuCount: missingRetail,
-        missingQuantitySkuCount: missingQuantity,
-        cogs3Months: allCogs ? cogs.toString() : null,
-        turnoverMonths: turnover?.toString() ?? null,
-        turnoverTone:
-          turnover === null
-            ? "UNAVAILABLE"
-            : turnover.lte(turnoverNormMonths)
-              ? "GREEN"
-              : turnover.lte(D(turnoverNormMonths).mul("1.5"))
-                ? "AMBER"
-                : "RED",
-      };
+      return finalizeStockCurrency(
+        {
+          currency,
+          skuCount: items.length,
+          quantity: sum("quantity").toString(),
+          stockCost: sum("stockCostValue").toString(),
+          stockRetail: sum("stockRetailValue").toString(),
+          cogs: sum("cogs3Months").toString(),
+          missingCost,
+          missingRetail,
+          missingQuantity,
+          missingCogs: items.filter((r) => r.cogs3Months === null).length,
+        },
+        turnoverNormMonths,
+      );
     });
   return {
     availability: {
@@ -341,5 +327,47 @@ export function summarizeDailySkus(
         (r.productKind === "MERCHANDISE" || r.productKind === "UNKNOWN") &&
         r.diagnostics.length > 0,
     ).length,
+  };
+}
+
+export interface StockCurrencyInput {
+  currency: string | null;
+  skuCount: number;
+  quantity: string;
+  stockCost: string;
+  stockRetail: string;
+  cogs: string;
+  missingCost: number;
+  missingRetail: number;
+  missingQuantity: number;
+  missingCogs: number;
+}
+/** Finalize SQL or in-memory stock sums with identical null/turnover semantics. */
+export function finalizeStockCurrency(a: StockCurrencyInput, norm: number) {
+  const turnover =
+    !a.missingCost && !a.missingCogs && a.currency !== null && D(a.cogs).gt(0)
+      ? D(a.stockCost).div(D(a.cogs).div(3))
+      : null;
+  return {
+    currency: a.currency,
+    skuCount: a.skuCount,
+    quantity: a.missingQuantity ? null : D(a.quantity).toString(),
+    coveredStockCost: D(a.stockCost).toString(),
+    stockCost: a.missingCost ? null : D(a.stockCost).toString(),
+    coveredStockRetail: D(a.stockRetail).toString(),
+    stockRetail: a.missingRetail ? null : D(a.stockRetail).toString(),
+    missingCostSkuCount: a.missingCost,
+    missingRetailSkuCount: a.missingRetail,
+    missingQuantitySkuCount: a.missingQuantity,
+    cogs3Months: a.missingCogs ? null : D(a.cogs).toString(),
+    turnoverMonths: turnover?.toString() ?? null,
+    turnoverTone:
+      turnover === null
+        ? "UNAVAILABLE"
+        : turnover.lte(norm)
+          ? "GREEN"
+          : turnover.lte(D(norm).mul("1.5"))
+            ? "AMBER"
+            : "RED",
   };
 }

@@ -1002,21 +1002,23 @@ model PriceHistory {
 }
 
 model MerchandisingConfig {
-  id                String                  @id @default(cuid())
+  id                String                    @id @default(cuid())
   tenantId          String
-  tenant            Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant            Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   configType        MerchandisingConfigType
-  key               String                  @default("default")
+  key               String                    @default("default")
   revision          Int
   values            Json
   // Approved values are not automatically activated. Active revision is unique in SQL.
-  isActive          Boolean                 @default(false)
+  isActive          Boolean                   @default(false)
   approvedById      String?
-  approvedBy        User?                   @relation(fields: [approvedById, tenantId], references: [id, tenantId], onDelete: NoAction, onUpdate: NoAction)
-  approvedAt        DateTime?               @db.Timestamptz(3)
+  approvedBy        User?                     @relation(fields: [approvedById, tenantId], references: [id, tenantId], onDelete: NoAction, onUpdate: NoAction)
+  approvedAt        DateTime?                 @db.Timestamptz(3)
   approvalReference String?
-  createdAt         DateTime                @default(now())
+  createdAt         DateTime                  @default(now())
   daily             SkuDaily[]
+  screenFacts       MerchandisingScreenFact[]
+  screenSkus        MerchandisingScreenSku[]
   actions           MerchandisingAction[]
 
   @@unique([id, tenantId])
@@ -1025,35 +1027,37 @@ model MerchandisingConfig {
 
 // Versioned derived daily results, not another raw inventory/product system.
 model SkuDaily {
-  id                 String              @id @default(cuid())
+  screenRows         MerchandisingScreenSku[]
+  id                 String                   @id @default(cuid())
   tenantId           String
-  tenant             Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant             Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   skuId              String
-  sku                Sku                 @relation(fields: [skuId, tenantId], references: [id, tenantId], onDelete: NoAction, onUpdate: NoAction)
-  businessDate       DateTime            @db.Date
+  sku                Sku                      @relation(fields: [skuId, tenantId], references: [id, tenantId], onDelete: NoAction, onUpdate: NoAction)
+  businessDate       DateTime                 @db.Date
   configId           String
-  config             MerchandisingConfig @relation(fields: [configId, tenantId], references: [id, tenantId], onDelete: NoAction, onUpdate: NoAction)
+  config             MerchandisingConfig      @relation(fields: [configId, tenantId], references: [id, tenantId], onDelete: NoAction, onUpdate: NoAction)
   calculationVersion Int
   // Input run IDs/checksums, snapshot timestamps and coverage belong here.
   inputProvenance    Json
-  salesQuantity      Decimal?            @db.Decimal(18, 4)
-  netRevenue         Decimal?            @db.Decimal(18, 4)
-  grossProfit        Decimal?            @db.Decimal(18, 4)
+  salesQuantity      Decimal?                 @db.Decimal(18, 4)
+  netRevenue         Decimal?                 @db.Decimal(18, 4)
+  grossProfit        Decimal?                 @db.Decimal(18, 4)
   currency           String?
-  velocityPerWeek    Decimal?            @db.Decimal(38, 18)
-  weeksOnHand        Decimal?            @db.Decimal(38, 18)
-  quantity           Decimal?            @db.Decimal(18, 4)
-  stockCostValue     Decimal?            @db.Decimal(38, 4)
-  stockRetailValue   Decimal?            @db.Decimal(38, 4)
-  daysToZero         Decimal?            @db.Decimal(38, 18)
-  sellThroughRatio   Decimal?            @db.Decimal(38, 18)
+  velocityPerWeek    Decimal?                 @db.Decimal(38, 18)
+  weeksOnHand        Decimal?                 @db.Decimal(38, 18)
+  quantity           Decimal?                 @db.Decimal(18, 4)
+  stockCostValue     Decimal?                 @db.Decimal(38, 4)
+  stockRetailValue   Decimal?                 @db.Decimal(38, 4)
+  daysToZero         Decimal?                 @db.Decimal(38, 18)
+  sellThroughRatio   Decimal?                 @db.Decimal(38, 18)
   active             Boolean?
-  metrics            Json                @default("{}")
+  metrics            Json                     @default("{}")
   classification     String?
-  diagnostics        Json                @default("[]")
-  calculatedAt       DateTime            @default(now()) @db.Timestamptz(3)
+  diagnostics        Json                     @default("[]")
+  calculatedAt       DateTime                 @default(now()) @db.Timestamptz(3)
 
   @@unique([tenantId, skuId, businessDate, configId, calculationVersion], map: "SkuDaily_version_key")
+  @@unique([id, skuId, tenantId], map: "SkuDaily_screen_identity")
   @@index([tenantId, businessDate, classification])
   @@index([tenantId, configId, skuId], map: "SkuDaily_config_idx")
 }
@@ -1238,4 +1242,47 @@ model BrandAlias {
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
 
   @@unique([tenantId, value])
+}
+
+// Immutable, filterable screen facts; source events are never reread during navigation.
+model MerchandisingScreenFact {
+  snapshotId   String
+  tenantId     String
+  lineId       String
+  snapshot     MerchandisingConfig @relation(fields: [snapshotId, tenantId], references: [id, tenantId], onDelete: Cascade, onUpdate: NoAction)
+  sourceId     String
+  orderId      String
+  skuId        String?
+  sku          String?
+  name         String?
+  brandId      String?
+  brandName    String?
+  categoryId   String?
+  categoryName String?
+  channelId    String?
+  channelName  String?
+  currency     String?
+  productKind  String
+  kind         String
+  inCurrent    Boolean
+  inPriorYear  Boolean
+  revenue      Decimal?            @db.Decimal(38, 12)
+  quantity     Decimal?            @db.Decimal(38, 12)
+  grossProfit  Decimal?            @db.Decimal(38, 12)
+
+  @@id([snapshotId, lineId])
+  @@index([tenantId, snapshotId, brandId, categoryId, skuId, channelId], map: "ScreenFact_filters")
+}
+
+model MerchandisingScreenSku {
+  snapshotId String
+  tenantId   String
+  skuId      String
+  dailyId    String
+  details    Json
+  snapshot   MerchandisingConfig @relation(fields: [snapshotId, tenantId], references: [id, tenantId], onDelete: Cascade, onUpdate: NoAction)
+  daily      SkuDaily            @relation(fields: [dailyId, skuId, tenantId], references: [id, skuId, tenantId], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([snapshotId, skuId])
+  @@index([tenantId, snapshotId], map: "ScreenSku_scope")
 }

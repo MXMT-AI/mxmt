@@ -183,3 +183,6 @@ recalculation consumer, see [classification verification (#37)](37-sku-classific
 For Stage 1 benchmark comparison, private frozen evidence and Sasha/Olia sign-off,
 see [Zavod reconciliation (#38)](38-zavod-reconciliation.md). Customer acceptance
 remains pending until the required source package and approvals are supplied.
+
+For version-pinned Overview, Sales, Stock, Repricing and Reordering read models,
+see [screen API verification (#39)](39-screen-apis.md).
