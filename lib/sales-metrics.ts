@@ -276,8 +276,8 @@ export function salesIssues(facts: SalesFact[]): FinancialIssue[] {
   const issues = new Map<string, { count: number; examples: string[] }>();
   for (const f of facts) {
     const codes: string[] = [];
-    if (f.excluded) continue;
     if (f.stale) codes.push("NORMALIZATION_REPLAY_REQUIRED");
+    if (f.excluded && !f.stale) continue;
     if (f.projectMappingUnavailable) codes.push("PROJECT_MAPPING_UNVERIFIED");
     if (["SALE", "RETURN", "CORRECTION"].includes(f.kind) && f.date === null)
       codes.push(

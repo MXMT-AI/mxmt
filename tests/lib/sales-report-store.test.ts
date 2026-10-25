@@ -1,10 +1,9 @@
-import { readFile, readdir } from "node:fs/promises";
-import { PGlite } from "@electric-sql/pglite";
-import { Prisma } from "@prisma/client";
+import { createMerchandisingDb } from "../helpers/merchandising-db";
+import type { PGlite } from "@electric-sql/pglite";
 import { beforeAll, afterAll, describe, it, expect, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/prisma", () => ({ prisma: {} }));
-import type { SqlClient, SqlDatabase } from "@/lib/connectors/database";
+import type { SqlDatabase } from "@/lib/connectors/database";
 import type { OrderDto } from "@/lib/connectors/contract";
 import { getSalesReport, readPublishedSalesReport } from "@/lib/sales-report";
 import { storeOrder } from "@/lib/connectors/order-storage";
@@ -14,14 +13,6 @@ import {
 } from "@/lib/merchandising-settings-store";
 import { salesReportView } from "@/lib/sales-report-view";
 let pg: PGlite, db: SqlDatabase;
-function bridge(client: Pick<PGlite, "query">): SqlClient {
-  return {
-    $queryRaw: async <T>(q: Prisma.Sql) =>
-      (await client.query(q.text, q.values)).rows as T,
-    $executeRaw: async (q) =>
-      (await client.query(q.text, q.values)).affectedRows ?? 0,
-  };
-}
 const policy = {
   statuses: {
     "5": "SALE" as const,
@@ -69,19 +60,7 @@ function order(id: string, date: string, status = "5"): OrderDto {
   };
 }
 beforeAll(async () => {
-  pg = new PGlite();
-  const root = new URL("../../prisma/migrations/", import.meta.url);
-  for (const name of (await readdir(root, { withFileTypes: true }))
-    .filter((x) => x.isDirectory())
-    .map((x) => x.name)
-    .sort())
-    await pg.exec(
-      await readFile(new URL(`${name}/migration.sql`, root), "utf8"),
-    );
-  db = {
-    ...bridge(pg),
-    $transaction: async (cb) => pg.transaction((tx) => cb(bridge(tx))),
-  };
+  ({ pg, db } = await createMerchandisingDb());
   await pg.exec(`INSERT INTO "Tenant" (id,name,slug,"updatedAt") VALUES ('a','A','a',now()),('b','B','b',now());
  INSERT INTO "User" (id,email,"passwordHash",name,role,"tenantId","updatedAt") VALUES ('owner','owner@example.test','test','Owner','ADMIN','a',now());
  INSERT INTO "DataSource" (id,"tenantId",kind,"sourceKey","updatedAt") VALUES ('source','a','SALESDRIVE','fixture',now());

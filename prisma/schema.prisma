@@ -1040,8 +1040,15 @@ model SkuDaily {
   netRevenue         Decimal?            @db.Decimal(18, 4)
   grossProfit        Decimal?            @db.Decimal(18, 4)
   currency           String?
-  velocityPerWeek    Decimal?            @db.Decimal(20, 10)
-  weeksOnHand        Decimal?            @db.Decimal(20, 10)
+  velocityPerWeek    Decimal?            @db.Decimal(38, 18)
+  weeksOnHand        Decimal?            @db.Decimal(38, 18)
+  quantity           Decimal?            @db.Decimal(18, 4)
+  stockCostValue     Decimal?            @db.Decimal(38, 4)
+  stockRetailValue   Decimal?            @db.Decimal(38, 4)
+  daysToZero         Decimal?            @db.Decimal(38, 18)
+  sellThroughRatio   Decimal?            @db.Decimal(38, 18)
+  active             Boolean?
+  metrics            Json                @default("{}")
   classification     String?
   diagnostics        Json                @default("[]")
   calculatedAt       DateTime            @default(now()) @db.Timestamptz(3)

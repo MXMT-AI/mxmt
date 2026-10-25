@@ -173,3 +173,6 @@ seasons, see [merchandising settings verification (#34)](34-merchandising-settin
 
 For deterministic financial reports, LY comparisons, covered margin and frozen
 exports, see [sales metrics verification (#35)](35-sales-financial-metrics.md).
+
+For daily velocity, WOH, STR, dated valuation and availability materialization,
+see [daily SKU metrics verification (#36)](36-daily-sku-metrics.md).
