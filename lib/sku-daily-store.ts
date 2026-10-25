@@ -1,4 +1,11 @@
 import "server-only";
+import { classifyDailySku, summarizeSkuClassification } from "./classify";
+import { summarizeDailyBrands } from "./brand-metrics";
+import {
+  resolveMerchandisingPolicy,
+  type PolicyInputs,
+} from "./merchandising-policy";
+import type { Ownership } from "./merchandising-settings";
 import { randomUUID } from "node:crypto";
 import { Temporal } from "@js-temporal/polyfill";
 import { Prisma } from "@prisma/client";
@@ -34,7 +41,13 @@ type AggregateInput = Omit<
   | "activitySalesCovered"
   | "receiptHistoryCovered"
   | "cogsHistoryCovered"
-> & { snapshotRawKey: string | null; snapshotImportRunId: string | null };
+> &
+  PolicyInputs & {
+    brandName: string | null;
+    brandOwnership: Ownership | null;
+    snapshotRawKey: string | null;
+    snapshotImportRunId: string | null;
+  };
 export interface DailySkuCalculation {
   calculationId: string;
   inputKey: string;
@@ -43,7 +56,9 @@ export interface DailySkuCalculation {
   calculatedAt: string;
   rowCount: number;
   period: ReturnType<typeof resolveDailySkuPeriod>;
-  summary: ReturnType<typeof summarizeDailySkus>;
+  summary: ReturnType<typeof summarizeDailySkus> &
+    ReturnType<typeof summarizeSkuClassification>;
+  brands: ReturnType<typeof summarizeDailyBrands>;
   provenance: {
     sourceId: string;
     configIds: string[];
@@ -164,9 +179,12 @@ export async function calculateSkuDaily(
     );
     const rows = await tx.$queryRaw<AggregateInput[]>(Prisma.sql`
    WITH products AS (
-    SELECT s.id "skuId",s.sku,s.name,COALESCE(s."brandId",${client.values.profileMode === "MONOBRAND" ? client.values.monoBrandId : null}) "brandId",s."categoryId",s."productKind",COALESCE(c."seasonMonths",ARRAY[1,2,3,4,5,6,7,8,9,10,11,12]) "seasonMonths",
+    SELECT s.id "skuId",s.sku,s.name,COALESCE(s."brandId",${client.values.profileMode === "MONOBRAND" ? client.values.monoBrandId : null}) "brandId",s."categoryId",s."productKind",b.name "brandName",b.ownership "brandOwnership",s."ownershipOverride",COALESCE(s."supplierId",b."supplierId") "supplierId",sup."leadTimeDays" "leadDays",(sup."termsVerifiedAt" IS NOT NULL) "supplierTermsVerified",COALESCE(c."seasonMonths",ARRAY[1,2,3,4,5,6,7,8,9,10,11,12]) "seasonMonths",
      r."firstReceiptDate",r."lastReceiptDate",r."firstReceiptAt",r."receiptHash",snap.id "snapshotId",snap."observedAt"::text "observedAt",snap.quantity::text quantity,snap."costPrice"::text "costPrice",snap."retailPrice"::text "retailPrice",snap.currency,snap."sourceRecordKey" "snapshotRawKey",snap."importRunId" "snapshotImportRunId"
-    FROM "Sku" s LEFT JOIN "Category" c ON c.id=s."categoryId" AND c."tenantId"=s."tenantId"
+    FROM "Sku" s
+    LEFT JOIN "Brand" b ON b.id=COALESCE(s."brandId",${client.values.profileMode === "MONOBRAND" ? client.values.monoBrandId : null}) AND b."tenantId"=s."tenantId"
+    LEFT JOIN "Supplier" sup ON sup.id=COALESCE(s."supplierId",b."supplierId") AND sup."tenantId"=s."tenantId"
+    LEFT JOIN "Category" c ON c.id=s."categoryId" AND c."tenantId"=s."tenantId"
     LEFT JOIN LATERAL (SELECT MIN(r."receivedAt") "firstReceiptAt",(MIN(r."receivedAt") AT TIME ZONE ${source.timezone})::date::text "firstReceiptDate",(MAX(r."receivedAt") AT TIME ZONE ${source.timezone})::date::text "lastReceiptDate",md5(string_agg(jsonb_build_array(r.id,r."importRunId",r."sourceRecordKey",r."receivedAt",rl.id,rl.quantity)::text,'|' ORDER BY r.id,rl.id)) "receiptHash"
      FROM "ReceiptLine" rl JOIN "Receipt" r ON r.id=rl."receiptId" AND r."tenantId"=rl."tenantId" WHERE rl."tenantId"=s."tenantId" AND rl."skuId"=s.id AND r."sourceId"=${source.id} AND r."movementType"='SUPPLIER_RECEIPT' AND ${receiptPolicyCurrent} AND r."postingVerifiedAt" IS NOT NULL AND rl.quantity>0 AND r."receivedAt"<${period.cutoff}::timestamptz) r ON true
     LEFT JOIN "InventorySnapshot" snap ON snap."tenantId"=s."tenantId" AND snap."skuId"=s.id AND snap."sourceId"=${source.id} AND snap."snapshotDate"=${period.asOf}::date AND snap."observedAt" IS NOT NULL AND snap."observedAt"<=${period.cutoff}::timestamptz AND (snap."observedAt" AT TIME ZONE ${source.timezone})::date=snap."snapshotDate" AND snap."importRunId" IS NOT NULL AND snap."sourceRecordKey" IS NOT NULL
@@ -205,13 +223,22 @@ export async function calculateSkuDaily(
         history.covers(row.firstReceiptDate, period.windowTo),
       cogsHistoryCovered: history.covers(period.cogsFrom, period.cogsTo),
     }));
-    const metrics = receiptActivityCovered.map((row) =>
-      calculateDailySku(row, {
+    const metrics = receiptActivityCovered.map((row) => {
+      const metric = calculateDailySku(row, {
         ...period,
         sourceBusy: pending.n > 0,
         turnoverNormMonths: client.values.turnoverMonths,
-      }),
-    );
+      });
+      return {
+        ...metric,
+        ...classifyDailySku(
+          metric,
+          resolveMerchandisingPolicy(row, client.values),
+        ),
+        brandName: row.brandName,
+        brandOwnership: row.brandOwnership ?? ("UNKNOWN" as const),
+      };
+    });
     const inputHash = payloadHash(rows),
       inputKey = payloadHash({
         version: SKU_DAILY_CALCULATION_VERSION,
@@ -248,7 +275,14 @@ export async function calculateSkuDaily(
       calculatedAt: new Date().toISOString(),
       rowCount: metrics.length,
       period,
-      summary: summarizeDailySkus(metrics, client.values.turnoverMonths),
+      summary: {
+        ...summarizeDailySkus(metrics, client.values.turnoverMonths),
+        ...summarizeSkuClassification(metrics),
+      },
+      brands: summarizeDailyBrands(
+        metrics,
+        resolveMerchandisingPolicy({}, client.values),
+      ),
       provenance: {
         sourceId: source.id,
         configIds: configs.map((c) => c.id),
@@ -280,10 +314,10 @@ export async function calculateSkuDaily(
         .slice(offset, offset + 200)
         .map(
           (row, index) =>
-            Prisma.sql`(${randomUUID()},${tenantId},${row.skuId},${period.asOf}::date,${calculation.calculationId},${SKU_DAILY_CALCULATION_VERSION},${JSON.stringify({ sourceId: source.id, inputKey, inputHash: rows[offset + index]?.inputHash ?? null, sourceObservedAt: row.sourceObservedAt, snapshotId: row.snapshotId, snapshotRawKey: rows[offset + index]?.snapshotRawKey ?? null, snapshotImportRunId: rows[offset + index]?.snapshotImportRunId ?? null })}::jsonb,${row.currency},${row.velocityPerWeek}::numeric,${row.weeksOnHand}::numeric,${row.quantity}::numeric,${row.stockCostValue}::numeric,${row.stockRetailValue}::numeric,${row.daysToZero}::numeric,${row.sellThroughRatio}::numeric,${row.active},${JSON.stringify(row)}::jsonb,${JSON.stringify(row.diagnostics)}::jsonb)`,
+            Prisma.sql`(${randomUUID()},${tenantId},${row.skuId},${period.asOf}::date,${calculation.calculationId},${SKU_DAILY_CALCULATION_VERSION},${JSON.stringify({ sourceId: source.id, inputKey, inputHash: rows[offset + index]?.inputHash ?? null, sourceObservedAt: row.sourceObservedAt, snapshotId: row.snapshotId, snapshotRawKey: rows[offset + index]?.snapshotRawKey ?? null, snapshotImportRunId: rows[offset + index]?.snapshotImportRunId ?? null })}::jsonb,${row.currency},${row.velocityPerWeek}::numeric,${row.weeksOnHand}::numeric,${row.quantity}::numeric,${row.stockCostValue}::numeric,${row.stockRetailValue}::numeric,${row.daysToZero}::numeric,${row.sellThroughRatio}::numeric,${row.active},${row.classification},${JSON.stringify(row)}::jsonb,${JSON.stringify(row.diagnostics)}::jsonb)`,
         );
       await tx.$executeRaw(
-        Prisma.sql`INSERT INTO "SkuDaily" (id,"tenantId","skuId","businessDate","configId","calculationVersion","inputProvenance",currency,"velocityPerWeek","weeksOnHand",quantity,"stockCostValue","stockRetailValue","daysToZero","sellThroughRatio",active,metrics,diagnostics) VALUES ${Prisma.join(batch)} ON CONFLICT ("tenantId","skuId","businessDate","configId","calculationVersion") DO NOTHING`,
+        Prisma.sql`INSERT INTO "SkuDaily" (id,"tenantId","skuId","businessDate","configId","calculationVersion","inputProvenance",currency,"velocityPerWeek","weeksOnHand",quantity,"stockCostValue","stockRetailValue","daysToZero","sellThroughRatio",active,classification,metrics,diagnostics) VALUES ${Prisma.join(batch)} ON CONFLICT ("tenantId","skuId","businessDate","configId","calculationVersion") DO NOTHING`,
       );
     }
     return calculation;

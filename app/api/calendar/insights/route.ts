@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import type { SkuFlag } from "@/lib/analyst-types";
-import { classify, getThresholds, snapshotStock, canClassifyProduct } from "@/lib/classify";
+import { LEGACY_CLASSIFICATION_FILTER, classify, getThresholds, snapshotStock, canClassifyProduct } from "@/lib/classify";
 import { requireApiUser } from "@/lib/server-auth";
 
 
@@ -36,7 +36,7 @@ export async function GET() {
 
   const [skus, snapshots, sales30raw, sales7raw, onboarding] = await Promise.all([
     prisma.sku.findMany({
-      where: { tenantId, productKind:{notIn:["SERVICE","GIFT_CARD"]}, status: { in: ["ACTIVE", "NEW"] } },
+      where: { tenantId, ...LEGACY_CLASSIFICATION_FILTER, status: { in: ["ACTIVE", "NEW"] } },
       include: { brand: { select: { name: true, leadTimeDays: true } } },
     }),
     prisma.inventorySnapshot.findMany({

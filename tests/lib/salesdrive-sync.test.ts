@@ -23,7 +23,7 @@ async function tenant(id:string){await pg.query('INSERT INTO "Tenant" (id,name,s
 const xml='<yml_catalog><shop><offers><offer id="1"><vendorCode>A1</vendorCode><name>Item</name><price>100</price><currencyId>UAH</currencyId><quantity_in_stock>2</quantity_in_stock></offer></offers></shop></yml_catalog>';
 function runtime(id:string){return async()=>({sourceId:id,revision:1,timezone:'Europe/Kyiv',connector:new SalesDriveConnector({accountHost:'demo.salesdrive.me',ordersApiKey:'synthetic',receiptsApiKey:null,ymlUrl:'https://demo.salesdrive.me/export/yml/export.yml?publicKey=synthetic'},async(url)=>url.pathname.includes('export.yml')?new Response(xml):Response.json({data:[],pagination:{pageCount:1}}))});}
 describe('durable sync orchestration',()=>{
- it('verifies a manual refresh completion and retains a recalculation intent without activating legacy formulas',async()=>{
+ it('completes imports and drains the new phased engine without activating legacy formulas',async()=>{
   await tenant('manual');const id=await requestSyncCycle('manual','both',db);
   expect(await requestSyncCycle('manual','both',db)).toBe(id);
   expect(await dispatchSyncCycle(db,'manual')).toBe(true);
@@ -36,6 +36,9 @@ describe('durable sync orchestration',()=>{
   expect(progress.calculation).toMatchObject({state:'WAITING_ENGINE'});
   expect((await pg.query('SELECT count(*)::int n FROM "ConnectorRecalculation" WHERE "tenantId"=\'manual\'')).rows).toEqual([{n:2}]);
   expect((await pg.query('SELECT count(*)::int n FROM "ReportCalculationRun"')).rows).toEqual([{n:0}]);
+  for(let i=0;i<4;i++)expect(await processSalesDriveSync('manual',db,runtime('manual'))).toMatchObject({processed:true,published:true});
+  expect((await getSyncProgress('manual',db)).calculation).toMatchObject({state:'COMPLETE'});
+  expect((await pg.query('SELECT "inputProvenance" FROM "ConnectorRecalculation" WHERE "tenantId"=\'manual\'')).rows).toEqual(expect.arrayContaining([expect.objectContaining({inputProvenance:expect.objectContaining({dailyCalculationId:expect.any(String),salesCalculationId:expect.any(String),engine:'salesdrive-v2'})})]));
   expect(await processSalesDriveSync('manual',db,runtime('manual'))).toEqual({processed:false});
   expect((await pg.query('SELECT count(*)::int n FROM "ConnectorSyncJob" WHERE "tenantId"=\'manual\'')).rows).toEqual([{n:2}]);
  });

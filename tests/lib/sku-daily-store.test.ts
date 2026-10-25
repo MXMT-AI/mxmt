@@ -178,7 +178,28 @@ describe("daily materialization with production SQL", () => {
       stockCostValue: "140",
       cogs3Months: "490",
       active: true,
+      classification: "HEALTHY",
+      shortage: true,
+      ownership: "OWN",
     });
+    expect(data.calculationVersion).toBe(2);
+    expect(data.brands).toEqual([
+      expect.objectContaining({
+        brandId: "brand",
+        signal: "HEALTHY",
+        ownership: "OWN",
+      }),
+    ]);
+    expect(data.summary.shortageSkuCount).toBe(1);
+    const statuses = (
+      await pg.query(
+        `SELECT classification,metrics->>'classification' "savedStatus" FROM "SkuDaily" WHERE "configId"=$1`,
+        [result.calculationId],
+      )
+    ).rows;
+    expect(statuses).toEqual([
+      { classification: "HEALTHY", savedStatus: "HEALTHY" },
+    ]);
     expect(data.summary.availability).toMatchObject({
       ratio: "1",
       activeSkuCount: 1,
@@ -469,6 +490,66 @@ describe("daily materialization with production SQL", () => {
     await pg.exec(
       `UPDATE "InventorySnapshot" SET quantity=14 WHERE id='snapshot:2026-10-25'`,
     );
+  });
+  it("freezes old classifications and ownership while current policy creates another result", async () => {
+    await pg.exec(
+      `UPDATE "Category" SET "seasonMonths"=ARRAY[1,2,3,4,5,6,7,8,9,10,11,12] WHERE id='category'`,
+    );
+    const original = await calculateSkuDaily("a", args, db);
+    const old = await readSkuDaily("a", original.calculationId, query, db);
+    await pg.exec(
+      `UPDATE "Brand" SET ownership='CONSIGNMENT' WHERE id='brand'`,
+    );
+    const changed = await calculateSkuDaily("a", args, db);
+    expect(changed.calculationId).not.toBe(original.calculationId);
+    expect(
+      (await readSkuDaily("a", changed.calculationId, query, db)).rows[0],
+    ).toMatchObject({
+      ownership: "CONSIGNMENT",
+      classification: "DEAD",
+      recommendation: "DISCUSS_SUPPLIER_RETURN",
+    });
+    expect(await readSkuDaily("a", original.calculationId, query, db)).toEqual(
+      old,
+    );
+  });
+  it("retains version 1 manifests and rows while enforcing status consistency for version 2", async () => {
+    const latest = await calculateSkuDaily("a", args, db);
+    await expect(
+      pg.exec(
+        `UPDATE "SkuDaily" SET classification=NULL WHERE "calculationVersion"=2`,
+      ),
+    ).rejects.toMatchObject({ code: "23514" });
+    await expect(
+      pg.exec(
+        `UPDATE "SkuDaily" SET classification='OTHER' WHERE "calculationVersion"=2`,
+      ),
+    ).rejects.toMatchObject({ code: "23514" });
+    await expect(
+      pg.exec(
+        `UPDATE "SkuDaily" SET classification='SERVICE' WHERE "calculationVersion"=2`,
+      ),
+    ).rejects.toMatchObject({ code: "23514" });
+    await pg.query(
+      `INSERT INTO "MerchandisingConfig" (id,"tenantId","configType",key,revision,values,"isActive") VALUES ('v1','a','GENERAL','calculation:sku-daily:legacy',1,$1,false)`,
+      [
+        JSON.stringify({
+          kind: "SKU_DAILY_INPUTS_V1",
+          calculation: {
+            ...latest,
+            calculationId: "v1",
+            calculationVersion: 1,
+          },
+        }),
+      ],
+    );
+    await pg.exec(
+      `INSERT INTO "SkuDaily" (id,"tenantId","skuId","businessDate","configId","calculationVersion","inputProvenance",metrics) VALUES ('v1-row','a','sku','2026-10-25','v1',1,'{}','{"sku":"SKU","name":"Legacy"}')`,
+    );
+    expect(await readSkuDaily("a", "v1", query, db)).toMatchObject({
+      calculationVersion: 1,
+      rows: [{ sku: "SKU", name: "Legacy" }],
+    });
   });
   it("rejects invalid persisted metric shapes and does not write activation/ownership policy", async () => {
     await expect(

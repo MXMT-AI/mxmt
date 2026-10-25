@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getT } from "@/lib/translations";
 import Link from "next/link";
 import type { SkuFlag } from "@/lib/analyst-types";
-import { classify, getThresholds } from "@/lib/classify";
+import { LEGACY_CLASSIFICATION_FILTER, classify, getThresholds } from "@/lib/classify";
 import SalesSparkline from "@/components/dashboard/SalesSparkline";
 
 export default async function DashboardPage() {
@@ -20,7 +20,7 @@ export default async function DashboardPage() {
 
   const [skus, snapshots, sales30raw, sales7raw, onboarding, driveSync, catalogItemCount, dailySales] = await Promise.all([
     prisma.sku.findMany({
-      where: { tenantId, status: { in: ["ACTIVE", "NEW"] } },
+      where: { tenantId, ...LEGACY_CLASSIFICATION_FILTER, status: { in: ["ACTIVE", "NEW"] } },
       include: { brand: { select: { name: true, leadTimeDays: true } } },
     }),
     prisma.inventorySnapshot.findMany({

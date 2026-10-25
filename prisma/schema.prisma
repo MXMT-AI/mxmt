@@ -1210,7 +1210,7 @@ model ConnectorSyncCycle {
   @@index([dispatchedAt, availableAt])
 }
 
-// Imported inputs wait explicitly for the versioned SalesDrive engine (#35–#37).
+// Durable phased SalesDrive recalculation; RUNNING source uniqueness is enforced in SQL.
 model ConnectorRecalculation {
   importRunId     String        @id
   tenantId        String
