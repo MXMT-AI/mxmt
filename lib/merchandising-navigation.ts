@@ -1,0 +1,192 @@
+import { Temporal } from "@js-temporal/polyfill";
+import { resolveSalesPeriod } from "./sales-period";
+
+export const MVP_SCREENS = [
+  "overview",
+  "sales",
+  "stock",
+  "repricing",
+  "reordering",
+] as const;
+export type MvpScreen = (typeof MVP_SCREENS)[number];
+export type PeriodMode = "month" | "quarter" | "year" | "custom";
+export interface MerchandisingFilters {
+  period: PeriodMode;
+  dateFrom: string;
+  dateTo: string;
+  channelId: string;
+}
+const SHARED_KEYS = [
+  "period",
+  "dateFrom",
+  "dateTo",
+  "channelId",
+  "asOf",
+  "snapshotId",
+] as const;
+const DETAIL_KEYS = ["brandId", "categoryId", "skuId", "currency"] as const;
+
+/** Expand a calendar preset to completed Kyiv days, using the approved default month. */
+export function presetPeriod(
+  mode: Exclude<PeriodMode, "custom">,
+  anchor: string,
+  now = new Date(),
+) {
+  const day = Temporal.PlainDate.from(anchor, { overflow: "reject" });
+  const today = Temporal.Instant.from(now.toISOString())
+    .toZonedDateTimeISO("Europe/Kyiv")
+    .toPlainDate();
+  const from =
+    mode === "month"
+      ? day.with({ day: 1 })
+      : mode === "quarter"
+        ? day.with({ month: Math.floor((day.month - 1) / 3) * 3 + 1, day: 1 })
+        : day.with({ month: 1, day: 1 });
+  const end = from
+    .add(
+      mode === "month"
+        ? { months: 1 }
+        : mode === "quarter"
+          ? { months: 3 }
+          : { years: 1 },
+    )
+    .subtract({ days: 1 });
+  const yesterday = today.subtract({ days: 1 });
+  return resolveSalesPeriod({
+    dateFrom: from.toString(),
+    dateTo: (Temporal.PlainDate.compare(end, yesterday) > 0
+      ? yesterday
+      : end
+    ).toString(),
+    now,
+  });
+}
+
+/** Restore explicit dates without silently replacing malformed links with default data. */
+export function readMerchandisingFilters(
+  params: URLSearchParams,
+  now = new Date(),
+): MerchandisingFilters {
+  for (const key of SHARED_KEYS)
+    if (params.getAll(key).length > 1) throw new Error("INVALID_FILTERS");
+  const period =
+    params.get("period") ??
+    (params.has("dateFrom") || params.has("dateTo") ? "custom" : "month");
+  if (!["month", "quarter", "year", "custom"].includes(period))
+    throw new Error("INVALID_FILTERS");
+  const dateFrom = params.get("dateFrom"),
+    dateTo = params.get("dateTo");
+  if (
+    (dateFrom === null) !== (dateTo === null) ||
+    dateFrom === "" ||
+    dateTo === ""
+  )
+    throw new Error("INVALID_FILTERS");
+  const resolved = resolveSalesPeriod({
+    dateFrom: dateFrom ?? undefined,
+    dateTo: dateTo ?? undefined,
+    now,
+  });
+  if (dateFrom && period !== "custom") {
+    const preset = presetPeriod(
+      period as Exclude<PeriodMode, "custom">,
+      dateFrom,
+      now,
+    );
+    // A link frozen earlier in the current month/quarter/year must remain valid
+    // tomorrow. Apply may deliberately advance it to the latest completed day.
+    if (preset.from !== resolved.from || resolved.to > preset.to)
+      throw new Error("INVALID_FILTERS");
+  }
+  const dates =
+    !dateFrom && period !== "custom"
+      ? presetPeriod(
+          period as Exclude<PeriodMode, "custom">,
+          resolved.from,
+          now,
+        )
+      : resolved;
+  const channelId = params.get("channelId") ?? "";
+  if (channelId.length > 200 || (params.has("channelId") && !channelId))
+    throw new Error("INVALID_FILTERS");
+  return {
+    period: period as PeriodMode,
+    dateFrom: dates.from,
+    dateTo: dates.to,
+    channelId,
+  };
+}
+
+/** Cross-screen links retain global context and explicit drill-down IDs, not stale table controls. */
+export function merchandisingHref(
+  path: string,
+  params: URLSearchParams,
+  details: Record<string, string | null> = {},
+) {
+  const next = new URLSearchParams();
+  for (const key of [...SHARED_KEYS, ...DETAIL_KEYS]) {
+    const v = params.get(key);
+    if (v) next.set(key, v);
+  }
+  for (const [key, v] of Object.entries(details)) {
+    if (v === null) next.delete(key);
+    else next.set(key, v);
+  }
+  return next.size ? `${path}?${next}` : path;
+}
+
+/** Changing dates invalidates the pinned snapshot; changing channel preserves shared stock. */
+export function applyMerchandisingFilters(
+  params: URLSearchParams,
+  filters: MerchandisingFilters,
+  now = new Date(),
+) {
+  const next = new URLSearchParams(params);
+  const previous = readMerchandisingFilters(params, now);
+  for (const key of ["page", "sort", "direction", "search"]) next.delete(key);
+  if (
+    previous.dateFrom !== filters.dateFrom ||
+    previous.dateTo !== filters.dateTo
+  )
+    next.delete("snapshotId");
+  next.set("period", filters.period);
+  next.set("dateFrom", filters.dateFrom);
+  next.set("dateTo", filters.dateTo);
+  if (filters.channelId) next.set("channelId", filters.channelId);
+  else next.delete("channelId");
+  readMerchandisingFilters(next, now);
+  return next;
+}
+
+/** Apply against one fresh clock reading, independently of the cached layout timestamp. */
+export function applyMerchandisingSelection(
+  params: URLSearchParams,
+  draft: MerchandisingFilters,
+  anchor: string,
+  now = new Date(),
+) {
+  const period =
+    draft.period === "custom" ? null : presetPeriod(draft.period, anchor, now);
+  const filters = period
+    ? { ...draft, dateFrom: period.from, dateTo: period.to }
+    : draft;
+  return {
+    query: applyMerchandisingFilters(params, filters, now),
+    appliedAt: now.toISOString(),
+  };
+}
+
+/** Monobrand profiles skip brand grouping even when an old deep link asks for it. */
+export function merchandisingGroup(
+  params: URLSearchParams,
+  monobrand: boolean,
+) {
+  const group = params.get("groupBy");
+  if (
+    group === "sku" ||
+    group === "category" ||
+    (!monobrand && group === "brand")
+  )
+    return group;
+  return monobrand ? "category" : "brand";
+}
