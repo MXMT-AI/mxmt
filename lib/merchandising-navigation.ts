@@ -128,6 +128,21 @@ export function merchandisingHref(
     const v = params.get(key);
     if (v) next.set(key, v);
   }
+  const destination = path.split("/")[1];
+  const controls =
+    destination === "sales"
+      ? ["metric", "groupBy"]
+      : destination === "stock"
+        ? ["classification", "ownership", "supplierId", "groupBy"]
+        : destination === "repricing"
+          ? ["classification", "ownership", "supplierId"]
+          : destination === "reordering"
+            ? ["mode", "ownership", "supplierId"]
+            : [];
+  for (const key of controls) {
+    const value = params.get(key);
+    if (value) next.set(key, value);
+  }
   for (const [key, v] of Object.entries(details)) {
     if (v === null) next.delete(key);
     else next.set(key, v);

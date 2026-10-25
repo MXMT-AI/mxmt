@@ -1,4 +1,5 @@
 import "server-only";
+import { readOverview } from "./merchandising-overview";
 import { Temporal } from "@js-temporal/polyfill";
 import { Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
@@ -37,6 +38,13 @@ export function screenSnapshotContext(snapshot: ScreenSnapshot) {
       sales: snapshot.sales.calculationVersion,
       stock: snapshot.stock.calculationVersion,
     },
+    trend: snapshot.trend
+      ? {
+          calculationId: snapshot.trend.calculationId,
+          calculationVersion: snapshot.sales.calculationVersion,
+          period: snapshot.trend.context.period,
+        }
+      : null,
     createdAt: snapshot.createdAt,
   };
 }
@@ -74,6 +82,10 @@ export async function getMerchandisingScreen(
           )
         : Promise.resolve(null),
     ]);
+    const overview =
+      screen === "overview" && sales
+        ? await readOverview(tenantId, snapshot, q, sales.summary, tx)
+        : null;
     const changed = screenSourceKey(live) !== snapshot.sourceStateKey;
     const through = live?.orderThrough ? Date.parse(live.orderThrough) : NaN;
     const orderAge = Number.isFinite(through)
@@ -124,9 +136,20 @@ export async function getMerchandisingScreen(
     };
     return {
       screen,
+      overview,
       context: screenSnapshotContext(snapshot),
       freshness,
-      dataState: table?.pagination.totalRows === 0 ? "EMPTY" : "AVAILABLE",
+      dataState:
+        screen === "overview"
+          ? (stock?.summary.skuCount ?? 0) > 0 ||
+            sales?.summary.some(
+              (s) => s.current.lineCount > 0 || s.ly.lineCount > 0,
+            )
+            ? "AVAILABLE"
+            : "EMPTY"
+          : table?.pagination.totalRows === 0
+            ? "EMPTY"
+            : "AVAILABLE",
       sales: sales
         ? {
             ...sales,

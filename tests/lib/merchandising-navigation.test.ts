@@ -12,6 +12,25 @@ const now = new Date("2026-10-25T10:00:00Z");
 const read = (s = "", clock = now) =>
   readMerchandisingFilters(new URLSearchParams(s), clock);
 describe("URL-owned MVP navigation", () => {
+  it("keeps destination-specific metric and status controls through detail links", () => {
+    const params = new URLSearchParams(
+      "classification=RISK&metric=gmPct&groupBy=brand&mode=shortage",
+    );
+    const stock = new URL(
+      merchandisingHref("/stock", params, { groupBy: "sku" }),
+      "https://app.test",
+    );
+    expect(stock.searchParams.get("classification")).toBe("RISK");
+    expect(stock.searchParams.get("groupBy")).toBe("sku");
+    expect(stock.searchParams.has("metric")).toBe(false);
+    expect(
+      new URL(
+        merchandisingHref("/sales", params),
+        "https://app.test",
+      ).searchParams.get("metric"),
+    ).toBe("gmPct");
+    expect(merchandisingHref("/overview", params)).toBe("/overview");
+  });
   it.each(["month", "quarter", "year"] as const)(
     "applies %s with a fresh clock after a Kyiv date boundary",
     (mode) => {

@@ -1266,11 +1266,14 @@ model MerchandisingScreenFact {
   kind         String
   inCurrent    Boolean
   inPriorYear  Boolean
+  businessDate DateTime?           @db.Date
+  isSupporting Boolean             @default(false)
   revenue      Decimal?            @db.Decimal(38, 12)
   quantity     Decimal?            @db.Decimal(38, 12)
   grossProfit  Decimal?            @db.Decimal(38, 12)
 
   @@id([snapshotId, lineId])
+  @@index([tenantId, snapshotId, businessDate], map: "ScreenFact_timeline")
   @@index([tenantId, snapshotId, brandId, categoryId, skuId, channelId], map: "ScreenFact_filters")
 }
 
