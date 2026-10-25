@@ -1,13 +1,11 @@
 import { Prisma } from "@prisma/client";
+import { financialDecimal } from "./financial-decimal.mjs";
+export { financialDecimal } from "./financial-decimal.mjs";
 import {
   defaultClientSettings,
   type ClientMerchandisingSettings,
   type Ownership,
 } from "./merchandising-settings";
-const FinancialDecimal = Prisma.Decimal.clone({ precision: 48 });
-/** High precision is local to financial calculations; legacy Decimal defaults stay unchanged. */
-export const financialDecimal = (value: string | number) =>
-  new FinancialDecimal(value);
 export interface PolicyInputs {
   ownershipOverride?: Ownership | null;
   commissionRateOverride?: string | null;

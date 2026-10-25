@@ -32,3 +32,6 @@ service-account.json
 
 # Local documentation and thesis materials
 /docs/
+
+# Private reconciliation inputs, approvals and generated customer reports
+/.local/reconciliation/

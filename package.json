@@ -8,6 +8,8 @@
     "start": "next start",
     "test": "vitest run",
     "test:watch": "vitest",
+    "reconcile:zavod": "node scripts/reconcile-zavod.mjs",
+    "audit:zavod": "node scripts/audit-zavod-workbook.mjs",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
