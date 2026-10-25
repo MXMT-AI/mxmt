@@ -11,6 +11,14 @@ result. Omit `asOf` for the current source business date. Read an existing resul
 with `?calculationId=<id>`; do not combine a calculation ID with another date.
 Authenticated readers may consume derived results, following the #35 contract.
 
+Initial calculation requests accept only the date selection. Follow-up requests
+with `page`, `pageSize`, `q`, `sort` or `direction` require `calculationId` (including
+explicit default controls), so navigation cannot repeat the source aggregation.
+An explicit fresh date request still revalidates the fingerprint and creates a
+new immutable version when inputs change; it does not return an unchecked latest
+result. Invalid stored timezone/clock values use the generic server-error path,
+not the `INVALID_AS_OF` client-error response.
+
 The response contains calculation ID, input fingerprint, formula version, business
 date, cutoff/window metadata, source provenance, global summary and a paginated
 SKU list. Supported controls: `page`, `pageSize` (1–200, default 25), `q` (up to
@@ -31,6 +39,7 @@ under `calculation:sku-daily:<source>:<date>:<fingerprint>`. It is not an approv
 activation of client business settings. Its ID binds all SKU rows and the saved
 summary. An identical input fingerprint returns the same calculation; changed
 inputs create another immutable version. Never overwrite an old result.
+The `SkuDaily_config_idx` tenant/config/SKU index supports frozen-result reads.
 
 ## Calendar and formula decisions
 
@@ -158,7 +167,7 @@ npm run build
 git diff --check
 ```
 
-Implementation verification: 495 tests across 51 files passed. TypeScript,
+Implementation verification: 505 tests across 51 files passed. TypeScript,
 Prisma schema validation, the production build and whitespace checks passed.
 
 No production migration, live customer import or connector activation is performed.

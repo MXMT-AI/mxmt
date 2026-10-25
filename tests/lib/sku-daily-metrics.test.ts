@@ -316,6 +316,18 @@ describe("daily availability and valuation summaries", () => {
   });
 });
 describe("daily business calendar", () => {
+  it.each([
+    [new Date("invalid"), "Europe/Kyiv"],
+    [new Date("2026-10-25T10:00Z"), "Invalid/Timezone"],
+  ])(
+    "does not classify invalid server clock/timezone values as caller date errors",
+    (now, timezone) => {
+      expect(() => resolveDailySkuPeriod("2026-10-25", now, timezone)).toThrow(
+        RangeError,
+      );
+    },
+  );
+
   it("uses 84 completed calendar days and current actual observation date, including DST", () => {
     const p = resolveDailySkuPeriod(
       undefined,

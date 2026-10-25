@@ -1055,6 +1055,7 @@ model SkuDaily {
 
   @@unique([tenantId, skuId, businessDate, configId, calculationVersion], map: "SkuDaily_version_key")
   @@index([tenantId, businessDate, classification])
+  @@index([tenantId, configId, skuId], map: "SkuDaily_config_idx")
 }
 
 model MerchandisingAction {

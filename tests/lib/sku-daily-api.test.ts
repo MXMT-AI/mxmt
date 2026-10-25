@@ -20,7 +20,10 @@ vi.mock("@/lib/sku-daily-store", async (importOriginal) => {
 import { GET } from "@/app/api/data/sku-daily/route";
 import { signAccessToken } from "@/lib/auth";
 import { DailySkuError } from "@/lib/sku-daily-store";
-import { DailySkuPeriodError } from "@/lib/sku-daily-period";
+import {
+  resolveDailySkuPeriod,
+  DailySkuPeriodError,
+} from "@/lib/sku-daily-period";
 const req = (q = "") =>
   new NextRequest("https://app.example/api/data/sku-daily" + q, {
     headers: { "x-tenant-id": "b", "x-user-role": "SUPER_ADMIN" },
@@ -78,6 +81,37 @@ describe("daily SKU API tenant and snapshot boundary", () => {
       sort: "weeksOnHand",
       direction: "desc",
     });
+  });
+  it.each([
+    "?page=2",
+    "?page=1",
+    "?pageSize=25",
+    "?q=PRINTWORKS",
+    "?q=",
+    "?sort=sku",
+    "?direction=asc",
+  ])("requires a frozen ID for navigation controls %s", async (query) => {
+    await login();
+    const response = await GET(req(query));
+    expect(response.status).toBe(400);
+    expect((await response.json()).code).toBe("CALCULATION_ID_REQUIRED");
+    expect(m.calculate).not.toHaveBeenCalled();
+    expect(m.read).not.toHaveBeenCalled();
+  });
+  it("maps an invalid stored timezone to a sanitized server failure, not INVALID_AS_OF", async () => {
+    await login();
+    m.calculate.mockImplementation(async () =>
+      resolveDailySkuPeriod(
+        "2026-10-25",
+        new Date("2026-10-25T10:00Z"),
+        "Invalid/Timezone",
+      ),
+    );
+    const response = await GET(req("?asOf=2026-10-25"));
+    expect(response.status).toBe(503);
+    const body = await response.json();
+    expect(body.code).toBe("DAILY_CALCULATION_UNAVAILABLE");
+    expect(JSON.stringify(body)).not.toContain("Invalid/Timezone");
   });
   it.each([
     "?calculationId=",

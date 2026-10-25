@@ -16,3 +16,5 @@ ALTER TABLE "SkuDaily" ADD CONSTRAINT "SkuDaily_nonnegative_metrics" CHECK (
  AND ("stockCostValue" IS NULL OR "stockCostValue">=0) AND ("stockRetailValue" IS NULL OR "stockRetailValue">=0)
  AND ("sellThroughRatio" IS NULL OR "sellThroughRatio" BETWEEN 0 AND 1)
 );
+-- Frozen-result reads filter on tenant/config before paging SKU rows.
+CREATE INDEX "SkuDaily_config_idx" ON "SkuDaily" ("tenantId", "configId", "skuId");

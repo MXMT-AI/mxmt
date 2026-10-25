@@ -39,6 +39,15 @@ export async function GET(request: NextRequest) {
     !["asc", "desc"].includes(direction)
   )
     return apiError("Invalid daily SKU query", 400, "INVALID_QUERY");
+  if (
+    id === null &&
+    ["page", "pageSize", "q", "sort", "direction"].some((key) => p.has(key))
+  )
+    return apiError(
+      "Supply calculationId for pagination, search or sorting.",
+      400,
+      "CALCULATION_ID_REQUIRED",
+    );
   try {
     const calculationId =
       id ??
