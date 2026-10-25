@@ -2,7 +2,7 @@ import { DataRunStatus, Prisma, type PrismaClient } from "@prisma/client";
 import { SHEETS_SOURCE_FILTER } from "@/lib/data-source";
 import { prisma } from "@/lib/prisma";
 import { kyivBusinessDate } from "@/lib/data-import-workbook";
-import { calculateGroupedReportRows } from "@/lib/grouped-reports";
+import { calculateSalesGroupedRows, calculateGroupedReportRows } from "@/lib/grouped-reports";
 
 export const ARTICLE_CALCULATION_VERSION = 2;
 const ARTICLE_RESULT_BATCH_SIZE = 500;
@@ -540,3 +540,6 @@ export async function calculateArticleReport(
     throw error;
   }
 }
+
+/** SalesDrive article rows use the shared financial engine; legacy Sheets version 2 stays unchanged. */
+export function calculateSalesArticleRows(facts:import('./sales-metrics').SalesFact[],context:import('./sales-metrics').SalesMetricContext){return calculateSalesGroupedRows(facts,'sku',context);}

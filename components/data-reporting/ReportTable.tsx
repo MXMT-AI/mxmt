@@ -1,0 +1,93 @@
+"use client";
+import { ArrowDown, ArrowUp } from "lucide-react";
+import type { DataColumnMetadata } from "@/lib/data-table-api";
+import { formatTableValue } from "@/lib/data-reporting-ui";
+/** Shared report grid only formats server values; it never derives financial totals. */
+export default function ReportTable({
+  columns,
+  rows,
+  locale,
+  sortColumn,
+  direction = "asc",
+  onSort,
+  isSortable = () => false,
+}: {
+  columns: DataColumnMetadata[];
+  rows: Array<Record<string, unknown>>;
+  locale: string;
+  sortColumn?: string | null;
+  direction?: "asc" | "desc";
+  onSort?: (column: DataColumnMetadata) => void;
+  isSortable?: (column: DataColumnMetadata) => boolean;
+}) {
+  return (
+    <div
+      className="overflow-auto max-h-[62vh]"
+      tabIndex={0}
+      role="region"
+      aria-label={locale === "uk-UA" ? "Таблиця звіту" : "Report table"}
+    >
+      <table className="w-full min-w-max border-collapse text-xs">
+        <thead className="sticky top-0 z-10 bg-[var(--surface2)]">
+          <tr>
+            {columns.map((column) => (
+              <th
+                key={column.key}
+                scope="col"
+                aria-sort={
+                  sortColumn === column.key
+                    ? direction === "asc"
+                      ? "ascending"
+                      : "descending"
+                    : undefined
+                }
+                className="border-b border-r last:border-r-0 border-[var(--border)] px-3 py-2.5 text-left font-semibold text-[var(--muted)] whitespace-nowrap"
+              >
+                <button
+                  type="button"
+                  disabled={!isSortable(column)}
+                  onClick={() => onSort?.(column)}
+                  className="inline-flex items-center gap-1.5 disabled:cursor-default hover:text-[var(--text)] disabled:hover:text-inherit focus-visible:outline focus-visible:outline-2"
+                >
+                  {column.label}
+                  {sortColumn === column.key &&
+                    (direction === "asc" ? (
+                      <ArrowUp aria-hidden="true" size={11} />
+                    ) : (
+                      <ArrowDown aria-hidden="true" size={11} />
+                    ))}
+                </button>
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, index) => (
+            <tr
+              key={`${String(row.id ?? index)}:${String(row.currency ?? "")}`}
+              className="border-b last:border-b-0 border-[var(--border-faint)] hover:bg-[var(--input-bg)]"
+            >
+              {columns.map((column) => (
+                <td
+                  key={column.key}
+                  className={`max-w-md border-r last:border-r-0 border-[var(--border-faint)] px-3 py-2 text-[var(--text)] ${column.type === "text" || column.type === "source" ? "text-left" : "text-right tabular-nums"}`}
+                >
+                  <span
+                    className="block truncate"
+                    title={formatTableValue(
+                      row[column.key],
+                      column.type,
+                      locale,
+                    )}
+                  >
+                    {formatTableValue(row[column.key], column.type, locale)}
+                  </span>
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
