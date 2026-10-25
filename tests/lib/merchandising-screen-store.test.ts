@@ -312,6 +312,7 @@ describe("five screens pinned to a single atomic snapshot", () => {
     const after = await read("overview");
     expect(after.stock).toEqual(before.stock);
     expect(after.sales).toEqual(before.sales);
+    expect(after.overview).toEqual(before.overview);
     expect(after.freshness).toMatchObject({
       status: "SOURCE_CHANGED",
       sourceChanged: true,

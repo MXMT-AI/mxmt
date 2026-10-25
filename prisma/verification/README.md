@@ -189,3 +189,6 @@ see [screen API verification (#39)](39-screen-apis.md).
 
 For MVP routes, URL-owned shared filters, monobrand grouping and retained legacy
 features, see [navigation verification (#40)](40-mvp-navigation.md).
+
+For the template-based Overview summary, reconciled O1–O8 KPIs/actions and frozen
+YTD supporting facts, see [Overview verification (#41)](41-overview.md).

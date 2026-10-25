@@ -24,11 +24,15 @@ export function screenIdPredicate(
       ? Prisma.sql`${column} IS NULL`
       : Prisma.sql`${column}=${value}`;
 }
-export function screenSalesFilter(tenantId: string, q: ScreenQuery) {
+export function screenSalesFilter(
+  tenantId: string,
+  q: ScreenQuery,
+  supporting = false,
+) {
   const search = q.search ? `%${q.search.replace(/[\\%_]/g, "\\$&")}%` : null;
-  return Prisma.sql`f."tenantId"=${tenantId} AND f."snapshotId"=${q.snapshotId} AND ${screenIdPredicate(Prisma.sql`f."brandId"`, q.brandId)} AND ${screenIdPredicate(Prisma.sql`f."categoryId"`, q.categoryId)} AND ${screenIdPredicate(Prisma.sql`f."skuId"`, q.skuId)} AND ${screenIdPredicate(Prisma.sql`f."channelId"`, q.channelId)} AND ${screenIdPredicate(Prisma.sql`f.currency`, q.currency)} AND (${search}::text IS NULL OR COALESCE(f.sku,'') ILIKE ${search} OR COALESCE(f.name,'') ILIKE ${search} OR COALESCE(f."brandName",'') ILIKE ${search} OR COALESCE(f."categoryName",'') ILIKE ${search})`;
+  return Prisma.sql`${supporting ? Prisma.sql`true` : Prisma.sql`(f."inCurrent" OR f."inPriorYear")`} AND f."tenantId"=${tenantId} AND f."snapshotId"=${q.snapshotId} AND ${screenIdPredicate(Prisma.sql`f."brandId"`, q.brandId)} AND ${screenIdPredicate(Prisma.sql`f."categoryId"`, q.categoryId)} AND ${screenIdPredicate(Prisma.sql`f."skuId"`, q.skuId)} AND ${screenIdPredicate(Prisma.sql`f."channelId"`, q.channelId)} AND ${screenIdPredicate(Prisma.sql`f.currency`, q.currency)} AND (${search}::text IS NULL OR COALESCE(f.sku,'') ILIKE ${search} OR COALESCE(f.name,'') ILIKE ${search} OR COALESCE(f."brandName",'') ILIKE ${search} OR COALESCE(f."categoryName",'') ILIKE ${search})`;
 }
-function totalsSql(flag: Prisma.Sql) {
+export function totalsSql(flag: Prisma.Sql) {
   return Prisma.sql`jsonb_build_object(
  'revenue',COALESCE(sum(f.revenue) FILTER(WHERE ${flag}),0)::text,
  'units',COALESCE(sum(f.quantity) FILTER(WHERE ${flag} AND f."productKind"='MERCHANDISE'),0)::text,
@@ -41,7 +45,7 @@ function totalsSql(flag: Prisma.Sql) {
  'orderCount',count(DISTINCT (f."sourceId",f."orderId")) FILTER(WHERE ${flag} AND f.kind='SALE')::int,
  'returnOrderCount',count(DISTINCT (f."sourceId",f."orderId")) FILTER(WHERE ${flag} AND f.kind='RETURN')::int)`;
 }
-interface AggregateRow {
+export interface AggregateRow {
   id: string | null;
   name: string;
   currency: string | null;
@@ -60,7 +64,10 @@ const zero: SalesTotalsInput = {
   orderCount: 0,
   returnOrderCount: 0,
 };
-function metric(row: AggregateRow, snapshot: ScreenSnapshot) {
+export function salesAggregateMetric(
+  row: AggregateRow,
+  snapshot: ScreenSnapshot,
+) {
   const context = snapshot.sales.context;
   const current = finalizeSalesTotals(
       row.current,
@@ -103,7 +110,7 @@ export async function readScreenSales(
           ]),
         ];
   const summary = currencies.map((currency) => {
-    const value = metric(
+    const value = salesAggregateMetric(
       rawSummary.find((r) => r.currency === currency) ?? {
         id: null,
         name: "Total",
@@ -182,7 +189,7 @@ export async function readScreenSales(
     Prisma.sql`WITH g AS (SELECT ${key} id,MIN(${label}) name,f.currency,${current} "current",${ly} ly FROM "MerchandisingScreenFact" f WHERE ${where} AND ${headline} GROUP BY ${key},f.currency) SELECT * FROM g ORDER BY ${order[q.sort]} ${Prisma.raw(q.direction === "desc" ? "DESC" : "ASC")} NULLS LAST,g.id ASC NULLS LAST,g.currency ASC NULLS LAST LIMIT ${q.pageSize} OFFSET ${(q.page - 1) * q.pageSize}`,
   );
   const data = rows.map((row) => {
-    const value = metric(row, snapshot);
+    const value = salesAggregateMetric(row, snapshot);
     return {
       id: row.id,
       name: row.name,

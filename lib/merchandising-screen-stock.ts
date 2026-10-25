@@ -30,8 +30,8 @@ export function screenStockFilter(
         : Prisma.sql`COALESCE((d.metrics->>'shortage')::boolean,false)`;
   return Prisma.sql`s."tenantId"=${tenantId} AND s."snapshotId"=${q.snapshotId} AND ${screenIdPredicate(Prisma.sql`d.metrics->>'brandId'`, q.brandId)} AND ${screenIdPredicate(Prisma.sql`d.metrics->>'categoryId'`, q.categoryId)} AND ${screenIdPredicate(Prisma.sql`s."skuId"`, q.skuId)} AND ${screenIdPredicate(Prisma.sql`d.currency`, q.currency)} AND ${screenIdPredicate(Prisma.sql`s.details->'policy'->>'supplierId'`, q.supplierId)} AND (${classification ?? null}::text IS NULL OR d.classification=${classification ?? null}) AND (${q.ownership ?? null}::text IS NULL OR d.metrics->>'ownership'=${q.ownership ?? null}) AND ${candidates} AND (${search}::text IS NULL OR d.metrics->>'sku' ILIKE ${search} OR d.metrics->>'name' ILIKE ${search} OR d.metrics->>'brandName' ILIKE ${search} OR s.details->>'categoryName' ILIKE ${search})`;
 }
-const join = Prisma.sql`"MerchandisingScreenSku" s JOIN "SkuDaily" d ON d.id=s."dailyId" AND d."skuId"=s."skuId" AND d."tenantId"=s."tenantId"`;
-function statsSql() {
+export const screenStockJoin = Prisma.sql`"MerchandisingScreenSku" s JOIN "SkuDaily" d ON d.id=s."dailyId" AND d."skuId"=s."skuId" AND d."tenantId"=s."tenantId"`;
+export function stockStatsSql() {
   const count = (condition: Prisma.Sql) =>
     Prisma.sql`count(*) FILTER(WHERE ${condition})::int`;
   const sum = (key: string, condition = merchandise) =>
@@ -75,14 +75,14 @@ interface StockStats {
   shortage: number;
   statusCounts: Record<string, number>;
 }
-interface StockGroup {
+export interface StockGroup {
   id: string | null;
   name: string;
   currency: string | null;
   stats: StockStats;
   details: Record<string, unknown> | null;
 }
-function stockValues(row: StockGroup, norm: number) {
+export function stockGroupValues(row: StockGroup, norm: number) {
   const a = row.stats;
   const values = finalizeStockCurrency(
     { ...a, skuCount: a.merchandiseCount, currency: row.currency },
@@ -172,12 +172,12 @@ export async function readScreenStock(
   withTable: boolean,
 ) {
   const where = screenStockFilter(tenantId, q, screen),
-    stats = statsSql();
+    stats = stockStatsSql();
   const summaries = await db.$queryRaw<StockGroup[]>(
-    Prisma.sql`SELECT NULL::text id,'Total'::text name,d.currency,${stats} stats FROM ${join} WHERE ${where} GROUP BY d.currency ORDER BY d.currency NULLS LAST`,
+    Prisma.sql`SELECT NULL::text id,'Total'::text name,d.currency,${stats} stats FROM ${screenStockJoin} WHERE ${where} GROUP BY d.currency ORDER BY d.currency NULLS LAST`,
   );
   const byCurrency = summaries.map((r) =>
-    stockValues(r, snapshot.sales.context.settings.turnoverMonths),
+    stockGroupValues(r, snapshot.sales.context.settings.turnoverMonths),
   );
   // Availability counts combine across currencies; no money conversion is performed.
   const counts = summaries.reduce(
@@ -229,7 +229,7 @@ export async function readScreenStock(
         ? Prisma.sql`COALESCE(d.metrics->>'brandName','Unassigned brand')`
         : Prisma.sql`COALESCE(s.details->>'categoryName','Unassigned category')`;
   const [count] = await db.$queryRaw<Array<{ n: number }>>(
-    Prisma.sql`SELECT count(DISTINCT jsonb_build_array(${key},d.currency))::int n FROM ${join} WHERE ${where}`,
+    Prisma.sql`SELECT count(DISTINCT jsonb_build_array(${key},d.currency))::int n FROM ${screenStockJoin} WHERE ${where}`,
   );
   const knownQty = Prisma.sql`(g.stats->>'missingQuantity')::int=0 AND (g.stats->>'merchandiseCount')::int>0`;
   const velocity = Prisma.sql`CASE WHEN (g.stats->>'unknownVelocity')::int=0 AND (g.stats->>'unknownProducts')::int=0 AND (g.stats->>'merchandiseCount')::int>0 THEN (g.stats->>'velocity')::numeric ELSE NULL END`;
@@ -255,13 +255,13 @@ export async function readScreenStock(
       ? Prisma.sql`LEFT JOIN "MerchandisingScreenSku" s2 ON s2."tenantId"=${tenantId} AND s2."snapshotId"=${q.snapshotId} AND s2."skuId"=g.id LEFT JOIN "SkuDaily" d2 ON d2.id=s2."dailyId" AND d2."tenantId"=s2."tenantId" AND d2."skuId"=s2."skuId"`
       : Prisma.empty;
   const rows = await db.$queryRaw<StockGroup[]>(
-    Prisma.sql`WITH g AS (SELECT ${key} id,MIN(${label}) name,d.currency,${stats} stats FROM ${join} WHERE ${where} GROUP BY 1,3),paged AS (SELECT * FROM g ORDER BY ${order[q.sort]} ${Prisma.raw(q.direction === "desc" ? "DESC" : "ASC")} NULLS LAST,g.id ASC NULLS LAST,g.currency ASC NULLS LAST LIMIT ${q.pageSize} OFFSET ${(q.page - 1) * q.pageSize}) SELECT g.*,${detail} details FROM paged g ${detailJoin} ORDER BY ${order[q.sort]} ${Prisma.raw(q.direction === "desc" ? "DESC" : "ASC")} NULLS LAST,g.id ASC NULLS LAST,g.currency ASC NULLS LAST`,
+    Prisma.sql`WITH g AS (SELECT ${key} id,MIN(${label}) name,d.currency,${stats} stats FROM ${screenStockJoin} WHERE ${where} GROUP BY 1,3),paged AS (SELECT * FROM g ORDER BY ${order[q.sort]} ${Prisma.raw(q.direction === "desc" ? "DESC" : "ASC")} NULLS LAST,g.id ASC NULLS LAST,g.currency ASC NULLS LAST LIMIT ${q.pageSize} OFFSET ${(q.page - 1) * q.pageSize}) SELECT g.*,${detail} details FROM paged g ${detailJoin} ORDER BY ${order[q.sort]} ${Prisma.raw(q.direction === "desc" ? "DESC" : "ASC")} NULLS LAST,g.id ASC NULLS LAST,g.currency ASC NULLS LAST`,
   );
   return {
     summary,
     table: {
       rows: rows.map((r) => ({
-        ...stockValues(r, snapshot.sales.context.settings.turnoverMonths),
+        ...stockGroupValues(r, snapshot.sales.context.settings.turnoverMonths),
         id: r.id,
         name: r.name,
         sku: r.details?.sku ?? null,

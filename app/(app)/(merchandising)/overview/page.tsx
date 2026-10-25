@@ -1,4 +1,4 @@
-import MerchandisingDestination from "@/components/merchandising/MerchandisingDestination";
+import OverviewWorkspace from "@/components/overview/OverviewWorkspace";
 export default function Page() {
-  return <MerchandisingDestination screen="overview" />;
+  return <OverviewWorkspace />;
 }

@@ -1,4 +1,5 @@
 import "server-only";
+import { Temporal } from "@js-temporal/polyfill";
 import { randomUUID } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
@@ -19,7 +20,7 @@ import {
   resolveMerchandisingPolicy,
   type PolicyInputs,
 } from "./merchandising-policy";
-export const SCREEN_MODEL_VERSION = 1;
+export const SCREEN_MODEL_VERSION = 2;
 export class ScreenApiError extends Error {
   constructor(
     public code: string,
@@ -61,6 +62,7 @@ export interface ScreenSnapshot {
   settings: { clientConfigId: string | null; configIds: string[] };
   sourceState: ScreenSourceState;
   sourceStateKey: string;
+  trend?: { calculationId: string; context: SalesMetricContext };
 }
 /** Only provenance/freshness is live. Navigation never reads mutable facts or catalog values. */
 export async function readScreenSourceState(
@@ -107,6 +109,22 @@ export async function createScreenSnapshot(
         context = c;
       },
     );
+    let trendFacts: SalesFact[] = [],
+      trendContext: SalesMetricContext | undefined;
+    const trendPeriod = resolveSalesPeriod({
+      dateFrom: period.to.slice(0, 4) + "-01-01",
+      dateTo: period.to,
+      now,
+    });
+    const trend = await getSalesReportInSnapshot(
+      tenantId,
+      trendPeriod,
+      tx,
+      (f, c) => {
+        trendFacts = f;
+        trendContext = c;
+      },
+    );
     const stock = await calculateSkuDailyInSnapshot(
       tenantId,
       { asOf: input.asOf, now },
@@ -114,6 +132,10 @@ export async function createScreenSnapshot(
     );
     if (
       !context ||
+      !trendContext ||
+      trend.provenance.sourceId !== sales.provenance.sourceId ||
+      payloadHash(trend.provenance.configIds) !==
+        payloadHash(sales.provenance.configIds) ||
       sales.provenance.sourceId !== stock.provenance.sourceId ||
       sales.provenance.clientConfigId !== stock.provenance.clientConfigId ||
       payloadHash(sales.provenance.configIds) !==
@@ -127,7 +149,7 @@ export async function createScreenSnapshot(
     );
     if (!state) throw new ScreenApiError("SOURCE_NOT_AVAILABLE");
     const sourceStateKey = screenSourceKey(state),
-      key = `calculation:screens:${payloadHash({ version: SCREEN_MODEL_VERSION, sales: sales.calculationRunId, stock: stock.calculationId, sourceStateKey })}`;
+      key = `calculation:screens:${payloadHash({ version: SCREEN_MODEL_VERSION, sales: sales.calculationRunId, stock: stock.calculationId, trend: trend.calculationRunId, sourceStateKey })}`;
     const [cached] = await tx.$queryRaw<
       Array<{ values: { snapshot: ScreenSnapshot } }>
     >(
@@ -174,6 +196,7 @@ export async function createScreenSnapshot(
       },
       sourceState: state,
       sourceStateKey,
+      trend: { calculationId: trend.calculationRunId, context: trendContext },
     };
     await tx.$executeRaw(
       Prisma.sql`INSERT INTO "MerchandisingConfig" (id,"tenantId","configType",key,revision,values,"isActive") VALUES (${snapshot.snapshotId},${tenantId},'GENERAL',${key},1,${JSON.stringify({ kind: "SCREEN_SNAPSHOT_V1", snapshot })}::jsonb,false) ON CONFLICT ("tenantId","configType",key,revision) DO NOTHING`,
@@ -185,7 +208,9 @@ export async function createScreenSnapshot(
     );
     if (published.values.snapshot.snapshotId !== snapshot.snapshotId)
       return published.values.snapshot;
-    const eligible = facts.filter(
+    const eligible = [
+      ...new Map([...facts, ...trendFacts].map((f) => [f.id, f])).values(),
+    ].filter(
       (f) =>
         isEligibleSalesFact(f) ||
         (!f.excluded &&
@@ -198,17 +223,36 @@ export async function createScreenSnapshot(
       .filter(
         ({ date }) =>
           inSalesPeriod(date, period.from, period.to) ||
-          inSalesPeriod(date, period.lyFrom, period.lyTo),
+          inSalesPeriod(date, period.lyFrom, period.lyTo) ||
+          inSalesPeriod(date, trendPeriod.from, trendPeriod.to) ||
+          inSalesPeriod(
+            date,
+            trendPeriod.lyFrom,
+            Temporal.PlainDate.from(trendPeriod.lyTo)
+              .with({
+                day: Temporal.PlainDate.from(trendPeriod.lyTo).daysInMonth,
+              })
+              .toString(),
+          ) ||
+          inSalesPeriod(
+            date,
+            period.lyFrom.slice(0, 7) + "-01",
+            Temporal.PlainDate.from(period.lyTo)
+              .with({ day: Temporal.PlainDate.from(period.lyTo).daysInMonth })
+              .toString(),
+          ),
       );
+    if (selected.length > 100000)
+      throw new ScreenApiError("SCREEN_INPUT_LIMIT", 422);
     for (let offset = 0; offset < selected.length; offset += 300) {
       const values = selected
         .slice(offset, offset + 300)
         .map(
           ({ f, date }) =>
-            Prisma.sql`(${snapshot.snapshotId},${tenantId},${f.id},${f.sourceId},${f.orderId},${f.skuId},${f.sku},${f.name},${f.brandId},${f.brand},${f.categoryId},${f.category},${f.channelId},${f.channel},${f.currency},${f.productKind},${f.kind},${inSalesPeriod(date, period.from, period.to)},${inSalesPeriod(date, period.lyFrom, period.lyTo)},${f.revenue}::numeric,${f.quantity}::numeric,${f.kind === "PREORDER" ? null : (salesFactProfit(f)?.toString() ?? null)}::numeric)`,
+            Prisma.sql`(${snapshot.snapshotId},${tenantId},${f.id},${f.sourceId},${f.orderId},${f.skuId},${f.sku},${f.name},${f.brandId},${f.brand},${f.categoryId},${f.category},${f.channelId},${f.channel},${f.currency},${f.productKind},${f.kind},${inSalesPeriod(date, period.from, period.to)},${inSalesPeriod(date, period.lyFrom, period.lyTo)},${date}::date,true,${f.revenue}::numeric,${f.quantity}::numeric,${f.kind === "PREORDER" ? null : (salesFactProfit(f)?.toString() ?? null)}::numeric)`,
         );
       await tx.$executeRaw(
-        Prisma.sql`INSERT INTO "MerchandisingScreenFact" ("snapshotId","tenantId","lineId","sourceId","orderId","skuId",sku,name,"brandId","brandName","categoryId","categoryName","channelId","channelName",currency,"productKind",kind,"inCurrent","inPriorYear",revenue,quantity,"grossProfit") VALUES ${Prisma.join(values)}`,
+        Prisma.sql`INSERT INTO "MerchandisingScreenFact" ("snapshotId","tenantId","lineId","sourceId","orderId","skuId",sku,name,"brandId","brandName","categoryId","categoryName","channelId","channelName",currency,"productKind",kind,"inCurrent","inPriorYear","businessDate","isSupporting",revenue,quantity,"grossProfit") VALUES ${Prisma.join(values)}`,
       );
     }
     const extras = await tx.$queryRaw<
@@ -270,7 +314,7 @@ export async function readScreenSnapshot(
   if (!row) throw new ScreenApiError("SCREEN_SNAPSHOT_NOT_FOUND", 404);
   const snapshot = row.values.snapshot;
   if (
-    snapshot.modelVersion !== SCREEN_MODEL_VERSION ||
+    ![1, SCREEN_MODEL_VERSION].includes(snapshot.modelVersion) ||
     snapshot.sales.calculationVersion !== 1 ||
     snapshot.stock.calculationVersion !== 2
   )
