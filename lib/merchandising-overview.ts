@@ -206,6 +206,7 @@ export async function readOverview(
   ].sort((a, b) => (a ?? "").localeCompare(b ?? ""));
   return {
     supportingDataAvailable: Boolean(snapshot.trend),
+    trendUnavailableReason: snapshot.trendUnavailableReason ?? null,
     history: snapshot.sales.context.history,
     settings: {
       deadDays: snapshot.sales.context.settings.deadDays,

@@ -75,6 +75,8 @@ export const overviewCopy = {
     trend: "Виручка від початку року",
     currentYear: "Обраний рік",
     priorYear: "Минулий рік",
+    trendLimited:
+      "Річний графік недоступний через обсяг історії. Показники вибраного періоду доступні.",
     trendMissing: "Графік недоступний у старому знімку — оновіть показники",
     historyPartial: "Історія неповна; невідомі місяці не прирівняні до нуля",
     noSummary: "Недостатньо даних для висновків за період",
@@ -181,6 +183,8 @@ export const overviewCopy = {
     trend: "Revenue from the start of the year",
     currentYear: "Selected year",
     priorYear: "Prior year",
+    trendLimited:
+      "Annual chart unavailable because the history is too large. Selected-period metrics remain available.",
     trendMissing:
       "Trend unavailable in this older snapshot — refresh the metrics",
     historyPartial:

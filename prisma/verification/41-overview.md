@@ -47,6 +47,16 @@ cards or tables because ordinary reads require current/LY period membership.
 Stock aggregation and brand/status/ownership grouping use set-based SQL and shared
 finalizers, with no per-SKU or per-brand database lookup.
 
+YTD history is optional: a typed `SalesReportError` with `SALES_INPUT_LIMIT`, or a
+merged selection exceeding 100,000 facts, omits the trend context and materializes
+only main-period facts. The fallback has its own stable cache key with no trend
+calculation ID and exposes `trendUnavailableReason=INPUT_LIMIT`. Period sales,
+stock and action counts remain available; the chart and supporting LY outlier
+notes are unavailable. The localized message describes the history-volume limit
+rather than promising that refreshing an older snapshot will fix it. Main-report
+limits, unrelated failures and provenance mismatches still fail atomically; they
+are not swallowed as optional-history errors.
+
 Version-1 screen snapshots remain readable. Their absent dates are not backfilled
 or invented; their chart requests a refresh rather than presenting fabricated
 history. `SCREEN_SNAPSHOT_V1` remains the manifest-format marker, independently of

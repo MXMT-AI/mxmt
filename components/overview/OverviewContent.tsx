@@ -518,7 +518,11 @@ export default function OverviewContent({
                     copy={copy}
                   />
                 ) : (
-                  <Small>{copy.trendMissing}</Small>
+                  <Small>
+                    {view.trendUnavailableReason === "INPUT_LIMIT"
+                      ? copy.trendLimited
+                      : copy.trendMissing}
+                  </Small>
                 )}
               </Metric>
               <Metric

@@ -6,7 +6,7 @@ import { prisma } from "./prisma";
 import type { SqlClient, SqlDatabase } from "./connectors/database";
 import { payloadHash } from "./connectors/order-storage";
 import { withCalculationSnapshot } from "./calculation-snapshot";
-import { getSalesReportInSnapshot } from "./sales-report";
+import { getSalesReportInSnapshot, SalesReportError } from "./sales-report";
 import { calculateSkuDailyInSnapshot } from "./sku-daily-store";
 import { resolveSalesPeriod } from "./sales-period";
 import {
@@ -63,6 +63,7 @@ export interface ScreenSnapshot {
   sourceState: ScreenSourceState;
   sourceStateKey: string;
   trend?: { calculationId: string; context: SalesMetricContext };
+  trendUnavailableReason?: "INPUT_LIMIT";
 }
 /** Only provenance/freshness is live. Navigation never reads mutable facts or catalog values. */
 export async function readScreenSourceState(
@@ -116,7 +117,8 @@ export async function createScreenSnapshot(
       dateTo: period.to,
       now,
     });
-    const trend = await getSalesReportInSnapshot(
+    let trendUnavailableReason: "INPUT_LIMIT" | undefined;
+    let trend = await getSalesReportInSnapshot(
       tenantId,
       trendPeriod,
       tx,
@@ -124,7 +126,18 @@ export async function createScreenSnapshot(
         trendFacts = f;
         trendContext = c;
       },
-    );
+    ).catch((error: unknown) => {
+      if (
+        error instanceof SalesReportError &&
+        error.code === "SALES_INPUT_LIMIT"
+      ) {
+        trendFacts = [];
+        trendContext = undefined;
+        trendUnavailableReason = "INPUT_LIMIT";
+        return null;
+      }
+      throw error;
+    });
     const stock = await calculateSkuDailyInSnapshot(
       tenantId,
       { asOf: input.asOf, now },
@@ -132,16 +145,62 @@ export async function createScreenSnapshot(
     );
     if (
       !context ||
-      !trendContext ||
-      trend.provenance.sourceId !== sales.provenance.sourceId ||
-      payloadHash(trend.provenance.configIds) !==
-        payloadHash(sales.provenance.configIds) ||
+      (trend &&
+        (!trendContext ||
+          trend.provenance.sourceId !== sales.provenance.sourceId ||
+          payloadHash(trend.provenance.configIds) !==
+            payloadHash(sales.provenance.configIds))) ||
       sales.provenance.sourceId !== stock.provenance.sourceId ||
       sales.provenance.clientConfigId !== stock.provenance.clientConfigId ||
       payloadHash(sales.provenance.configIds) !==
         payloadHash(stock.provenance.configIds)
     )
       throw new ScreenApiError("INCONSISTENT_SCREEN_INPUTS");
+    const trendLyEnd = Temporal.PlainDate.from(trendPeriod.lyTo);
+    const fullTrendLyTo = trendLyEnd
+      .with({ day: trendLyEnd.daysInMonth })
+      .toString();
+    const lyEnd = Temporal.PlainDate.from(period.lyTo);
+    const fullLyTo = lyEnd.with({ day: lyEnd.daysInMonth }).toString();
+    const selectFacts = (supporting: boolean) => {
+      const eligible = [
+        ...new Map(
+          [...facts, ...(supporting ? trendFacts : [])].map((f) => [f.id, f]),
+        ).values(),
+      ].filter(
+        (f) =>
+          isEligibleSalesFact(f) ||
+          (!f.excluded &&
+            !f.stale &&
+            !f.projectMappingUnavailable &&
+            f.kind === "PREORDER"),
+      );
+      return eligible
+        .map((f) => ({ f, date: f.kind === "PREORDER" ? f.paidDate : f.date }))
+        .filter(
+          ({ date }) =>
+            inSalesPeriod(date, period.from, period.to) ||
+            inSalesPeriod(date, period.lyFrom, period.lyTo) ||
+            (supporting &&
+              (inSalesPeriod(date, trendPeriod.from, trendPeriod.to) ||
+                inSalesPeriod(date, trendPeriod.lyFrom, fullTrendLyTo) ||
+                inSalesPeriod(
+                  date,
+                  period.lyFrom.slice(0, 7) + "-01",
+                  fullLyTo,
+                ))),
+        );
+    };
+    let selected = selectFacts(Boolean(trend));
+    if (trend && selected.length > 100000) {
+      trend = null;
+      trendContext = undefined;
+      trendFacts = [];
+      trendUnavailableReason = "INPUT_LIMIT";
+      selected = selectFacts(false);
+    }
+    if (selected.length > 100000)
+      throw new ScreenApiError("SCREEN_INPUT_LIMIT", 422);
     const state = await readScreenSourceState(
       tenantId,
       sales.provenance.sourceId,
@@ -149,7 +208,7 @@ export async function createScreenSnapshot(
     );
     if (!state) throw new ScreenApiError("SOURCE_NOT_AVAILABLE");
     const sourceStateKey = screenSourceKey(state),
-      key = `calculation:screens:${payloadHash({ version: SCREEN_MODEL_VERSION, sales: sales.calculationRunId, stock: stock.calculationId, trend: trend.calculationRunId, sourceStateKey })}`;
+      key = `calculation:screens:${payloadHash({ version: SCREEN_MODEL_VERSION, sales: sales.calculationRunId, stock: stock.calculationId, trend: trend?.calculationRunId ?? null, sourceStateKey })}`;
     const [cached] = await tx.$queryRaw<
       Array<{ values: { snapshot: ScreenSnapshot } }>
     >(
@@ -196,7 +255,15 @@ export async function createScreenSnapshot(
       },
       sourceState: state,
       sourceStateKey,
-      trend: { calculationId: trend.calculationRunId, context: trendContext },
+      ...(trend && trendContext
+        ? {
+            trend: {
+              calculationId: trend.calculationRunId,
+              context: trendContext,
+            },
+          }
+        : {}),
+      ...(trendUnavailableReason ? { trendUnavailableReason } : {}),
     };
     await tx.$executeRaw(
       Prisma.sql`INSERT INTO "MerchandisingConfig" (id,"tenantId","configType",key,revision,values,"isActive") VALUES (${snapshot.snapshotId},${tenantId},'GENERAL',${key},1,${JSON.stringify({ kind: "SCREEN_SNAPSHOT_V1", snapshot })}::jsonb,false) ON CONFLICT ("tenantId","configType",key,revision) DO NOTHING`,
@@ -208,48 +275,12 @@ export async function createScreenSnapshot(
     );
     if (published.values.snapshot.snapshotId !== snapshot.snapshotId)
       return published.values.snapshot;
-    const eligible = [
-      ...new Map([...facts, ...trendFacts].map((f) => [f.id, f])).values(),
-    ].filter(
-      (f) =>
-        isEligibleSalesFact(f) ||
-        (!f.excluded &&
-          !f.stale &&
-          !f.projectMappingUnavailable &&
-          f.kind === "PREORDER"),
-    );
-    const selected = eligible
-      .map((f) => ({ f, date: f.kind === "PREORDER" ? f.paidDate : f.date }))
-      .filter(
-        ({ date }) =>
-          inSalesPeriod(date, period.from, period.to) ||
-          inSalesPeriod(date, period.lyFrom, period.lyTo) ||
-          inSalesPeriod(date, trendPeriod.from, trendPeriod.to) ||
-          inSalesPeriod(
-            date,
-            trendPeriod.lyFrom,
-            Temporal.PlainDate.from(trendPeriod.lyTo)
-              .with({
-                day: Temporal.PlainDate.from(trendPeriod.lyTo).daysInMonth,
-              })
-              .toString(),
-          ) ||
-          inSalesPeriod(
-            date,
-            period.lyFrom.slice(0, 7) + "-01",
-            Temporal.PlainDate.from(period.lyTo)
-              .with({ day: Temporal.PlainDate.from(period.lyTo).daysInMonth })
-              .toString(),
-          ),
-      );
-    if (selected.length > 100000)
-      throw new ScreenApiError("SCREEN_INPUT_LIMIT", 422);
     for (let offset = 0; offset < selected.length; offset += 300) {
       const values = selected
         .slice(offset, offset + 300)
         .map(
           ({ f, date }) =>
-            Prisma.sql`(${snapshot.snapshotId},${tenantId},${f.id},${f.sourceId},${f.orderId},${f.skuId},${f.sku},${f.name},${f.brandId},${f.brand},${f.categoryId},${f.category},${f.channelId},${f.channel},${f.currency},${f.productKind},${f.kind},${inSalesPeriod(date, period.from, period.to)},${inSalesPeriod(date, period.lyFrom, period.lyTo)},${date}::date,true,${f.revenue}::numeric,${f.quantity}::numeric,${f.kind === "PREORDER" ? null : (salesFactProfit(f)?.toString() ?? null)}::numeric)`,
+            Prisma.sql`(${snapshot.snapshotId},${tenantId},${f.id},${f.sourceId},${f.orderId},${f.skuId},${f.sku},${f.name},${f.brandId},${f.brand},${f.categoryId},${f.category},${f.channelId},${f.channel},${f.currency},${f.productKind},${f.kind},${inSalesPeriod(date, period.from, period.to)},${inSalesPeriod(date, period.lyFrom, period.lyTo)},${date}::date,${Boolean(trend)},${f.revenue}::numeric,${f.quantity}::numeric,${f.kind === "PREORDER" ? null : (salesFactProfit(f)?.toString() ?? null)}::numeric)`,
         );
       await tx.$executeRaw(
         Prisma.sql`INSERT INTO "MerchandisingScreenFact" ("snapshotId","tenantId","lineId","sourceId","orderId","skuId",sku,name,"brandId","brandName","categoryId","categoryName","channelId","channelName",currency,"productKind",kind,"inCurrent","inPriorYear","businessDate","isSupporting",revenue,quantity,"grossProfit") VALUES ${Prisma.join(values)}`,
