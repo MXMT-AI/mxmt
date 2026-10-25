@@ -1,4 +1,12 @@
-import { afterAll, beforeAll, describe, it, expect, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  it,
+  expect,
+  vi,
+} from "vitest";
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/prisma", () => ({ prisma: {} }));
 import type { PGlite } from "@electric-sql/pglite";
@@ -7,11 +15,14 @@ import { processConnectorRecalculation } from "@/lib/connectors/recalculation";
 import { calculateSkuDaily } from "@/lib/sku-daily-store";
 import { getSalesReport } from "@/lib/sales-report";
 import { createMerchandisingDb } from "../helpers/merchandising-db";
+import { Prisma } from "@prisma/client";
+import * as observability from "@/lib/observability";
 let pg: PGlite, db: SqlDatabase;
 beforeAll(async () => {
   ({ pg, db } = await createMerchandisingDb());
 }, 30000);
 afterAll(async () => pg?.close());
+afterEach(() => vi.restoreAllMocks());
 async function seed(id: string) {
   await pg.query(
     `INSERT INTO "Tenant" (id,name,slug,"updatedAt") VALUES ($1,$1,$1,now())`,
@@ -47,6 +58,93 @@ async function read(id: string) {
   ).rows[0];
 }
 describe("durable classification consumer", () => {
+  it("rechecks a newly visible live lease before claiming another intent for that source", async () => {
+    await seed("stale-selection");
+    await pg.exec(`INSERT INTO "DataImportRun" (id,"tenantId","sourceId",trigger,status,"idempotencyKey","businessDate","updatedAt") VALUES ('second-intent','stale-selection','stale-selection','MANUAL','SUCCESS','second',now(),now());
+      INSERT INTO "ConnectorRecalculation" ("importRunId","tenantId","sourceId","inputProvenance") VALUES ('second-intent','stale-selection','stale-selection','{}');`);
+    let injected = false;
+    // PGlite is single-connection: expose the competing committed claim between
+    // production SQL statements to model a stale source-selection snapshot.
+    const staleDb: SqlDatabase = {
+      ...db,
+      $transaction: (callback) =>
+        db.$transaction((tx) =>
+          callback({
+            ...tx,
+            $queryRaw: async <T>(query: Prisma.Sql) => {
+              const result = await tx.$queryRaw<T>(query);
+              if (
+                !injected &&
+                query.text.includes("FOR UPDATE OF c SKIP LOCKED")
+              ) {
+                injected = true;
+                await tx.$executeRaw(
+                  Prisma.sql`UPDATE "ConnectorRecalculation" SET state='RUNNING',"inputProvenance"=jsonb_build_object('leaseToken','other-worker','leaseUntil',now()+interval '2 minutes') WHERE "importRunId"='stale-selection'`,
+                );
+              }
+              return result;
+            },
+          }),
+        ),
+    };
+    const daily = vi.fn(calculateSkuDaily);
+    expect(
+      await processConnectorRecalculation("stale-selection", staleDb, {
+        daily,
+        sales: getSalesReport,
+      }),
+    ).toEqual({ processed: false });
+    expect(injected).toBe(true);
+    expect(daily).not.toHaveBeenCalled();
+    expect(
+      (
+        await pg.query(
+          `SELECT "importRunId",state,"inputProvenance"->>'leaseToken' token FROM "ConnectorRecalculation" WHERE "tenantId"='stale-selection' ORDER BY "importRunId"`,
+        )
+      ).rows,
+    ).toEqual([
+      { importRunId: "second-intent", state: "WAITING_ENGINE", token: null },
+      {
+        importRunId: "stale-selection",
+        state: "RUNNING",
+        token: "other-worker",
+      },
+    ]);
+  });
+  it.each([
+    [
+      "coded-error",
+      Object.assign(new Error("private database details"), {
+        code: "DAILY_INPUT_LIMIT",
+      }),
+      "DAILY_INPUT_LIMIT",
+    ],
+    ["plain-error", new Error("private database details"), "Error"],
+    ["non-error", "private database details", "RECALCULATION_UNAVAILABLE"],
+  ])("logs only failure metadata for %s", async (id, thrown, code) => {
+    await seed(id as string);
+    const event = vi
+      .spyOn(observability, "logInfo")
+      .mockImplementation(() => {});
+    const daily = vi.fn(async () => {
+      throw thrown;
+    });
+    expect(
+      await processConnectorRecalculation(id as string, db, {
+        daily,
+        sales: getSalesReport,
+      }),
+    ).toMatchObject({ phase: "DAILY", published: false });
+    expect(event).toHaveBeenCalledWith("connector.recalculation.failed", {
+      phase: "DAILY",
+      importRunId: id,
+      errorCode: code,
+    });
+    expect(JSON.stringify(event.mock.calls)).not.toContain(
+      "private database details",
+    );
+    expect(await read(id as string)).toMatchObject({ state: "FAILED" });
+  });
   it("publishes one phase per tick, saves immutable IDs and then becomes idle", async () => {
     await seed("phases");
     expect(await processConnectorRecalculation("foreign", db)).toEqual({

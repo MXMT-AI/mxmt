@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { calculateSkuDaily } from "@/lib/sku-daily-store";
 import { getSalesReport } from "@/lib/sales-report";
+import { logInfo } from "@/lib/observability";
 import type { SqlDatabase } from "./database";
 
 const engines = { daily: calculateSkuDaily, sales: getSalesReport };
@@ -35,10 +36,21 @@ export async function processConnectorRecalculation(
       AND EXISTS(SELECT 1 FROM "ConnectorRecalculation" r WHERE r."tenantId"=c."tenantId" AND r."sourceId"=c."sourceId" AND r.state<>'COMPLETE' AND (r.state='WAITING_ENGINE' OR COALESCE((r."inputProvenance"->>'availableAt')::timestamptz,'-infinity'::timestamptz)<=now()))
       ORDER BY (SELECT min(r."requestedAt") FROM "ConnectorRecalculation" r WHERE r."tenantId"=c."tenantId" AND r."sourceId"=c."sourceId" AND r.state<>'COMPLETE'),c.id LIMIT 1 FOR UPDATE OF c SKIP LOCKED`);
     if (!source) return null;
+    // READ COMMITTED can select the source using a snapshot from before another
+    // claimant committed. Recheck after its connection lock has been acquired.
+    const [liveLease] = await tx.$queryRaw<
+      Array<{ importRunId: string }>
+    >(Prisma.sql`
+      SELECT "importRunId" FROM "ConnectorRecalculation"
+      WHERE "tenantId"=${source.tenantId} AND "sourceId"=${source.sourceId}
+      AND state='RUNNING' AND ("inputProvenance"->>'leaseUntil')::timestamptz>now()
+      LIMIT 1`);
+    if (liveLease) return null;
     const [row] = await tx.$queryRaw<Intent[]>(Prisma.sql`
       SELECT "importRunId","tenantId","sourceId",state,"inputProvenance" FROM "ConnectorRecalculation"
       WHERE "tenantId"=${source.tenantId} AND "sourceId"=${source.sourceId} AND state<>'COMPLETE'
       AND (state='WAITING_ENGINE' OR COALESCE(("inputProvenance"->>'availableAt')::timestamptz,'-infinity'::timestamptz)<=now())
+      AND (state<>'RUNNING' OR COALESCE(("inputProvenance"->>'leaseUntil')::timestamptz,'-infinity'::timestamptz)<=now())
       ORDER BY (state='RUNNING') DESC,"requestedAt","importRunId" LIMIT 1 FOR UPDATE`);
     if (!row) return null;
     await tx.$executeRaw(
@@ -71,7 +83,18 @@ export async function processConnectorRecalculation(
       "inputProvenance"=("inputProvenance"-'leaseToken'-'leaseUntil'-'availableAt'-'errorCode')||${JSON.stringify(publication)}::jsonb||jsonb_build_object('engine','salesdrive-v2','phaseCompletedAt',now(),'inputConsistency','separate-immutable-phase-calculations')
       WHERE "importRunId"=${intent.importRunId} AND "tenantId"=${intent.tenantId} AND state='RUNNING' AND "inputProvenance"->>'leaseToken'=${token}`);
     return { processed: true, phase, published: updated === 1 };
-  } catch {
+  } catch (error) {
+    const errorCode =
+      error instanceof Error
+        ? "code" in error && typeof error.code === "string"
+          ? error.code
+          : error.name
+        : "RECALCULATION_UNAVAILABLE";
+    logInfo("connector.recalculation.failed", {
+      phase,
+      importRunId: intent.importRunId,
+      errorCode,
+    });
     await db.$executeRaw(
       Prisma.sql`UPDATE "ConnectorRecalculation" SET state='FAILED',"inputProvenance"=("inputProvenance"-'leaseToken'-'leaseUntil')||jsonb_build_object('availableAt',now()+interval '5 minutes','errorCode','RECALCULATION_UNAVAILABLE') WHERE "importRunId"=${intent.importRunId} AND "tenantId"=${intent.tenantId} AND state='RUNNING' AND "inputProvenance"->>'leaseToken'=${token}`,
     );

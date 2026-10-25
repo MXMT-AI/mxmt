@@ -101,13 +101,18 @@ The durable outbox moves WAITING_ENGINE → RUNNING/DAILY → PENDING/SALES → 
 Each tick runs one existing calculation service, independently of remote import
 work, retaining the Hobby minute-tick setup without a new scheduler or host.
 
-Short claim transactions lock the connection and intent. A partial unique index
+Short claim transactions lock the connection and intent, then recheck the live
+lease using a fresh statement before selecting an intent. A partial unique index
 allows at most one RUNNING intent per tenant/source. Two-minute lease tokens fence
 completion acknowledgments and allow recovery after an interrupted worker.
 Failure retains its phase and a sanitized error code, retrying after five minutes.
+A code-only diagnostic event records phase, import run and error code/name without
+logging the error message or stack.
 Settings/metadata invalidation restarts DAILY, including when it interrupts SALES;
 an old worker cannot acknowledge the changed request. The settings card reports
 pending updates and automatic retry using its existing styling and localization.
+Polling continues through calculation/retry states after imports finish, without
+showing import-page processing controls solely because a calculation is pending.
 
 The intent records `dailyCalculationId` and `salesCalculationId`. These are
 **separate immutable phase results**, not a claim of one cross-engine database

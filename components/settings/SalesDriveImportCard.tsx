@@ -43,8 +43,10 @@ export default function SalesDriveImportCard({ lang, canManage, resource = "orde
     return () => controller.abort();
   }, [load, uk]);
   const polling = running(job) || sync && Boolean(syncInfo.resources?.some((r)=>r.pending>0));
+  const calculating = sync && ['WAITING_ENGINE','PENDING','RUNNING','FAILED'].includes(syncInfo.calculation?.state ?? '');
+  const watching = polling || calculating;
   useEffect(() => {
-    if (!polling) return;
+    if (!watching) return;
     const controller = new AbortController();
     let timer: ReturnType<typeof setTimeout>;
     const poll = async () => {
@@ -54,7 +56,7 @@ export default function SalesDriveImportCard({ lang, canManage, resource = "orde
     };
     timer = setTimeout(poll, 10_000);
     return () => { clearTimeout(timer); controller.abort(); };
-  }, [polling, load, uk]);
+  }, [watching, load, uk]);
   async function act(action: string) {
     setBusy(true); setError("");
     try {
