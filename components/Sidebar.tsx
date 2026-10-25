@@ -118,7 +118,7 @@ export default function Sidebar({
           <div className="text-[var(--muted)] text-xs truncate">{userRole}</div>
         </div>
       </div>
-      <details className="md:hidden">
+      <details key={pathname} className="md:hidden">
         <summary className="cursor-pointer px-5 py-3 text-sm font-medium">
           {copy.menu}
         </summary>

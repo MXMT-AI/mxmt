@@ -13,12 +13,27 @@ export default async function MerchandisingLayout({
 }) {
   const user = await requireCurrentUser("VIEWER").catch(() => null);
   if (!user) redirect("/login");
-  const options = await readNavigationOptions(user.tenantId).catch(() => null);
   return (
     <Suspense fallback={<MerchandisingLoading />}>
-      <MerchandisingShell options={options} now={new Date().toISOString()}>
+      <NavigationContent tenantId={user.tenantId}>
         {children}
-      </MerchandisingShell>
+      </NavigationContent>
     </Suspense>
+  );
+}
+
+/** Stream the loading state while tenant-scoped settings and channel choices resolve. */
+async function NavigationContent({
+  tenantId,
+  children,
+}: {
+  tenantId: string;
+  children: React.ReactNode;
+}) {
+  const options = await readNavigationOptions(tenantId).catch(() => null);
+  return (
+    <MerchandisingShell options={options} now={new Date().toISOString()}>
+      {children}
+    </MerchandisingShell>
   );
 }

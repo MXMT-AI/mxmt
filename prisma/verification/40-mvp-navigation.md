@@ -64,6 +64,11 @@ labels, native keyboard semantics, focus styles and 44px primary touch targets.
 The main skip link is localized. Existing theme, token refresh and auth flows are
 reused.
 
+The settings/channel lookup runs inside the layout's Suspense boundary, allowing
+the localized loading state to stream before that query finishes. The mobile menu
+remounts closed when the pathname changes, so it does not keep pushing the new
+screen below an expanded menu after client-side navigation.
+
 `MVP_NAVIGATION_ENABLED=false` hides the MVP menu group;
 `LEGACY_NAVIGATION_ENABLED=false` hides Other tools. Both default to enabled.
 These server-side deployment flags affect menu visibility only; routes retain
