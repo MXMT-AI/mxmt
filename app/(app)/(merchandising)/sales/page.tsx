@@ -1,4 +1,4 @@
-import MerchandisingDestination from "@/components/merchandising/MerchandisingDestination";
+import SalesWorkspace from "@/components/sales/SalesWorkspace";
 export default function Page() {
-  return <MerchandisingDestination screen="sales" />;
+  return <SalesWorkspace />;
 }

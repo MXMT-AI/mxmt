@@ -131,7 +131,7 @@ export function merchandisingHref(
   const destination = path.split("/")[1];
   const controls =
     destination === "sales"
-      ? ["metric", "groupBy"]
+      ? ["metric", "groupBy", "measure", "others"]
       : destination === "stock"
         ? ["classification", "ownership", "supplierId", "groupBy"]
         : destination === "repricing"
@@ -158,7 +158,15 @@ export function applyMerchandisingFilters(
 ) {
   const next = new URLSearchParams(params);
   const previous = readMerchandisingFilters(params, now);
-  for (const key of ["page", "sort", "direction", "search"]) next.delete(key);
+  for (const key of [
+    "page",
+    "channelPage",
+    "others",
+    "sort",
+    "direction",
+    "search",
+  ])
+    next.delete(key);
   if (
     previous.dateFrom !== filters.dateFrom ||
     previous.dateTo !== filters.dateTo
