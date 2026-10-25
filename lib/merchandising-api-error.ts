@@ -11,7 +11,9 @@ export function merchandisingApiError(error: unknown) {
     error instanceof DailySkuError
   )
     return apiError(
-      "Merchandising data unavailable. Check the selected snapshot, source and import progress.",
+      error.status === 400
+        ? "Invalid merchandising screen query."
+        : "Merchandising data unavailable. Check the selected snapshot, source and import progress.",
       error.status,
       error.code,
     );

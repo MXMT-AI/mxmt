@@ -162,6 +162,20 @@ describe("merchandising API snapshot and RBAC boundary", () => {
     );
   });
   it.each([
+    ["stock", "?snapshotId=x&sort=invalid", "INVALID_SCREEN_QUERY"],
+    ["reordering", "?snapshotId=x&mode=brand", "BRAND_REQUIRED"],
+    ["sales", "?snapshotId=x&classification=DEAD", "STOCK_FILTER_ON_SALES_VIEW"],
+  ])("describes invalid %s queries without suggesting synchronization", async (screen, q, code) => {
+    await login();
+    const response = await route(screen, q);
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: "Invalid merchandising screen query.",
+      code,
+    });
+    expect(m.read).not.toHaveBeenCalled();
+  });
+  it.each([
     '{"tenantId":"b"}',
     '{"dateFrom":"2026-09-01"}',
     '{"asOf":"not-a-date"}',
@@ -187,6 +201,10 @@ describe("merchandising API snapshot and RBAC boundary", () => {
     );
     const response = await route();
     expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({
+      error: "Merchandising data unavailable. Check the selected snapshot, source and import progress.",
+      code: "SCREEN_SNAPSHOT_NOT_FOUND",
+    });
   });
   it("maps invalid calendar periods and sanitizes internal failures", async () => {
     await login();

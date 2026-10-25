@@ -107,6 +107,25 @@ foreign-key isolation and constant query counts. No production data is read.
 Apply the additive migration on an isolated staging database before deploying the
 application. Check representative tenant volume, materialization duration, query
 plans and pagination there; local fixtures do not establish production capacity.
+The interactive transaction has a 45-second timeout; the route's 300-second
+`maxDuration` does not extend it. Measure cold materialization near the existing
+100,000 financial-line and 20,000 SKU limits, including concurrent tenant requests.
+If this exceeds the transaction budget, move preparation to a bounded background
+workflow before opening it to that volume; do not merely raise the route duration.
+
+`SkuDaily_screen_identity` uses an ordinary unique-index build that can block
+writers. Measure its duration on the staging copy and schedule deployment outside
+daily SKU calculation and connector sync windows. No concurrent index build or
+production timing measurement is performed by this PR.
+
+Snapshot creation currently has no per-tenant rate limit or automatic retention.
+Before broad rollout, define request quotas and a retention policy for pinned
+snapshot IDs. Repeating identical inputs reuses the snapshot, but distinct dates
+and changed inputs can accumulate stored facts. Cleanup must account for saved
+drill-down links and component references; silently deleting snapshots or their
+daily rows would break the immutable navigation contract. These operational
+controls remain follow-up work, not guarantees supplied by this API.
+
 Existing manifests are not backfilled: the new endpoint creates screen snapshots
 explicitly. Prefer application rollback with the additive schema retained, then
 a reviewed forward fix. Do not delete used snapshot/daily rows or run `db push`.
