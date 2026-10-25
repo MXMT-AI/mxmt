@@ -34,6 +34,10 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     if (stored === "uk" || stored === "en") setLangState(stored);
   }, []);
 
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
+
   const setLang = useCallback((l: Lang) => {
     setLangState(l);
     localStorage.setItem(LS_KEY, l);

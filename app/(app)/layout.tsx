@@ -1,3 +1,6 @@
+import AppSkipLink from "@/components/AppSkipLink";
+import { Suspense } from "react";
+import { navigationFeatures } from "@/lib/navigation-features";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
@@ -23,13 +26,21 @@ export default async function AppLayout({
   if (!tenant) redirect("/login");
 
   return (
-    <div className="flex min-h-screen bg-[var(--bg)]">
-      <a href="#main-content" className="skip-link">
-        Skip to main content
-      </a>
+    <div className="flex flex-col md:flex-row min-h-screen bg-[var(--bg)]">
+      <AppSkipLink />
       <TokenRefreshProvider />
-      <Sidebar tenantName={tenant.name} userRole={role ?? "viewer"} />
-      <main id="main-content" className="flex-1 overflow-auto min-w-0" tabIndex={-1}>
+      <Suspense fallback={<div className="md:w-56" />}>
+        <Sidebar
+          tenantName={tenant.name}
+          userRole={role ?? "viewer"}
+          features={navigationFeatures()}
+        />
+      </Suspense>
+      <main
+        id="main-content"
+        className="flex-1 overflow-auto min-w-0"
+        tabIndex={-1}
+      >
         {children}
       </main>
     </div>

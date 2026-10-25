@@ -186,3 +186,6 @@ remains pending until the required source package and approvals are supplied.
 
 For version-pinned Overview, Sales, Stock, Repricing and Reordering read models,
 see [screen API verification (#39)](39-screen-apis.md).
+
+For MVP routes, URL-owned shared filters, monobrand grouping and retained legacy
+features, see [navigation verification (#40)](40-mvp-navigation.md).
