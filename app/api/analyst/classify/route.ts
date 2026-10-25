@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import type { SkuFlag, ClassifiedSku } from "@/lib/analyst-types";
-import { classify, getThresholds, snapshotStock, canClassifyProduct } from "@/lib/classify";
+import { LEGACY_CLASSIFICATION_FILTER, classify, getThresholds, snapshotStock, canClassifyProduct } from "@/lib/classify";
 import { requireApiUser } from "@/lib/server-auth";
 
 export type { SkuFlag, ClassifiedSku };
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     prisma.sku.findMany({
       where: {
         tenantId,
-        productKind:{notIn:["SERVICE","GIFT_CARD"]}, status: { in: ["ACTIVE", "NEW"] },
+        ...LEGACY_CLASSIFICATION_FILTER, status: { in: ["ACTIVE", "NEW"] },
         ...(filterBrand ? { brand: { name: { contains: filterBrand, mode: "insensitive" } } } : {}),
         ...(filterCategory ? { category: { contains: filterCategory, mode: "insensitive" } } : {}),
       },

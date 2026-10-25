@@ -41,7 +41,7 @@ export async function runDataPipeline({
 /** Commit an idempotent recalculation intent alongside the successful import inputs. */
 export async function completeConnectorInputs(tx: SqlClient, job: Pick<ConnectorJob, "tenantId" | "sourceId" | "importRunId" | "resource">) {
   await tx.$executeRaw(Prisma.sql`INSERT INTO "ConnectorRecalculation" ("importRunId","tenantId","sourceId","inputProvenance")
-    SELECT ${job.importRunId},${job.tenantId},${job.sourceId},jsonb_build_object('resource',${job.resource}::text,'importRunId',${job.importRunId}::text,'activeCatalogRunId',s."activeImportRunId",'orderWatermark',c.checkpoint,'engine','salesdrive-v1-pending-35-37','inputConsistency','source-watermarks-not-frozen-financial-snapshot')
+    SELECT ${job.importRunId},${job.tenantId},${job.sourceId},jsonb_build_object('resource',${job.resource}::text,'importRunId',${job.importRunId}::text,'activeCatalogRunId',s."activeImportRunId",'orderWatermark',c.checkpoint,'engine','salesdrive-v2','inputConsistency','trigger-watermarks-not-frozen-calculation-inputs')
     FROM "DataSource" s LEFT JOIN "SyncCursor" c ON c."tenantId"=s."tenantId" AND c."sourceId"=s.id AND c.resource='orders'
     WHERE s.id=${job.sourceId} AND s."tenantId"=${job.tenantId} ON CONFLICT DO NOTHING`);
 }

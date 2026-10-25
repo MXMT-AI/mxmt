@@ -176,3 +176,6 @@ exports, see [sales metrics verification (#35)](35-sales-financial-metrics.md).
 
 For daily velocity, WOH, STR, dated valuation and availability materialization,
 see [daily SKU metrics verification (#36)](36-daily-sku-metrics.md).
+
+For canonical SKU status, shortage union, K4 brand signals and the phased sync
+recalculation consumer, see [classification verification (#37)](37-sku-classification.md).

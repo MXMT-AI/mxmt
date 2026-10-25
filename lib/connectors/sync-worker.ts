@@ -1,4 +1,5 @@
 import "server-only";
+import { processConnectorRecalculation } from "./recalculation";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { salesDriveScheduleDecision } from "@/lib/data-scheduler";
@@ -30,7 +31,7 @@ export async function scheduleSalesDriveSyncs(db: SqlDatabase = prisma, now = ne
 export async function processSalesDriveSync(tenantId?: string, db: SqlDatabase = prisma, load = loadSalesDriveRuntime) {
   await dispatchSyncCycle(db,tenantId);
   const job = await claimConnectorJob<OrderJob | InventoryJob>(null,db,tenantId);
-  if (!job) return {processed:false};
+  if (!job) return processConnectorRecalculation(tenantId,db);
   const result = job.resource==='inventory' ? await processInventoryJob(tenantId,db,load,job as InventoryJob) : await processOrderJob(tenantId,db,load,job as OrderJob);
   logInfo('connector.sync.step',{jobId:job.id,sourceId:job.sourceId,resource:job.resource});
   return result;

@@ -1,6 +1,6 @@
 import { Temporal } from "@js-temporal/polyfill";
 import { financialDecimal as D } from "./merchandising-policy";
-export const SKU_DAILY_CALCULATION_VERSION = 1;
+export const SKU_DAILY_CALCULATION_VERSION = 2;
 export interface DailySkuInput {
   skuId: string;
   sku: string;
@@ -228,6 +228,7 @@ export function calculateDailySku(
     weeksOnHand: woh?.toString() ?? null,
     daysToZero: daysToZero?.toString() ?? null,
     firstReceiptDate: input.firstReceiptDate,
+    receiptHistoryComplete: input.receiptHistoryCovered,
     lastReceiptDate: input.lastReceiptDate,
     lastSaleDate: input.lastSaleDate,
     inSeason,
@@ -264,8 +265,9 @@ export function summarizeDailySkus(
   const active = merchandise.filter((r) => r.active === true),
     unknownActivity = rows.filter(
       (r) =>
-        r.productKind === "UNKNOWN" ||
-        (r.productKind === "MERCHANDISE" && r.active === null),
+        r.inSeason &&
+        (r.productKind === "UNKNOWN" ||
+          (r.productKind === "MERCHANDISE" && r.active === null)),
     ).length;
   const unknownStock = active.filter((r) => r.quantity === null).length,
     inStock = active.filter(

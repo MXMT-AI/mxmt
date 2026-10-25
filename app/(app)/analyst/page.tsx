@@ -2,7 +2,7 @@ import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import AnalystApp from "@/components/analyst/AnalystApp";
 import type { ClassifiedSku, SkuFlag } from "@/lib/analyst-types";
-import { classify, getThresholds } from "@/lib/classify";
+import { LEGACY_CLASSIFICATION_FILTER, classify, getThresholds } from "@/lib/classify";
 
 export default async function AnalystPage() {
   const h = await headers();
@@ -13,7 +13,7 @@ export default async function AnalystPage() {
 
   const [skus, snapshots, sales30raw, sales7raw, onboarding, tenant] = await Promise.all([
     prisma.sku.findMany({
-      where: { tenantId, status: { in: ["ACTIVE", "NEW"] } },
+      where: { tenantId, ...LEGACY_CLASSIFICATION_FILTER, status: { in: ["ACTIVE", "NEW"] } },
       include: { brand: { select: { name: true, leadTimeDays: true } } },
     }),
     prisma.inventorySnapshot.findMany({

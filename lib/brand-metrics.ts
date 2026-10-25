@@ -1,5 +1,109 @@
 import { prisma } from "@/lib/prisma";
 import { getActiveAgentImportRunId } from "@/lib/agent-data-source";
+import { financialDecimal as D } from "./merchandising-policy";
+import {
+  classifyWoh,
+  isNewReceipt,
+  type ClassifiedDailySku,
+  type MerchandisingPolicy,
+} from "./classify";
+
+/** K4 consumes the frozen SKU version. Ratios use sums, never an average of SKU ratios. */
+export function summarizeDailyBrands(
+  rows: ClassifiedDailySku[],
+  policy: MerchandisingPolicy,
+) {
+  const groups = new Map<string | null, ClassifiedDailySku[]>();
+  for (const row of rows) {
+    if (row.productKind === "SERVICE" || row.productKind === "GIFT_CARD")
+      continue;
+    const group = groups.get(row.brandId) ?? [];
+    group.push(row);
+    groups.set(row.brandId, group);
+  }
+  return [...groups]
+    .sort(([a], [b]) => (a ?? "").localeCompare(b ?? ""))
+    .map(([brandId, items]) => {
+      const sum = (
+        field: "quantity" | "velocityPerWeek" | "cohortSalesUnits",
+      ) => items.reduce((total, r) => total.add(r[field] ?? 0), D(0));
+      const quantityComplete = items.every(
+        (r) => r.quantity !== null && r.productKind === "MERCHANDISE",
+      );
+      const velocityComplete =
+        quantityComplete &&
+        items.every(
+          (r) => r.velocityState === "KNOWN" || r.velocityState === "ZERO",
+        );
+      const stock = sum("quantity"),
+        velocity = sum("velocityPerWeek");
+      const woh =
+        velocityComplete && velocity.gt(0) ? stock.div(velocity) : null;
+      const cohortItems = items.filter(
+        (r) =>
+          r.productKind === "MERCHANDISE" &&
+          r.cohortHistoryComplete &&
+          r.cohortSalesUnits !== null &&
+          D(r.cohortSalesUnits).gte(0) &&
+          r.quantity !== null,
+      );
+      const cohortSales = cohortItems.reduce(
+        (s, r) => s.add(r.cohortSalesUnits!),
+        D(0),
+      );
+      const cohortStock = cohortItems.reduce(
+        (s, r) => s.add(r.quantity!),
+        D(0),
+      );
+      const str = cohortSales.add(cohortStock).gt(0)
+        ? cohortSales.div(cohortSales.add(cohortStock))
+        : null;
+      const receiptComplete = items.every(
+        (r) => r.receiptHistoryComplete && r.firstReceiptDate !== null,
+      );
+      const firstReceiptDate = receiptComplete
+        ? items.map((r) => r.firstReceiptDate!).sort()[0]
+        : null;
+      const dataErrors = items.filter(
+        (r) => r.classification === "DATA_ERROR",
+      ).length;
+      const signal =
+        brandId === null
+          ? "MISSING_BRAND"
+          : isNewReceipt(
+                firstReceiptDate,
+                items[0].asOf,
+                policy.newProductWeeks,
+              )
+            ? "NEW"
+            : items.every((r) => !r.inSeason)
+              ? "OFF_SEASON"
+              : dataErrors || !velocityComplete
+                ? "UNAVAILABLE"
+                : woh !== null
+                  ? classifyWoh(woh.toString(), policy)
+                  : stock.gt(0) && velocity.isZero()
+                    ? "DEAD"
+                    : "UNAVAILABLE";
+      return {
+        brandId,
+        brandName: items[0].brandName,
+        signal,
+        firstReceiptDate,
+        ownership: items[0].brandOwnership,
+        warnings:
+          items[0].brandOwnership === "UNKNOWN" ? ["OWNERSHIP_UNKNOWN"] : [],
+        skuCount: items.length,
+        dataErrorSkuCount: dataErrors,
+        quantity: quantityComplete ? stock.toString() : null,
+        velocityPerWeek: velocityComplete ? velocity.toString() : null,
+        weeksOnHand: woh?.toString() ?? null,
+        sellThroughRatio: str?.toString() ?? null,
+        strCoveredSkuCount: cohortItems.length,
+        strComplete: cohortItems.length === items.length,
+      };
+    });
+}
 
 export interface BrandMetric {
   brandId: string;
