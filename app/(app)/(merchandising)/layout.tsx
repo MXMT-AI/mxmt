@@ -15,7 +15,10 @@ export default async function MerchandisingLayout({
   if (!user) redirect("/login");
   return (
     <Suspense fallback={<MerchandisingLoading />}>
-      <NavigationContent tenantId={user.tenantId}>
+      <NavigationContent
+        tenantId={user.tenantId}
+        exportAllowed={["ANALYST", "ADMIN", "SUPER_ADMIN"].includes(user.role)}
+      >
         {children}
       </NavigationContent>
     </Suspense>
@@ -26,13 +29,19 @@ export default async function MerchandisingLayout({
 async function NavigationContent({
   tenantId,
   children,
+  exportAllowed,
 }: {
   tenantId: string;
+  exportAllowed: boolean;
   children: React.ReactNode;
 }) {
   const options = await readNavigationOptions(tenantId).catch(() => null);
   return (
-    <MerchandisingShell options={options} now={new Date().toISOString()}>
+    <MerchandisingShell
+      options={options}
+      now={new Date().toISOString()}
+      exportAllowed={exportAllowed}
+    >
       {children}
     </MerchandisingShell>
   );

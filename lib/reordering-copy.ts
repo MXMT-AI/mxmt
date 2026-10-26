@@ -78,10 +78,10 @@ export const reorderingCopy = {
     exportReady: "Eligible for export",
     csv: "Export CSV",
     csvSupplier: "Supplier CSV",
-    csvPending:
-      "CSV export is not available yet. No orders are sent to suppliers.",
+    csvReady:
+      "CSV files are grouped by supplier and currency. No orders are sent to suppliers.",
     globalBasis:
-      "Only eligible positive recommendations enter future exports. Off-season and excluded rows remain zero. Missing inputs are not replaced by invented values.",
+      "Only eligible positive recommendations enter exports. Off-season and excluded rows remain zero. Missing inputs are not replaced by invented values.",
     page: "Page",
     previous: "Previous",
     next: "Next",
@@ -193,10 +193,10 @@ export const reorderingCopy = {
     exportReady: "Доступні для експорту",
     csv: "Експорт CSV",
     csvSupplier: "CSV постачальника",
-    csvPending:
-      "Експорт CSV поки недоступний. Замовлення постачальникам не надсилаються.",
+    csvReady:
+      "CSV згруповані за постачальником і валютою. Замовлення постачальникам не надсилаються.",
     globalBasis:
-      "До майбутнього експорту потрапляють лише доступні додатні рекомендації. Позасезонні й виключені рядки залишаються з нулем. Відсутні дані не замінюються вигаданими значеннями.",
+      "До експорту потрапляють лише доступні додатні рекомендації. Позасезонні й виключені рядки залишаються з нулем. Відсутні дані не замінюються вигаданими значеннями.",
     page: "Сторінка",
     previous: "Назад",
     next: "Далі",

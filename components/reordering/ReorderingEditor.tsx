@@ -14,6 +14,9 @@ import { reorderingCopy } from "@/lib/reordering-copy";
 import type { getReorderingPreview } from "@/lib/reordering-store";
 import type { Lang } from "@/lib/translations";
 import Controls from "./ReorderingControls";
+import { useScenarioExportPermission } from "@/components/merchandising/MerchandisingShell";
+import { useScenarioExport } from "@/components/merchandising/useScenarioExport";
+import ScenarioExportPanel from "@/components/merchandising/ScenarioExportPanel";
 import Table from "./ReorderingTable";
 import Summary, { SupplierGroups } from "./ReorderingSummary";
 export type ReorderingPreview = Awaited<
@@ -64,6 +67,8 @@ export default function ReorderingEditor({
     JSON.stringify([snapshotId, needsBrand ? "brand-options" : state.draft]),
     "snapshotId",
   );
+  const allowed = useScenarioExportPermission(),
+    exportState = useScenarioExport("reorder");
   const current = preview.current && !needsBrand,
     error = preview.error;
   /** Sync shareable controls without putting transient transit confirmations into history. */
@@ -173,6 +178,18 @@ export default function ReorderingEditor({
         current={current && !error}
         copy={copy}
         locale={locale}
+        exporting={exportState.busy}
+        onExport={
+          allowed && current && !error && preview.data?.canExport
+            ? () => void exportState.prepare(preview.data!.previewId, request)
+            : undefined
+        }
+      />
+      <ScenarioExportPanel
+        state={exportState}
+        previewId={preview.data?.previewId}
+        allowed={allowed}
+        lang={lang}
       />
       {current && !error && preview.data ? (
         <SupplierGroups
@@ -180,6 +197,16 @@ export default function ReorderingEditor({
           data={preview.data}
           copy={copy}
           locale={locale}
+          exporting={exportState.busy}
+          onExport={
+            allowed
+              ? (supplierId, currency) =>
+                  void exportState.prepare(preview.data!.previewId, request, {
+                    supplierId,
+                    currency,
+                  })
+              : undefined
+          }
         />
       ) : null}
     </div>

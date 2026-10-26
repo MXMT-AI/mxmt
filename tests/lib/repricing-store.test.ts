@@ -59,7 +59,7 @@ describe("immutable tenant-scoped repricing inputs", () => {
     });
     expect(r.capabilities).toEqual({
       preview: true,
-      export: false,
+      export: true,
       execute: false,
     });
     expect(

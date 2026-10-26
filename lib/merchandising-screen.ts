@@ -203,19 +203,19 @@ export async function getMerchandisingScreen(
       capabilities: {
         readOnly: true,
         preview: screen === "repricing" || screen === "reordering",
-        export: false,
+        export: screen === "repricing" || screen === "reordering",
         ...(screen === "repricing"
           ? {
-              reason:
-                "REPRICING_WORKSPACE_AND_EXPORT_ARE_SEPARATE_ROADMAP_WORK",
+              reason: "SCENARIO_EXPORT_REQUIRES_ANALYST",
               inputsEndpoint: "/api/merchandising/repricing/inputs",
               previewEndpoint: "/api/merchandising/repricing/preview",
+              exportEndpoint: "/api/merchandising/exports",
             }
           : screen === "reordering"
             ? {
-                reason:
-                  "REORDER_WORKSPACE_AND_EXPORT_ARE_SEPARATE_ROADMAP_WORK",
+                reason: "SCENARIO_EXPORT_REQUIRES_ANALYST",
                 previewEndpoint: "/api/merchandising/reordering/preview",
+                exportEndpoint: "/api/merchandising/exports",
               }
             : {}),
       },

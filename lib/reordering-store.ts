@@ -143,7 +143,7 @@ export async function getReorderingPreview(
         request.pageSize,
         result.rows.length,
       ),
-      capabilities: { preview: true, export: false, execute: false },
+      capabilities: { preview: true, export: true, execute: false },
     };
   });
 }
