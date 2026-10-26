@@ -18,6 +18,11 @@ import { repricingUiSkus } from "../helpers/repricing-workspace";
 import { reorderingUiSkus } from "../helpers/reordering-workspace";
 const id = "11111111-1111-4111-8111-111111111111";
 describe("CSV wire format and formula protection", () => {
+  it("preserves the approved D09 repricing column order", () => {
+    expect(REPRICE_CSV_HEADERS.join(";")).toBe(
+      "sku;barcode;brand;category;name;old_price;new_price;discount_pct;promo_days;reason",
+    );
+  });
   it("emits BOM, semicolon columns, CRLF records and escaped localized multiline text", () => {
     const csv = csvDocument(
       ["sku", "name"],

@@ -43,6 +43,35 @@ describe("export retry identity and download/history UI", () => {
     attempt.complete("intent");
     expect(attempt.id("intent", create)).toBe("two");
   });
+  it("retains unresolved IDs when switching suppliers or scenario targets and completes only the confirmed key", () => {
+    const attempt = new ExportAttempt();
+    const create = vi
+      .fn()
+      .mockReturnValueOnce("supplier-a-original")
+      .mockReturnValueOnce("supplier-b-original")
+      .mockReturnValueOnce("global-original")
+      .mockReturnValueOnce("supplier-b-new");
+    const supplierA = JSON.stringify([
+      "reorder",
+      "preview",
+      { supplierId: "a", currency: "UAH" },
+    ]);
+    const supplierB = JSON.stringify([
+      "reorder",
+      "preview",
+      { supplierId: "b", currency: "UAH" },
+    ]);
+    const all = JSON.stringify(["reorder", "preview", null]);
+    expect(attempt.id(supplierA, create)).toBe("supplier-a-original");
+    expect(attempt.id(supplierB, create)).toBe("supplier-b-original");
+    expect(attempt.id(all, create)).toBe("global-original");
+    attempt.complete(supplierB);
+    attempt.complete("unrelated");
+    expect(attempt.id(supplierA, create)).toBe("supplier-a-original");
+    expect(attempt.id(all, create)).toBe("global-original");
+    expect(attempt.id(supplierB, create)).toBe("supplier-b-new");
+    expect(create).toHaveBeenCalledTimes(4);
+  });
   it.each(["uk", "en"] as const)(
     "renders prepared file links and actor/time history in %s",
     (lang) => {

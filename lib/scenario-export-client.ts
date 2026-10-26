@@ -1,13 +1,17 @@
 import type { ExportKind } from "./scenario-export-contract";
 /** Reuse the same idempotency key after an uncertain response; a completed click starts a new export. */
 export class ExportAttempt {
-  private pending: { key: string; id: string } | null = null;
+  private pending = new Map<string, string>();
   id(key: string, create: () => string) {
-    if (this.pending?.key !== key) this.pending = { key, id: create() };
-    return this.pending.id;
+    let id = this.pending.get(key);
+    if (id === undefined) {
+      id = create();
+      this.pending.set(key, id);
+    }
+    return id;
   }
   complete(key: string) {
-    if (this.pending?.key === key) this.pending = null;
+    this.pending.delete(key);
   }
 }
 export const exportCopy = {

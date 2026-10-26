@@ -91,3 +91,19 @@ Final checks: `npm test -- --maxWorkers=1` passed **936 tests across 81 files**;
 rerun hit two database setup-hook timeouts; the final serial run completed with no
 failures or skipped tests. The initial parallel run before the final size-bound test
 also passed (935 tests).
+
+## CodeRabbit follow-up
+
+Unresolved export IDs are now retained independently for each scenario/target key.
+If supplier A's response is lost, exporting supplier B or the whole scenario no
+longer discards A's retry ID. Confirming one receipt removes only that key; another
+unresolved request continues to replay its original server-side action. Regression
+coverage exercises switching targets, completing one target, and retrying the others.
+
+The linked-issue column-order warning is not applicable: #48 explicitly defers the
+final schema to #27, and approved D09 specifies `sku;barcode;brand;category;name;…`.
+The implementation retains that approved order and now asserts it literally in a
+dedicated test rather than changing it to the issue's preliminary field listing.
+
+Follow-up validation: 26 focused tests passed across the CSV and export-client suites;
+`npx tsc --noEmit` and `git diff --check` passed.
