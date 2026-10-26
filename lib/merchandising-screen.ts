@@ -1,4 +1,5 @@
 import "server-only";
+import { readStockWorkspace } from "./merchandising-stock-workspace";
 import { readSalesWorkspace } from "./merchandising-sales-workspace";
 import { readOverview } from "./merchandising-overview";
 import { Temporal } from "@js-temporal/polyfill";
@@ -87,6 +88,10 @@ export async function getMerchandisingScreen(
       screen === "sales"
         ? await readSalesWorkspace(tenantId, snapshot, q, tx, sales!.summary)
         : null;
+    const stockWorkspace =
+      screen === "stock"
+        ? await readStockWorkspace(tenantId, snapshot, q, tx)
+        : null;
     const overview =
       screen === "overview" && sales
         ? await readOverview(tenantId, snapshot, q, sales.summary, tx)
@@ -143,6 +148,7 @@ export async function getMerchandisingScreen(
       screen,
       overview,
       workspace,
+      stockWorkspace,
       context: screenSnapshotContext(snapshot),
       freshness,
       dataState:

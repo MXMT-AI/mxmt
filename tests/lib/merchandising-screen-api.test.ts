@@ -290,3 +290,52 @@ describe("Sales workspace query boundary", () => {
     },
   );
 });
+
+describe("Stock workspace query boundary", () => {
+  it("accepts independent Stock pages and validated category sorting", async () => {
+    await login();
+    expect(
+      (
+        await route(
+          "stock",
+          "?snapshotId=snapshot&categoryPage=2&brandPage=3&categorySort=RISK&categoryDirection=asc&classification=RISK",
+        )
+      ).status,
+    ).toBe(200);
+    expect(m.read).toHaveBeenCalledWith(
+      "a",
+      "stock",
+      expect.objectContaining({
+        categoryPage: 2,
+        brandPage: 3,
+        categorySort: "RISK",
+        categoryDirection: "asc",
+        classification: "RISK",
+      }),
+    );
+  });
+  it.each([
+    "categoryPage=0",
+    "brandPage=1.5",
+    "brandPage=100001",
+    "categoryPage=2&categoryPage=3",
+    "categorySort=sql",
+    "categoryDirection=up",
+  ])("rejects malformed Stock controls: %s", async (q) => {
+    await login();
+    expect((await route("stock", "?snapshotId=snapshot&" + q)).status).toBe(
+      400,
+    );
+    expect(m.read).not.toHaveBeenCalled();
+  });
+  it.each(["overview", "sales", "repricing", "reordering"])(
+    "rejects Stock-only controls on %s",
+    async (screen) => {
+      await login();
+      expect(
+        (await route(screen, "?snapshotId=snapshot&categoryPage=2")).status,
+      ).toBe(400);
+      expect(m.read).not.toHaveBeenCalled();
+    },
+  );
+});

@@ -195,3 +195,6 @@ YTD supporting facts, see [Overview verification (#41)](41-overview.md).
 
 For monthly Sales heatmaps, channel/category breakdowns and same-date LY changes,
 see [Sales workspace verification (#42)](42-sales-workspace.md).
+
+For reconciled Stock quality, category structure, brand signals and SKU/action
+context, see [Stock workspace verification (#43)](43-stock-workspace.md).

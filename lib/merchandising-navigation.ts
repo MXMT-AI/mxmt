@@ -161,6 +161,10 @@ export function applyMerchandisingFilters(
   for (const key of [
     "page",
     "channelPage",
+    "brandPage",
+    "categoryPage",
+    "categorySort",
+    "categoryDirection",
     "others",
     "sort",
     "direction",

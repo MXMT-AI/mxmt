@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { stockStatusColors as statusColors } from "@/lib/merchandising-stock-display";
 import { useId, type ReactNode } from "react";
 import type { Lang } from "@/lib/translations";
 import { overviewCopy, type OverviewCopy } from "@/lib/overview-copy";
@@ -7,22 +8,12 @@ import { merchandisingHref } from "@/lib/merchandising-navigation";
 import { formatTableValue } from "@/lib/data-reporting-ui";
 import type { OverviewResponse } from "./useOverview";
 import type { OverviewModel } from "@/lib/merchandising-overview";
-import styles from "./overview.module.css";
+import styles from "@/components/merchandising/report.module.css";
 
 type CurrencyBlock = OverviewModel["byCurrency"][number];
 const panel = "rounded-xl border border-[var(--border)] bg-[var(--surface)]";
 const button =
   "inline-flex min-h-11 items-center rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-medium hover:bg-[var(--input-bg)] touch-manipulation";
-const statusColors: Record<string, string> = {
-  HEALTHY: "#599577",
-  RISK: "#d19a35",
-  DEAD: "#a74b44",
-  NEW: "#7b8eaa",
-  OFF_SEASON: "#8a939d",
-  OOS: "#94a3b8",
-  DATA_ERROR: "#b17946",
-  SERVICE: "#718096",
-};
 const tone = (value: string) =>
   value === "GREEN"
     ? styles.good
@@ -616,6 +607,7 @@ export default function OverviewContent({
                       />
                     ))}
                 </div>
+                <Small>{copy.structureBasis}</Small>
                 <ul className="mt-4 space-y-2 text-xs">
                   {block.statuses
                     .filter((s) => s.physicalSkuCount > 0)

@@ -91,6 +91,8 @@ export const overviewCopy = {
     snapshot: "Знімок складу",
     observed: "Оновлення замовлень",
     allChannels: "Склад: усі канали",
+    structureBasis:
+      "Частки від усього фізичного стоку; новинки й позасезонні товари — сірим. Кільце K1 має окремий знаменник.",
     currencies: "Суми показані окремо за валютою, без конвертації",
     unknownCurrency: "Валюта не підтверджена",
     diagnostics: "Діагностика джерела",
@@ -201,6 +203,8 @@ export const overviewCopy = {
     snapshot: "Stock snapshot",
     observed: "Orders updated through",
     allChannels: "Stock: All channels",
+    structureBasis:
+      "Shares use all physical stock; new and off-season items appear in gray. K1 uses a separate denominator.",
     currencies: "Amounts are separate by currency, without conversion",
     unknownCurrency: "Currency unverified",
     diagnostics: "Source diagnostics",
