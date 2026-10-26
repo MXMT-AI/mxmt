@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { X, RefreshCw, AlertTriangle } from "lucide-react";
-import type { ReorderSimulation } from "@/lib/reorder-calc";
+import type { ReorderSimulation } from "@/lib/legacy-reorder-calc";
 import { buildReorderSheetValues } from "@/lib/reorder-sheet";
 import ExportButtons from "@/components/agents/ExportButtons";
 
