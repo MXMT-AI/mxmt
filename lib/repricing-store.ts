@@ -251,7 +251,7 @@ function inputResponse(inputs: InputManifest) {
       filters: { status: "DEAD", soldMonths: 3, currency: "UAH" },
     },
     presets: REPRICING_PRESETS,
-    capabilities: { preview: true, export: false, execute: false },
+    capabilities: { preview: true, export: true, execute: false },
   };
 }
 /** Export consumers can reuse this full validated result inside their own atomic audit transaction. */
@@ -303,7 +303,7 @@ export async function getRepricingPreview(
         request.pageSize,
         result.rows.length,
       ),
-      capabilities: { preview: true, export: false, execute: false },
+      capabilities: { preview: true, export: true, execute: false },
     };
   });
 }

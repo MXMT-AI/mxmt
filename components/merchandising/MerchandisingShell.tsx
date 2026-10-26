@@ -21,6 +21,8 @@ import {
 import type { NavigationOptions } from "@/lib/merchandising-navigation-store";
 
 const Options = createContext<NavigationOptions | null>(null);
+const ExportPermission = createContext(false);
+export const useScenarioExportPermission = () => useContext(ExportPermission);
 const Filters = createContext<MerchandisingFilters | null>(null);
 export const useMerchandisingFilters = () => useContext(Filters);
 export const useMerchandisingOptions = () => useContext(Options);
@@ -32,7 +34,9 @@ export default function MerchandisingShell({
   options,
   now,
   children,
+  exportAllowed = false,
 }: {
+  exportAllowed?: boolean;
   options: NavigationOptions | null;
   now: string;
   children: ReactNode;
@@ -58,47 +62,49 @@ export default function MerchandisingShell({
     /* Show a recoverable invalid-link state. */
   }
   return (
-    <Options.Provider value={options}>
-      <Filters.Provider value={filters}>
-        <div className="mx-auto w-full max-w-7xl p-4 md:p-8">
-          {!options ? (
-            <div
-              role="alert"
-              className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5 space-y-3"
-            >
-              <p>{copy.error}</p>
-              <button
-                type="button"
-                className={control}
-                onClick={() => router.refresh()}
+    <ExportPermission.Provider value={exportAllowed}>
+      <Options.Provider value={options}>
+        <Filters.Provider value={filters}>
+          <div className="mx-auto w-full max-w-7xl p-4 md:p-8">
+            {!options ? (
+              <div
+                role="alert"
+                className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5 space-y-3"
               >
-                {copy.retry}
-              </button>
-            </div>
-          ) : !filters ? (
-            <div
-              role="alert"
-              className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5 space-y-3"
-            >
-              <p>{copy.invalidLink}</p>
-              <Link className={control + " inline-block"} href={pathname}>
-                {copy.reset}
-              </Link>
-            </div>
-          ) : (
-            <>
-              <FilterForm
-                key={params.toString()}
-                filters={filters}
-                onApply={setAppliedAt}
-                options={options}
-              />
-              {children}
-            </>
-          )}
-        </div>
-      </Filters.Provider>
-    </Options.Provider>
+                <p>{copy.error}</p>
+                <button
+                  type="button"
+                  className={control}
+                  onClick={() => router.refresh()}
+                >
+                  {copy.retry}
+                </button>
+              </div>
+            ) : !filters ? (
+              <div
+                role="alert"
+                className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5 space-y-3"
+              >
+                <p>{copy.invalidLink}</p>
+                <Link className={control + " inline-block"} href={pathname}>
+                  {copy.reset}
+                </Link>
+              </div>
+            ) : (
+              <>
+                <FilterForm
+                  key={params.toString()}
+                  filters={filters}
+                  onApply={setAppliedAt}
+                  options={options}
+                />
+                {children}
+              </>
+            )}
+          </div>
+        </Filters.Provider>
+      </Options.Provider>
+    </ExportPermission.Provider>
   );
 }
 

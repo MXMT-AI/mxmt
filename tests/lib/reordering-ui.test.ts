@@ -90,7 +90,7 @@ describe("localized reordering UI", () => {
         createElement(Summary, { data, current: true, copy, locale }),
       );
       expect(summary).toContain(copy.partial);
-      expect(summary).toContain(copy.csvPending);
+      expect(summary).toContain(copy.csvReady);
       expect(summary).toContain("USD");
       expect(summary).toContain("UAH");
       const groups = renderToStaticMarkup(

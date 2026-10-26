@@ -145,7 +145,7 @@ describe("five screens pinned to a single atomic snapshot", () => {
     expect(repricing.capabilities).toMatchObject({
       readOnly: true,
       preview: true,
-      export: false,
+      export: true,
     });
     expect(reordering.table!.rows).toEqual([
       expect.objectContaining({ id: "sku-b", classification: "OOS" }),

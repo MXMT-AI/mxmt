@@ -113,8 +113,8 @@ export const repricingCopy = {
     previous: "Previous",
     next: "Next",
     csv: "Export CSV",
-    csvPending:
-      "CSV export is not available yet. This preview does not update prices.",
+    csvReady:
+      "CSV uses the validated selected rows. Export requires Analyst access.",
     currencyNote:
       "Only verified own-stock UAH items can be repriced; other currencies remain ineligible.",
     optionsSearch: "Type to find a choice",
@@ -242,7 +242,8 @@ export const repricingCopy = {
     previous: "Назад",
     next: "Далі",
     csv: "Експорт CSV",
-    csvPending: "Експорт CSV поки недоступний. Цей розрахунок не змінює ціни.",
+    csvReady:
+      "CSV містить перевірені обрані рядки. Для експорту потрібна роль аналітика.",
     currencyNote:
       "Уцінюються лише підтверджені власні товари у гривні; інші валюти недоступні.",
     optionsSearch: "Введіть для пошуку",

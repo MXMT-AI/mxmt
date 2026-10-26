@@ -12,11 +12,15 @@ export default function RepricingSummary({
   current,
   copy,
   locale,
+  onExport,
+  exporting = false,
 }: {
   data: RepricingPreview | null;
   current: boolean;
   copy: RepricingCopy;
   locale: string;
+  onExport?: () => void;
+  exporting?: boolean;
 }) {
   const totals = current ? data?.totals : null;
   const values = [
@@ -41,7 +45,8 @@ export default function RepricingSummary({
         <button
           type="button"
           className={button + " disabled:opacity-50"}
-          disabled
+          disabled={!onExport || exporting || !current}
+          onClick={onExport}
           aria-describedby="repricing-export-note"
         >
           {copy.csv}
@@ -62,7 +67,7 @@ export default function RepricingSummary({
       </dl>
       <Note>{copy.basis}</Note>
       <p id="repricing-export-note" className="text-xs text-[var(--muted)]">
-        {copy.csvPending}
+        {copy.csvReady}
       </p>
     </section>
   );

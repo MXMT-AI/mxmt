@@ -15,6 +15,9 @@ import { useRepricingInputs, useRepricingPreview } from "./useRepricingPreview";
 import RepricingControls from "./RepricingControls";
 import RepricingTable from "./RepricingTable";
 import RepricingSummary from "./RepricingSummary";
+import { useScenarioExportPermission } from "@/components/merchandising/MerchandisingShell";
+import { useScenarioExport } from "@/components/merchandising/useScenarioExport";
+import ScenarioExportPanel from "@/components/merchandising/ScenarioExportPanel";
 /** Controls own draft intent; the server owns eligibility, ranking, prices and totals. */
 export default function RepricingEditor({
   snapshotId,
@@ -65,6 +68,8 @@ export default function RepricingEditor({
     pageSize: 25,
   };
   const preview = useRepricingPreview(request);
+  const allowed = useScenarioExportPermission(),
+    exportState = useScenarioExport("reprice");
   useEffect(() => {
     if (preview.current && preview.data)
       context.current = preview.data.editContext;
@@ -184,6 +189,18 @@ export default function RepricingEditor({
         current={preview.current && !error}
         copy={copy}
         locale={locale}
+        exporting={exportState.busy}
+        onExport={
+          allowed && preview.current && !error && preview.data?.canExport
+            ? () => void exportState.prepare(preview.data!.previewId, request)
+            : undefined
+        }
+      />
+      <ScenarioExportPanel
+        state={exportState}
+        previewId={preview.data?.previewId}
+        allowed={allowed}
+        lang={lang}
       />
     </div>
   );

@@ -16,11 +16,15 @@ export default function ReorderingSummary({
   current,
   copy,
   locale,
+  onExport,
+  exporting = false,
 }: {
   data: ReorderingPreview | null;
   current: boolean;
   copy: ReorderingCopy;
   locale: string;
+  onExport?: () => void;
+  exporting?: boolean;
 }) {
   const result = current ? data : null;
   return (
@@ -36,7 +40,8 @@ export default function ReorderingSummary({
         <button
           type="button"
           className={button + " disabled:opacity-50"}
-          disabled
+          disabled={!onExport || exporting || !current}
+          onClick={onExport}
           aria-describedby="reordering-csv-note"
         >
           {copy.csv}
@@ -80,7 +85,7 @@ export default function ReorderingSummary({
       ))}
       <Note>{copy.globalBasis}</Note>
       <p id="reordering-csv-note" className="text-xs text-[var(--muted)]">
-        {copy.csvPending}
+        {copy.csvReady}
       </p>
     </section>
   );
@@ -90,10 +95,14 @@ export function SupplierGroups({
   data,
   copy,
   locale,
+  onExport,
+  exporting = false,
 }: {
   data: ReorderingPreview;
   copy: ReorderingCopy;
   locale: string;
+  onExport?: (supplierId: string, currency: string) => void;
+  exporting?: boolean;
 }) {
   const [page, setPage] = useState(1);
   const groups = data.suppliers,
@@ -138,7 +147,18 @@ export function SupplierGroups({
             <button
               type="button"
               className={button + " disabled:opacity-50"}
-              disabled
+              disabled={
+                !onExport ||
+                exporting ||
+                !row.supplierId ||
+                !row.currency ||
+                Number(row.positiveSkuCount) === 0 ||
+                Number(row.unknownQuantitySkuCount) > 0 ||
+                row.exportEligibleSkuCount !== row.positiveSkuCount
+              }
+              onClick={() =>
+                onExport?.(String(row.supplierId), String(row.currency))
+              }
               aria-label={`${copy.csvSupplier}: ${row.supplierName ?? copy.unassigned}`}
               aria-describedby="reordering-csv-note"
             >

@@ -210,3 +210,6 @@ confirmation and supplier totals, see [reordering verification (#46)](46-reorder
 
 For live reordering controls, explicit transit confirmation and supplier/currency
 summaries, see [Reordering workspace verification (#47)](47-reordering-workspace.md).
+
+For validated Repricing/Reordering CSV downloads, retry-safe action history and
+export authorization, see [scenario export verification (#48)](48-scenario-csv-exports.md).

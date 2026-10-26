@@ -72,7 +72,7 @@ describe("localized accessible Repricing workspace", () => {
         createElement(Summary, { data, current: true, copy, locale }),
       );
       expect(summary).toContain(copy.weighted);
-      expect(summary).toContain(copy.csvPending);
+      expect(summary).toContain(copy.csvReady);
       expect(summary).toContain('disabled=""');
     },
   );

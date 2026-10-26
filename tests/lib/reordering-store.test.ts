@@ -51,7 +51,7 @@ describe("frozen server-side reordering scenarios", () => {
     expect(r.canExport).toBe(false);
     expect(r.capabilities).toEqual({
       preview: true,
-      export: false,
+      export: true,
       execute: false,
     });
   });
