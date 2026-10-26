@@ -202,10 +202,15 @@ export async function getMerchandisingScreen(
       table,
       capabilities: {
         readOnly: true,
-        preview: false,
+        preview: screen === "repricing",
         export: false,
         ...(screen === "repricing"
-          ? { reason: "REPRICING_SCENARIOS_ARE_SEPARATE_ROADMAP_WORK" }
+          ? {
+              reason:
+                "REPRICING_WORKSPACE_AND_EXPORT_ARE_SEPARATE_ROADMAP_WORK",
+              inputsEndpoint: "/api/merchandising/repricing/inputs",
+              previewEndpoint: "/api/merchandising/repricing/preview",
+            }
           : screen === "reordering"
             ? { reason: "REORDER_SCENARIOS_ARE_SEPARATE_ROADMAP_WORK" }
             : {}),
