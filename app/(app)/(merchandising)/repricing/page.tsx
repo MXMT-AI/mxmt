@@ -1,4 +1,5 @@
-import MerchandisingDestination from "@/components/merchandising/MerchandisingDestination";
+import RepricingWorkspace from "@/components/repricing/RepricingWorkspace";
+/** Mount R1–R4 inside the shared authenticated merchandising shell. */
 export default function Page() {
-  return <MerchandisingDestination screen="repricing" />;
+  return <RepricingWorkspace />;
 }
