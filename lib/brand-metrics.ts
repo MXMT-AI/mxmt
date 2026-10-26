@@ -8,6 +8,36 @@ import {
   type MerchandisingPolicy,
 } from "./classify";
 
+/** Shared K4 precedence for in-memory daily publication and SQL screen aggregates. */
+export function dailyBrandSignal(
+  input: {
+    brandId: string | null;
+    firstReceiptDate: string | null;
+    asOf: string;
+    allOffSeason: boolean;
+    dataErrorSkuCount: number;
+    velocityComplete: boolean;
+    quantity: string;
+    velocity: string;
+    weeksOnHand: string | null;
+  },
+  policy: MerchandisingPolicy,
+) {
+  return input.brandId === null
+    ? "MISSING_BRAND"
+    : isNewReceipt(input.firstReceiptDate, input.asOf, policy.newProductWeeks)
+      ? "NEW"
+      : input.allOffSeason
+        ? "OFF_SEASON"
+        : input.dataErrorSkuCount || !input.velocityComplete
+          ? "UNAVAILABLE"
+          : input.weeksOnHand !== null
+            ? classifyWoh(input.weeksOnHand, policy)
+            : D(input.quantity).gt(0) && D(input.velocity).isZero()
+              ? "DEAD"
+              : "UNAVAILABLE";
+}
+
 /** K4 consumes the frozen SKU version. Ratios use sums, never an average of SKU ratios. */
 export function summarizeDailyBrands(
   rows: ClassifiedDailySku[],
@@ -67,24 +97,20 @@ export function summarizeDailyBrands(
       const dataErrors = items.filter(
         (r) => r.classification === "DATA_ERROR",
       ).length;
-      const signal =
-        brandId === null
-          ? "MISSING_BRAND"
-          : isNewReceipt(
-                firstReceiptDate,
-                items[0].asOf,
-                policy.newProductWeeks,
-              )
-            ? "NEW"
-            : items.every((r) => !r.inSeason)
-              ? "OFF_SEASON"
-              : dataErrors || !velocityComplete
-                ? "UNAVAILABLE"
-                : woh !== null
-                  ? classifyWoh(woh.toString(), policy)
-                  : stock.gt(0) && velocity.isZero()
-                    ? "DEAD"
-                    : "UNAVAILABLE";
+      const signal = dailyBrandSignal(
+        {
+          brandId,
+          firstReceiptDate,
+          asOf: items[0].asOf,
+          allOffSeason: items.every((r) => !r.inSeason),
+          dataErrorSkuCount: dataErrors,
+          velocityComplete,
+          quantity: stock.toString(),
+          velocity: velocity.toString(),
+          weeksOnHand: woh?.toString() ?? null,
+        },
+        policy,
+      );
       return {
         brandId,
         brandName: items[0].brandName,

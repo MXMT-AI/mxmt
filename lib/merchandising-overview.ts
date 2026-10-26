@@ -1,4 +1,5 @@
 import "server-only";
+import { stockStructure } from "./merchandising-stock-structure";
 import { Temporal } from "@js-temporal/polyfill";
 import { Prisma } from "@prisma/client";
 import type { SqlClient } from "./connectors/database";
@@ -11,6 +12,7 @@ import {
   type AggregateRow,
 } from "./merchandising-screen-sales";
 import {
+  readStockStatusGroups,
   screenStockFilter,
   screenStockJoin,
   stockStatsSql,
@@ -119,12 +121,7 @@ async function overviewStock(
 ) {
   const where = screenStockFilter(tenantId, q, "overview"),
     stats = stockStatsSql();
-  const statuses = await tx.$queryRaw<
-    Array<StockGroup & { minWoh: string | null; maxWoh: string | null }>
-  >(Prisma.sql`
-    SELECT d.classification id,d.classification name,d.currency,${stats} stats,NULL::jsonb details,
-      min((d.metrics->>'weeksOnHand')::numeric)::text "minWoh",max((d.metrics->>'weeksOnHand')::numeric)::text "maxWoh"
-    FROM ${screenStockJoin} WHERE ${where} GROUP BY d.classification,d.currency ORDER BY d.classification,d.currency NULLS LAST`);
+  const statuses = await readStockStatusGroups(tenantId, snapshot, q, tx);
   const ownership = await tx.$queryRaw<
     Array<StockGroup & { unknownBrands: number }>
   >(Prisma.sql`
@@ -143,12 +140,7 @@ async function overviewStock(
     SELECT id,name,currency,stats,details,"deadCost"::text "deadCost","receiptDate" FROM ranked WHERE rank=1 ORDER BY currency NULLS LAST`);
   const norm = snapshot.sales.context.settings.turnoverMonths;
   return {
-    statuses: statuses.map((r) => ({
-      ...stockGroupValues(r, norm),
-      status: r.id!,
-      minWoh: r.minWoh,
-      maxWoh: r.maxWoh,
-    })),
+    statuses,
     ownership: ownership.map((r) => ({
       ...stockGroupValues(r, norm),
       ownership: r.id ?? "UNKNOWN",
@@ -236,15 +228,7 @@ export async function readOverview(
       );
       const statuses = stock.statuses.filter((s) => s.currency === currency);
       const dead = statuses.find((s) => s.status === "DEAD");
-      const completeCost = statuses.every(
-        (s) =>
-          !s.missingCostSkuCount &&
-          !(s.status === "DATA_ERROR" && s.skuCount > s.physicalSkuCount),
-      );
-      const totalCost = statuses.reduce(
-        (a, s) => a.add(s.coveredStockCost),
-        D(0),
-      );
+      const structure = stockStructure(statuses);
       const bottleneck =
         (dead?.missingCostSkuCount ?? 0) === 0
           ? (stock.bottlenecks.find((s) => s.currency === currency) ?? null)
@@ -269,17 +253,13 @@ export async function readOverview(
                 : "RED",
         statuses: statuses.map((s) => ({
           ...s,
-          share:
-            completeCost && totalCost.gt(0) && s.stockCost !== null
-              ? D(s.stockCost).div(totalCost).toString()
-              : null,
+          share: structure.shares[s.status]?.all ?? null,
         })),
         deadShare:
-          completeCost && totalCost.gt(0)
-            ? D(dead?.stockCost ?? 0)
-                .div(totalCost)
-                .toString()
-            : null,
+          structure.shares.DEAD?.all ??
+          (structure.stockCost !== null && D(structure.stockCost).gt(0)
+            ? "0"
+            : null),
         ownership: stock.ownership.filter((s) => s.currency === currency),
         bottleneck,
         trendHistory: trend?.history ?? null,

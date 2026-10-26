@@ -127,6 +127,26 @@ export function stockGroupValues(row: StockGroup, norm: number) {
     statusCounts: a.statusCounts,
   };
 }
+/** One saved status grouping supplies Overview O4 and Stock K1 without reclassification. */
+export async function readStockStatusGroups(
+  tenantId: string,
+  snapshot: ScreenSnapshot,
+  q: ScreenQuery,
+  db: SqlClient,
+) {
+  const rows = await db.$queryRaw<
+    Array<StockGroup & { minWoh: string | null; maxWoh: string | null }>
+  >(Prisma.sql`
+  SELECT d.classification id,d.classification name,d.currency,${stockStatsSql()} stats,NULL::jsonb details,
+    min((d.metrics->>'weeksOnHand')::numeric)::text "minWoh",max((d.metrics->>'weeksOnHand')::numeric)::text "maxWoh"
+  FROM ${screenStockJoin} WHERE ${screenStockFilter(tenantId, q, "stock")} GROUP BY d.classification,d.currency ORDER BY d.classification,d.currency NULLS LAST`);
+  return rows.map((r) => ({
+    ...stockGroupValues(r, snapshot.sales.context.settings.turnoverMonths),
+    status: r.id!,
+    minWoh: r.minWoh,
+    maxWoh: r.maxWoh,
+  }));
+}
 function actionEligibility(
   screen: ScreenName,
   details: Record<string, unknown> | null,

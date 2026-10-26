@@ -19,7 +19,7 @@ const FILTER_KEYS = [
 /** Pin a server snapshot into the URL; stale requests cannot replace data for newer filters. */
 export function useMerchandisingScreen(
   filters: MerchandisingFilters,
-  screen: "overview" | "sales",
+  screen: "overview" | "sales" | "stock",
   controls: Record<string, string> = {},
 ) {
   const params = useSearchParams(),
@@ -56,7 +56,21 @@ export function useMerchandisingScreen(
       ...FILTER_KEYS,
       ...(screen === "sales"
         ? ["groupBy", "measure", "metric", "others", "page", "channelPage"]
-        : []),
+        : screen === "stock"
+          ? [
+              "groupBy",
+              "classification",
+              "ownership",
+              "supplierId",
+              "page",
+              "sort",
+              "direction",
+              "categoryPage",
+              "brandPage",
+              "categorySort",
+              "categoryDirection",
+            ]
+          : []),
     ]) {
       const value = source.get(key);
       if (value) readParams.set(key, value);

@@ -16,3 +16,9 @@
 :global(html.light) .bad {
   color: #b91c1c;
 }
+.info {
+  color: #93c5fd;
+}
+:global(html.light) .info {
+  color: #1d4ed8;
+}

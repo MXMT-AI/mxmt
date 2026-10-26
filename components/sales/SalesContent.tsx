@@ -1,6 +1,13 @@
 "use client";
 import Link from "next/link";
-import { useId, type ReactNode } from "react";
+import {
+  panel,
+  button,
+  Note,
+  PartialMarker,
+  Pager,
+} from "@/components/merchandising/ReportPrimitives";
+import { useId } from "react";
 import ReportTable from "@/components/data-reporting/ReportTable";
 import type { OverviewResponse } from "@/components/merchandising/useMerchandisingScreen";
 import type {
@@ -13,73 +20,14 @@ import { merchandisingHref } from "@/lib/merchandising-navigation";
 import { formatTableValue } from "@/lib/data-reporting-ui";
 import { overviewCopy } from "@/lib/overview-copy";
 import { salesCopy, type SalesCopy } from "@/lib/sales-copy";
-import styles from "@/components/overview/overview.module.css";
+import styles from "@/components/merchandising/report.module.css";
 
-const panel =
-  "min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface)]";
-const button =
-  "inline-flex min-h-11 touch-manipulation items-center justify-center rounded-lg border border-[var(--border)] px-4 py-2 text-sm hover:bg-[var(--input-bg)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2";
 type Block = SalesWorkspaceModel["byCurrency"][number];
 type MatrixRow = Block["matrix"]["rows"][number];
 type Href = (values: Record<string, string | null>) => string;
 /** Map server comparison tones to the shared theme-aware semantic colors. */
 const tone = (value: string) =>
   value === "GREEN" ? styles.good : value === "RED" ? styles.bad : "";
-/** Render supporting context consistently across the four Sales sections. */
-function Note({ children }: { children: ReactNode }) {
-  return (
-    <p className="text-xs leading-relaxed text-[var(--muted)]">{children}</p>
-  );
-}
-/** Keep the visible marker decorative and expose its localized meaning as text. */
-function PartialMarker({ label }: { label: string }) {
-  return (
-    <>
-      <span aria-hidden="true"> *</span>
-      <span className="sr-only"> {label}</span>
-    </>
-  );
-}
-/** Page one Sales section without discarding the other URL-owned controls. */
-function Pager({
-  pagination,
-  control,
-  href,
-  copy,
-}: {
-  pagination: Block["matrix"]["pagination"];
-  control: string;
-  href: Href;
-  copy: SalesCopy;
-}) {
-  if (pagination.totalPages <= 1) return null;
-  return (
-    <nav
-      aria-label={copy.page}
-      className="flex flex-wrap items-center gap-3 border-t border-[var(--border)] p-3 text-xs"
-    >
-      {pagination.page > 1 ? (
-        <Link
-          className={button}
-          href={href({ [control]: String(pagination.page - 1) })}
-        >
-          {copy.previous}
-        </Link>
-      ) : null}
-      <span>
-        {copy.page} {pagination.page} / {pagination.totalPages}
-      </span>
-      {pagination.page < pagination.totalPages ? (
-        <Link
-          className={button}
-          href={href({ [control]: String(pagination.page + 1) })}
-        >
-          {copy.next}
-        </Link>
-      ) : null}
-    </nav>
-  );
-}
 /** Format server monthly cells and retain currency-scoped SKU drill links. */
 function Matrix({
   rows,

@@ -33,6 +33,10 @@ export interface ScreenQuery {
   metric?: "revenue" | "coveredGrossProfit" | "gmPct";
   others?: boolean;
   channelPage?: number;
+  categoryPage?: number;
+  brandPage?: number;
+  categorySort?: "name" | "stockCost" | "DEAD" | "RISK" | "HEALTHY" | "OTHER";
+  categoryDirection?: "asc" | "desc";
 }
 export const SALES_SCREEN_SORTS = [
   "name",
@@ -83,6 +87,10 @@ export function parseScreenQuery(
     "metric",
     "others",
     "channelPage",
+    "categoryPage",
+    "brandPage",
+    "categorySort",
+    "categoryDirection",
   ]);
   for (const [key] of params)
     if (!allowed.has(key) || params.getAll(key).length !== 1)
@@ -177,12 +185,41 @@ export function parseScreenQuery(
     channelPage > 100000
   )
     throw new ScreenApiError("INVALID_SCREEN_QUERY", 400);
+  const categoryPage = Number(params.get("categoryPage") ?? 1),
+    brandPage = Number(params.get("brandPage") ?? 1),
+    categorySort = params.get("categorySort"),
+    categoryDirection = params.get("categoryDirection") ?? "desc";
+  if (
+    (screen !== "stock" &&
+      ["categoryPage", "brandPage", "categorySort", "categoryDirection"].some(
+        (key) => params.has(key),
+      )) ||
+    ![categoryPage, brandPage].every(
+      (p) => Number.isSafeInteger(p) && p >= 1 && p <= 100000,
+    ) ||
+    (categorySort !== null &&
+      !["name", "stockCost", "DEAD", "RISK", "HEALTHY", "OTHER"].includes(
+        categorySort,
+      )) ||
+    !["asc", "desc"].includes(categoryDirection)
+  )
+    throw new ScreenApiError("INVALID_SCREEN_QUERY", 400);
   const table = parseDataTableQuery(params, {
     pageSizeMin: 1,
     pageSizeDefault: 25,
   });
   return {
     snapshotId: id,
+    ...(screen === "stock"
+      ? {
+          categoryPage,
+          brandPage,
+          ...(categorySort
+            ? { categorySort: categorySort as ScreenQuery["categorySort"] }
+            : {}),
+          categoryDirection: categoryDirection as "asc" | "desc",
+        }
+      : {}),
     ...(screen === "sales"
       ? {
           measure: measure as ScreenQuery["measure"],
