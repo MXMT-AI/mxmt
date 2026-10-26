@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { simulateReorder } from "@/lib/reorder-calc";
+import { simulateReorder } from "@/lib/legacy-reorder-calc";
 import { requireApiUser } from "@/lib/server-auth";
 import { isRecord, numberField, optionalDate, parseJsonBody, serverError, stringField, validationError } from "@/lib/api-contracts";
 

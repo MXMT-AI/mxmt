@@ -47,6 +47,33 @@ export function classifyWoh(woh: string | null, policy: MerchandisingPolicy) {
         : ("HEALTHY" as const);
 }
 
+/** Shared D14 shortage union; scenario lead changes must not duplicate eligibility rules. */
+export function shortageSignals(
+  row: {
+    classification: string | null;
+    active: boolean | null;
+    quantity: string | null;
+    daysToZero: string | null;
+  },
+  leadDays: number | null,
+) {
+  const shortageEligible =
+    ["OOS", "DEAD", "RISK", "HEALTHY"].includes(row.classification ?? "") &&
+    row.active === true;
+  const shortageRisk =
+    shortageEligible &&
+    leadDays !== null &&
+    row.daysToZero !== null &&
+    D(row.daysToZero).lt(leadDays + 14);
+  return {
+    shortageEligible,
+    shortageRisk,
+    shortage:
+      shortageEligible &&
+      ((row.quantity !== null && D(row.quantity).isZero()) || shortageRisk),
+  };
+}
+
 /** SalesDrive section 8. Legacy 7/30-day flags below retain their separate Sheets contract. */
 export function classifyDailySku(
   row: DailySkuMetrics,
@@ -96,13 +123,10 @@ export function classifyDailySku(
                   (D(row.quantity!).gt(0) && row.velocityState === "ZERO")
                 ? "DEAD"
                 : (classifyWoh(row.weeksOnHand, policy) ?? "HEALTHY");
-  const shortageEligible =
-    !["SERVICE", "DATA_ERROR", "NEW", "OFF_SEASON"].includes(status) &&
-    row.active === true;
-  const shortageRisk =
-    shortageEligible &&
-    row.daysToZero !== null &&
-    D(row.daysToZero).lt(policy.leadDays + 14);
+  const { shortageEligible, shortageRisk, shortage } = shortageSignals(
+    { ...row, classification: status },
+    policy.leadDays,
+  );
   return {
     classification: status,
     classificationErrors: status === "DATA_ERROR" ? errors : [],
@@ -112,7 +136,7 @@ export function classifyDailySku(
     supplierTermsVerified: policy.supplierTermsVerified,
     shortageEligible,
     shortageRisk,
-    shortage: shortageEligible && (status === "OOS" || shortageRisk),
+    shortage,
     recommendation:
       status === "SERVICE"
         ? "NONE"

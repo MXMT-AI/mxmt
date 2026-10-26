@@ -204,3 +204,6 @@ and weighted totals, see [repricing verification (#44)](44-repricing-calculator.
 
 For Repricing filters, live server previews, editable prices and responsive UI,
 see [Repricing workspace verification (#45)](45-repricing-workspace.md).
+
+For frozen-input reorder quantities, lead/coverage/MOQ overrides, transit
+confirmation and supplier totals, see [reordering verification (#46)](46-reordering-calculator.md).

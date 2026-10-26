@@ -1,3 +1,4 @@
+import { reorderQuantity } from "./reorder-quantity";
 import { Prisma } from "@prisma/client";
 import { financialDecimal } from "./financial-decimal.mjs";
 export { financialDecimal } from "./financial-decimal.mjs";
@@ -98,25 +99,18 @@ export function previewMerchandisingCalculations(
   const margin =
     profit !== null && !revenue.isZero() ? profit.div(revenue).mul(100) : null;
   const velocity = new Prisma.Decimal(input.weeklyVelocity),
-    stock = new Prisma.Decimal(input.stock),
     inSeason = policy.seasonMonths.includes(input.month);
   const order =
     !inSeason || velocity.isZero()
-      ? new Prisma.Decimal(0)
-      : input.inTransit === null
-        ? null
-        : Prisma.Decimal.max(
-            0,
-            velocity
-              .div(7)
-              .mul(policy.leadDays + policy.coverDays)
-              .ceil()
-              .sub(stock)
-              .sub(input.inTransit),
-          )
-            .div(policy.moq)
-            .ceil()
-            .mul(policy.moq);
+      ? financialDecimal(0)
+      : reorderQuantity({
+          weeklyVelocity: input.weeklyVelocity,
+          leadDays: policy.leadDays,
+          coverDays: policy.coverDays,
+          stock: input.stock,
+          inTransit: input.inTransit,
+          moq: policy.moq,
+        });
   return {
     grossProfit: profit?.toString() ?? null,
     marginPct: margin?.toString() ?? null,

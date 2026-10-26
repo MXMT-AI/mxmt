@@ -27,7 +27,7 @@ import { getAttributeMetrics } from "@/lib/attribute-metrics";
 import { getBrandMetrics } from "@/lib/brand-metrics";
 import { getChannelMetrics } from "@/lib/channel-metrics";
 import { simulatePromo } from "@/lib/promo-calc";
-import { simulateReorder } from "@/lib/reorder-calc";
+import { simulateReorder } from "@/lib/legacy-reorder-calc";
 
 const date = (value: string) => new Date(`${value}T00:00:00.000Z`);
 

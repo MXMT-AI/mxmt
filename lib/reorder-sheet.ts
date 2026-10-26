@@ -1,4 +1,4 @@
-import type { ReorderSimulation } from "@/lib/reorder-calc";
+import type { ReorderSimulation } from "@/lib/legacy-reorder-calc";
 import type { SheetCell } from "@/lib/promo-sheet";
 
 // Будує 2D-масив для експорту симуляції дозамовлення.
