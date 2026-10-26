@@ -138,13 +138,13 @@ describe("five screens pinned to a single atomic snapshot", () => {
       snapshot.stock.calculationId,
     );
   });
-  it("provides both action candidate lists without executing future scenario engines", async () => {
+  it("provides action candidates and advertises the available repricing preview", async () => {
     const repricing = await read("repricing"),
       reordering = await read("reordering");
     expect(repricing.table!.rows.length).toBeGreaterThan(0);
     expect(repricing.capabilities).toMatchObject({
       readOnly: true,
-      preview: false,
+      preview: true,
       export: false,
     });
     expect(reordering.table!.rows).toEqual([

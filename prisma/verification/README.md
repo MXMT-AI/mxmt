@@ -198,3 +198,6 @@ see [Sales workspace verification (#42)](42-sales-workspace.md).
 
 For reconciled Stock quality, category structure, brand signals and SKU/action
 context, see [Stock workspace verification (#43)](43-stock-workspace.md).
+
+For frozen-input deterministic R1–R4 previews, pricing protections, manual edits
+and weighted totals, see [repricing verification (#44)](44-repricing-calculator.md).
