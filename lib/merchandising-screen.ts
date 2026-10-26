@@ -1,4 +1,5 @@
 import "server-only";
+import { readSalesWorkspace } from "./merchandising-sales-workspace";
 import { readOverview } from "./merchandising-overview";
 import { Temporal } from "@js-temporal/polyfill";
 import { Prisma } from "@prisma/client";
@@ -82,6 +83,10 @@ export async function getMerchandisingScreen(
           )
         : Promise.resolve(null),
     ]);
+    const workspace =
+      screen === "sales"
+        ? await readSalesWorkspace(tenantId, snapshot, q, tx, sales!.summary)
+        : null;
     const overview =
       screen === "overview" && sales
         ? await readOverview(tenantId, snapshot, q, sales.summary, tx)
@@ -137,6 +142,7 @@ export async function getMerchandisingScreen(
     return {
       screen,
       overview,
+      workspace,
       context: screenSnapshotContext(snapshot),
       freshness,
       dataState:

@@ -1,4 +1,5 @@
 "use client";
+import type { CSSProperties, ReactNode } from "react";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import type { DataColumnMetadata } from "@/lib/data-table-api";
 import { formatTableValue } from "@/lib/data-reporting-ui";
@@ -11,7 +12,17 @@ export default function ReportTable({
   direction = "asc",
   onSort,
   isSortable = () => false,
+  renderCell,
+  getCellStyle,
 }: {
+  renderCell?: (
+    row: Record<string, unknown>,
+    column: DataColumnMetadata,
+  ) => ReactNode;
+  getCellStyle?: (
+    row: Record<string, unknown>,
+    column: DataColumnMetadata,
+  ) => CSSProperties | undefined;
   columns: DataColumnMetadata[];
   rows: Array<Record<string, unknown>>;
   locale: string;
@@ -43,20 +54,24 @@ export default function ReportTable({
                 }
                 className="border-b border-r last:border-r-0 border-[var(--border)] px-3 py-2.5 text-left font-semibold text-[var(--muted)] whitespace-nowrap"
               >
-                <button
-                  type="button"
-                  disabled={!isSortable(column)}
-                  onClick={() => onSort?.(column)}
-                  className="inline-flex items-center gap-1.5 disabled:cursor-default hover:text-[var(--text)] disabled:hover:text-inherit focus-visible:outline focus-visible:outline-2"
-                >
-                  {column.label}
-                  {sortColumn === column.key &&
-                    (direction === "asc" ? (
-                      <ArrowUp aria-hidden="true" size={11} />
-                    ) : (
-                      <ArrowDown aria-hidden="true" size={11} />
-                    ))}
-                </button>
+                {isSortable(column) ? (
+                  <button
+                    type="button"
+                    disabled={!isSortable(column)}
+                    onClick={() => onSort?.(column)}
+                    className="inline-flex items-center gap-1.5 disabled:cursor-default hover:text-[var(--text)] disabled:hover:text-inherit focus-visible:outline focus-visible:outline-2"
+                  >
+                    {column.label}
+                    {sortColumn === column.key &&
+                      (direction === "asc" ? (
+                        <ArrowUp aria-hidden="true" size={11} />
+                      ) : (
+                        <ArrowDown aria-hidden="true" size={11} />
+                      ))}
+                  </button>
+                ) : (
+                  column.label
+                )}
               </th>
             ))}
           </tr>
@@ -70,18 +85,23 @@ export default function ReportTable({
               {columns.map((column) => (
                 <td
                   key={column.key}
+                  style={getCellStyle?.(row, column)}
                   className={`max-w-md border-r last:border-r-0 border-[var(--border-faint)] px-3 py-2 text-[var(--text)] ${column.type === "text" || column.type === "source" ? "text-left" : "text-right tabular-nums"}`}
                 >
-                  <span
-                    className="block truncate"
-                    title={formatTableValue(
-                      row[column.key],
-                      column.type,
-                      locale,
-                    )}
-                  >
-                    {formatTableValue(row[column.key], column.type, locale)}
-                  </span>
+                  {renderCell ? (
+                    renderCell(row, column)
+                  ) : (
+                    <span
+                      className="block truncate"
+                      title={formatTableValue(
+                        row[column.key],
+                        column.type,
+                        locale,
+                      )}
+                    >
+                      {formatTableValue(row[column.key], column.type, locale)}
+                    </span>
+                  )}
                 </td>
               ))}
             </tr>

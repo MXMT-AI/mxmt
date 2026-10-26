@@ -39,17 +39,23 @@ const zero: SalesTotalsInput = {
 };
 
 /** One frozen financial subset supplies the O1 contributors and full-month LY outlier notes. */
-async function overviewSales(
+export async function readSalesComparisons(
   tenantId: string,
   snapshot: ScreenSnapshot,
   q: ScreenQuery,
   tx: SqlClient,
+  group: ScreenQuery["groupBy"] = "brand",
 ) {
+  const key = Prisma.raw(`f."${group}Id"`);
+  const label =
+    group === "sku"
+      ? Prisma.sql`COALESCE(f.name,f.sku,'Unassigned SKU')`
+      : Prisma.raw(`COALESCE(f."${group}Name",'Unassigned ${group}')`);
   const where = screenSalesFilter(tenantId, q);
   const brands = await tx.$queryRaw<AggregateRow[]>(Prisma.sql`
-    SELECT f."brandId" id,MIN(COALESCE(f."brandName",'Unassigned brand')) name,f.currency,
+    SELECT ${key} id,MIN(${label}) name,f.currency,
     ${totalsSql(Prisma.sql`f."inCurrent"`)} "current",${totalsSql(Prisma.sql`f."inPriorYear"`)} ly
-    FROM "MerchandisingScreenFact" f WHERE ${where} AND ${headline} GROUP BY f."brandId",f.currency ORDER BY f.currency NULLS LAST,f."brandId" NULLS LAST`);
+    FROM "MerchandisingScreenFact" f WHERE ${where} AND ${headline} GROUP BY ${key},f.currency ORDER BY f.currency NULLS LAST,${key} NULLS LAST`);
   const metrics = brands.map((b) => ({
     ...salesAggregateMetric(b, snapshot),
     id: b.id,
@@ -59,20 +65,21 @@ async function overviewSales(
   const oneOffs =
     snapshot.sales.context.oneOffHistory && snapshot.trend
       ? await tx.$queryRaw<
-          Array<{ brandId: string | null; currency: string | null }>
+          Array<{ id: string | null; currency: string | null }>
         >(Prisma.sql`
-    WITH lines AS (SELECT f.* FROM "MerchandisingScreenFact" f WHERE ${screenSalesFilter(tenantId, q, true)} AND ${headline}
+    WITH lines AS (SELECT f.* FROM "MerchandisingScreenFact" f WHERE ${screenSalesFilter(tenantId, { ...q, categoryId: undefined, skuId: undefined, search: null }, true)} AND ${headline}
       AND f."businessDate">=${period.lyFrom.slice(0, 7) + "-01"}::date AND f."businessDate"<=${fullLyTo.with({ day: fullLyTo.daysInMonth }).toString()}::date),
     months AS (SELECT "brandId",currency,date_trunc('month',"businessDate") "month",sum(revenue) revenue,count(*) FILTER(WHERE revenue IS NULL) missing FROM lines GROUP BY 1,2,3),
-    orders AS (SELECT "brandId",currency,date_trunc('month',"businessDate") "month","sourceId","orderId",sum(revenue) revenue FROM lines WHERE kind='SALE' GROUP BY 1,2,3,4,5)
-    SELECT DISTINCT o."brandId",o.currency FROM orders o JOIN months m ON o."brandId" IS NOT DISTINCT FROM m."brandId" AND o.currency IS NOT DISTINCT FROM m.currency AND o."month"=m."month"
-    WHERE m.missing=0 AND m.revenue>0 AND o.revenue>m.revenue*0.5`)
+    orders AS (SELECT "brandId",currency,date_trunc('month',"businessDate") "month","sourceId","orderId",sum(revenue) revenue FROM lines WHERE kind='SALE' GROUP BY 1,2,3,4,5),
+    qualifying AS (SELECT DISTINCT o."brandId",o.currency,o."month" FROM orders o JOIN months m ON o."brandId" IS NOT DISTINCT FROM m."brandId" AND o.currency IS NOT DISTINCT FROM m.currency AND o."month"=m."month" WHERE m.missing=0 AND m.revenue>0 AND o.revenue>m.revenue*0.5)
+    SELECT DISTINCT ${Prisma.raw(`l."${group}Id"`)} id,l.currency FROM lines l JOIN qualifying o ON l."brandId" IS NOT DISTINCT FROM o."brandId" AND l.currency IS NOT DISTINCT FROM o.currency AND date_trunc('month',l."businessDate")=o."month"`)
       : [];
+  const oneOffKeys = new Set(
+    oneOffs.map((o) => JSON.stringify([o.id, o.currency])),
+  );
   return metrics.map((b) => ({
     ...b,
-    oneOffLy: oneOffs.some(
-      (o) => o.brandId === b.id && o.currency === b.currency,
-    ),
+    oneOffLy: oneOffKeys.has(JSON.stringify([b.id, b.currency])),
   }));
 }
 
@@ -194,7 +201,7 @@ export async function readOverview(
   tx: SqlClient,
 ) {
   const [brands, trend, stock] = await Promise.all([
-    overviewSales(tenantId, snapshot, q, tx),
+    readSalesComparisons(tenantId, snapshot, q, tx),
     overviewTrend(tenantId, snapshot, q, tx),
     overviewStock(tenantId, snapshot, q, tx),
   ]);

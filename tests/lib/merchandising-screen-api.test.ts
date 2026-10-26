@@ -53,7 +53,7 @@ beforeEach(() => {
   m.create.mockResolvedValue({
     snapshotId: "snapshot",
     sourceId: "source",
-    sourceState: {timezone:"Europe/Kyiv"},
+    sourceState: { timezone: "Europe/Kyiv" },
     modelVersion: 1,
     createdAt: "2026-10-25T10:00:00Z",
     sales: {
@@ -164,17 +164,24 @@ describe("merchandising API snapshot and RBAC boundary", () => {
   it.each([
     ["stock", "?snapshotId=x&sort=invalid", "INVALID_SCREEN_QUERY"],
     ["reordering", "?snapshotId=x&mode=brand", "BRAND_REQUIRED"],
-    ["sales", "?snapshotId=x&classification=DEAD", "STOCK_FILTER_ON_SALES_VIEW"],
-  ])("describes invalid %s queries without suggesting synchronization", async (screen, q, code) => {
-    await login();
-    const response = await route(screen, q);
-    expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({
-      error: "Invalid merchandising screen query.",
-      code,
-    });
-    expect(m.read).not.toHaveBeenCalled();
-  });
+    [
+      "sales",
+      "?snapshotId=x&classification=DEAD",
+      "STOCK_FILTER_ON_SALES_VIEW",
+    ],
+  ])(
+    "describes invalid %s queries without suggesting synchronization",
+    async (screen, q, code) => {
+      await login();
+      const response = await route(screen, q);
+      expect(response.status).toBe(400);
+      expect(await response.json()).toEqual({
+        error: "Invalid merchandising screen query.",
+        code,
+      });
+      expect(m.read).not.toHaveBeenCalled();
+    },
+  );
   it.each([
     '{"tenantId":"b"}',
     '{"dateFrom":"2026-09-01"}',
@@ -202,7 +209,8 @@ describe("merchandising API snapshot and RBAC boundary", () => {
     const response = await route();
     expect(response.status).toBe(404);
     expect(await response.json()).toEqual({
-      error: "Merchandising data unavailable. Check the selected snapshot, source and import progress.",
+      error:
+        "Merchandising data unavailable. Check the selected snapshot, source and import progress.",
       code: "SCREEN_SNAPSHOT_NOT_FOUND",
     });
   });
@@ -230,4 +238,55 @@ describe("merchandising API snapshot and RBAC boundary", () => {
     await login();
     expect((await route("unknown")).status).toBe(404);
   });
+});
+
+describe("Sales workspace query boundary", () => {
+  it("accepts validated Sales display controls in the signed tenant", async () => {
+    await login();
+    expect(
+      (
+        await route(
+          "sales",
+          "?snapshotId=snapshot&groupBy=category&measure=units&metric=gmPct&others=1&page=2&channelPage=3",
+        )
+      ).status,
+    ).toBe(200);
+    expect(m.read).toHaveBeenCalledWith(
+      "a",
+      "sales",
+      expect.objectContaining({
+        groupBy: "category",
+        measure: "units",
+        metric: "gmPct",
+        others: true,
+        page: 2,
+        channelPage: 3,
+      }),
+    );
+  });
+  it.each([
+    "measure=usd",
+    "metric=profit",
+    "others=0",
+    "channelPage=0",
+    "channelPage=1.5",
+    "channelPage=100001",
+    "measure=money&measure=units",
+  ])("rejects malformed Sales controls: %s", async (q) => {
+    await login();
+    expect((await route("sales", "?snapshotId=snapshot&" + q)).status).toBe(
+      400,
+    );
+    expect(m.read).not.toHaveBeenCalled();
+  });
+  it.each(["overview", "stock", "repricing", "reordering"])(
+    "does not leak Sales controls into %s",
+    async (screen) => {
+      await login();
+      expect(
+        (await route(screen, "?snapshotId=snapshot&measure=units")).status,
+      ).toBe(400);
+      expect(m.read).not.toHaveBeenCalled();
+    },
+  );
 });

@@ -29,6 +29,10 @@ export interface ScreenQuery {
   ownership?: "OWN" | "CONSIGNMENT" | "UNKNOWN";
   supplierId?: string;
   mode: "shortage" | "brand";
+  measure?: "money" | "units";
+  metric?: "revenue" | "coveredGrossProfit" | "gmPct";
+  others?: boolean;
+  channelPage?: number;
 }
 export const SALES_SCREEN_SORTS = [
   "name",
@@ -75,6 +79,10 @@ export function parseScreenQuery(
     "ownership",
     "supplierId",
     "mode",
+    "measure",
+    "metric",
+    "others",
+    "channelPage",
   ]);
   for (const [key] of params)
     if (!allowed.has(key) || params.getAll(key).length !== 1)
@@ -152,12 +160,37 @@ export function parseScreenQuery(
       params.has("mode"))
   )
     throw new ScreenApiError("STOCK_FILTER_ON_SALES_VIEW", 400);
+  const measure = params.get("measure") ?? "money";
+  const metric = params.get("metric") ?? "revenue";
+  const others = params.get("others");
+  const channelPage = Number(params.get("channelPage") ?? 1);
+  if (
+    (screen !== "sales" &&
+      ["measure", "metric", "others", "channelPage"].some((key) =>
+        params.has(key),
+      )) ||
+    !["money", "units"].includes(measure) ||
+    !["revenue", "coveredGrossProfit", "gmPct"].includes(metric) ||
+    (others !== null && others !== "1") ||
+    !Number.isSafeInteger(channelPage) ||
+    channelPage < 1 ||
+    channelPage > 100000
+  )
+    throw new ScreenApiError("INVALID_SCREEN_QUERY", 400);
   const table = parseDataTableQuery(params, {
     pageSizeMin: 1,
     pageSizeDefault: 25,
   });
   return {
     snapshotId: id,
+    ...(screen === "sales"
+      ? {
+          measure: measure as ScreenQuery["measure"],
+          metric: metric as ScreenQuery["metric"],
+          others: others === "1",
+          channelPage,
+        }
+      : {}),
     domain: domain as ScreenQuery["domain"],
     groupBy: groupBy as ScreenGroup,
     page: table.page,

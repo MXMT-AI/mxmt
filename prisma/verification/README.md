@@ -192,3 +192,6 @@ features, see [navigation verification (#40)](40-mvp-navigation.md).
 
 For the template-based Overview summary, reconciled O1–O8 KPIs/actions and frozen
 YTD supporting facts, see [Overview verification (#41)](41-overview.md).
+
+For monthly Sales heatmaps, channel/category breakdowns and same-date LY changes,
+see [Sales workspace verification (#42)](42-sales-workspace.md).
