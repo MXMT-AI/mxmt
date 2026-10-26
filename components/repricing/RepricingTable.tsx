@@ -10,7 +10,7 @@ import type { DataColumnMetadata } from "@/lib/data-table-api";
 import type { RepricingEdits } from "@/lib/repricing-workspace";
 import type { RepricingCopy } from "@/lib/repricing-copy";
 import type { RepricingPreview, RepricingFailure } from "./useRepricingPreview";
-import { control } from "./RepricingControls";
+import { control } from "@/components/merchandising/FormControls";
 import styles from "@/components/merchandising/report.module.css";
 type Row = RepricingPreview["rows"][number];
 export default function RepricingTable({

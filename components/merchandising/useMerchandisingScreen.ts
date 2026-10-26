@@ -19,7 +19,7 @@ const FILTER_KEYS = [
 /** Pin a server snapshot into the URL; stale requests cannot replace data for newer filters. */
 export function useMerchandisingScreen(
   filters: MerchandisingFilters,
-  screen: "overview" | "sales" | "stock" | "repricing",
+  screen: "overview" | "sales" | "stock" | "repricing" | "reordering",
   controls: Record<string, string> = {},
 ) {
   const params = useSearchParams(),
@@ -30,7 +30,7 @@ export function useMerchandisingScreen(
   });
   for (const key of [
     "asOf",
-    ...(screen === "repricing" ? [] : FILTER_KEYS),
+    ...(["repricing", "reordering"].includes(screen) ? [] : FILTER_KEYS),
   ] as const) {
     const value = params.get(key);
     if (value) selection.set(key, value);
