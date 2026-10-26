@@ -6,21 +6,16 @@ import {
 import { calendarAge } from "./classify";
 import { payloadHash } from "./connectors/order-storage";
 import { isRecord } from "./api-contracts";
-export const REPRICING_VERSION = 1;
-export const REPRICING_INPUT_LIMIT = 20000;
-export const REPRICING_PRESETS = {
-  GENTLE: { minDiscountPct: 5, maxDiscountPct: 20, sharePct: 50 },
-  BALANCED: { minDiscountPct: 15, maxDiscountPct: 40, sharePct: 70 },
-  AGGRESSIVE: { minDiscountPct: 30, maxDiscountPct: 50, sharePct: 100 },
-} as const;
-export const REPRICING_DEFAULTS = {
-  ...REPRICING_PRESETS.BALANCED,
-  goal: "CAPITAL" as const,
-  durationDays: 10,
-  costProtection: true,
-  liquidation: false,
-  liquidationReason: null,
-};
+export * from "./repricing-contract";
+import {
+  REPRICING_VERSION,
+  REPRICING_INPUT_LIMIT,
+  type RepricingParameters,
+  type RepricingFilters,
+  type RepricingRequest,
+  type RepricingSku,
+  type RepricingInputs,
+} from "./repricing-contract";
 export class RepricingError extends Error {
   constructor(
     readonly code: string,
@@ -31,67 +26,6 @@ export class RepricingError extends Error {
     this.name = "RepricingError";
   }
 }
-export interface RepricingParameters {
-  minDiscountPct: number;
-  maxDiscountPct: number;
-  sharePct: number;
-  goal: "CAPITAL" | "TURNOVER" | "SEASON";
-  durationDays: number;
-  costProtection: boolean;
-  liquidation: boolean;
-  liquidationReason: string | null;
-}
-export interface RepricingFilters {
-  status: "DEAD" | "RISK" | "DEAD_OR_RISK";
-  soldMonths: 1 | 3 | 7;
-  brandId?: string;
-  categoryId?: string;
-  skuId?: string;
-  currency?: string;
-  priceMin?: string;
-  priceMax?: string;
-  stockMin?: string;
-  stockMax?: string;
-  soldMax?: string;
-}
-export interface RepricingRequest {
-  inputSetId: string;
-  parameters: RepricingParameters;
-  filters: RepricingFilters;
-  selection: Array<{ skuId: string; included: boolean }>;
-  manualPrices: Array<{ skuId: string; price: string }>;
-  editContext?: string;
-  page: number;
-  pageSize: number;
-}
-export interface RepricingSku {
-  skuId: string;
-  sku: string;
-  name: string;
-  barcode: string | null;
-  brandId: string | null;
-  brandName: string | null;
-  categoryId: string | null;
-  categoryName: string | null;
-  classification: string | null;
-  productKind: string;
-  ownership: string;
-  currency: string | null;
-  quantity: string | null;
-  unitCost: string | null;
-  currentPrice: string | null;
-  lastSaleDate: string | null;
-  firstReceiptDate: string | null;
-  neverSold: boolean;
-  sold: Record<1 | 3 | 7, string | null>;
-}
-export interface RepricingInputs {
-  id: string;
-  snapshotId: string;
-  asOf: string;
-  rows: ReadonlyArray<RepricingSku>;
-}
-
 /** Reject client facts, ambiguous numeric coercion, unknown keys and unbounded editing payloads. */
 export function parseRepricingRequest(value: unknown): RepricingRequest {
   const issues: string[] = [];
@@ -464,6 +398,21 @@ export function calculateRepricing(
       knownPositive(r.quantity),
   );
   const matched = candidates.filter((r) => matches(r, f));
+  const choices = (
+    idKey: "brandId" | "categoryId",
+    nameKey: "brandName" | "categoryName",
+  ) => {
+    const map = new Map<string, string | null>();
+    for (const row of candidates)
+      map.set(row[idKey] ?? "__unassigned__", row[nameKey]);
+    return [...map]
+      .sort(([a], [b]) => compareId(a, b))
+      .map(([id, name]) => ({ id, name }));
+  };
+  const filterOptions = {
+    brands: choices("brandId", "brandName"),
+    categories: choices("categoryId", "categoryName"),
+  };
   const age = (r: RepricingSku) =>
     r.lastSaleDate
       ? calendarAge(r.lastSaleDate, inputs.asOf)
@@ -642,6 +591,7 @@ export function calculateRepricing(
   });
   return {
     previewId,
+    filterOptions,
     inputSetId: inputs.id,
     snapshotId: inputs.snapshotId,
     calculationVersion: REPRICING_VERSION,

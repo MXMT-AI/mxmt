@@ -201,3 +201,6 @@ context, see [Stock workspace verification (#43)](43-stock-workspace.md).
 
 For frozen-input deterministic R1–R4 previews, pricing protections, manual edits
 and weighted totals, see [repricing verification (#44)](44-repricing-calculator.md).
+
+For Repricing filters, live server previews, editable prices and responsive UI,
+see [Repricing workspace verification (#45)](45-repricing-workspace.md).
