@@ -9,9 +9,10 @@ export function reorderQuantity(input: {
   moq: number;
 }) {
   if (input.inTransit === null) return null;
+  // Divide last so a rounded repeating quotient cannot cross an integer before ceil.
   const target = D(input.weeklyVelocity)
-    .div(7)
     .mul(input.leadDays + input.coverDays)
+    .div(7)
     .ceil();
   const raw = target.sub(input.stock).sub(input.inTransit);
   const demand = raw.gt(0) ? raw : D(0);

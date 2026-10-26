@@ -178,6 +178,7 @@ const nonNegative = (value: string | null) =>
   value !== null && D(value).isFinite() && D(value).gte(0);
 const positive = (value: string | null) =>
   nonNegative(value) && D(value!).gt(0);
+/** Match canonical frozen IDs, resolving supplier through policy rather than display text. */
 function matches(row: ReorderingSku, filters: ReorderingRequest["filters"]) {
   for (const key of [
     "brandId",

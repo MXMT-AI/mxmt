@@ -152,3 +152,15 @@ Validation run on 2026-10-26:
 - `git diff --check`: passed.
 - Focused store verification additionally confirmed that transit verified before
   the snapshot cutoff is consumed, while a future verification remains unknown.
+
+## CodeRabbit precision follow-up
+
+Reproduced the integer-boundary over-ordering case before fixing it: velocity
+8 units/week over 7 days produced target 9 after early Decimal division; MOQ 8
+amplified the recommendation to 16. The helper now multiplies the weekly rate
+by the day count before dividing by 7 and applying the target ceiling.
+
+Regression tests cover MOQ 1 and 8, stock that exactly covers demand (remaining
+quantity zero), both calculator/policy consumers, and a genuinely fractional
+value that must still round up. Added documentation for canonical-ID matching.
+The follow-up full suite passed 865 tests across 73 files; production build passed.

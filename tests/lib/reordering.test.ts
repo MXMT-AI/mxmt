@@ -4,6 +4,11 @@ import {
   calculateReordering,
   parseReorderingRequest,
 } from "@/lib/reorder-calc";
+import { reorderQuantity } from "@/lib/reorder-quantity";
+import {
+  previewMerchandisingCalculations,
+  resolveMerchandisingPolicy,
+} from "@/lib/merchandising-policy";
 import type { ReorderingSku } from "@/lib/reordering-contract";
 import { calculateDailySku } from "@/lib/sku-daily-metrics";
 import { skuInput, context } from "../helpers/daily-sku";
@@ -338,5 +343,66 @@ describe("reordering request boundary", () => {
         overrides: [{ skuId: "a", inTransitQuantity: "0.0000" }],
       }).overrides[0].inTransitQuantity,
     ).toBe("0");
+  });
+});
+
+describe("integer target precision regression", () => {
+  it.each([
+    { moq: 1, stock: "0", expected: "8" },
+    { moq: 8, stock: "0", expected: "8" },
+    { moq: 8, stock: "8", expected: "0" },
+  ])(
+    "keeps exact 8-unit weekly coverage without extra units or MOQ: %j",
+    ({ moq, stock, expected }) => {
+      const parameters = { leadDays: 0, coverDays: 7, moq };
+      expect(
+        reorderQuantity({
+          weeklyVelocity: "8",
+          ...parameters,
+          stock,
+          inTransit: "0",
+        })?.toFixed(),
+      ).toBe(expected);
+      expect(
+        run(
+          [
+            sku("a", {
+              velocityPerWeek: "8",
+              quantity: stock,
+              inTransitQuantity: "0",
+            }),
+          ],
+          { parameters },
+        ).rows[0].recommendedQuantity,
+      ).toBe(expected);
+      const policy = resolveMerchandisingPolicy({
+        ...parameters,
+        supplierId: "supplier",
+        supplierTermsVerified: true,
+        brandOwnership: "OWN",
+      });
+      expect(
+        previewMerchandisingCalculations(policy, {
+          weeklyVelocity: "8",
+          stock,
+          inTransit: "0",
+          revenue: "0",
+          cost: null,
+          month: 10,
+        }).orderQuantity,
+      ).toBe(expected);
+    },
+  );
+  it("still ceils genuinely fractional targets without an epsilon or display-rounding shortcut", () => {
+    expect(
+      reorderQuantity({
+        weeklyVelocity: "8.000000000000000000000000000000000001",
+        leadDays: 0,
+        coverDays: 7,
+        stock: "0",
+        inTransit: "0",
+        moq: 1,
+      })?.toFixed(),
+    ).toBe("9");
   });
 });
