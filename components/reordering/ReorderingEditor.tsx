@@ -66,6 +66,7 @@ export default function ReorderingEditor({
   );
   const current = preview.current && !needsBrand,
     error = preview.error;
+  /** Sync shareable controls without putting transient transit confirmations into history. */
   function save(next: URLSearchParams) {
     lastUrl.current = next.toString();
     window.history.replaceState(
@@ -74,12 +75,14 @@ export default function ReorderingEditor({
       `${window.location.pathname}?${next}`,
     );
   }
+  /** Reset pagination while retaining confirmations only for an unchanged filter scope. */
   function change(draft: ReorderingDraft) {
     dispatch({ type: "draft", draft });
     save(
       writeReorderingDraft(new URLSearchParams(window.location.search), draft),
     );
   }
+  /** Reset both shareable controls and scenario-only confirmations to saved source behavior. */
   function reset() {
     const draft: ReorderingDraft = {
         mode: "shortage",
@@ -156,6 +159,7 @@ export default function ReorderingEditor({
           onTransit={(skuId, value) =>
             dispatch({ type: "transit", skuId, value })
           }
+          onRestore={(skuId) => dispatch({ type: "restoreTransit", skuId })}
           onPage={(page) => {
             dispatch({ type: "page", page });
             const next = new URLSearchParams(window.location.search);

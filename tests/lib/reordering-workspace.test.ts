@@ -111,3 +111,50 @@ describe("reordering intent and deep links", () => {
     });
   });
 });
+
+describe("URL restoration and editable transit regressions", () => {
+  it.each(["abc", "0", "-1", "1.5", "100001", "", "Infinity"])(
+    "restores invalid page=%s as page one",
+    (page) => {
+      const state = initialReorderingState(
+        new URLSearchParams({ mode: "foo", page }),
+      );
+      expect(state.draft.mode).toBe("shortage");
+      expect(state.page).toBe(1);
+      expect(() =>
+        parseReorderingRequest(reorderingRequest("frozen", state)),
+      ).not.toThrow();
+    },
+  );
+  it.each(["1", "100000"])("preserves valid brand mode and page=%s", (page) => {
+    const state = initialReorderingState(
+      new URLSearchParams({ mode: "brand", brandId: "brand-a", page }),
+    );
+    expect(state.draft.mode).toBe("brand");
+    expect(state.page).toBe(Number(page));
+  });
+  it("keeps clearing separate from restore, and omits only empty drafts from API overrides", () => {
+    let state = initialReorderingState(query());
+    state = reorderingReducer(state, {
+      type: "transit",
+      skuId: "sku-1",
+      value: "",
+    });
+    expect(Object.hasOwn(state.transit, "sku-1")).toBe(true);
+    expect(state.transit["sku-1"]).toBe("");
+    expect(reorderingRequest("frozen", state).overrides).toEqual([]);
+    state = reorderingReducer(state, {
+      type: "transit",
+      skuId: "sku-1",
+      value: "7",
+    });
+    expect(reorderingRequest("frozen", state).overrides).toEqual([
+      { skuId: "sku-1", inTransitQuantity: "7" },
+    ]);
+    state = reorderingReducer(state, {
+      type: "restoreTransit",
+      skuId: "sku-1",
+    });
+    expect(Object.hasOwn(state.transit, "sku-1")).toBe(false);
+  });
+});

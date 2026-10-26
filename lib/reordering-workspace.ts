@@ -20,7 +20,7 @@ export function readReorderingDraft(query: URLSearchParams): ReorderingDraft {
     if (value !== null) filters[key] = value;
   }
   return {
-    mode: (query.get("mode") ?? "shortage") as ReorderingDraft["mode"],
+    mode: query.get("mode") === "brand" ? "brand" : "shortage",
     filters,
     leadDays: query.get("leadDays") ?? "",
     coverDays: query.get("coverDays") ?? "",
@@ -50,16 +50,20 @@ export type ReorderingState = {
   transit: Record<string, string>;
   page: number;
 };
+/** Restore safe navigation defaults; financial scenario values still require server validation. */
 export const initialReorderingState = (
   query: URLSearchParams,
 ): ReorderingState => ({
   draft: readReorderingDraft(query),
   transit: {},
-  page: query.has("page") ? Number(query.get("page")) : 1,
+  page: /^(?:[1-9]\d{0,4}|100000)$/.test(query.get("page") ?? "")
+    ? Number(query.get("page"))
+    : 1,
 });
 export type ReorderingAction =
   | { type: "draft"; draft: ReorderingDraft }
   | { type: "transit"; skuId: string; value: string }
+  | { type: "restoreTransit"; skuId: string }
   | { type: "page"; page: number }
   | { type: "restore"; query: string };
 /** Transit confirmations persist across terms, filters and paging within one pinned snapshot. */
@@ -82,7 +86,7 @@ export function reorderingReducer(
     };
   if (action.type === "page") return { ...state, page: action.page };
   const transit = { ...state.transit };
-  if (action.value === "") delete transit[action.skuId];
+  if (action.type === "restoreTransit") delete transit[action.skuId];
   else transit[action.skuId] = action.value;
   return { ...state, transit };
 }
@@ -103,6 +107,7 @@ export function reorderingRequest(
     filters: state.draft.filters,
     parameters,
     overrides: Object.entries(state.transit)
+      .filter(([, value]) => value !== "")
       .sort(([a], [b]) => (a < b ? -1 : 1))
       .map(([skuId, inTransitQuantity]) => ({ skuId, inTransitQuantity })),
     page: state.page,

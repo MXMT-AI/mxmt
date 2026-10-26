@@ -76,6 +76,7 @@ describe("localized reordering UI", () => {
           transit: {},
           error: null,
           onTransit: () => {},
+          onRestore: () => {},
           onPage: () => {},
         }),
       );
@@ -124,6 +125,7 @@ describe("localized reordering UI", () => {
           ],
         },
         onTransit: () => {},
+        onRestore: () => {},
         onPage: () => {},
       }),
     );
@@ -132,4 +134,27 @@ describe("localized reordering UI", () => {
     expect(html).toContain(reorderingCopy.en.transitError);
     expect(html).toContain(reorderingCopy.en.restore);
   });
+});
+
+it("keeps a cleared saved transit field blank and aligns errors after omitted empty drafts", () => {
+  const html = renderToStaticMarkup(
+    createElement(Table, {
+      data,
+      copy: reorderingCopy.en,
+      locale: "en-US",
+      current: false,
+      transit: { "sku-00": "", "sku-01": "-1" },
+      error: {
+        code: "INVALID_REORDERING_REQUEST",
+        details: ["overrides.0.inTransitQuantity: invalid quantity"],
+      },
+      onTransit: () => {},
+      onRestore: () => {},
+      onPage: () => {},
+    }),
+  );
+  expect(html).toMatch(/name="transit-sku-00"[^>]*value=""/);
+  expect(html).toContain(reorderingCopy.en.clearedTransit);
+  expect(html).toMatch(/aria-invalid="true"[^>]*name="transit-sku-01"/);
+  expect(html).toContain(reorderingCopy.en.transitError);
 });

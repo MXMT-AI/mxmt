@@ -94,3 +94,24 @@ controls in one label. No automatic motion was introduced.
   overflow stayed within the report table. Desktop used the default 1280 × 720
   viewport. Temporary fixture routes, proxy and development servers were removed
   or stopped after verification; viewport overrides were reset.
+
+## CodeRabbit follow-up
+
+Clearing a transit field now retains an empty local draft rather than immediately
+restoring the saved quantity. Empty drafts are omitted from preview overrides;
+the UI discloses that saved transit still applies until a replacement is entered.
+A separate restore action removes the draft. Field-error indices use only
+serialized non-empty overrides, so another cleared field cannot misplace an error.
+
+Invalid URL mode/page values restore the existing shortage/page-one defaults;
+valid brand mode and pages 1–100000 remain intact. Financial settings still go
+through server validation. Added regression tests for clear/retype/restore,
+empty-draft rendering, override error indices, invalid navigation values and
+valid pagination boundaries, and expanded interaction docstrings.
+
+The linked-issue CSV warning remains the documented dependency on #48. Export
+controls stay disabled until its authoritative export/audit API is implemented;
+this follow-up does not claim supplier-file acceptance has been verified.
+
+Follow-up validation: 887 tests passed across 76 files; production build,
+`npx tsc --noEmit` and `git diff --check` passed.

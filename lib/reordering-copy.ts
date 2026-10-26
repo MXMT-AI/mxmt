@@ -41,6 +41,8 @@ export const reorderingCopy = {
     unknown: "Unknown",
     confirmZero: "Confirm zero",
     confirmed: "Confirmed for this scenario",
+    clearedTransit:
+      "Draft cleared — saved transit applies until you enter a new value.",
     restore: "Restore saved transit",
     zeroHint:
       "Confirm a known quantity or explicit zero. Unknown transit is never assumed to be zero.",
@@ -154,6 +156,8 @@ export const reorderingCopy = {
     unknown: "Невідомо",
     confirmZero: "Підтвердити нуль",
     confirmed: "Підтверджено для сценарію",
+    clearedTransit:
+      "Чернетку очищено — збережений транзит діє до введення нового значення.",
     restore: "Повернути збережене значення",
     zeroHint:
       "Підтвердьте відому кількість або явний нуль. Невідомий товар у дорозі не вважається нулем.",

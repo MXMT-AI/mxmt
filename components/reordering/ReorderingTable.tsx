@@ -22,6 +22,7 @@ export default function ReorderingTable({
   transit,
   error,
   onTransit,
+  onRestore,
   onPage,
 }: {
   data: ReorderingPreview;
@@ -31,6 +32,7 @@ export default function ReorderingTable({
   transit: Record<string, string>;
   error: ScenarioFailure | null;
   onTransit: (skuId: string, value: string) => void;
+  onRestore: (skuId: string) => void;
   onPage: (page: number) => void;
 }) {
   const columns = (
@@ -45,7 +47,9 @@ export default function ReorderingTable({
       ["notes", copy.notes, "text"],
     ] as const
   ).map(([key, label, type]) => ({ key, label, type }) as DataColumnMetadata);
-  const overrideIds = Object.keys(transit).sort();
+  const overrideIds = Object.keys(transit)
+    .filter((id) => transit[id] !== "")
+    .sort();
   return (
     <section
       className={panel + " overflow-hidden"}
@@ -114,12 +118,14 @@ export default function ReorderingTable({
                   {edited ? (
                     <>
                       <small className="block whitespace-normal">
-                        {copy.confirmed}
+                        {transit[row.skuId] === ""
+                          ? copy.clearedTransit
+                          : copy.confirmed}
                       </small>
                       <button
                         className="min-h-11 text-xs underline underline-offset-2"
                         type="button"
-                        onClick={() => onTransit(row.skuId, "")}
+                        onClick={() => onRestore(row.skuId)}
                       >
                         {copy.restore}
                       </button>
