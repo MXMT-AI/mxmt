@@ -1,4 +1,5 @@
-import MerchandisingDestination from "@/components/merchandising/MerchandisingDestination";
+import ReorderingWorkspace from "@/components/reordering/ReorderingWorkspace";
+/** Mount supplier-aware scenarios inside the authenticated merchandising shell. */
 export default function Page() {
-  return <MerchandisingDestination screen="reordering" />;
+  return <ReorderingWorkspace />;
 }

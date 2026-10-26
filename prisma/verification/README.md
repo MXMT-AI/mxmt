@@ -207,3 +207,6 @@ see [Repricing workspace verification (#45)](45-repricing-workspace.md).
 
 For frozen-input reorder quantities, lead/coverage/MOQ overrides, transit
 confirmation and supplier totals, see [reordering verification (#46)](46-reordering-calculator.md).
+
+For live reordering controls, explicit transit confirmation and supplier/currency
+summaries, see [Reordering workspace verification (#47)](47-reordering-workspace.md).
