@@ -415,11 +415,16 @@ it("keeps negative returns signed and does not divide a non-positive channel tot
   }
 });
 it("shows a known LY zero with an absolute change and an unavailable percentage", async () => {
-  const block = (await read({ currency: "UAH", skuId: "sku-c" })).workspace!
-    .byCurrency[0];
+  const data = await read({ currency: "UAH", skuId: "sku-c" }),
+    block = data.workspace!.byCurrency[0];
   expect(block.comparison.total!.ly).toBe("0");
   expect(block.comparison.total!.delta).toBe("10");
   expect(block.comparison.total!.changePct).toBeNull();
+  const html = renderToStaticMarkup(
+    createElement(SalesContent, { data, lang: "en", query: "" }),
+  );
+  expect(html).toContain(">+10</span>");
+  expect(html).not.toContain("+—");
 });
 
 it("retains period data when YTD support or dated legacy facts are unavailable", async () => {
@@ -467,3 +472,54 @@ it("retains period data when YTD support or dated legacy facts are unavailable",
     data.sales!.summary[0].current.revenue,
   );
 });
+
+it.each(["uk", "en"] as const)(
+  "exposes localized partial-data text in monthly, channel and LY cells (%s)",
+  async (lang) => {
+    const previous = (
+      await fixture.pg.query<{
+        id: string;
+        signedRevenue: string;
+        netAmount: string;
+      }>(
+        `SELECT id,"signedRevenue","netAmount" FROM "OrderLine" WHERE "skuId"='sku-c'`,
+      )
+    ).rows[0];
+    try {
+      await fixture.pg.query(
+        `UPDATE "OrderLine" SET "signedRevenue"=NULL,"netAmount"=NULL WHERE id=$1`,
+        [previous.id],
+      );
+      const fresh = await createScreenSnapshot(
+          "a",
+          screenSelection,
+          fixture.db,
+        ),
+        data = await read({
+          snapshotId: fresh.snapshotId,
+          currency: "UAH",
+          skuId: "sku-c",
+        });
+      const html = renderToStaticMarkup(
+          createElement(SalesContent, { data, lang, query: "" }),
+        ),
+        label = lang === "uk" ? "Неповні дані" : "Incomplete data";
+      for (const section of ["S1", "S2", "S4"]) {
+        const content = html
+          .split("<h3")
+          .find((part) => part.includes(section + " ·"));
+        expect(content).toContain(
+          '<span aria-hidden="true"> *</span><span class="sr-only"> ' +
+            label +
+            "</span>",
+        );
+      }
+      expect(html).not.toContain('aria-label="' + label + '"');
+    } finally {
+      await fixture.pg.query(
+        `UPDATE "OrderLine" SET "signedRevenue"=$1,"netAmount"=$2 WHERE id=$3`,
+        [previous.signedRevenue, previous.netAmount, previous.id],
+      );
+    }
+  },
+);

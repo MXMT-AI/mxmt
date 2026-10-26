@@ -171,7 +171,10 @@ describe("inventory recovery and policy changes",()=>{
     expect(row.checkpoint.from).toBeUndefined(); expect(row.checkpoint.policyHash).toMatch(/^[a-f0-9]{64}$/);
   });
   it("retains negative observed stock as an explicit exception without creating negative inventory values",async()=>{
-    const snapshot=await catalog('2026-10-26T04:00:00.000Z',xml.replace('<quantity_in_stock>2.5</quantity_in_stock>','<quantity_in_stock>-2.5</quantity_in_stock>'));
+    // Follow the preceding sync observation even when the wall clock has passed the fixture date.
+    const latest=(await pg.query<{observedAt:Date|null}>(`SELECT max("observedAt") AS "observedAt" FROM "DataSourceRecord" WHERE "tenantId"='a' AND "sourceId"='source-a' AND resource='catalog-yml'`)).rows[0].observedAt;
+    const observedAt=new Date(Math.max(Date.parse('2026-10-26T04:00:00.000Z'),(latest?.getTime()??0)+1000)).toISOString();
+    const snapshot=await catalog(observedAt,xml.replace('<quantity_in_stock>2.5</quantity_in_stock>','<quantity_in_stock>-2.5</quantity_in_stock>'));
     const result=await db.$transaction((tx)=>storeCatalog(tx,scope,snapshot));
     expect(result.issues).toContain('NEGATIVE_SOURCE_STOCK');
     expect((await pg.query('SELECT quantity,"costValue","retailValue",diagnostics->>\'negativeStock\' negative FROM "InventorySnapshot" WHERE "tenantId"=\'a\' ORDER BY "snapshotDate" DESC LIMIT 1')).rows).toEqual([{quantity:'-2.5000',costValue:null,retailValue:null,negative:'true'}]);

@@ -57,9 +57,9 @@ with zeros. Freshness describes the source separately from the saved snapshot.
 - Isolated PGlite fixtures apply repository migrations; no configured database is accessed.
 - Reconcile S1 monthly totals with O2, top-11 + Others with Total, paged remainder with Others, S3 category buckets with S1, and all channel pages/shares with period revenue.
 - Verify 309 orders vs 312 units, covered margin thresholds, signed returns, missing/zero LY history, monobrand grouping, immutable snapshots and YTD/legacy fallback.
-- Render UA/EN S1–S4, pinned filter-aware drills, disabled financial controls and accessible chart values.
+- Render UA/EN S1–S4, pinned filter-aware drills, disabled financial controls and accessible chart values. Regression checks retain an unavailable LY percentage without a sign prefix and expose localized partial-data text in monthly, channel and LY cells.
 - API checks validate Sales-only controls, enum/duplicate handling, page limits and signed-tenant boundaries.
-- `npm run build` and `npx tsc --noEmit` pass; full Vitest suite: **707 tests across 64 files pass**.
+- `npm run build` and `npx tsc --noEmit` pass; full Vitest suite: **709 tests across 64 files pass**.
 - Browser verification uses actual components with synthetic fixture API responses, rather than production source data. Desktop light/dark, shared units/category controls, SKU drills, Others, chart values and narrow responsive layout are checked locally.
 
 The financial thresholds and imported customer figures still require the

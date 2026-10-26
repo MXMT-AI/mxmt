@@ -22,13 +22,25 @@ const button =
 type Block = SalesWorkspaceModel["byCurrency"][number];
 type MatrixRow = Block["matrix"]["rows"][number];
 type Href = (values: Record<string, string | null>) => string;
+/** Map server comparison tones to the shared theme-aware semantic colors. */
 const tone = (value: string) =>
   value === "GREEN" ? styles.good : value === "RED" ? styles.bad : "";
+/** Render supporting context consistently across the four Sales sections. */
 function Note({ children }: { children: ReactNode }) {
   return (
     <p className="text-xs leading-relaxed text-[var(--muted)]">{children}</p>
   );
 }
+/** Keep the visible marker decorative and expose its localized meaning as text. */
+function PartialMarker({ label }: { label: string }) {
+  return (
+    <>
+      <span aria-hidden="true"> *</span>
+      <span className="sr-only"> {label}</span>
+    </>
+  );
+}
+/** Page one Sales section without discarding the other URL-owned controls. */
 function Pager({
   pagination,
   control,
@@ -68,6 +80,7 @@ function Pager({
     </nav>
   );
 }
+/** Format server monthly cells and retain currency-scoped SKU drill links. */
 function Matrix({
   rows,
   total,
@@ -175,7 +188,7 @@ function Matrix({
             title={c.partial ? copy.partial : undefined}
           >
             {formatTableValue(c.value, col.type, locale)}
-            {c.partial ? <span aria-label={copy.partial}> *</span> : null}
+            {c.partial ? <PartialMarker label={copy.partial} /> : null}
           </span>
         );
       }}
@@ -335,6 +348,7 @@ function CategoryChart({
     </figure>
   );
 }
+/** Present S1–S4 from one pinned response without deriving financial totals. */
 export default function SalesContent({
   data,
   lang,
@@ -688,9 +702,9 @@ export default function SalesContent({
                       >
                         {formatTableValue(row[col.key], col.type, locale)}
                         {col.key === "revenue" &&
-                        (row.source as MatrixRow).total.partial
-                          ? " *"
-                          : ""}
+                        (row.source as MatrixRow).total.partial ? (
+                          <PartialMarker label={copy.partial} />
+                        ) : null}
                       </span>
                     )
                   }
@@ -790,11 +804,17 @@ export default function SalesContent({
                   const signed = col.key === "delta" || col.key === "changePct";
                   return (
                     <span className={signed ? tone(String(row.tone)) : ""}>
-                      {signed && row.tone === "GREEN" ? "+" : ""}
+                      {signed &&
+                      row.tone === "GREEN" &&
+                      row[col.key] !== null &&
+                      row[col.key] !== undefined &&
+                      row[col.key] !== ""
+                        ? "+"
+                        : ""}
                       {formatTableValue(row[col.key], col.type, locale)}
                       {(col.key === "current" && row.currentPartial) ||
                       (col.key === "ly" && row.lyPartial) ? (
-                        <span aria-label={copy.partial}> *</span>
+                        <PartialMarker label={copy.partial} />
                       ) : null}
                     </span>
                   );
