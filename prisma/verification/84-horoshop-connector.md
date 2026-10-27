@@ -34,7 +34,8 @@ clears checks/capabilities and leaves unchanged mapping approval intact.
 
 Set server-only `HOROSHOP_ALLOWED_ORIGINS` to comma-separated exact HTTPS origins
 only after verifying the shop and restricted integration account. There is no
-wildcard or default domain grant. Configuration rejects URL credentials, paths,
+wildcard or default domain grant. Valid IDN shop origins, including `.укр`, are
+normalized to their ASCII punycode form for exact allowlist matching. Configuration rejects URL credentials, paths,
 queries, fragments, non-HTTPS protocols, custom ports and IP literals. Every request
 resolves all DNS answers, rejects private/reserved IPv4 and non-public IPv6 (including
 mapped/transition ranges), then pins the checked address on a fresh HTTPS socket.
@@ -45,8 +46,9 @@ are bounded; JSON responses have a 4 MiB limit and strict UTF-8/lossless decimal
 Tokens live only inside one runtime instance, already bound to the decrypted tenant,
 source and credential revision. There is no process-wide token map. Expiry refreshes
 early at 550 seconds; unauthorized reads retry after fresh authentication once.
-Authentication responses are never retained. Read responses structurally redact
-credential/token echoes before storage; audit JSON may therefore differ from raw bytes.
+Authentication responses are never retained. Source response bodies remain unchanged during validation and fact mapping. Separate
+audit copies (page text and per-record raw fields) structurally redact credential/token
+echoes before storage; audit JSON may therefore differ from source bytes.
 
 No authoritative numeric provider quota was established. An account-evidenced
 request/window budget is mandatory, uses existing durable reservations/backfill
@@ -68,7 +70,11 @@ Without it, `capabilities.orders=false` and connection checks cannot make the so
 selectable. Offset APIs do not provide an atomic snapshot: concurrent insertion,
 deletion or reorder behavior must be tested on the actual account. A successful
 fixture cannot prove the provider's real behavior. Repeat scans are idempotent;
-missing orders are never inferred as deletions/refunds.
+missing orders are never inferred as deletions/refunds. Identified orders with invalid
+record fields (including a mismatched currency) are retained in quarantine with an
+order-specific ImportIssue and raw-record reference. They never replace prior facts.
+Every source row retains its pagination slot, so later offsets still run. Invalid
+envelopes, page sizes, duplicate or missing order identities remain fatal page errors.
 
 Horoshop does not document an order modification timestamp/version here. The shared
 store now supports an explicit observation revision capability: a newer complete
@@ -146,3 +152,16 @@ spacing, native controls and single-column mobile layout are preserved.
    run a manual scan and compare facts, five screens and safe scenario export behavior.
 6. Obtain customer acceptance separately. This change neither enables production
    automatic synchronization nor authorizes deployment/customer-data processing.
+
+## PR #90 review follow-up
+
+Three CodeRabbit findings were verified and addressed: audit masking is isolated
+from mapped source facts; identified malformed orders quarantine independently
+without blocking pagination or deleting prior facts; valid punycode TLDs are accepted.
+Regression cases cover short credential overlaps in SKUs, keys, prices and titles;
+per-order currency/date/line failures across offset pages; retained prior projections
+and per-order issue references; Unicode/ASCII origin normalization with unsafe URL
+restrictions preserved. No PR comment replies or thread resolutions are automated.
+
+Follow-up validation: 113 test files / 1115 tests passed; production build,
+`npx tsc --noEmit` and `git diff --check` passed.

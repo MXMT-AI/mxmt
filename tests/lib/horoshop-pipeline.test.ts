@@ -269,3 +269,77 @@ it("persists provider 429 backoff and shares the account budget across credentia
   ).rejects.toMatchObject({ code: "RATE_LIMITED" });
   expect(fetcher).toHaveBeenCalledTimes(1);
 });
+
+it("quarantines invalid orders with durable per-order diagnostics and advances to later offsets without deleting previous facts", async () => {
+  const invalidCurrency = { ...horoshopOrder(1), currency: "USD" },
+    invalidDate = { ...horoshopOrder(2), stat_created: "bad date" },
+    invalidLine = {
+      ...horoshopOrder(3),
+      products: [{ ...horoshopOrder().products[0], quantity: "bad" }],
+    };
+  const c = new HoroshopConnector(
+    config,
+    horoshopFetcher([
+      invalidCurrency,
+      invalidDate,
+      invalidLine,
+      horoshopOrder(4),
+    ]),
+    () => ++clock,
+  );
+  c.capabilities.pageSize = { orders: 1, catalog: 100 };
+  const rt = async () => ({ ...(await runtime()), connector: c });
+  await enqueueOrderImport("a", "INCREMENTAL", {}, f.db);
+  for (let i = 0; i < 7; i++) await processOrderJob("a", f.db, rt);
+  const job = (
+    await f.pg.query<any>(
+      `SELECT state,stats,"importRunId",checkpoint FROM "ConnectorSyncJob" WHERE "sourceId"='horoshop' AND resource='orders' ORDER BY "createdAt" DESC LIMIT 1`,
+    )
+  ).rows[0];
+  expect(job.state).toBe("COMPLETE");
+  expect(job.stats).toMatchObject({ orders: 4, quarantined: 3, imported: 1 });
+  expect(job.checkpoint.continuation.position).toEqual({
+    kind: "offset",
+    offset: 4,
+  });
+  const issues = (
+    await f.pg.query<any>(
+      `SELECT code,"entityKey",context FROM "ImportIssue" WHERE "importRunId"=$1 AND "entityKey" IS NOT NULL AND code IN ('ORDER_CURRENCY_MISMATCH','ORDER_RECORD_INVALID') ORDER BY code,"entityKey"`,
+      [job.importRunId],
+    )
+  ).rows;
+  expect(issues.map((i) => i.code).sort()).toEqual([
+    "ORDER_CURRENCY_MISMATCH",
+    "ORDER_RECORD_INVALID",
+    "ORDER_RECORD_INVALID",
+  ]);
+  for (const issue of issues) {
+    expect(issue.entityKey).toMatch(/^order:[a-f0-9]{64}$/);
+    expect(issue.context.sourceId).toBe("horoshop");
+    expect(issue.context.sourceRecordKey).toBeTruthy();
+  }
+  expect(
+    (
+      await f.pg.query(
+        `SELECT "externalOrderId","externalLineId" FROM "OrderLine" WHERE "sourceId"='horoshop' ORDER BY "externalOrderId"`,
+      )
+    ).rows,
+  ).toEqual([
+    { externalOrderId: "1", externalLineId: "native:102" },
+    { externalOrderId: "4", externalLineId: "native:101" },
+  ]);
+  expect(
+    (
+      await f.pg.query(
+        `SELECT count(*)::int n FROM "OrderImportState" WHERE "sourceId"='horoshop' AND "externalOrderId" IN ('2','3')`,
+      )
+    ).rows,
+  ).toEqual([{ n: 0 }]);
+  const retained = (
+    await f.pg.query<any>(
+      `SELECT payload FROM "DataSourceRecord" WHERE "importRunId"=$1 AND resource='orders'`,
+      [job.importRunId],
+    )
+  ).rows;
+  expect(retained).toHaveLength(4);
+});

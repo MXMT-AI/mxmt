@@ -98,6 +98,31 @@ export class HoroshopConnector implements MerchandisingConnector {
       pageSize: { orders: 100, catalog: 100 },
     };
   }
+  /** Redact credential echoes only in audit copies, never in the payload mapped to facts. */
+  private audit(value: unknown, token?: string): unknown {
+    const secrets = [this.config.password, this.config.login, token].filter(
+      (v): v is string => Boolean(v),
+    );
+    const redact = (v: unknown): unknown => {
+      if (typeof v === "string")
+        return secrets.reduce(
+          (text, key) => text.split(key).join("[REDACTED]"),
+          v,
+        );
+      if (Array.isArray(v)) return v.map(redact);
+      if (isRecord(v))
+        return Object.fromEntries(
+          Object.entries(v).map(([key, item]) => [
+            String(redact(key)),
+            ["token", "password", "login"].includes(key.toLowerCase())
+              ? "[REDACTED]"
+              : redact(item),
+          ]),
+        );
+      return v;
+    };
+    return redact(value);
+  }
   private async post(path: Path, data: Row, secret?: string) {
     let response: Response;
     try {
@@ -161,35 +186,10 @@ export class HoroshopConnector implements MerchandisingConnector {
       let raw = new TextDecoder("utf-8", { fatal: true }).decode(
         Buffer.concat(chunks),
       );
-      let body = object(parseSourceJson(raw));
-      // Structural redaction also covers Unicode-escaped echoes. Only authentication may contain a token.
-      if (path !== "auth") {
-        const secrets = [
-          this.config.password,
-          this.config.login,
-          secret,
-        ].filter((v): v is string => Boolean(v));
-        const redact = (value: unknown): unknown => {
-          if (typeof value === "string")
-            return secrets.reduce(
-              (text, key) => text.split(key).join("[REDACTED]"),
-              value,
-            );
-          if (Array.isArray(value)) return value.map(redact);
-          if (isRecord(value))
-            return Object.fromEntries(
-              Object.entries(value).map(([key, v]) => [
-                String(redact(key)),
-                ["token", "password", "login"].includes(key.toLowerCase())
-                  ? "[REDACTED]"
-                  : redact(v),
-              ]),
-            );
-          return value;
-        };
-        body = object(redact(body));
-        raw = JSON.stringify(body);
-      }
+      const body = object(parseSourceJson(raw));
+      // Source facts are immutable. Mask only independent audit copies.
+      const auditRecord = (value: Row) => object(this.audit(value, secret));
+      if (path !== "auth") raw = JSON.stringify(auditRecord(body));
       if (path === "auth" && body.status !== "OK")
         throw new ConnectorReadError("AUTH_FAILED");
       if (
@@ -207,7 +207,12 @@ export class HoroshopConnector implements MerchandisingConnector {
         !(body.status === "EMPTY" && path === "orders/get")
       )
         invalid();
-      return { body, raw, observedAt: new Date(this.now()).toISOString() };
+      return {
+        body,
+        raw,
+        auditRecord,
+        observedAt: new Date(this.now()).toISOString(),
+      };
     } catch (e) {
       if (e instanceof ConnectorReadError) throw e;
       return invalid();
@@ -322,14 +327,45 @@ export class HoroshopConnector implements MerchandisingConnector {
     )
       invalid();
     return {
-      records: r.values.map((v) => this.order(v, r.observedAt)),
+      records: r.values.map((v): OrderDto => {
+        const externalId = id(v.order_id);
+        try {
+          return this.order(v, r.observedAt, r.auditRecord);
+        } catch (error) {
+          if (
+            !(error instanceof ConnectorReadError) ||
+            error.code !== "INVALID_RESPONSE"
+          )
+            throw error;
+          // Retain a quarantined slot so offset advancement counts every source row.
+          return {
+            externalId,
+            observedAt: r.observedAt,
+            updatedAt: null,
+            statusId: null,
+            channelId: null,
+            orderedAt: null,
+            paidAt: null,
+            lines: [],
+            raw: r.auditRecord(v),
+            rejectionCode:
+              v.currency !== this.config.evidence.currency
+                ? "ORDER_CURRENCY_MISMATCH"
+                : "ORDER_RECORD_INVALID",
+          };
+        }
+      }),
       nextPage: null,
       next: r.next,
       rawResponse: r.raw,
       observedAt: r.observedAt,
     };
   }
-  private order(v: Row, observedAt: string): OrderDto {
+  private order(
+    v: Row,
+    observedAt: string,
+    audit: (row: Row) => Row,
+  ): OrderDto {
     const e = this.config.evidence;
     if (v.currency !== e.currency) invalid();
     const date =
@@ -399,12 +435,12 @@ export class HoroshopConnector implements MerchandisingConnector {
       lines: lines.sort((a, b) =>
         a.externalLineId.localeCompare(b.externalLineId),
       ),
-      raw: {
+      raw: audit({
         ...v,
         products: [...products].sort((a, b) =>
           id(a.storage_id).localeCompare(id(b.storage_id)),
         ),
-      },
+      }),
     };
   }
   async getStatuses(): Promise<Dictionary> {
@@ -424,7 +460,11 @@ export class HoroshopConnector implements MerchandisingConnector {
   async getChannels() {
     return unavailable();
   }
-  private product(v: Row, observedAt: string): ProductDto {
+  private product(
+    v: Row,
+    observedAt: string,
+    audit: (row: Row) => Row,
+  ): ProductDto {
     const article = id(v.article),
       parent = v.parent == null ? null : object(v.parent),
       brand =
@@ -447,7 +487,7 @@ export class HoroshopConnector implements MerchandisingConnector {
       currency: this.config.evidence.currency,
       observedAt,
       updatedAt: null,
-      raw: v,
+      raw: audit(v),
     };
   }
   private stock(v: Row, observedAt: string): StockDto {
@@ -482,7 +522,9 @@ export class HoroshopConnector implements MerchandisingConnector {
   async getProducts(r: PageRequest = {}): Promise<ConnectorPage<ProductDto>> {
     const p = await this.page("catalog/export", r);
     return {
-      records: p.values.map((v) => this.product(v, p.observedAt)),
+      records: p.values.map((v) =>
+        this.product(v, p.observedAt, p.auditRecord),
+      ),
       nextPage: null,
       next: p.next,
       observedAt: p.observedAt,
@@ -515,7 +557,7 @@ export class HoroshopConnector implements MerchandisingConnector {
       : null;
     return {
       records: p.values.map((v) => ({
-        product: this.product(v, p.observedAt),
+        product: this.product(v, p.observedAt, p.auditRecord),
         stock: this.stock(v, p.observedAt),
       })),
       nextPage: null,

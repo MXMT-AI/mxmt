@@ -32,7 +32,7 @@ export function shopOrigin(value: unknown): string | null {
       u.search ||
       u.hash ||
       u.pathname !== "/" ||
-      !/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(
+      !/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+(?:[a-z]{2,63}|xn--[a-z0-9](?:[a-z0-9-]{0,57}[a-z0-9])?)$/.test(
         u.hostname,
       ) ||
       u.hostname.endsWith(".local") ||

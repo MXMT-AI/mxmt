@@ -321,3 +321,105 @@ it("requires strict account evidence and audits any stock/price/quota/status cha
     config.password,
   );
 });
+
+it.each(["001", "storage", "stat", "shop"])(
+  "keeps facts unchanged when login %s or password overlaps source values",
+  async (login) => {
+    const order = {
+      ...horoshopOrder(),
+      products: [
+        {
+          ...horoshopOrder().products[0],
+          quantity: 1,
+          price: "12345.0000",
+          total_price: "12345.0000",
+        },
+      ],
+      comment: "prefix-1234-suffix",
+      password: "1234",
+      login,
+    };
+    const product = {
+      ...horoshopProduct,
+      title: { ua: "shop storage stat 001" },
+      price: "12345.0000",
+      note: "prefix-1234-suffix",
+    };
+    const c = new HoroshopConnector(
+      { ...config, login, password: "1234" },
+      horoshopFetcher([order], [product]),
+    );
+    const orders = await c.getOrders(),
+      products = await c.getProducts();
+    expect(orders.records[0].rejectionCode).toBeUndefined();
+    expect(orders.records[0]).toMatchObject({
+      externalId: "1",
+      statusId: "3",
+      orderedAt: "2020-09-10T09:00:00.000Z",
+      lines: [
+        {
+          externalLineId: "101",
+          sku: "001-A",
+          productId: "001-A",
+          unitPrice: "12345.0000",
+          quantity: "1",
+        },
+      ],
+    });
+    expect(products.records[0]).toMatchObject({
+      externalId: "001-A",
+      sku: "001-A",
+      name: "shop storage stat 001",
+      retailPrice: "12345.0000",
+    });
+    for (const audit of [
+      orders.rawResponse,
+      products.rawResponse,
+      JSON.stringify(orders.records[0].raw),
+      JSON.stringify(products.records[0].raw),
+    ])
+      expect(audit).not.toContain("1234");
+  },
+);
+it("quarantines identified malformed orders while preserving every pagination slot", async () => {
+  const currency = { ...horoshopOrder(1), currency: "USD" },
+    date = { ...horoshopOrder(2), stat_created: "bad date" },
+    line = {
+      ...horoshopOrder(3),
+      products: [{ ...horoshopOrder().products[0], quantity: "invalid" }],
+    },
+    valid = horoshopOrder(4);
+  const c = new HoroshopConnector(
+    config,
+    horoshopFetcher([currency, date, line, valid]),
+  );
+  const r = await c.getOrders({ limit: 4 });
+  expect(r.records).toHaveLength(4);
+  expect(r.next).toEqual({ kind: "offset", offset: 4 });
+  expect(r.records.map((o) => o.rejectionCode)).toEqual([
+    "ORDER_CURRENCY_MISMATCH",
+    "ORDER_RECORD_INVALID",
+    "ORDER_RECORD_INVALID",
+    undefined,
+  ]);
+  for (const rejected of r.records.slice(0, 3))
+    expect(rejected.lines).toEqual([]);
+});
+it("normalizes IDN shop origins while preserving origin and private-host restrictions", () => {
+  const origin = "https://магазин.укр",
+    ascii = new URL(origin).origin;
+  expect(shopOrigin(origin)).toBe(ascii);
+  expect(shopOrigin(ascii)).toBe(ascii);
+  expect(parseHoroshopConfig({ ...config, origin }).credentials?.origin).toBe(
+    ascii,
+  );
+  for (const bad of [
+    "https://user:password@магазин.укр",
+    "https://магазин.укр:444",
+    "http://магазин.укр",
+    "https://магазин.укр/path",
+    "https://127.0.0.1",
+    "https://магазин.local",
+  ])
+    expect(shopOrigin(bad)).toBeNull();
+});
