@@ -47,21 +47,23 @@ export default function SalesDriveImportCard({
   canManage,
   resource = "orders",
   onCompleted,
+  generic = false,
 }: {
   lang: "uk" | "en";
   canManage: boolean;
   resource?: "orders" | "inventory" | "sync";
   onCompleted?: () => void;
+  generic?: boolean;
 }) {
   const uk = lang === "uk";
   const inventory = resource === "inventory",
     sync = resource === "sync";
-  const endpoint = sync
+  const endpoint = generic ? `/api/connectors/${sync?"sync":inventory?"inventory":"import"}` : sync
     ? "/api/connectors/salesdrive/sync"
     : inventory
       ? "/api/connectors/salesdrive/inventory"
       : "/api/connectors/salesdrive/import";
-  const headingId = `salesdrive-${resource}-import-title`;
+  const headingId = `${generic?"connector":"salesdrive"}-${resource}-import-title`;
   const [syncInfo, setSyncInfo] = useState<ImportResponse>({});
   const [coverage, setCoverage] = useState<{
     firstObservedAt: string | null;
@@ -186,8 +188,8 @@ export default function SalesDriveImportCard({
             : "Finish or resume the other SalesDrive import before starting this one."
           : error instanceof Error && error.message === "CATALOG_NOT_CONFIGURED"
             ? uk
-              ? "Збережіть YML-посилання в налаштуваннях SalesDrive перед імпортом каталогу."
-              : "Save a YML feed URL in SalesDrive settings before importing the catalogue."
+              ? generic?"Налаштуйте читання каталогу й залишків у вибраному з’єднанні.":"Збережіть YML-посилання в налаштуваннях SalesDrive перед імпортом каталогу."
+              : generic?"Configure catalogue and stock access for the selected connection.":"Save a YML feed URL in SalesDrive settings before importing the catalogue."
             : uk
               ? "Не вдалося виконати дію. Перевірте з’єднання та налаштування джерела."
               : "Import action failed. Check the connection and source settings.",
@@ -224,15 +226,15 @@ export default function SalesDriveImportCard({
       <h2 id={headingId} className="font-semibold text-[var(--text)]">
         {sync
           ? uk
-            ? "Синхронізація SalesDrive"
-            : "SalesDrive synchronization"
+            ? generic?"Синхронізація даних":"Синхронізація SalesDrive"
+            : generic?"Data synchronization":"SalesDrive synchronization"
           : inventory
             ? uk
-              ? "Каталог і залишки SalesDrive"
-              : "SalesDrive catalogue and stock"
+              ? generic?"Каталог і залишки":"Каталог і залишки SalesDrive"
+              : generic?"Catalogue and stock":"SalesDrive catalogue and stock"
             : uk
-              ? "Історія замовлень SalesDrive"
-              : "SalesDrive order history"}
+              ? generic?"Історія замовлень":"Історія замовлень SalesDrive"
+              : generic?"Order history":"SalesDrive order history"}
       </h2>
       <p className="mt-1 text-sm text-[var(--muted)]">
         {sync
@@ -307,7 +309,7 @@ export default function SalesDriveImportCard({
               <ul className="mt-2 list-disc space-y-1 pl-5">
                 {job.issues.map((code) => (
                   <li key={code} className="break-words">
-                    {issueLabel(code, uk)}
+                    {issueLabel(code, uk,generic)}
                   </li>
                 ))}
               </ul>
@@ -315,7 +317,7 @@ export default function SalesDriveImportCard({
           )}
           {job.errorCode && (
             <p className="mt-3 break-words text-sm text-[var(--text)]">
-              {uk ? "Причина" : "Reason"}: {errorLabel(job.errorCode, uk)}
+              {uk ? "Причина" : "Reason"}: {errorLabel(job.errorCode, uk,generic)}
             </p>
           )}
           {job.state === "RETRY" && (
@@ -377,7 +379,7 @@ export default function SalesDriveImportCard({
               {r.pending.toLocaleString(uk ? "uk-UA" : "en-GB")}.{" "}
               {r.lagSeconds !== null &&
                 `${uk ? "Відставання (хв)" : "Lag (min)"}: ${Math.ceil(r.lagSeconds / 60).toLocaleString(uk ? "uk-UA" : "en-GB")}.`}{" "}
-              {r.errorCode && errorLabel(r.errorCode, uk)}
+              {r.errorCode && errorLabel(r.errorCode, uk,generic)}
             </p>
           ))}
           <div role="status" aria-live="polite">
@@ -524,7 +526,9 @@ export default function SalesDriveImportCard({
 }
 
 /** Explain sanitized data-quality codes without displaying private source payloads. */
-function issueLabel(code: string, uk: boolean) {
+function issueLabel(code: string, uk: boolean,generic=false) {
+  if(generic&&code==="SOURCE_PAGINATION_NOT_SNAPSHOT")return uk?"Сторінки джерела можуть змінюватися під час читання. Звірте дані перед активацією.":"Source pages may change while reading. Reconcile the account before activation.";
+  if(generic&&code==="INVALID_RECEIPT_LINE")return uk?"Некоректні надходження пропущено. Виправте кількості або собівартість у джерелі й повторіть імпорт.":"Invalid receipts were skipped. Correct quantities or costs in the source and import again.";
   const labels: Record<string, [string, string]> = {
     NEGATIVE_SOURCE_STOCK: [
       "Negative source stock is retained as a data-quality exception; inventory values are unavailable.",
@@ -658,7 +662,9 @@ function issueLabel(code: string, uk: boolean) {
 }
 
 /** Translate recoverable import failures into a concrete next action. */
-function errorLabel(code: string, uk: boolean) {
+function errorLabel(code: string, uk: boolean,generic=false) {
+  if(generic&&["AUTH_FAILED","NOT_CONFIGURED","CONNECTOR_PROVIDER_UNAVAILABLE","CONNECTOR_BUDGET_UNVERIFIED"].includes(code))return uk?"Завершіть налаштування з’єднання й перевірте доступ перед відновленням.":"Complete connection setup and check access before resuming.";
+  if(generic&&["TIMEOUT","NETWORK_ERROR","INVALID_RESPONSE"].includes(code))return uk?"Джерело не надало коректної відповіді. Перевірте доступ і повторіть імпорт.":"The source did not return a valid response. Check access and retry the import.";
   const labels: Record<string, [string, string]> = {
     RATE_LIMITED: [
       "The account request limit was reached. The import will retry automatically.",

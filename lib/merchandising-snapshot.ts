@@ -1,3 +1,4 @@
+import { readSelectedSource } from "./connectors/source";
 import "server-only";
 import { Temporal } from "@js-temporal/polyfill";
 import { randomUUID } from "node:crypto";
@@ -31,6 +32,8 @@ export class ScreenApiError extends Error {
 }
 export interface ScreenSourceState {
   timezone: string;
+  selectionRevision?: number;
+  selected?: boolean;
   orderThrough: string | null;
   configIds: string[];
   cursorState: unknown;
@@ -80,11 +83,15 @@ export async function readScreenSourceState(
  (SELECT max("requestedAt")::text FROM "ConnectorRecalculation" WHERE "tenantId"=s."tenantId" AND "sourceId"=s.id) "recalculationRequestedAt",
  (SELECT count(*)::int FROM "ConnectorSyncJob" WHERE "tenantId"=s."tenantId" AND "sourceId"=s.id AND state<>'COMPLETE') pending
  FROM "DataSource" s WHERE s."tenantId"=${tenantId} AND s.id=${sourceId}`);
-  return row ?? null;
+  if (!row) return null;
+  const selected = await readSelectedSource(tenantId, tx);
+  return {...row, selectionRevision: selected?.revision ?? 0, selected: selected?.id===sourceId};
 }
 export function screenSourceKey(state: ScreenSourceState | null) {
   return payloadHash(
     state && {
+      ...(state.selectionRevision ? {selectionRevision:state.selectionRevision} : {}),
+      ...(state.selected===false ? {selected:false} : {}),
       configIds: state.configIds,
       cursorState: state.cursorState,
       recalculationRequestedAt: state.recalculationRequestedAt,

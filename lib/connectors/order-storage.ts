@@ -13,7 +13,8 @@ function canonical(value: unknown): unknown {
 }
 /** Hash recursively ordered source content independently of host locale and ICU versions. */
 export const payloadHash = (value: unknown): string => createHash("sha256").update(JSON.stringify(canonical(value))).digest("hex");
-export interface OrderScope { tenantId: string; sourceId: string; importRunId: string; timezone: string }
+export interface OrderScope {
+  provider?: string; tenantId: string; sourceId: string; importRunId: string; timezone: string }
 
 /** Called inside the checkpoint transaction. Current projections are replaced as an order, never appended per replay. */
 export async function storeOrder(tx: SqlClient, scope: OrderScope, order: OrderDto, policy: OrderPolicy = {}) {

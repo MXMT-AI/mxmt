@@ -60,14 +60,18 @@ export interface ReceiptDto extends SourceContext {
   postingVerified: false;
   lines: Array<{ externalLineId: string | null; productId: string | null; sourceProductId?: string | null; sku?: string | null; quantity: DecimalValue | null; unitCost: DecimalValue | null }>;
 }
-export interface CatalogSnapshot { products: ProductDto[]; stock: StockDto[]; rawResponse: string; observedAt: string }
+export interface CatalogSnapshot { completePopulation?:boolean; observationId?:string; perRowObservations?:boolean; products: ProductDto[]; stock: StockDto[]; rawResponse: string; observedAt: string }
 export interface DictionaryEntry { id: string; name: string }
 export interface Dictionary {
   entries: DictionaryEntry[];
   complete: boolean;
   reason: string | null;
 }
+export type ConnectorPosition = {kind:"page";page:number} | {kind:"offset";offset:number} | {kind:"cursor";cursor:string|null};
 export interface ConnectorPage<T> {
+  /** Explicit continuation for v2 adapters. Undefined is the legacy numeric-page protocol. */
+  next?: ConnectorPosition | null;
+  historyCoverage?: {from:string;to:string;complete:boolean};
   /** Original response text for server-side audit; never expose to client progress. */
   rawResponse?: string;
   records: T[];
@@ -75,6 +79,9 @@ export interface ConnectorPage<T> {
   observedAt: string;
 }
 export interface PageRequest {
+  offset?: number;
+  cursor?: string | null;
+  observationId?: string;
   page?: number;
   limit?: number;
   /** ISO UTC instant (YYYY-MM-DDTHH:mm:ss[.SSS]Z), including observedAt values. */
@@ -85,6 +92,9 @@ export interface PageRequest {
   orderId?: string;
 }
 export interface ConnectorCapabilities {
+  automaticSync?:boolean;
+  pageSize?:Partial<Record<"orders"|"receipts"|"catalog",number>>;
+  pagination?: Partial<Record<"orders"|"receipts"|"catalog", "page"|"offset"|"cursor">>;
   orders: boolean;
   products: boolean;
   stock: boolean;
@@ -110,6 +120,8 @@ export interface MerchandisingConnector {
   readonly provider: ConnectorProvider;
   readonly capabilities: ConnectorCapabilities;
   getCatalogSnapshot?(): Promise<CatalogSnapshot>;
+  /** All pages must belong to one explicitly complete, versioned observation. */
+  getCatalogPage?(request:PageRequest): Promise<ConnectorPage<{product:ProductDto;stock:StockDto}> & {observationId:string;completePopulation:boolean}>;
   getOrders(request?: PageRequest): Promise<ConnectorPage<OrderDto>>;
   getProducts(request?: PageRequest): Promise<ConnectorPage<ProductDto>>;
   getStock(request?: PageRequest): Promise<ConnectorPage<StockDto>>;

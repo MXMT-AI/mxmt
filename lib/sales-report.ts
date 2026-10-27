@@ -1,3 +1,4 @@
+import { readSelectedSource, mappingKey } from "./connectors/source";
 import { trustedOrderProjectionSql } from "./order-projection-policy";
 import { withCalculationSnapshot } from "./calculation-snapshot";
 import { salesHistoryCoverage } from "./order-history";
@@ -79,10 +80,9 @@ export async function getSalesReportInSnapshot(
   tx: SqlClient,
   onInputs?: (facts: SalesFact[], context: SalesMetricContext) => void,
 ): Promise<PublishedSalesReport> {
-  const [source] = await tx.$queryRaw<Array<{ id: string; timezone: string }>>(
-    Prisma.sql`SELECT s.id,s.timezone FROM "DataSource" s JOIN "ConnectorConnection" c ON c."sourceId"=s.id AND c."tenantId"=s."tenantId" WHERE s."tenantId"=${tenantId} AND c.provider='salesdrive' AND s.kind='SALESDRIVE'`,
-  );
+  const source = await readSelectedSource(tenantId, tx);
   if (!source) throw new SalesReportError("SALESDRIVE_NOT_CONFIGURED");
+  const reportKind = source.provider === "salesdrive" ? "SALESDRIVE" : "CONNECTOR";
   const client = await readClientSettings(tenantId, tx);
   const configs = await tx.$queryRaw<
     Array<{
@@ -96,7 +96,7 @@ export async function getSalesReportInSnapshot(
   );
   const mapping = configs.find(
     (c) =>
-      c.configType === "SOURCE_MAPPING" && c.key === `salesdrive:${source.id}`,
+      c.configType === "SOURCE_MAPPING" && c.key === mappingKey(source.provider, source.id),
   );
   const sourcePolicy = mapping ? parseOrderPolicy(mapping.values) : {};
   const activePolicy = client.id
@@ -116,7 +116,7 @@ export async function getSalesReportInSnapshot(
   );
   if (!anchor) throw new SalesReportError("SALES_IMPORT_NOT_READY");
   const windows = await tx.$queryRaw<Array<{ from: string; to: string }>>(
-    Prisma.sql`SELECT j.checkpoint->>'from' "from",j.checkpoint->>'to' "to" FROM "ConnectorSyncJob" j JOIN "DataImportRun" r ON r.id=j."importRunId" AND r."tenantId"=j."tenantId" WHERE j."tenantId"=${tenantId} AND j."sourceId"=${source.id} AND j.resource='orders' AND j.mode='BACKFILL' AND j.state='COMPLETE' AND r.status IN ('SUCCESS','WARNING') ORDER BY j."createdAt" LIMIT 1001`,
+    Prisma.sql`SELECT COALESCE(j.checkpoint->>'coverageFrom',j.checkpoint->>'from') "from",COALESCE(j.checkpoint->>'coverageTo',j.checkpoint->>'to') "to" FROM "ConnectorSyncJob" j JOIN "DataImportRun" r ON r.id=j."importRunId" AND r."tenantId"=j."tenantId" WHERE j."tenantId"=${tenantId} AND j."sourceId"=${source.id} AND j.resource='orders' AND j.mode='BACKFILL' AND j.state='COMPLETE' AND j.checkpoint->>'historyComplete' IS DISTINCT FROM 'false' AND r.status IN ('SUCCESS','WARNING') ORDER BY j."createdAt" LIMIT 1001`,
   );
   if (windows.length > 1000)
     throw new SalesReportError("SALES_HISTORY_LIMIT", 422);
@@ -219,7 +219,7 @@ export async function getSalesReportInSnapshot(
   const [cached] = await tx.$queryRaw<
     Array<{ financialResult: PublishedSalesReport }>
   >(
-    Prisma.sql`SELECT "financialResult" FROM "ReportCalculationRun" WHERE "tenantId"=${tenantId} AND "inputKey"=${inputKey} AND "reportKind"='SALESDRIVE' AND "importRunId"=${anchor.id} AND "calculationVersion"=${SALES_CALCULATION_VERSION} AND status IN ('SUCCESS','WARNING')`,
+    Prisma.sql`SELECT "financialResult" FROM "ReportCalculationRun" WHERE "tenantId"=${tenantId} AND "inputKey"=${inputKey} AND "reportKind"=${reportKind} AND "importRunId"=${anchor.id} AND "calculationVersion"=${SALES_CALCULATION_VERSION} AND status IN ('SUCCESS','WARNING')`,
   );
   if (cached) return cached.financialResult;
   const report = calculateSalesReport(facts, {
@@ -256,12 +256,12 @@ export async function getSalesReportInSnapshot(
       ? "WARNING"
       : "SUCCESS";
   await tx.$executeRaw(
-    Prisma.sql`INSERT INTO "ReportCalculationRun" (id,"tenantId","importRunId","dateFrom","dateTo","asOfDate","calculationVersion","reportKind","inputKey","financialResult",status,warnings,"completedAt","updatedAt") VALUES (${result.calculationRunId},${tenantId},${anchor.id},${period.from}::date,${period.to}::date,${period.asOf}::date,${SALES_CALCULATION_VERSION},'SALESDRIVE',${inputKey},${JSON.stringify(result)}::jsonb,${status}::"DataRunStatus",${JSON.stringify(report.issues)}::jsonb,now(),now()) ON CONFLICT ("tenantId","importRunId","dateFrom","dateTo","asOfDate","calculationVersion","inputKey") DO NOTHING`,
+    Prisma.sql`INSERT INTO "ReportCalculationRun" (id,"tenantId","importRunId","dateFrom","dateTo","asOfDate","calculationVersion","reportKind","inputKey","financialResult",status,warnings,"completedAt","updatedAt") VALUES (${result.calculationRunId},${tenantId},${anchor.id},${period.from}::date,${period.to}::date,${period.asOf}::date,${SALES_CALCULATION_VERSION},${reportKind},${inputKey},${JSON.stringify(result)}::jsonb,${status}::"DataRunStatus",${JSON.stringify(report.issues)}::jsonb,now(),now()) ON CONFLICT ("tenantId","importRunId","dateFrom","dateTo","asOfDate","calculationVersion","inputKey") DO NOTHING`,
   );
   const [published] = await tx.$queryRaw<
     Array<{ financialResult: PublishedSalesReport }>
   >(
-    Prisma.sql`SELECT "financialResult" FROM "ReportCalculationRun" WHERE "tenantId"=${tenantId} AND "inputKey"=${inputKey} AND "importRunId"=${anchor.id} AND "reportKind"='SALESDRIVE'`,
+    Prisma.sql`SELECT "financialResult" FROM "ReportCalculationRun" WHERE "tenantId"=${tenantId} AND "inputKey"=${inputKey} AND "importRunId"=${anchor.id} AND "reportKind"=${reportKind}`,
   );
   return published.financialResult;
 }
@@ -275,7 +275,7 @@ export async function readPublishedSalesReport(
   const [row] = await db.$queryRaw<
     Array<{ financialResult: PublishedSalesReport }>
   >(
-    Prisma.sql`SELECT "financialResult" FROM "ReportCalculationRun" WHERE id=${id} AND "tenantId"=${tenantId} AND "reportKind"='SALESDRIVE' AND status IN ('SUCCESS','WARNING')`,
+    Prisma.sql`SELECT "financialResult" FROM "ReportCalculationRun" WHERE id=${id} AND "tenantId"=${tenantId} AND "reportKind" IN ('SALESDRIVE','CONNECTOR') AND status IN ('SUCCESS','WARNING')`,
   );
   if (!row) throw new SalesReportError("SALES_REPORT_NOT_FOUND", 404);
   return row.financialResult;

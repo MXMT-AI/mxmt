@@ -8,9 +8,8 @@ import { parseSalesDriveCredentials, type SalesDriveCredentials } from "./config
 import { utcWatermark } from "./requests";
 import type { CatalogSnapshot, CheckCode, ConnectionCheck, ConnectorCapabilities, ConnectorPage, Dictionary, MerchandisingConnector, OrderDto, PageRequest, ProductDto, ReceiptDto, StockDto } from "./contract";
 
-export class ConnectorReadError extends Error {
-  constructor(readonly code: Exclude<CheckCode, "OK">, readonly retryAt?: Date) { super(code); this.name = "ConnectorReadError"; }
-}
+import { ConnectorReadError } from "./read-error";
+export { ConnectorReadError } from "./read-error";
 type Fetcher = (url: URL, init: RequestInit) => Promise<Response>;
 const emptyDictionary = (reason: string): Dictionary => ({ entries: [], complete: false, reason });
 const text = (value: unknown): string | null => typeof value === "string" && value !== "" ? value : null;

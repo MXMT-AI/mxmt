@@ -19,13 +19,13 @@ export function inventoryPolicy(value: unknown): InventoryPolicy {
   return { receipts: r as unknown as InventoryPolicy["receipts"] };
 }
 export interface CatalogEntry {
-  proposedId: string; externalId: string; article: string | null; canonicalSku: string; name: string;
+  observedAt:string;priceObservedAt:string;proposedId: string; externalId: string; article: string | null; canonicalSku: string; name: string;
   categoryId: string | null; categoryName: string | null; vendor: string | null; barcode: string | null;
   retailPrice: string | null; oldPrice: string | null; quantity: string | null; currency: string | null;
   attributes: Record<string, unknown>;
 }
 /** Validate the entire observation before any catalogue or business snapshot is changed. */
-export function normalizeCatalog(snapshot: CatalogSnapshot, sourceId: string) {
+export function normalizeCatalog(snapshot: CatalogSnapshot, sourceId: string, provider="salesdrive") {
   if (!Number.isFinite(Date.parse(snapshot.observedAt)) || snapshot.products.length !== snapshot.stock.length) throw new Error("INVALID_CATALOG");
   const stock = new Map(snapshot.stock.map((row) => [row.productId, row]));
   if (stock.size !== snapshot.stock.length) throw new Error("DUPLICATE_CATALOG_ID");
@@ -37,7 +37,9 @@ export function normalizeCatalog(snapshot: CatalogSnapshot, sourceId: string) {
     }
     if (product.brand && product.brand.length>200) throw new Error("INVALID_CATALOG");
     const observation = stock.get(product.externalId);
-    if (!observation || observation.observedAt !== snapshot.observedAt || product.observedAt !== snapshot.observedAt) throw new Error("MIXED_CATALOG_OBSERVATION");
+    if (!observation || (snapshot.perRowObservations
+      ? !Number.isFinite(Date.parse(observation.observedAt))||!Number.isFinite(Date.parse(product.observedAt))||Date.parse(observation.observedAt)>Date.parse(snapshot.observedAt)||Date.parse(product.observedAt)>Date.parse(snapshot.observedAt)
+      : observation.observedAt !== snapshot.observedAt || product.observedAt !== snapshot.observedAt)) throw new Error("MIXED_CATALOG_OBSERVATION");
     const money = (value: string | null | undefined, signed = false) => {
       if (value == null) return null;
       const number = exact(value);
@@ -50,12 +52,12 @@ export function normalizeCatalog(snapshot: CatalogSnapshot, sourceId: string) {
     if (retailPrice === null) issues.add("RETAIL_PRICE_UNAVAILABLE");
     const currency = product.currency && /^[A-Z]{3}$/.test(product.currency) ? product.currency : null;
     if (!currency) issues.add("CURRENCY_UNVERIFIED");
-    const canonicalSku = product.sku ?? `@salesdrive:${sourceId}:${product.externalId}`;
+    const canonicalSku = product.sku ?? `@${provider}:${sourceId}:${product.externalId}`;
     if (!product.sku) issues.add("MISSING_SOURCE_SKU");
     if (skus.has(canonicalSku)) throw new Error("DUPLICATE_CATALOG_SKU"); skus.add(canonicalSku);
-    return { proposedId: randomUUID(), externalId: product.externalId, article: product.sku, canonicalSku, name: product.name,
+    return {observedAt:observation!.observedAt,priceObservedAt:product.observedAt,proposedId: randomUUID(), externalId: product.externalId, article: product.sku, canonicalSku, name: product.name,
       categoryId: product.categoryId, categoryName: product.categoryName ?? null, vendor: normalizedBrandKey(product.brand), barcode: product.barcode,
-      retailPrice, oldPrice, quantity, currency, attributes: { observedAt:snapshot.observedAt, sourceStatus: product.sourceStatus ?? null, sourceSku: product.sku,
+      retailPrice, oldPrice, quantity, currency, attributes: { observedAt:product.observedAt, sourceStatus: product.sourceStatus ?? null, sourceSku: product.sku,
         vendor: product.brand, categoryId: product.categoryId, categoryName: product.categoryName ?? null,
         exportedCost: product.costPrice, identityDerived: !product.sku } };
   });

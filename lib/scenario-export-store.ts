@@ -101,6 +101,8 @@ export async function createScenarioExport(
   const command = parseScenarioExport(value),
     requestHash = payloadHash(command);
   return withCalculationSnapshot(db, async (tx) => {
+    // Serialize new financial actions with source selection before establishing their snapshot.
+    await tx.$queryRaw(Prisma.sql`SELECT id FROM "Tenant" WHERE id=${tenantId} FOR SHARE`);
     const existing = await readExport(tenantId, command.exportId, tx);
     if (existing) {
       if (

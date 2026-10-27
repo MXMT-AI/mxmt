@@ -1,8 +1,9 @@
+import { selectedConnection } from "./source";
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { ConnectorReadError } from "./salesdrive";
+import { ConnectorReadError } from "./read-error";
 import type { SqlClient, SqlDatabase } from "./database";
 import { logWarn } from "@/lib/observability";
 export interface ConnectorJob { id: string; tenantId: string; sourceId: string; importRunId: string; resource: string; connectionRevision: number; attempts: number; leaseToken: string | null }
@@ -18,7 +19,7 @@ export async function claimConnectorJob<T extends ConnectorJob>(resource: string
         AND ((q.state IN ('PENDING','RETRY') AND q."availableAt"<=${now}) OR (q.state='RUNNING' AND q."leaseExpiresAt"<=${now}))
         AND NOT EXISTS (SELECT 1 FROM "ConnectorSyncJob" held WHERE held."tenantId"=q."tenantId" AND held."sourceId"=q."sourceId" AND held.state='RUNNING' AND (held."leaseExpiresAt">${now} OR held.id<>q.id))
       ORDER BY CASE WHEN q.state='RUNNING' THEN 0 WHEN q.mode='BACKFILL' THEN 2 ELSE 1 END,q."updatedAt",q."createdAt" LIMIT 1
-    ) j ON true WHERE (${tenantId ?? null}::text IS NULL OR c."tenantId"=${tenantId ?? null})
+    ) j ON true WHERE ${selectedConnection()} AND (${tenantId ?? null}::text IS NULL OR c."tenantId"=${tenantId ?? null})
     ORDER BY CASE WHEN j.state='RUNNING' THEN 0 WHEN j.mode='BACKFILL' THEN 2 ELSE 1 END,j."updatedAt"
     FOR UPDATE OF c SKIP LOCKED LIMIT 1
   ) UPDATE "ConnectorSyncJob" SET state='RUNNING',"leaseToken"=${token},"leaseExpiresAt"=${new Date(now.getTime()+120_000)},"updatedAt"=${now}
@@ -27,18 +28,35 @@ export async function claimConnectorJob<T extends ConnectorJob>(resource: string
 }
 
 /** Resume the tenant’s latest recoverable job with its checkpoint and current connection revision. */
-export async function resumeConnectorJob(tenantId: string, resource: string, db: SqlDatabase = prisma) {
-  // Explicit resume acknowledges the current credential revision, preserving the page.
-  return db.$executeRaw(Prisma.sql`UPDATE "ConnectorSyncJob" j SET state='PENDING',attempts=0,"errorCode"=NULL,"availableAt"=now(),"updatedAt"=now(),"connectionRevision"=c.revision
-    FROM "ConnectorConnection" c WHERE j."tenantId"=${tenantId} AND c."tenantId"=j."tenantId" AND c."sourceId"=j."sourceId" AND j.resource=${resource} AND j.state IN ('PAUSED','FAILED')
-    AND j.id=(SELECT id FROM "ConnectorSyncJob" WHERE "tenantId"=${tenantId} AND "sourceId"=j."sourceId" AND resource=${resource} AND state IN ('PAUSED','FAILED') ORDER BY "createdAt" DESC LIMIT 1)`);
+export async function resumeConnectorJob(tenantId:string,resource:string,db:SqlDatabase=prisma,jobId?:string,mode?:string) {
+  return db.$transaction(async tx=>{
+    await tx.$queryRaw(Prisma.sql`SELECT id FROM "Tenant" WHERE id=${tenantId} FOR SHARE`);
+    const [row]=await tx.$queryRaw<Array<{id:string;connectionRevision:number;checkpoint:Record<string,any>;stats:Record<string,number>;revision:number;provider:string;hasReceiptsKey:boolean;capabilities:{receipts?:boolean}|null}>>(Prisma.sql`
+      SELECT j.*,c.revision,c.provider,c."hasReceiptsKey",c.capabilities FROM "ConnectorSyncJob" j JOIN "ConnectorConnection" c ON c."sourceId"=j."sourceId" AND c."tenantId"=j."tenantId"
+      WHERE j."tenantId"=${tenantId} AND ${selectedConnection()} AND j.resource=${resource} AND j.state IN ('PAUSED','FAILED')
+      AND (${jobId??null}::text IS NULL OR j.id=${jobId??null}) AND (${mode??null}::text IS NULL OR j.mode=${mode??null})
+      AND (c.provider='salesdrive' OR c.capabilities IS NOT NULL)
+      ORDER BY j."createdAt" DESC LIMIT 1 FOR UPDATE OF j,c`);
+    if(!row)return 0;
+    const checkpoint={...row.checkpoint};let stats=row.stats;
+    if(row.connectionRevision!==row.revision) {
+      delete checkpoint.continuation;delete checkpoint.catalog;
+      if(row.provider!=="salesdrive") {
+        checkpoint.page=1;checkpoint.stage=resource==="orders"?"statuses":row.capabilities?.receipts?"receipts":"catalog";
+        checkpoint.historyComplete=false;checkpoint.receiptHistoryComplete=false;delete checkpoint.coverageFrom;delete checkpoint.coverageTo;
+        stats=Object.fromEntries(Object.keys(row.stats).map(key=>[key,0]));
+      }
+      await tx.$executeRaw(Prisma.sql`DELETE FROM "ConnectorCatalogPage" WHERE "jobId"=${row.id} AND "tenantId"=${tenantId}`);
+    }
+    return tx.$executeRaw(Prisma.sql`UPDATE "ConnectorSyncJob" SET state='PENDING',attempts=0,"errorCode"=NULL,"availableAt"=now(),"updatedAt"=now(),"connectionRevision"=${row.revision},checkpoint=${JSON.stringify(checkpoint)}::jsonb,stats=${JSON.stringify(stats)}::jsonb WHERE id=${row.id} AND "tenantId"=${tenantId}`);
+  });
 }
 
 /** Expose sanitized progress and issue codes for the current tenant connection only. */
 export async function getConnectorProgress(tenantId: string, resource: string, db: SqlClient = prisma) {
   const [job] = await db.$queryRaw<Array<{ id: string; mode: string; state: string; stats: Record<string, number>; errorCode: string | null; availableAt: Date; updatedAt: Date; issues: string[] }>>(Prisma.sql`
     SELECT j.id,j.mode,j.state,j.stats,j."errorCode",j."availableAt",j."updatedAt", ARRAY(SELECT DISTINCT i.code FROM "ImportIssue" i WHERE i."importRunId"=j."importRunId" AND i."tenantId"=j."tenantId" ORDER BY i.code LIMIT 100) AS issues FROM "ConnectorSyncJob" j JOIN "ConnectorConnection" c ON c."sourceId"=j."sourceId" AND c."tenantId"=j."tenantId"
-    WHERE j."tenantId"=${tenantId} AND j.resource=${resource} ORDER BY j."createdAt" DESC LIMIT 1`);
+    WHERE j."tenantId"=${tenantId} AND ${selectedConnection()} AND j.resource=${resource} ORDER BY j."createdAt" DESC LIMIT 1`);
   return job ?? null;
 }
 
@@ -52,10 +70,11 @@ export async function recordIssues(tx: SqlClient, job: Pick<ConnectorJob, "tenan
 /** Persist sanitized retry/failure state only if this worker still owns the lease. */
 export async function failConnectorJob(job: ConnectorJob, error: unknown, db: SqlDatabase = prisma) {
     const changed = error instanceof Error && error.message === "CONNECTOR_CONFIG_CHANGED";
+    const unavailable=error instanceof Error && ["CONNECTOR_PROVIDER_UNAVAILABLE","CONNECTOR_BUDGET_UNVERIFIED"].includes(error.message)?error.message:null;
     const domainError = error instanceof Error && ["INVALID_CATALOG", "DUPLICATE_CATALOG_ID", "DUPLICATE_CATALOG_SKU", "CATALOG_IDENTITY_CONFLICT", "INVALID_CATALOG_NUMBER", "MIXED_CATALOG_OBSERVATION", "INVALID_RECEIPT_LINE"].includes(error.message) ? error.message : null;
-    const code = domainError ?? (changed ? "CONNECTOR_CONFIG_CHANGED" : error instanceof ConnectorReadError ? error.code : error instanceof Error && error.message === "NOT_CONFIGURED" ? "NOT_CONFIGURED" : "IMPORT_FAILED");
+    const code = unavailable ?? domainError ?? (changed ? "CONNECTOR_CONFIG_CHANGED" : error instanceof ConnectorReadError ? error.code : error instanceof Error && error.message === "NOT_CONFIGURED" ? "NOT_CONFIGURED" : "IMPORT_FAILED");
     const attempts = job.attempts + 1;
-    const pause = changed || code === "AUTH_FAILED" || code === "NOT_CONFIGURED";
+    const pause = Boolean(unavailable) || changed || code === "AUTH_FAILED" || code === "NOT_CONFIGURED";
     const state = pause ? "PAUSED" : attempts >= 8 && code !== "RATE_LIMITED" ? "FAILED" : "RETRY";
     const retry = error instanceof ConnectorReadError && error.retryAt ? error.retryAt : new Date(Date.now() + Math.min(3600_000, 15_000 * 2 ** Math.min(attempts, 8)) + Math.floor(Math.random() * 1000));
     const persisted = await db.$transaction(async (tx) => {

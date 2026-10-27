@@ -1,3 +1,4 @@
+import { assertSelectedSource } from "./connectors/source";
 import "server-only";
 import { profileReordering } from "./merchandising-profile";
 import { Prisma } from "@prisma/client";
@@ -24,6 +25,7 @@ export async function calculateReorderingInSnapshot(
   tx: SqlClient,
 ) {
   const snapshot = await readScreenSnapshot(tenantId, request.snapshotId, tx);
+  await assertSelectedSource(tenantId, snapshot.sourceId, snapshot.sourceState.selectionRevision, tx);
   if (snapshot.modelVersion < 2 || snapshot.stock.calculationVersion !== 2)
     throw new ReorderingError("REORDERING_SNAPSHOT_REFRESH_REQUIRED", 409);
   const records = await tx.$queryRaw<

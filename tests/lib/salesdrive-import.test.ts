@@ -18,6 +18,7 @@ function bridge(client: Pick<PGlite, "query">): SqlClient {
   return { $queryRaw: async <T,>(q: Prisma.Sql) => (await client.query(q.text, q.values)).rows as T,
     $executeRaw: async (q) => (await client.query(q.text, q.values)).affectedRows ?? 0 };
 }
+const fixtureCapabilities = { orders:true,products:false,stock:false,receipts:false,statuses:true,channels:"metadata",incrementalOrders:true,incrementalReceipts:false,historicalStock:false,writes:false } as const;
 const observedAt = "2026-10-24T12:00:00.000Z";
 const scope = { tenantId: "a", sourceId: "source-a", importRunId: "run-a", timezone: "Europe/Kyiv" };
 function order(id = "1", version = 1, status = "5"): OrderDto {
@@ -223,7 +224,7 @@ describe("queue checkpoints and worker", () => {
     expect((await enqueueOrderImport("a", "WEBHOOK", event, db)).id).toBe(one.id);
     expect((await pg.query('SELECT count(*)::int n FROM "DataSourceRecord" WHERE resource=\'order-webhooks\'')).rows).toEqual([{ n: 1 }]);
     const cursor = (await pg.query('SELECT checkpoint FROM "SyncCursor"')).rows;
-    const fake = { getOrders: async () => ({ records: [order("301", 4)], observedAt, nextPage: null }) } as unknown as SalesDriveConnector;
+    const fake = { provider:"salesdrive",capabilities:fixtureCapabilities,getOrders: async () => ({ records: [order("301", 4)], observedAt, nextPage: null }) } as unknown as SalesDriveConnector;
     await processOrderJob("a", db, async () => ({ ...await runtime(), revision: 2, connector: fake }));
     expect((await getOrderImportProgress("a", db))?.state).toBe("COMPLETE");
     expect((await pg.query('SELECT checkpoint FROM "SyncCursor"')).rows).toEqual(cursor);
@@ -236,7 +237,7 @@ describe("page transaction recovery", () => {
   it("rolls back a partially written page and leaves its checkpoint unchanged through terminal failure", async () => {
     const job = await enqueueOrderImport("b", "BACKFILL", {}, db);
     const good = order("page-rollback"), invalid = order("missing-raw"); delete invalid.raw;
-    const connector = { getStatuses: async () => ({ entries: [], complete: true, reason: null }), getChannels: async () => ({ entries: [], complete: false, reason: null }),
+    const connector = { provider:"salesdrive",capabilities:fixtureCapabilities,getStatuses: async () => ({ entries: [], complete: true, reason: null }), getChannels: async () => ({ entries: [], complete: false, reason: null }),
       getOrders: async () => ({ records: [good, invalid], nextPage: null, observedAt }) } as unknown as SalesDriveConnector;
     const runtime = async () => ({ sourceId: "source-b", revision: 1, timezone: "Europe/Kyiv", connector });
     await processOrderJob("b", db, runtime); await processOrderJob("b", db, runtime);
@@ -266,6 +267,7 @@ describe("two-year import volume", () => {
       expect(await reserveRequest(db, "volume", new Date(new Date(observedAt).getTime() + requests * 60_000))).toBeNull(); requests++;
     };
     const connector = {
+      provider:"salesdrive",capabilities:fixtureCapabilities,
       getStatuses: async () => { await budget(); return { entries: [], complete: true, reason: null }; },
       getChannels: async () => { await budget(); return { entries: [], complete: false, reason: "unverified" }; },
       getOrders: async ({ page = 1 }: { page?: number }) => {

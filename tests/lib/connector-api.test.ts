@@ -35,7 +35,7 @@ beforeEach(() => {
   mocks.source.mockResolvedValue({ id: "source-a" });
   mocks.upsert.mockResolvedValue(row());
   mocks.update.mockResolvedValue({ count: 1 });
-  mocks.transaction.mockImplementation(async (operation) => operation({ dataSource: { upsert: mocks.source }, connectorConnection: { upsert: mocks.upsert } }));
+  mocks.transaction.mockImplementation(async (operation) => operation({ $queryRaw:async()=>[], $executeRaw:async()=>0, dataSource: { upsert: mocks.source }, connectorConnection: { findUnique:mocks.find,upsert: mocks.upsert } }));
 });
 afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 

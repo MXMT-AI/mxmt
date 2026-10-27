@@ -44,6 +44,7 @@ export default function SalesDriveConnectionCard({ initial, lang, canManage }: P
         return;
       }
       setConnection(result as unknown as PublicConnection);
+      window.dispatchEvent(new Event("connector-connection-changed"));
       setMessage(action === "save"
         ? uk ? "З’єднання збережено. Тепер перевірте доступ." : "Connection saved. Check access next."
         : uk ? "Перевірку завершено. Результати наведені нижче." : "Check complete. Review the results below.");
