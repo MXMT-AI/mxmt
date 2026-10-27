@@ -91,7 +91,7 @@ export async function POST() {
       include: { brand: { select: { name: true, leadTimeDays: true } } },
     }),
     prisma.inventorySnapshot.findMany({
-      where: { tenantId },
+      where: { tenantId, sourceId: null },
       orderBy: { snapshotDate: "desc" },
       distinct: ["skuId"],
       select: { skuId: true, qtyOnHand: true, quantity:true },

@@ -59,7 +59,9 @@ export async function storeCatalog(tx: SqlClient, scope: OrderScope, snapshot: C
     UNION ALL SELECT ${randomUUID()} || ':' || t."externalId" || ':sku',${tenantId},${sourceId},t."skuId",'SKU'::"SkuAliasType",t.article FROM mxmt_catalog_stage t WHERE t.article IS NOT NULL
     ON CONFLICT ("tenantId","sourceId",type,value) DO NOTHING`);
   // Link retained facts that arrived before their catalogue, using explicit source identities/SKUs.
-  await tx.$executeRaw(Prisma.sql`UPDATE "OrderLine" l SET "skuId"=t."skuId" FROM mxmt_catalog_stage t WHERE l."tenantId"=${tenantId} AND l."sourceId"=${sourceId} AND l."skuId" IS NULL AND l."sourceSku"=t.article`);
+  await tx.$executeRaw(Prisma.sql`UPDATE "OrderLine" l SET "skuId"=t."skuId" FROM mxmt_catalog_stage t WHERE l."tenantId"=${tenantId} AND l."sourceId"=${sourceId} AND l."skuId" IS NULL
+    AND (l."externalProductId"=t."externalId" OR l."sourceSku"=t.article)
+    AND NOT EXISTS (SELECT 1 FROM mxmt_catalog_stage other WHERE other."skuId"<>t."skuId" AND (l."externalProductId"=other."externalId" OR l."sourceSku"=other.article))`);
   await tx.$executeRaw(Prisma.sql`UPDATE "ReceiptLine" l SET "skuId"=t."skuId" FROM mxmt_catalog_stage t,"Receipt" r
     WHERE l."tenantId"=${tenantId} AND r."tenantId"=l."tenantId" AND r.id=l."receiptId" AND r."sourceId"=${sourceId} AND l."skuId" IS NULL
     AND (l."externalProductId"=t."externalId" OR l."sourceSku"=t.article)

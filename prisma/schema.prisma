@@ -1331,7 +1331,7 @@ model CsvImport {
   tenantId String
   sourceId String
   importRunId String @unique
-  importRun DataImportRun @relation(fields: [importRunId, sourceId, tenantId], references: [id, sourceId, tenantId], onDelete: NoAction, onUpdate: NoAction)
+  importRun DataImportRun @relation(fields: [importRunId, sourceId, tenantId], references: [id, sourceId, tenantId], onDelete: Cascade, onUpdate: NoAction)
   contentHash String
   options Json
   preview Json

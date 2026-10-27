@@ -92,3 +92,70 @@ it("requires explicit approval, valid mapping versions/timezones and source curr
   ])
     expect(() => parseCsvOptions(v)).toThrow();
 });
+
+it("deduplicates equivalent stock instants and sorts mixed fractional timestamps chronologically", () => {
+  const product = {
+    productId: "p",
+    sku: "001",
+    name: "Product",
+    observedAt: "2026-08-01T00:00:00Z",
+  };
+  const stock = [
+    { productId: "p", observedAt: "2026-10-25T06:00:00.500Z", quantity: "2" },
+    { productId: "p", observedAt: "2026-10-25T06:00:00Z", quantity: "1" },
+  ];
+  const result = compileCsv(
+    [csvFile("products", [product]), csvFile("stock", stock)],
+    { ...csvOptions, history: null },
+  );
+  expect(result.preview.errors).toEqual([]);
+  expect(
+    result.bundle.catalogs.map((c) => ({
+      observedAt: c.observedAt,
+      quantity: c.stock[0].onHand,
+    })),
+  ).toEqual([
+    { observedAt: "2026-10-25T06:00:00.000Z", quantity: "1" },
+    { observedAt: "2026-10-25T06:00:00.500Z", quantity: "2" },
+  ]);
+  const duplicate = compileCsv(
+    [
+      csvFile("products", [product]),
+      csvFile("stock", [
+        stock[1],
+        { ...stock[1], observedAt: "2026-10-25T06:00:00.000Z" },
+      ]),
+    ],
+    { ...csvOptions, history: null },
+  );
+  expect(duplicate.preview.errors).toContainEqual({
+    resource: "stock",
+    row: 3,
+    code: "DUPLICATE_ID",
+  });
+});
+it.each(["complete", "partial"] as const)(
+  "rejects products paired with a header-only stock file in %s mode",
+  (population) => {
+    const result = compileCsv(
+      [
+        csvFile("products", [
+          {
+            productId: "p",
+            sku: "001",
+            name: "Product",
+            observedAt: "2026-08-01T00:00:00Z",
+          },
+        ]),
+        csvFile("stock", [], ["productId", "observedAt", "quantity"]),
+      ],
+      { ...csvOptions, history: null, catalog: population, stock: population },
+    );
+    expect(result.preview.errors).toContainEqual({
+      resource: "stock",
+      row: 0,
+      code: "PRODUCTS_AND_STOCK_REQUIRED",
+    });
+    expect(result.bundle.catalogs).toEqual([]);
+  },
+);

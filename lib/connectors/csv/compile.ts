@@ -303,7 +303,9 @@ export function compileCsv(
   each("stock", (v) => {
     const product = products.get(id(v.productId)!);
     if (!product) throw new CsvError("PRODUCT_NOT_IN_UPLOAD");
-    const at = date(v.observedAt, options.timezone, true, true)!;
+    const at = new Date(
+      date(v.observedAt, options.timezone, true, true)!,
+    ).toISOString();
     if (Date.parse(product.observedAt) > Date.parse(at))
       throw new CsvError("PRODUCT_OBSERVED_AFTER_STOCK");
     const key = JSON.stringify([product.externalId, at]);
@@ -313,7 +315,10 @@ export function compileCsv(
     entries.push({ product, quantity: money(v.quantity ?? "", true) });
     stock.set(at, entries);
   });
-  if (resources.has("products") !== resources.has("stock"))
+  if (
+    resources.has("products") !== resources.has("stock") ||
+    (products.size > 0 && stock.size === 0)
+  )
     preview.errors.push({
       resource: "stock",
       row: 0,
@@ -321,8 +326,8 @@ export function compileCsv(
     });
   if (options.catalog === "partial" || options.stock === "partial")
     preview.warnings.push("PARTIAL_POPULATION_NO_HISTORY");
-  for (const [at, entries] of [...stock].sort(([a], [b]) =>
-    a.localeCompare(b),
+  for (const [at, entries] of [...stock].sort(
+    ([a], [b]) => Date.parse(a) - Date.parse(b),
   )) {
     if (
       options.catalog === "complete" &&

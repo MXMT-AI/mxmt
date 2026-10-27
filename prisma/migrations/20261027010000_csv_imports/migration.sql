@@ -22,7 +22,7 @@ CREATE TABLE "CsvImport" (
  "expiresAt" TIMESTAMPTZ(3) NOT NULL DEFAULT (now()+interval '30 days'),
  "activatedAt" TIMESTAMPTZ(3),
  UNIQUE ("importRunId","sourceId","tenantId"),
- FOREIGN KEY ("importRunId","sourceId","tenantId") REFERENCES "DataImportRun" ("id","sourceId","tenantId") ON DELETE NO ACTION ON UPDATE NO ACTION
+ FOREIGN KEY ("importRunId","sourceId","tenantId") REFERENCES "DataImportRun" ("id","sourceId","tenantId") ON DELETE CASCADE ON UPDATE NO ACTION
 );
 CREATE UNIQUE INDEX "CsvImport_current_hash" ON "CsvImport" ("tenantId","sourceId","contentHash") WHERE state NOT IN ('CANCELLED','EXPIRED');
 CREATE INDEX "CsvImport_tenant_source_hash" ON "CsvImport" ("tenantId","sourceId","contentHash");

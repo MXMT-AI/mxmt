@@ -279,7 +279,7 @@ export async function csvImportAction(
         ["FAILED", "PAUSED", "RETRY"].includes(job.state)
       )
         await tx.$executeRaw(
-          Prisma.sql`UPDATE "ConnectorSyncJob" SET state='PENDING',attempts=0,"errorCode"=NULL,"availableAt"=now(),"updatedAt"=now() WHERE id=${job.id}`,
+          Prisma.sql`UPDATE "ConnectorSyncJob" SET state='PENDING',attempts=0,"errorCode"=NULL,"availableAt"=now(),"updatedAt"=now(),checkpoint=jsonb_set(checkpoint,'{selectionRevision}',to_jsonb(${selected.revision}::int)) WHERE id=${job.id} AND "tenantId"=${tenantId}`,
         );
       return { id, state: row.state, jobId: job.id };
     }

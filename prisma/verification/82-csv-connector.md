@@ -58,6 +58,11 @@ activation sorts them chronologically and uses the existing catalog normalizer
 and storage service. A packet is bounded rather than a replacement for a large
 unbounded history backfill.
 
+Stock timestamps are canonical UTC ISO instants before grouping, duplicate checks
+and chronological sorting. Different fractional-second spellings of one instant
+cannot create two observations. Products paired with a header-only stock file
+are invalid in both complete and partial modes.
+
 Catalog and stock each require an explicit complete/partial declaration. When
 both are complete, every dated stock observation must include every uploaded
 product. Partial packets update only supplied rows and never clear omitted stock
@@ -155,6 +160,10 @@ viewers/analysts. This conservative restriction includes preview/raw-file reads.
   changed-source, expiration, hash or validation guards. Permanent input conflicts
   pause instead of creating an infinite retry loop. Fix input and create a new
   preview for immutable packet changes.
+- After switching away and back, an explicit retry validates the selected source
+  and frozen configuration again, then captures the current selection revision.
+  This recovers the same packet without rotating its connection revision or
+  weakening the worker's source fence.
 - Cancel acquires the same tenant lock, revokes leases and marks the job CANCELLED.
   A running publication either commits first (then cancellation is denied) or
   cancellation wins and prevents projection. Existing report/pending/recalculation
@@ -174,6 +183,9 @@ Migration `20261027010000_csv_imports` is transactional and additive except for
 replacing the old inventory uniqueness rule. `CsvImport` is linked through the
 existing composite import/source/tenant FK. State constraints include CSV jobs and
 cancellation; index predicates retain tenant/source lease and content isolation.
+Deleting an unprojected parent import cascades to its preview and raw files;
+the preview does not add a new blocker to authorized source/tenant deletion.
+Existing fact/job provenance constraints continue to protect projected imports.
 
 Inventory observations now use tenant + source + SKU + date uniqueness, preserving
 SalesDrive and CSV observations independently when source selection changes. A
@@ -182,12 +194,20 @@ rows with null source. The legacy Google Sheets upsert uses that partial conflic
 target and cannot overwrite a provider observation. Prisma cannot represent that
 partial index; retain it in the migration and do not replace it using `db push`.
 Existing formulas and readers keep their source-scoped behavior.
+The six legacy analyst/dashboard/calendar readers explicitly use null-source
+observations, so they cannot select newer CSV/SalesDrive stock by accident.
+Catalog activation links unresolved order lines by product ID or SKU only when
+those identities resolve to one staged SKU; conflicting identities stay unresolved.
 
 No live migration is applied. Rehearse on an authorized isolated database, verify
 both uniqueness rules and legacy Sheets/provider imports, pause old writers, then
 deploy matching schema/code together. An old-code rollback cannot safely use the
 old inventory conflict target after this migration: pause writers and use a reviewed
 forward fix. Do not drop CSV/source inventory facts or rewrite migration history.
+The index replacement remains transactional in a planned maintenance window;
+index creation/deletion takes table locks. Use the isolated rehearsal to measure
+that window. Concurrent index operations cannot run inside this transaction and
+would require a separately reviewed staged migration rather than a textual swap.
 
 ## Verification
 
@@ -208,11 +228,15 @@ staging session with real files and customer mapping approval remains a release 
 
 Local validation passed:
 
-- Full `npm test -- --maxWorkers=2`: 1035 tests across 101 files.
-- After adding the final claimed-job/source-switch and byte-tampering regression,
-  `npx vitest run tests/lib/csv-import-store.test.ts`: 9 tests passed. That final
-  regression adds one test beyond the full-suite count above; production code did
-  not change after the full run.
+- Full `npm test -- --maxWorkers=2` after PR #88 review fixes:
+  1049 tests across 103 files.
+- Focused CSV timestamp/population, product back-link, retry and cascade regressions:
+  21 tests across 2 files. Legacy source isolation: 6 tests covering all six actual
+  page/API entry points against competing legacy/CSV/SalesDrive stock observations.
+- Regression cases include equivalent instant spellings, chronological fractional
+  timestamps, header-only stock in complete/partial modes, blank/different/ambiguous
+  order SKU identities, retry after source reselection and deletion of unprojected
+  parent runs/sources/tenants.
 - `npm run build`: production build, including Prisma client generation.
 - `npx tsc --noEmit`, `npx prisma validate` and `git diff --check`.
 - Local synthetic browser harness: semicolon upload/auto-mapping, approval/preview,
