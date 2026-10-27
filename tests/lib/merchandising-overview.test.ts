@@ -1,7 +1,10 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import OverviewContent from "@/components/overview/OverviewContent";
-import { overviewContributors } from "@/lib/merchandising-overview";
+import {
+  overviewContributors,
+  readSalesComparisons,
+} from "@/lib/merchandising-overview";
 import { beforeAll, afterAll, describe, it, expect, vi } from "vitest";
 vi.mock("next/link", () => ({
   default: ({ children, ...props }: Record<string, unknown>) =>
@@ -10,7 +13,10 @@ vi.mock("next/link", () => ({
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/prisma", () => ({ prisma: {} }));
 import { createScreenDb, screenSelection } from "../helpers/screen-db";
-import { createScreenSnapshot } from "@/lib/merchandising-snapshot";
+import {
+  createScreenSnapshot,
+  readScreenSnapshot,
+} from "@/lib/merchandising-snapshot";
 import { getMerchandisingScreen } from "@/lib/merchandising-screen";
 import { parseScreenQuery } from "@/lib/merchandising-screen-query";
 import { financialDecimal as D } from "@/lib/merchandising-policy";
@@ -256,6 +262,92 @@ describe("Overview O1–O8 pinned read model", () => {
       ["brand-b", "20", true],
       [null, "10", false],
     ]);
+  });
+  it("qualifies LY one-offs within each selected category and currency, including unassigned categories", async () => {
+    const isolated = await createScreenDb();
+    try {
+      const fresh = await createScreenSnapshot(
+        "a",
+        screenSelection,
+        isolated.db,
+      );
+      const snapshot = await readScreenSnapshot(
+        "a",
+        fresh.snapshotId,
+        isolated.db,
+      );
+      await isolated.pg.query(
+        `DELETE FROM "MerchandisingScreenFact" WHERE "snapshotId"=$1`,
+        [fresh.snapshotId],
+      );
+      const cohorts = [
+        { category: "cat-a", currency: "UAH", revenues: [80, 20] },
+        { category: "cat-b", currency: "UAH", revenues: [50, 50] },
+        { category: "cat-a", currency: "USD", revenues: [50, 50] },
+        { category: null, currency: "UAH", revenues: [60, 40] },
+      ];
+      for (const [cohortIndex, cohort] of cohorts.entries()) {
+        for (const [orderIndex, revenue] of cohort.revenues.entries()) {
+          const line = `cohort-${cohortIndex}-${orderIndex}`;
+          await isolated.pg.query(
+            `INSERT INTO "MerchandisingScreenFact" ("snapshotId","tenantId","lineId","sourceId","orderId","skuId","brandId","categoryId",currency,"productKind",kind,"inCurrent","inPriorYear","businessDate",revenue,quantity,"grossProfit")
+          VALUES ($1,'a',$2,'source',$2,$2,'brand-a',$3,$4,'MERCHANDISE','SALE',false,true,'2025-09-10',$5,1,0)`,
+            [fresh.snapshotId, line, cohort.category, cohort.currency, revenue],
+          );
+        }
+      }
+      const q = parseScreenQuery(
+        new URLSearchParams({ snapshotId: fresh.snapshotId }),
+        "overview",
+      );
+      const categories = await readSalesComparisons(
+        "a",
+        snapshot,
+        q,
+        isolated.db,
+        "category",
+      );
+      expect(categories.map((r) => [r.id, r.currency, r.oneOffLy])).toEqual([
+        ["cat-a", "UAH", true],
+        ["cat-b", "UAH", false],
+        [null, "UAH", true],
+        ["cat-a", "USD", false],
+      ]);
+      const brands = await readSalesComparisons(
+        "a",
+        snapshot,
+        q,
+        isolated.db,
+        "brand",
+      );
+      expect(brands.every((r) => !r.oneOffLy)).toBe(true);
+      await isolated.pg.query(
+        `UPDATE "MerchandisingScreenFact" SET revenue=800 WHERE "snapshotId"=$1 AND "lineId"='cohort-0-0'`,
+        [fresh.snapshotId],
+      );
+      const afterLargePurchase = await readSalesComparisons(
+        "a",
+        snapshot,
+        q,
+        isolated.db,
+        "category",
+      );
+      expect(
+        afterLargePurchase.map((r) => [r.id, r.currency, r.oneOffLy]),
+      ).toEqual(categories.map((r) => [r.id, r.currency, r.oneOffLy]));
+      const flaggedBrand = await readSalesComparisons(
+        "a",
+        snapshot,
+        q,
+        isolated.db,
+        "brand",
+      );
+      expect(flaggedBrand.find((r) => r.currency === "UAH")!.oneOffLy).toBe(
+        true,
+      );
+    } finally {
+      await isolated.pg.close();
+    }
   });
   it("does not flag a LY order at exactly half of the full brand-month revenue", async () => {
     try {

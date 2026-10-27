@@ -64,6 +64,7 @@ export async function readSalesComparisons(
   }));
   const period = snapshot.sales.context.period;
   const fullLyTo = Temporal.PlainDate.from(period.lyTo);
+  const cohortKey = Prisma.raw(`"${group}Id"`);
   const oneOffs =
     snapshot.sales.context.oneOffHistory && snapshot.trend
       ? await tx.$queryRaw<
@@ -71,10 +72,10 @@ export async function readSalesComparisons(
         >(Prisma.sql`
     WITH lines AS (SELECT f.* FROM "MerchandisingScreenFact" f WHERE ${screenSalesFilter(tenantId, { ...q, categoryId: undefined, skuId: undefined, search: null }, true)} AND ${headline}
       AND f."businessDate">=${period.lyFrom.slice(0, 7) + "-01"}::date AND f."businessDate"<=${fullLyTo.with({ day: fullLyTo.daysInMonth }).toString()}::date),
-    months AS (SELECT "brandId",currency,date_trunc('month',"businessDate") "month",sum(revenue) revenue,count(*) FILTER(WHERE revenue IS NULL) missing FROM lines GROUP BY 1,2,3),
-    orders AS (SELECT "brandId",currency,date_trunc('month',"businessDate") "month","sourceId","orderId",sum(revenue) revenue FROM lines WHERE kind='SALE' GROUP BY 1,2,3,4,5),
-    qualifying AS (SELECT DISTINCT o."brandId",o.currency,o."month" FROM orders o JOIN months m ON o."brandId" IS NOT DISTINCT FROM m."brandId" AND o.currency IS NOT DISTINCT FROM m.currency AND o."month"=m."month" WHERE m.missing=0 AND m.revenue>0 AND o.revenue>m.revenue*0.5)
-    SELECT DISTINCT ${Prisma.raw(`l."${group}Id"`)} id,l.currency FROM lines l JOIN qualifying o ON l."brandId" IS NOT DISTINCT FROM o."brandId" AND l.currency IS NOT DISTINCT FROM o.currency AND date_trunc('month',l."businessDate")=o."month"`)
+    months AS (SELECT ${cohortKey} id,currency,date_trunc('month',"businessDate") "month",sum(revenue) revenue,count(*) FILTER(WHERE revenue IS NULL) missing FROM lines GROUP BY 1,2,3),
+    orders AS (SELECT ${cohortKey} id,currency,date_trunc('month',"businessDate") "month","sourceId","orderId",sum(revenue) revenue FROM lines WHERE kind='SALE' GROUP BY 1,2,3,4,5),
+    qualifying AS (SELECT DISTINCT o.id,o.currency,o."month" FROM orders o JOIN months m ON o.id IS NOT DISTINCT FROM m.id AND o.currency IS NOT DISTINCT FROM m.currency AND o."month"=m."month" WHERE m.missing=0 AND m.revenue>0 AND o.revenue>m.revenue*0.5)
+    SELECT DISTINCT id,currency FROM qualifying`)
       : [];
   const oneOffKeys = new Set(
     oneOffs.map((o) => JSON.stringify([o.id, o.currency])),
