@@ -762,3 +762,23 @@ Follow-up owner/date:
 - [`docs/scheduled-data-import.md`](./docs/scheduled-data-import.md)
 - [`docs/data-reliability-runbook.md`](./docs/data-reliability-runbook.md)
 - [`docs/ai-agents-runbook.md`](./docs/ai-agents-runbook.md)
+
+## Merchandising MVP release and acceptance
+
+The legacy smoke checks above remain applicable. For the five merchandising
+workspaces, use the [ordered #51 release checklist](prisma/verification/51-mvp-acceptance-rollout.md):
+it adds identical-version KPI/detail comparisons, real CSV validation, two-tenant
+RBAC, customer UAT, migration rehearsal and explicit go/no-go evidence.
+
+The SalesDrive minute worker is external on the agreed Hobby plan; the two
+`vercel.json` daily UTC slots continue to serve the existing Sheets scheduler.
+During rollout or rollback pause the external worker, authenticated webhook relay
+and affected Vercel crons independently. A Vercel application rollback does not
+restore cron configuration or database state. Preserve queue checkpoints, source
+versions, raw evidence and audited export files; prefer an additive-schema
+application rollback or reviewed forward fix over destructive data rollback.
+
+Do not report #38 reconciliation, Bimba activation, customer UAT, daily production
+sync or production rollout as completed from local synthetic test results. Record
+the actual deployment/schema/config/calculation IDs and restricted evidence using
+the acceptance document's UAT and release tables before closing #51.

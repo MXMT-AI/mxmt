@@ -123,7 +123,8 @@ export async function processOrderJob(tenantId?: string, db: SqlDatabase = prism
       if (complete && job.mode !== "WEBHOOK") {
         await recordIssues(tx, job, new Set(["SOURCE_PAGINATION_NOT_SNAPSHOT"])); stats.warnings++;
       }
-      await tx.$executeRaw(Prisma.sql`UPDATE "DataImportRun" SET status=${complete ? stats.warnings ? "WARNING" : "SUCCESS" : "RUNNING"}::"DataRunStatus",stats=${JSON.stringify(stats)}::jsonb,"completedAt"=${complete ? new Date() : null},"errorMessage"=NULL,"updatedAt"=now() WHERE id=${job.importRunId} AND "tenantId"=${job.tenantId}`);
+      // The lease yields after this page; keep unfinished runs queued so sibling resources can progress.
+      await tx.$executeRaw(Prisma.sql`UPDATE "DataImportRun" SET status=${complete ? stats.warnings ? "WARNING" : "SUCCESS" : "PENDING"}::"DataRunStatus",stats=${JSON.stringify(stats)}::jsonb,"completedAt"=${complete ? new Date() : null},"errorMessage"=NULL,"updatedAt"=now() WHERE id=${job.importRunId} AND "tenantId"=${job.tenantId}`);
       if (complete && job.mode !== "WEBHOOK") {
         // Never move an existing watermark backwards when replaying a historical baseline.
         await tx.$executeRaw(Prisma.sql`INSERT INTO "SyncCursor" (id,"tenantId","sourceId",resource,checkpoint,"lastSuccessfulRunId","updatedAt")

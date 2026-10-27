@@ -90,7 +90,8 @@ export async function processInventoryJob(tenantId?: string, db: SqlDatabase = p
       stats.warnings += issues.size;
       await recordIssues(tx, job, issues);
       const complete = Boolean(catalog);
-      await tx.$executeRaw(Prisma.sql`UPDATE "DataImportRun" SET status=${complete ? "WARNING" : "RUNNING"}::"DataRunStatus","sourceChecksum"=${catalog ? payloadHash(catalog.rawResponse) : null},stats=${JSON.stringify(stats)}::jsonb,"errorMessage"=NULL,"completedAt"=${complete ? new Date() : null},"updatedAt"=now() WHERE id=${job.importRunId} AND "tenantId"=${job.tenantId}`);
+      // The lease yields after this page; keep unfinished runs queued so sibling resources can progress.
+      await tx.$executeRaw(Prisma.sql`UPDATE "DataImportRun" SET status=${complete ? "WARNING" : "PENDING"}::"DataRunStatus","sourceChecksum"=${catalog ? payloadHash(catalog.rawResponse) : null},stats=${JSON.stringify(stats)}::jsonb,"errorMessage"=NULL,"completedAt"=${complete ? new Date() : null},"updatedAt"=now() WHERE id=${job.importRunId} AND "tenantId"=${job.tenantId}`);
       if (complete && !issues.has("STALE_CATALOG_OBSERVATION")) await tx.$executeRaw(Prisma.sql`UPDATE "DataSource" SET "activeImportRunId"=${job.importRunId},"updatedAt"=now() WHERE id=${job.sourceId} AND "tenantId"=${job.tenantId}`);
       // An unconfigured receipt scope cannot establish a successful receipts watermark.
       if (complete && (stats.pages ?? 0)>0) await tx.$executeRaw(Prisma.sql`INSERT INTO "SyncCursor" (id,"tenantId","sourceId",resource,checkpoint,"lastSuccessfulRunId","updatedAt") VALUES (${randomUUID()},${job.tenantId},${job.sourceId},'receipts',${JSON.stringify({ through: checkpoint.to, policyHash: checkpoint.policyHash })}::jsonb,${job.importRunId},now())
