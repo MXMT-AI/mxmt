@@ -240,7 +240,7 @@ model InventorySnapshot {
   importRun           DataImportRun? @relation(fields: [importRunId, sourceId, tenantId], references: [id, sourceId, tenantId], onDelete: NoAction, onUpdate: NoAction)
   sourceRecordKey     String?
 
-  @@unique([tenantId, skuId, snapshotDate])
+  @@unique([tenantId, sourceId, skuId, snapshotDate], map: "InventorySnapshot_tenant_source_sku_date")
   @@index([tenantId, snapshotDate])
   @@index([skuId])
 }
@@ -364,6 +364,7 @@ model DataImportRun {
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 
+  csvImport              CsvImport?
   connectorJobs          ConnectorSyncJob[]
   orderImportStates      OrderImportState[]
   activeForSource        DataSource?             @relation("ActiveDataSourceImport")
@@ -1322,4 +1323,24 @@ model ConnectorCatalogPage {
   source DataSource @relation(fields:[sourceId,tenantId],references:[id,tenantId],onDelete:NoAction,onUpdate:NoAction)
   payload Json
   @@id([jobId,sequence])
+}
+
+// Frozen manual upload and preview; exact bytes live in the scoped raw record store.
+model CsvImport {
+  id String @id
+  tenantId String
+  sourceId String
+  importRunId String @unique
+  importRun DataImportRun @relation(fields: [importRunId, sourceId, tenantId], references: [id, sourceId, tenantId], onDelete: Cascade, onUpdate: NoAction)
+  contentHash String
+  options Json
+  preview Json
+  context Json @default("{}")
+  state String @default("READY")
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  expiresAt DateTime @default(dbgenerated("(now() + '30 days'::interval)")) @db.Timestamptz(3)
+  activatedAt DateTime? @db.Timestamptz(3)
+  @@index([tenantId, sourceId, contentHash], map: "CsvImport_tenant_source_hash")
+  @@unique([importRunId, sourceId, tenantId])
+  @@index([tenantId, sourceId, createdAt], map: "CsvImport_tenant_source_created")
 }

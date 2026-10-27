@@ -117,13 +117,13 @@ export async function calculateSkuDailyInSnapshot(
   const [anchor] = await tx.$queryRaw<
     Array<{ id: string; quarantined: number }>
   >(
-    Prisma.sql`SELECT r.id,COALESCE((j.stats->>'quarantined')::int,0) quarantined FROM "DataImportRun" r JOIN "ConnectorSyncJob" j ON j."importRunId"=r.id AND j."tenantId"=r."tenantId" AND j."sourceId"=r."sourceId" WHERE r."tenantId"=${tenantId} AND r."sourceId"=${source.id} AND r.status IN ('SUCCESS','WARNING') AND j.resource='orders' AND j.state='COMPLETE' ORDER BY r."completedAt" DESC,r.id DESC LIMIT 1`,
+    Prisma.sql`SELECT r.id,COALESCE((j.stats->>'quarantined')::int,0) quarantined FROM "DataImportRun" r JOIN "ConnectorSyncJob" j ON j."importRunId"=r.id AND j."tenantId"=r."tenantId" AND j."sourceId"=r."sourceId" WHERE r."tenantId"=${tenantId} AND r."sourceId"=${source.id} AND r.status IN ('SUCCESS','WARNING') AND j.resource IN ('orders','csv') AND j.state='COMPLETE' ORDER BY r."completedAt" DESC,r.id DESC LIMIT 1`,
   );
   const { windows, cursor } = await readOrderHistory(tenantId, source.id, tx);
   if (windows.length > 1000)
     throw new DailySkuError("DAILY_HISTORY_LIMIT", 422);
   const [pending] = await tx.$queryRaw<Array<{ n: number }>>(
-    Prisma.sql`SELECT count(*)::int n FROM "ConnectorSyncJob" WHERE "tenantId"=${tenantId} AND "sourceId"=${source.id} AND resource IN ('orders','inventory','catalog','receipts') AND state<>'COMPLETE'`,
+    Prisma.sql`SELECT count(*)::int n FROM "ConnectorSyncJob" WHERE "tenantId"=${tenantId} AND "sourceId"=${source.id} AND resource IN ('orders','inventory','catalog','receipts','csv') AND state NOT IN ('COMPLETE','CANCELLED')`,
   );
   const preorderGuard = Prisma.sql`NOT COALESCE(l."statusId"=33 AND ${basePolicy.statuses?.["33"] === "PREORDER"},false)`;
   const receiptPolicy = inventoryPolicy(mapping?.values),
@@ -137,7 +137,7 @@ export async function calculateSkuDailyInSnapshot(
       invalid: boolean;
     }>
   >(Prisma.sql`SELECT c.checkpoint->>'through' through,c.checkpoint->>'policyHash' "policyHash",
-      EXISTS(SELECT 1 FROM "ConnectorSyncJob" j JOIN "DataImportRun" r ON r.id=j."importRunId" AND r."tenantId"=j."tenantId" WHERE j."tenantId"=${tenantId} AND j."sourceId"=${source.id} AND j.resource='inventory' AND j.state='COMPLETE' AND r.status IN ('SUCCESS','WARNING') AND j.checkpoint->>'policyHash'=${receiptPolicyHash} AND NOT(j.checkpoint?'from') AND COALESCE((j.stats->>'pages')::int,0)>0 AND NOT EXISTS(SELECT 1 FROM "ImportIssue" i WHERE i."tenantId"=j."tenantId" AND i."importRunId"=j."importRunId" AND i.code IN ('INVALID_RECEIPT_LINE','RECEIPT_VERSION_CONFLICT'))) baseline,
+      EXISTS(SELECT 1 FROM "ConnectorSyncJob" j JOIN "DataImportRun" r ON r.id=j."importRunId" AND r."tenantId"=j."tenantId" WHERE j."tenantId"=${tenantId} AND j."sourceId"=${source.id} AND (j.resource='inventory' OR (j.resource='csv' AND j.checkpoint->>'receiptBaseline'='true' AND j.checkpoint->>'receiptHistoryComplete'='true')) AND j.state='COMPLETE' AND r.status IN ('SUCCESS','WARNING') AND j.checkpoint->>'policyHash'=${receiptPolicyHash} AND (j.resource='csv' OR (NOT(j.checkpoint?'from') AND COALESCE((j.stats->>'pages')::int,0)>0)) AND NOT EXISTS(SELECT 1 FROM "ImportIssue" i WHERE i."tenantId"=j."tenantId" AND i."importRunId"=j."importRunId" AND i.code IN ('INVALID_RECEIPT_LINE','RECEIPT_VERSION_CONFLICT'))) baseline,
       (SELECT count(*)::int FROM "ReceiptLine" l JOIN "Receipt" r ON r.id=l."receiptId" AND r."tenantId"=l."tenantId" WHERE r."tenantId"=${tenantId} AND r."sourceId"=${source.id} AND r."movementType"='SUPPLIER_RECEIPT' AND r."postingVerifiedAt" IS NOT NULL AND r."receivedAt"<${period.cutoff}::timestamptz AND l.quantity>0 AND l."skuId" IS NULL) unassigned,
       EXISTS(SELECT 1 FROM "ImportIssue" i WHERE i."tenantId"=c."tenantId" AND i."importRunId"=c."lastSuccessfulRunId" AND i.code IN ('INVALID_RECEIPT_LINE','RECEIPT_VERSION_CONFLICT')) invalid
       FROM (SELECT 1) seed LEFT JOIN "SyncCursor" c ON c."tenantId"=${tenantId} AND c."sourceId"=${source.id} AND c.resource='receipts'`);

@@ -1,3 +1,5 @@
+import { readSelectedSource } from "@/lib/connectors/source";
+import CsvImportCard from "@/components/settings/CsvImportCard";
 import ConnectorSourceCard from "@/components/settings/ConnectorSourceCard";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
@@ -19,10 +21,11 @@ export default async function SettingsPage() {
   const lang = (cookieStore.get("lang")?.value ?? "uk") as "uk" | "en";
   const t = getT(lang);
 
-  const [onboarding, driveSync, salesDrive] = await Promise.all([
+  const [onboarding, driveSync, salesDrive, selectedSource] = await Promise.all([
     prisma.onboardingBrief.findUnique({ where: { tenantId } }),
     prisma.googleDriveSync.findFirst({ where: { tenantId }, orderBy: { createdAt: "desc" } }),
     getSalesDriveConnection(tenantId),
+    readSelectedSource(tenantId, prisma),
   ]);
 
   const generalContent = (
@@ -79,7 +82,9 @@ export default async function SettingsPage() {
       <ConnectorSourceCard lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
       <SalesDriveConnectionCard initial={salesDrive} lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
 
-      <DataHealthSection lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
+      <CsvImportCard lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
+
+      <DataHealthSection manualUpload={selectedSource?.provider === "csv"} lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
 
       <section className="mb-10">
         <div className="mb-4">

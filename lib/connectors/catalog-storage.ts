@@ -59,7 +59,9 @@ export async function storeCatalog(tx: SqlClient, scope: OrderScope, snapshot: C
     UNION ALL SELECT ${randomUUID()} || ':' || t."externalId" || ':sku',${tenantId},${sourceId},t."skuId",'SKU'::"SkuAliasType",t.article FROM mxmt_catalog_stage t WHERE t.article IS NOT NULL
     ON CONFLICT ("tenantId","sourceId",type,value) DO NOTHING`);
   // Link retained facts that arrived before their catalogue, using explicit source identities/SKUs.
-  await tx.$executeRaw(Prisma.sql`UPDATE "OrderLine" l SET "skuId"=t."skuId" FROM mxmt_catalog_stage t WHERE l."tenantId"=${tenantId} AND l."sourceId"=${sourceId} AND l."skuId" IS NULL AND l."sourceSku"=t.article`);
+  await tx.$executeRaw(Prisma.sql`UPDATE "OrderLine" l SET "skuId"=t."skuId" FROM mxmt_catalog_stage t WHERE l."tenantId"=${tenantId} AND l."sourceId"=${sourceId} AND l."skuId" IS NULL
+    AND (l."externalProductId"=t."externalId" OR l."sourceSku"=t.article)
+    AND NOT EXISTS (SELECT 1 FROM mxmt_catalog_stage other WHERE other."skuId"<>t."skuId" AND (l."externalProductId"=other."externalId" OR l."sourceSku"=other.article))`);
   await tx.$executeRaw(Prisma.sql`UPDATE "ReceiptLine" l SET "skuId"=t."skuId" FROM mxmt_catalog_stage t,"Receipt" r
     WHERE l."tenantId"=${tenantId} AND r."tenantId"=l."tenantId" AND r.id=l."receiptId" AND r."sourceId"=${sourceId} AND l."skuId" IS NULL
     AND (l."externalProductId"=t."externalId" OR l."sourceSku"=t.article)
@@ -93,7 +95,7 @@ export async function storeCatalog(tx: SqlClient, scope: OrderScope, snapshot: C
     SELECT ${randomUUID()} || ':' || t."skuId",${tenantId},t."skuId",CASE WHEN t.quantity=trunc(t.quantity) AND t.quantity BETWEEN -2147483648 AND 2147483647 THEN t.quantity::int ELSE NULL END,t.quantity,(t."observedAt" AT TIME ZONE ${timezone})::date,t."observedAt",${timezone},t."costPrice",t."retailPrice",
       CASE WHEN t.quantity>=0 AND t.quantity*t."costPrice"<100000000000000 THEN t.quantity*t."costPrice" ELSE NULL END,CASE WHEN t.quantity>=0 AND t.quantity*t."retailPrice"<100000000000000 THEN t.quantity*t."retailPrice" ELSE NULL END,t.currency,${sourceId},${importRunId},${rawKey},t."costProvenance",
       jsonb_build_object('historicalStockAvailable',false,'quantityMissing',t.quantity IS NULL,'negativeStock',t.quantity<0,'costMissing',t."costPrice" IS NULL,'retailMissing',t."retailPrice" IS NULL,'valueOverflow',COALESCE(t.quantity*t."costPrice">=100000000000000 OR t.quantity*t."retailPrice">=100000000000000,false)) FROM mxmt_catalog_stage t
-    ON CONFLICT ("tenantId","skuId","snapshotDate") DO UPDATE SET "qtyOnHand"=EXCLUDED."qtyOnHand",quantity=EXCLUDED.quantity,"observedAt"=EXCLUDED."observedAt",timezone=EXCLUDED.timezone,
+    ON CONFLICT ("tenantId","sourceId","skuId","snapshotDate") DO UPDATE SET "qtyOnHand"=EXCLUDED."qtyOnHand",quantity=EXCLUDED.quantity,"observedAt"=EXCLUDED."observedAt",timezone=EXCLUDED.timezone,
       "costPrice"=EXCLUDED."costPrice","retailPrice"=EXCLUDED."retailPrice","costValue"=EXCLUDED."costValue","retailValue"=EXCLUDED."retailValue",currency=EXCLUDED.currency,"sourceId"=EXCLUDED."sourceId","importRunId"=EXCLUDED."importRunId","sourceRecordKey"=EXCLUDED."sourceRecordKey","costProvenance"=EXCLUDED."costProvenance",diagnostics=EXCLUDED.diagnostics
     WHERE "InventorySnapshot"."observedAt" IS NULL OR "InventorySnapshot"."observedAt"<=EXCLUDED."observedAt"`);
   await recordCatalogQuality(tx, scope, rawKey);

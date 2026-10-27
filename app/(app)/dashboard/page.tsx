@@ -24,7 +24,7 @@ export default async function DashboardPage() {
       include: { brand: { select: { name: true, leadTimeDays: true } } },
     }),
     prisma.inventorySnapshot.findMany({
-      where: { tenantId },
+      where: { tenantId, sourceId: null },
       orderBy: { snapshotDate: "desc" },
       distinct: ["skuId"],
       select: { skuId: true, qtyOnHand: true },

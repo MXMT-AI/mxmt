@@ -9,13 +9,14 @@ import { logWarn } from "@/lib/observability";
 export interface ConnectorJob { id: string; tenantId: string; sourceId: string; importRunId: string; resource: string; connectionRevision: number; attempts: number; leaseToken: string | null }
 
 /** Claim one available or expired job atomically; concurrent workers skip locked rows. */
-export async function claimConnectorJob<T extends ConnectorJob>(resource: string | null, db: SqlDatabase = prisma, tenantId?: string, now = new Date()) {
+export async function claimConnectorJob<T extends ConnectorJob>(resource: string | null, db: SqlDatabase = prisma, tenantId?: string, now = new Date(), jobId?: string) {
   const token = randomUUID();
   const [job] = await db.$queryRaw<T[]>(Prisma.sql`WITH candidate AS (
     SELECT j.id FROM "ConnectorConnection" c JOIN LATERAL (
       SELECT q.id,q.mode,q.state,q."availableAt",q."updatedAt" FROM "ConnectorSyncJob" q
       WHERE q."tenantId"=c."tenantId" AND q."sourceId"=c."sourceId"
         AND (${resource}::text IS NULL OR q.resource=${resource})
+        AND (${jobId??null}::text IS NULL OR q.id=${jobId??null})
         AND ((q.state IN ('PENDING','RETRY') AND q."availableAt"<=${now}) OR (q.state='RUNNING' AND q."leaseExpiresAt"<=${now}))
         AND NOT EXISTS (SELECT 1 FROM "ConnectorSyncJob" held WHERE held."tenantId"=q."tenantId" AND held."sourceId"=q."sourceId" AND held.state='RUNNING' AND (held."leaseExpiresAt">${now} OR held.id<>q.id))
       ORDER BY CASE WHEN q.state='RUNNING' THEN 0 WHEN q.mode='BACKFILL' THEN 2 ELSE 1 END,q."updatedAt",q."createdAt" LIMIT 1
@@ -69,12 +70,13 @@ export async function recordIssues(tx: SqlClient, job: Pick<ConnectorJob, "tenan
 
 /** Persist sanitized retry/failure state only if this worker still owns the lease. */
 export async function failConnectorJob(job: ConnectorJob, error: unknown, db: SqlDatabase = prisma) {
+    const csvError=error instanceof Error&&error.name==="CsvStoreError"&&/^CSV_[A-Z_]{1,64}$/.test(error.message)?error.message:null;
     const changed = error instanceof Error && error.message === "CONNECTOR_CONFIG_CHANGED";
     const unavailable=error instanceof Error && ["CONNECTOR_PROVIDER_UNAVAILABLE","CONNECTOR_BUDGET_UNVERIFIED"].includes(error.message)?error.message:null;
     const domainError = error instanceof Error && ["INVALID_CATALOG", "DUPLICATE_CATALOG_ID", "DUPLICATE_CATALOG_SKU", "CATALOG_IDENTITY_CONFLICT", "INVALID_CATALOG_NUMBER", "MIXED_CATALOG_OBSERVATION", "INVALID_RECEIPT_LINE"].includes(error.message) ? error.message : null;
-    const code = unavailable ?? domainError ?? (changed ? "CONNECTOR_CONFIG_CHANGED" : error instanceof ConnectorReadError ? error.code : error instanceof Error && error.message === "NOT_CONFIGURED" ? "NOT_CONFIGURED" : "IMPORT_FAILED");
+    const code = csvError ?? unavailable ?? domainError ?? (changed ? "CONNECTOR_CONFIG_CHANGED" : error instanceof ConnectorReadError ? error.code : error instanceof Error && error.message === "NOT_CONFIGURED" ? "NOT_CONFIGURED" : "IMPORT_FAILED");
     const attempts = job.attempts + 1;
-    const pause = Boolean(unavailable) || changed || code === "AUTH_FAILED" || code === "NOT_CONFIGURED";
+    const pause = Boolean(csvError) || Boolean(unavailable) || changed || code === "AUTH_FAILED" || code === "NOT_CONFIGURED";
     const state = pause ? "PAUSED" : attempts >= 8 && code !== "RATE_LIMITED" ? "FAILED" : "RETRY";
     const retry = error instanceof ConnectorReadError && error.retryAt ? error.retryAt : new Date(Date.now() + Math.min(3600_000, 15_000 * 2 ** Math.min(attempts, 8)) + Math.floor(Math.random() * 1000));
     const persisted = await db.$transaction(async (tx) => {

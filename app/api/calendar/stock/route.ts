@@ -10,7 +10,7 @@ export async function GET() {
 
   // Get latest inventory snapshot per SKU
   const snapshots = await prisma.inventorySnapshot.findMany({
-    where: { tenantId,sku:{productKind:{notIn:["SERVICE","GIFT_CARD"]}} },
+    where: { tenantId, sourceId: null,sku:{productKind:{notIn:["SERVICE","GIFT_CARD"]}} },
     orderBy: { snapshotDate: "desc" },
     distinct: ["skuId"],
     include: { sku: { include: { brand: { select: { id: true, name: true } } } } },

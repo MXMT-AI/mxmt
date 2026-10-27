@@ -1,4 +1,5 @@
 import "server-only";
+import { CsvConnector, parseCsvConfig } from "./csv/adapter";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import type { RequestWindow } from "./budget";
@@ -41,6 +42,7 @@ export interface ProviderRegistration {
 export const PROVIDER_ADAPTERS: Readonly<
   Partial<Record<SourceProvider, ProviderRegistration>>
 > = Object.freeze({
+  csv: {transport:"offline",parse:parseCsvConfig,identity:c=>({accountHost:"CSV upload",sourceKey:"manual",timezone:c.timezone,hasYmlUrl:false,hasReceiptsKey:false}),create:()=>new CsvConnector()},
   salesdrive: {
     parse: parseSalesDriveCredentials,
     identity: (c) => ({
