@@ -219,3 +219,8 @@ synchronization-driven refresh, see [Settings data quality (#49)](49-settings-da
 
 For reusable second-client monobrand setup, five-screen behavior, tenant-isolation
 checks and the owner handoff, see [monobrand onboarding (#50)](50-monobrand-onboarding.md).
+
+For the five MVP readiness criteria, repeatable acceptance journey, private Zavod
+reconciliation/UAT gates and ordered Vercel/Neon release, see
+[MVP acceptance and rollout (#51)](51-mvp-acceptance-rollout.md). Local test success
+does not close customer acceptance or authorize deployment.

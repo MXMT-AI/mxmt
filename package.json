@@ -14,7 +14,8 @@
     "db:migrate": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
     "db:studio": "prisma studio",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "test:mvp": "vitest run --maxWorkers=2 tests/lib/mvp-acceptance.test.ts tests/lib/monobrand tests/lib/merchandising- tests/lib/sales- tests/lib/sku- tests/lib/repricing tests/lib/reordering tests/lib/scenario- tests/lib/connector tests/lib/salesdrive tests/lib/data-scheduler.test.ts tests/lib/zavod tests/lib/settings-data tests/lib/product- tests/lib/auth-security.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",

@@ -251,14 +251,29 @@ npm run db:migrate:deploy
 
 Офіційна документація: [Prisma migrate deploy](https://www.prisma.io/docs/cli/migrate/deploy).
 
-### Поточні production migrations
+### Історія міграцій репозиторію
 
 ```text
 20260715000000_baseline
 20260717000000_data_reliability_constraints
 20260719000000_agent_run_lock
 20260827000000_data_import_reporting_schema
+20260902000000_marketing_recommendation_approval
+20261023000000_merchandising_data_model
+20261023010000_connector_connections
+20261024000000_salesdrive_order_import
+20261024010000_catalog_receipts_history
+20261024020000_automatic_connector_sync
+20261024030000_product_normalization
+20261025000000_sales_financial_results
+20261025010000_daily_sku_metrics
+20261025020000_sku_classification
+20261025030000_merchandising_screen_models
+20261025040000_overview_supporting_facts
 ```
+
+Це список у репозиторії, а не підтвердження production-схеми. Перед релізом
+перевірте фактичну історію цільової БД через `npx prisma migrate status`.
 
 ## Деплой на Vercel
 
@@ -516,3 +531,20 @@ Unit tests не повинні звертатися до real AI providers аб�
 ## Ліцензія та доступ
 
 Проєкт приватний. Код, credentials, production data та customer exports не повинні поширюватися поза авторизованою командою.
+
+## MVP acceptance and rollout
+
+Run `npm run test:mvp` for the focused synthetic acceptance/contract suites and
+`npm test -- --maxWorkers=2` for the full regression suite. The new integration
+journey connects the adapter check, incremental sync, frozen five-screen context,
+KPI/detail equality and both audited CSV exports. It does not contact a live CRM.
+
+Follow the [MVP acceptance and release checklist](prisma/verification/51-mvp-acceptance-rollout.md)
+for staging migrations, Hobby's external SalesDrive worker, monitoring, recovery
+and UAT. Follow the [configuration-only monobrand onboarding checklist](prisma/verification/50-monobrand-onboarding.md)
+for Bimba; credentials belong in Settings, and source mappings/commercial terms
+require independent owner approval. Its live connection remains deferred.
+
+Passing tests or merging a PR does not establish customer acceptance. Zavod's
+[September reconciliation and threshold approvals](prisma/verification/38-zavod-reconciliation.md),
+Sasha/Olia UAT and operational release evidence remain required before closing #51.
