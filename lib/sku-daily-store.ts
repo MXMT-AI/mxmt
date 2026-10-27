@@ -1,3 +1,5 @@
+import { readOrderHistory } from "./connectors/order-history";
+import { readSelectedSource, mappingKey } from "./connectors/source";
 import "server-only";
 import { classifyDailySku, summarizeSkuClassification } from "./classify";
 import { summarizeDailyBrands } from "./brand-metrics";
@@ -91,9 +93,7 @@ export async function calculateSkuDailyInSnapshot(
   input: { asOf?: string; now?: Date },
   tx: SqlClient,
 ): Promise<DailySkuCalculation> {
-  const [source] = await tx.$queryRaw<Array<{ id: string; timezone: string }>>(
-    Prisma.sql`SELECT s.id,s.timezone FROM "DataSource" s JOIN "ConnectorConnection" c ON c."sourceId"=s.id AND c."tenantId"=s."tenantId" WHERE s."tenantId"=${tenantId} AND c.provider='salesdrive' AND s.kind='SALESDRIVE'`,
-  );
+  const source = await readSelectedSource(tenantId, tx);
   if (!source) throw new DailySkuError("SALESDRIVE_NOT_CONFIGURED");
   const period = resolveDailySkuPeriod(input.asOf, input.now, source.timezone),
     client = await readClientSettings(tenantId, tx);
@@ -104,7 +104,7 @@ export async function calculateSkuDailyInSnapshot(
   );
   const mapping = configs.find(
     (c) =>
-      c.configType === "SOURCE_MAPPING" && c.key === `salesdrive:${source.id}`,
+      c.configType === "SOURCE_MAPPING" && c.key === mappingKey(source.provider, source.id),
   );
   const basePolicy = mapping ? parseOrderPolicy(mapping.values) : {},
     policy = client.id
@@ -119,14 +119,9 @@ export async function calculateSkuDailyInSnapshot(
   >(
     Prisma.sql`SELECT r.id,COALESCE((j.stats->>'quarantined')::int,0) quarantined FROM "DataImportRun" r JOIN "ConnectorSyncJob" j ON j."importRunId"=r.id AND j."tenantId"=r."tenantId" AND j."sourceId"=r."sourceId" WHERE r."tenantId"=${tenantId} AND r."sourceId"=${source.id} AND r.status IN ('SUCCESS','WARNING') AND j.resource='orders' AND j.state='COMPLETE' ORDER BY r."completedAt" DESC,r.id DESC LIMIT 1`,
   );
-  const windows = await tx.$queryRaw<Array<{ from: string; to: string }>>(
-    Prisma.sql`SELECT j.checkpoint->>'from' "from",j.checkpoint->>'to' "to" FROM "ConnectorSyncJob" j JOIN "DataImportRun" r ON r.id=j."importRunId" AND r."tenantId"=j."tenantId" WHERE j."tenantId"=${tenantId} AND j."sourceId"=${source.id} AND j.resource='orders' AND j.mode='BACKFILL' AND j.state='COMPLETE' AND r.status IN ('SUCCESS','WARNING') ORDER BY j."createdAt" LIMIT 1001`,
-  );
+  const { windows, cursor } = await readOrderHistory(tenantId, source.id, tx);
   if (windows.length > 1000)
     throw new DailySkuError("DAILY_HISTORY_LIMIT", 422);
-  const [cursor] = await tx.$queryRaw<Array<{ through: string | null }>>(
-    Prisma.sql`SELECT checkpoint->>'through' through FROM "SyncCursor" WHERE "tenantId"=${tenantId} AND "sourceId"=${source.id} AND resource='orders'`,
-  );
   const [pending] = await tx.$queryRaw<Array<{ n: number }>>(
     Prisma.sql`SELECT count(*)::int n FROM "ConnectorSyncJob" WHERE "tenantId"=${tenantId} AND "sourceId"=${source.id} AND resource IN ('orders','inventory','catalog','receipts') AND state<>'COMPLETE'`,
   );
@@ -174,7 +169,7 @@ export async function calculateSkuDailyInSnapshot(
     orderScope.unassigned > 0;
   const history = createOrderHistoryCoverage(
     windows,
-    cursor?.through ?? null,
+    cursor?.coverageThrough ?? null,
     source.timezone,
     historyBlocked,
   );

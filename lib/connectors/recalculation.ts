@@ -1,3 +1,4 @@
+import { selectedConnection } from "./source";
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { Prisma } from "@prisma/client";
@@ -30,7 +31,7 @@ export async function processConnectorRecalculation(
       Array<{ tenantId: string; sourceId: string }>
     >(Prisma.sql`
       SELECT c."tenantId",c."sourceId" FROM "ConnectorConnection" c
-      WHERE c.provider='salesdrive' AND (${tenantId ?? null}::text IS NULL OR c."tenantId"=${tenantId ?? null})
+      WHERE ${selectedConnection()} AND (${tenantId ?? null}::text IS NULL OR c."tenantId"=${tenantId ?? null})
       AND NOT EXISTS(SELECT 1 FROM "ConnectorSyncJob" j WHERE j."tenantId"=c."tenantId" AND j."sourceId"=c."sourceId" AND j.state<>'COMPLETE')
       AND NOT EXISTS(SELECT 1 FROM "ConnectorRecalculation" r WHERE r."tenantId"=c."tenantId" AND r."sourceId"=c."sourceId" AND r.state='RUNNING' AND (r."inputProvenance"->>'leaseUntil')::timestamptz>now())
       AND EXISTS(SELECT 1 FROM "ConnectorRecalculation" r WHERE r."tenantId"=c."tenantId" AND r."sourceId"=c."sourceId" AND r.state<>'COMPLETE' AND (r.state='WAITING_ENGINE' OR COALESCE((r."inputProvenance"->>'availableAt')::timestamptz,'-infinity'::timestamptz)<=now()))
@@ -81,7 +82,7 @@ export async function processConnectorRecalculation(
     const updated = await db.$executeRaw(Prisma.sql`
       UPDATE "ConnectorRecalculation" SET state=${phase === "DAILY" ? "PENDING" : "COMPLETE"},
       "inputProvenance"=("inputProvenance"-'leaseToken'-'leaseUntil'-'availableAt'-'errorCode')||${JSON.stringify(publication)}::jsonb||jsonb_build_object('engine','salesdrive-v2','phaseCompletedAt',now(),'inputConsistency','separate-immutable-phase-calculations')
-      WHERE "importRunId"=${intent.importRunId} AND "tenantId"=${intent.tenantId} AND state='RUNNING' AND "inputProvenance"->>'leaseToken'=${token}`);
+      WHERE "importRunId"=${intent.importRunId} AND "tenantId"=${intent.tenantId} AND state='RUNNING' AND "inputProvenance"->>'leaseToken'=${token} AND EXISTS(SELECT 1 FROM "ConnectorConnection" c WHERE c."tenantId"=${intent.tenantId} AND c."sourceId"=${intent.sourceId} AND ${selectedConnection()})`);
     return { processed: true, phase, published: updated === 1 };
   } catch (error) {
     const errorCode =

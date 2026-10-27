@@ -229,3 +229,7 @@ For provider discovery, the shared credential-isolation prerequisite and ordered
 implementation sub-issues for KeyCRM, Horoshop, Shopify and CSV, see
 [additional connector discovery (#52)](52-connector-discovery.md). The adapters
 and their activation remain separate implementation deliveries.
+
+For explicit tenant-owned source selection, shared provider runtime/onboarding,
+page/offset/cursor checkpoints, atomic catalog staging and provider/cost budgets,
+see [connector foundation (#81)](81-connector-foundation.md).

@@ -1,3 +1,4 @@
+import ConnectorSourceCard from "@/components/settings/ConnectorSourceCard";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { getT } from "@/lib/translations";
@@ -75,6 +76,7 @@ export default async function SettingsPage() {
       </section>
 
       {/* Google Drive sync */}
+      <ConnectorSourceCard lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
       <SalesDriveConnectionCard initial={salesDrive} lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
 
       <DataHealthSection lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />

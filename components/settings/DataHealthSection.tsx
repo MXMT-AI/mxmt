@@ -18,6 +18,7 @@ export default function DataHealthSection({
       {(["sync", "inventory", "orders"] as const).map((resource) => (
         <SalesDriveImportCard
           key={resource}
+          generic
           lang={lang}
           resource={resource}
           canManage={canManage}

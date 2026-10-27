@@ -1,3 +1,4 @@
+import { selectedConnection } from "./connectors/source";
 import "server-only";
 import { Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
@@ -19,8 +20,8 @@ export async function readNavigationOptions(
     const settings = await readClientSettings(tenantId, tx);
     const channels = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
       SELECT DISTINCT COALESCE(l."channelId",'__unassigned__') id FROM "OrderLine" l
-      JOIN "ConnectorConnection" c ON c."sourceId"=l."sourceId" AND c."tenantId"=l."tenantId" AND c.provider='salesdrive'
-      JOIN "DataSource" s ON s.id=c."sourceId" AND s."tenantId"=c."tenantId" AND s.kind='SALESDRIVE'
+      JOIN "ConnectorConnection" c ON c."sourceId"=l."sourceId" AND c."tenantId"=l."tenantId" AND ${selectedConnection()}
+      JOIN "DataSource" s ON s.id=c."sourceId" AND s."tenantId"=c."tenantId" AND s.kind::text=upper(c.provider)
       WHERE l."tenantId"=${tenantId}
       ${settings.values.excludedChannels.length ? Prisma.sql`AND (l."channelId" IS NULL OR l."channelId" NOT IN (${Prisma.join(settings.values.excludedChannels)}))` : Prisma.empty}
       ORDER BY id LIMIT 201`);

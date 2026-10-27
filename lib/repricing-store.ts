@@ -1,3 +1,5 @@
+import { readOrderHistory } from "./connectors/order-history";
+import { assertSelectedSource } from "./connectors/source";
 import "server-only";
 import { profileFilters } from "./merchandising-profile";
 import { Prisma } from "@prisma/client";
@@ -98,9 +100,11 @@ export async function createRepricingInputs(
   now = new Date(),
 ) {
   return withCalculationSnapshot(db, async (tx) => {
+    await tx.$queryRaw(Prisma.sql`SELECT id FROM "Tenant" WHERE id=${tenantId} FOR SHARE`);
     const snapshot = await readScreenSnapshot(tenantId, snapshotId, tx),
       key = inputKey(snapshotId),
       cached = await readManifest(tenantId, tx, undefined, key);
+    await assertSelectedSource(tenantId, snapshot.sourceId, snapshot.sourceState.selectionRevision, tx);
     if (cached) return inputResponse(cached);
     const live = await readScreenSourceState(tenantId, snapshot.sourceId, tx);
     if (
@@ -155,9 +159,7 @@ export async function createRepricingInputs(
       )
         throw new RepricingError("REPRICING_SOURCE_CHANGED", 409);
       salesCalculationId = report.calculationRunId;
-      const spans = await tx.$queryRaw<Array<{ from: string; to: string }>>(
-        Prisma.sql`SELECT j.checkpoint->>'from' "from",j.checkpoint->>'to' "to" FROM "ConnectorSyncJob" j JOIN "DataImportRun" r ON r.id=j."importRunId" AND r."tenantId"=j."tenantId" WHERE j."tenantId"=${tenantId} AND j."sourceId"=${snapshot.sourceId} AND j.resource='orders' AND j.mode='BACKFILL' AND j.state='COMPLETE' AND r.status IN ('SUCCESS','WARNING') ORDER BY j."createdAt" LIMIT 1001`,
-      );
+      const { windows: spans, cursor } = await readOrderHistory(tenantId, snapshot.sourceId, tx);
       const badFacts = facts.some(
         (f) =>
           f.stale ||
@@ -172,7 +174,7 @@ export async function createRepricingInputs(
         report.issues.some((i) => i.code === "IMPORT_QUARANTINED");
       const history = createOrderHistoryCoverage(
         spans,
-        live.orderThrough,
+        cursor?.coverageThrough ?? null,
         live.timezone,
         blocked,
       );
@@ -266,6 +268,7 @@ export async function calculateRepricingInSnapshot(
   const snapshot = await readScreenSnapshot(tenantId, inputs.snapshotId, tx),
     rows = await frozenSkus(tenantId, snapshot, tx),
     sold = new Map(inputs.soldBySku.map((r) => [r.skuId, r.sold]));
+  await assertSelectedSource(tenantId, snapshot.sourceId, snapshot.sourceState.selectionRevision, tx);
   request = {
     ...request,
     filters: profileFilters(

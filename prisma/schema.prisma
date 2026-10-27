@@ -60,6 +60,8 @@ model Tenant {
   syncCycles              ConnectorSyncCycle[]
   connectorRecalculations ConnectorRecalculation[]
   brandAliases            BrandAlias[]
+  connectorSelection      ConnectorSelection?
+  connectorCatalogPages   ConnectorCatalogPage[]
 }
 
 // ─── USER ─────────────────────────────────────────────────────────────────────
@@ -333,6 +335,8 @@ model DataSource {
   connection              ConnectorConnection?
   syncCycles              ConnectorSyncCycle[]
   connectorRecalculations ConnectorRecalculation[]
+  connectorSelections ConnectorSelection[]
+  connectorCatalogPages ConnectorCatalogPage[]
 
   @@unique([id, tenantId])
   @@unique([activeImportRunId, id, tenantId], map: "DataSource_active_run_scope_key")
@@ -751,6 +755,10 @@ enum DataSourceKind {
   GOOGLE_SHEETS
   SALESDRIVE
   YML
+  KEYCRM
+  HOROSHOP
+  SHOPIFY
+  CSV
 }
 
 enum StockOwnership {
@@ -1118,6 +1126,7 @@ model ConnectorConnection {
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
   lastScheduledAt DateTime?  @db.Timestamptz(3)
+  capabilities Json?
 
   @@unique([tenantId, provider])
   @@unique([sourceId, tenantId])
@@ -1151,6 +1160,8 @@ model ConnectorSyncJob {
   @@unique([id, sourceId, tenantId], map: "ConnectorSyncJob_scoped_id")
   @@index([state, availableAt])
   @@index([tenantId, sourceId, createdAt])
+  catalogPages ConnectorCatalogPage[]
+
 }
 
 // Order-level version guard also covers orders with zero lines.
@@ -1176,6 +1187,7 @@ model OrderImportState {
 model ConnectorRequestBudget {
   accountKey   String                    @id
   blockedUntil DateTime?                 @db.Timestamptz(3)
+  costState Json?
   attempts     ConnectorRequestAttempt[]
 }
 
@@ -1288,4 +1300,26 @@ model MerchandisingScreenSku {
 
   @@id([snapshotId, skuId])
   @@index([tenantId, snapshotId], map: "ScreenSku_scope")
+}
+
+
+model ConnectorSelection {
+  tenantId String @id
+  tenant Tenant @relation(fields:[tenantId],references:[id],onDelete:Cascade,onUpdate:NoAction)
+  sourceId String
+  source DataSource @relation(fields:[sourceId,tenantId],references:[id,tenantId],onDelete:NoAction,onUpdate:NoAction)
+  revision Int @default(1)
+  updatedAt DateTime @default(now()) @db.Timestamptz(3)
+}
+
+model ConnectorCatalogPage {
+  jobId String
+  sequence Int
+  tenantId String
+  sourceId String
+  job ConnectorSyncJob @relation(fields:[jobId,sourceId,tenantId],references:[id,sourceId,tenantId],onDelete:Cascade,onUpdate:NoAction)
+  tenant Tenant @relation(fields:[tenantId],references:[id],onDelete:NoAction,onUpdate:NoAction)
+  source DataSource @relation(fields:[sourceId,tenantId],references:[id,tenantId],onDelete:NoAction,onUpdate:NoAction)
+  payload Json
+  @@id([jobId,sequence])
 }

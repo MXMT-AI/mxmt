@@ -1,3 +1,4 @@
+import { ConnectorSourceError } from "./connectors/source";
 import { apiError } from "./api-contracts";
 import { ScreenApiError } from "./merchandising-snapshot";
 import { SalesReportError } from "./sales-report";
@@ -6,6 +7,7 @@ import { SalesPeriodError } from "./sales-period";
 import { DailySkuPeriodError } from "./sku-daily-period";
 export function merchandisingApiError(error: unknown) {
   if (
+    error instanceof ConnectorSourceError ||
     error instanceof ScreenApiError ||
     error instanceof SalesReportError ||
     error instanceof DailySkuError
