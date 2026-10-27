@@ -1,3 +1,5 @@
+import { Prisma } from "@prisma/client";
+import { randomUUID } from "node:crypto";
 import { createSign } from "node:crypto";
 import * as XLSX from "xlsx";
 import { prisma } from "@/lib/prisma";
@@ -96,11 +98,9 @@ async function upsertInventorySnapshot(
   snapshotDate: Date,
   qtyOnHand: number
 ): Promise<void> {
-  await prisma.inventorySnapshot.upsert({
-    where: { tenantId_skuId_snapshotDate: { tenantId, skuId, snapshotDate } },
-    create: { tenantId, skuId, qtyOnHand, snapshotDate },
-    update: { qtyOnHand },
-  });
+  await prisma.$executeRaw(Prisma.sql`INSERT INTO "InventorySnapshot" (id,"tenantId","skuId","snapshotDate","qtyOnHand")
+    VALUES (${randomUUID()},${tenantId},${skuId},${snapshotDate},${qtyOnHand})
+    ON CONFLICT ("tenantId","skuId","snapshotDate") WHERE "sourceId" IS NULL DO UPDATE SET "qtyOnHand"=EXCLUDED."qtyOnHand"`);
 }
 
 async function upsertSalesRecord(input: SalesRecordInput): Promise<void> {

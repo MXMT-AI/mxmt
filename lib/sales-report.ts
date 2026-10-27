@@ -113,14 +113,14 @@ export async function getSalesReportInSnapshot(
   const [anchor] = await tx.$queryRaw<
     Array<{ id: string; quarantined: number }>
   >(
-    Prisma.sql`SELECT r.id,COALESCE((j.stats->>'quarantined')::int,0) quarantined FROM "DataImportRun" r JOIN "ConnectorSyncJob" j ON j."importRunId"=r.id AND j."tenantId"=r."tenantId" AND j."sourceId"=r."sourceId" WHERE r."tenantId"=${tenantId} AND r."sourceId"=${source.id} AND r.status IN ('SUCCESS','WARNING') AND j.state='COMPLETE' AND j.resource='orders' ORDER BY r."completedAt" DESC,r.id DESC LIMIT 1`,
+    Prisma.sql`SELECT r.id,COALESCE((j.stats->>'quarantined')::int,0) quarantined FROM "DataImportRun" r JOIN "ConnectorSyncJob" j ON j."importRunId"=r.id AND j."tenantId"=r."tenantId" AND j."sourceId"=r."sourceId" WHERE r."tenantId"=${tenantId} AND r."sourceId"=${source.id} AND r.status IN ('SUCCESS','WARNING') AND j.state='COMPLETE' AND j.resource IN ('orders','csv') ORDER BY r."completedAt" DESC,r.id DESC LIMIT 1`,
   );
   if (!anchor) throw new SalesReportError("SALES_IMPORT_NOT_READY");
   const { windows, cursor } = await readOrderHistory(tenantId, source.id, tx);
   if (windows.length > 1000)
     throw new SalesReportError("SALES_HISTORY_LIMIT", 422);
   const [pending] = await tx.$queryRaw<Array<{ n: number }>>(
-    Prisma.sql`SELECT count(*)::int n FROM "ConnectorSyncJob" WHERE "tenantId"=${tenantId} AND "sourceId"=${source.id} AND resource IN ('orders','inventory','catalog') AND state<>'COMPLETE'`,
+    Prisma.sql`SELECT count(*)::int n FROM "ConnectorSyncJob" WHERE "tenantId"=${tenantId} AND "sourceId"=${source.id} AND resource IN ('orders','inventory','catalog','csv') AND state NOT IN ('COMPLETE','CANCELLED')`,
   );
   const lyMonthFrom = Temporal.PlainDate.from(period.lyFrom)
     .with({ day: 1 })

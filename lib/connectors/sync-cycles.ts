@@ -24,7 +24,7 @@ export async function requestSyncCycle(tenantId: string, resource: SyncResource,
     if (!options.key) {
       const [pending] = await tx.$queryRaw<Array<{id:string}>>(Prisma.sql`SELECT c.id FROM "ConnectorSyncCycle" c
         WHERE c."tenantId"=${tenantId} AND c."sourceId"=${connection.sourceId} AND c.reason='MANUAL' AND c.resource=${resource}
-        AND c."completedAt" IS NULL AND (c."dispatchedAt" IS NULL OR EXISTS (SELECT 1 FROM "ConnectorSyncJob" j WHERE j.id IN (c."ordersJobId",c."inventoryJobId") AND j.state<>'COMPLETE')) ORDER BY c."requestedAt" DESC LIMIT 1`);
+        AND c."completedAt" IS NULL AND (c."dispatchedAt" IS NULL OR EXISTS (SELECT 1 FROM "ConnectorSyncJob" j WHERE j.id IN (c."ordersJobId",c."inventoryJobId") AND j.state NOT IN ('COMPLETE','CANCELLED'))) ORDER BY c."requestedAt" DESC LIMIT 1`);
       if (pending) return pending.id;
     }
     const [cycle] = await tx.$queryRaw<Array<{id:string}>>(Prisma.sql`INSERT INTO "ConnectorSyncCycle" (id,"tenantId","sourceId","requestKey",reason,resource,"requestedAt")
@@ -58,7 +58,7 @@ export async function getSyncProgress(tenantId: string, db: SqlClient = prisma) 
     (SELECT "updatedAt" FROM "ConnectorSyncJob" WHERE id=c."ordersJobId"),
     (SELECT "updatedAt" FROM "ConnectorSyncJob" WHERE id=c."inventoryJobId"),c."dispatchedAt")
     WHERE c."tenantId"=${tenantId} AND EXISTS(SELECT 1 FROM "ConnectorConnection" cfg WHERE cfg."sourceId"=c."sourceId" AND cfg."tenantId"=c."tenantId" AND ${selectedConnection("cfg")}) AND c."completedAt" IS NULL AND c."dispatchedAt" IS NOT NULL
-    AND NOT EXISTS (SELECT 1 FROM "ConnectorSyncJob" j WHERE j.id IN (c."ordersJobId",c."inventoryJobId") AND j.state<>'COMPLETE')`);
+    AND NOT EXISTS (SELECT 1 FROM "ConnectorSyncJob" j WHERE j.id IN (c."ordersJobId",c."inventoryJobId") AND j.state NOT IN ('COMPLETE','CANCELLED'))`);
   const [cycleRows, resources, calculationRows, backfillRows, heartbeatRows] = await Promise.all([
     db.$queryRaw<Array<Record<string, unknown>>>(Prisma.sql`SELECT c.id,c.reason,c.resource,c."requestedAt",c."completedAt",c."errorCode",
     CASE WHEN c."completedAt" IS NOT NULL THEN 'COMPLETE' WHEN o.state IN ('FAILED','PAUSED') OR i.state IN ('FAILED','PAUSED') THEN 'ACTION_REQUIRED' WHEN c."dispatchedAt" IS NULL THEN 'QUEUED' ELSE 'RUNNING' END state,

@@ -1,4 +1,5 @@
 import "server-only";
+import { processCsvJob, type CsvJob } from "./csv/worker";
 import { processConnectorRecalculation } from "./recalculation";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
@@ -33,9 +34,9 @@ export async function scheduleSalesDriveSyncs(db: SqlDatabase = prisma, now = ne
 /** One durable dispatch and one remote page/observation fit a single function invocation. */
 export async function processSalesDriveSync(tenantId?: string, db: SqlDatabase = prisma, load = (id:string,backfill=false,sourceId?:string)=>loadConnectorRuntime(id,backfill,db,undefined,sourceId)) {
   await dispatchSyncCycle(db,tenantId);
-  const job = await claimConnectorJob<OrderJob | InventoryJob>(null,db,tenantId);
+  const job = await claimConnectorJob<OrderJob | InventoryJob | CsvJob>(null,db,tenantId);
   if (!job) return processConnectorRecalculation(tenantId,db);
-  const result = job.resource==='inventory' ? await processInventoryJob(tenantId,db,load,job as InventoryJob) : await processOrderJob(tenantId,db,load,job as OrderJob);
+  const result = job.resource==='csv' ? await processCsvJob(tenantId,db,job as CsvJob) : job.resource==='inventory' ? await processInventoryJob(tenantId,db,load,job as InventoryJob) : await processOrderJob(tenantId,db,load,job as OrderJob);
   logInfo('connector.sync.step',{jobId:job.id,sourceId:job.sourceId,resource:job.resource});
   return result;
 }

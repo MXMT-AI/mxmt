@@ -32,7 +32,7 @@ export async function processConnectorRecalculation(
     >(Prisma.sql`
       SELECT c."tenantId",c."sourceId" FROM "ConnectorConnection" c
       WHERE ${selectedConnection()} AND (${tenantId ?? null}::text IS NULL OR c."tenantId"=${tenantId ?? null})
-      AND NOT EXISTS(SELECT 1 FROM "ConnectorSyncJob" j WHERE j."tenantId"=c."tenantId" AND j."sourceId"=c."sourceId" AND j.state<>'COMPLETE')
+      AND NOT EXISTS(SELECT 1 FROM "ConnectorSyncJob" j WHERE j."tenantId"=c."tenantId" AND j."sourceId"=c."sourceId" AND j.state NOT IN ('COMPLETE','CANCELLED'))
       AND NOT EXISTS(SELECT 1 FROM "ConnectorRecalculation" r WHERE r."tenantId"=c."tenantId" AND r."sourceId"=c."sourceId" AND r.state='RUNNING' AND (r."inputProvenance"->>'leaseUntil')::timestamptz>now())
       AND EXISTS(SELECT 1 FROM "ConnectorRecalculation" r WHERE r."tenantId"=c."tenantId" AND r."sourceId"=c."sourceId" AND r.state<>'COMPLETE' AND (r.state='WAITING_ENGINE' OR COALESCE((r."inputProvenance"->>'availableAt')::timestamptz,'-infinity'::timestamptz)<=now()))
       ORDER BY (SELECT min(r."requestedAt") FROM "ConnectorRecalculation" r WHERE r."tenantId"=c."tenantId" AND r."sourceId"=c."sourceId" AND r.state<>'COMPLETE'),c.id LIMIT 1 FOR UPDATE OF c SKIP LOCKED`);

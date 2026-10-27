@@ -81,7 +81,7 @@ export async function readScreenSourceState(
  COALESCE((SELECT jsonb_agg(id ORDER BY key,id) FROM "MerchandisingConfig" WHERE "tenantId"=s."tenantId" AND "isActive" AND "approvedAt" IS NOT NULL),'[]') "configIds",
  COALESCE((SELECT jsonb_agg(jsonb_build_array(resource,checkpoint,"lastSuccessfulRunId") ORDER BY resource) FROM "SyncCursor" WHERE "tenantId"=s."tenantId" AND "sourceId"=s.id),'[]') "cursorState",
  (SELECT max("requestedAt")::text FROM "ConnectorRecalculation" WHERE "tenantId"=s."tenantId" AND "sourceId"=s.id) "recalculationRequestedAt",
- (SELECT count(*)::int FROM "ConnectorSyncJob" WHERE "tenantId"=s."tenantId" AND "sourceId"=s.id AND state<>'COMPLETE') pending
+ (SELECT count(*)::int FROM "ConnectorSyncJob" WHERE "tenantId"=s."tenantId" AND "sourceId"=s.id AND state NOT IN ('COMPLETE','CANCELLED')) pending
  FROM "DataSource" s WHERE s."tenantId"=${tenantId} AND s.id=${sourceId}`);
   if (!row) return null;
   const selected = await readSelectedSource(tenantId, tx);

@@ -233,3 +233,7 @@ and their activation remain separate implementation deliveries.
 For explicit tenant-owned source selection, shared provider runtime/onboarding,
 page/offset/cursor checkpoints, atomic catalog staging and provider/cost budgets,
 see [connector foundation (#81)](81-connector-foundation.md).
+
+- [CSV connector and onboarding (#82)](82-csv-connector.md): versioned bounded upload,
+  mapping/preview/activation, offline durable jobs, source-isolated observations,
+  lifecycle/RBAC checks and equivalent five-screen/scenario-export fixtures.
