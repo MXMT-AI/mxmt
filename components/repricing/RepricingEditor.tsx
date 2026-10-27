@@ -1,4 +1,5 @@
 "use client";
+import { profileFilters } from "@/lib/merchandising-profile";
 import { useEffect, useReducer, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import {
@@ -21,10 +22,12 @@ import ScenarioExportPanel from "@/components/merchandising/ScenarioExportPanel"
 /** Controls own draft intent; the server owns eligibility, ranking, prices and totals. */
 export default function RepricingEditor({
   snapshotId,
+  monobrand = false,
   lang,
   onRefresh,
 }: {
   snapshotId: string;
+  monobrand?: boolean;
   lang: Lang;
   onRefresh: () => void;
 }) {
@@ -60,6 +63,7 @@ export default function RepricingEditor({
   const request = {
     inputSetId: inputs.data?.inputSetId ?? null,
     ...state.draft,
+    filters: profileFilters(state.draft.filters, monobrand),
     ...state.edits,
     ...(state.edits.selection.length || state.edits.manualPrices.length
       ? { editContext: context.current }
@@ -91,7 +95,11 @@ export default function RepricingEditor({
   return (
     <div className="space-y-5">
       <RepricingControls
-        draft={state.draft}
+        monobrand={monobrand}
+        draft={{
+          ...state.draft,
+          filters: profileFilters(state.draft.filters, monobrand),
+        }}
         onChange={change}
         data={preview.data}
         error={error}
@@ -155,6 +163,7 @@ export default function RepricingEditor({
       ) : null}
       {preview.data ? (
         <RepricingTable
+          monobrand={monobrand}
           data={preview.data}
           edits={state.edits}
           copy={copy}

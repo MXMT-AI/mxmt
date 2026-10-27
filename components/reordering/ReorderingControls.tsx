@@ -15,6 +15,7 @@ import type { ScenarioFailure } from "@/components/merchandising/useScenarioPrev
 import type { ReorderingPreview } from "./ReorderingEditor";
 /** Empty term controls inherit supplier policy instead of overriding it with a global default. */
 export default function ReorderingControls({
+  monobrand = false,
   draft,
   data,
   error,
@@ -22,6 +23,7 @@ export default function ReorderingControls({
   onChange,
   onReset,
 }: {
+  monobrand?: boolean;
   draft: ReorderingDraft;
   data: ReorderingPreview | null;
   error: ScenarioFailure | null;
@@ -52,7 +54,7 @@ export default function ReorderingControls({
         </button>
       </div>
       <div role="group" aria-label={copy.mode} className="flex flex-wrap gap-2">
-        {(["shortage", "brand"] as const).map((mode) => (
+        {(["shortage", monobrand ? "all" : "brand"] as const).map((mode) => (
           <button
             className={
               button +
@@ -68,14 +70,16 @@ export default function ReorderingControls({
         ))}
       </div>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Choice
-          label={copy.brand}
-          value={draft.filters.brandId ?? ""}
-          options={data?.filterOptions.brands ?? []}
-          all={copy.allBrands}
-          copy={copy}
-          onChange={(value) => setFilter("brandId", value)}
-        />
+        {!monobrand && (
+          <Choice
+            label={copy.brand}
+            value={draft.filters.brandId ?? ""}
+            options={data?.filterOptions.brands ?? []}
+            all={copy.allBrands}
+            copy={copy}
+            onChange={(value) => setFilter("brandId", value)}
+          />
+        )}
         <Choice
           label={copy.supplier}
           value={draft.filters.supplierId ?? ""}
@@ -142,7 +146,7 @@ export default function ReorderingControls({
           </button>
         </div>
       ) : null}
-      <Note>{copy.scopeNote}</Note>
+      <Note>{monobrand ? copy.scopeNoteMono : copy.scopeNote}</Note>
     </section>
   );
 }

@@ -22,12 +22,14 @@ import {
   Choice,
 } from "@/components/merchandising/FormControls";
 export default function RepricingControls({
+  monobrand = false,
   draft,
   onChange,
   data,
   error,
   copy,
 }: {
+  monobrand?: boolean;
   draft: RepricingDraft;
   onChange: (draft: RepricingDraft) => void;
   data: RepricingPreview | null;
@@ -114,14 +116,16 @@ export default function RepricingControls({
               ))}
             </select>
           </Field>
-          <Choice
-            label={copy.brand}
-            value={f.brandId ?? ""}
-            options={data?.filterOptions.brands ?? []}
-            all={copy.allBrands}
-            copy={copy}
-            onChange={(v) => setFilter("brandId", v)}
-          />
+          {!monobrand && (
+            <Choice
+              label={copy.brand}
+              value={f.brandId ?? ""}
+              options={data?.filterOptions.brands ?? []}
+              all={copy.allBrands}
+              copy={copy}
+              onChange={(v) => setFilter("brandId", v)}
+            />
+          )}
           <Choice
             label={copy.category}
             value={f.categoryId ?? ""}

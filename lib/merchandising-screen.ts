@@ -1,4 +1,5 @@
 import "server-only";
+import { profileFilters } from "./merchandising-profile";
 import { readStockWorkspace } from "./merchandising-stock-workspace";
 import { readSalesWorkspace } from "./merchandising-sales-workspace";
 import { readOverview } from "./merchandising-overview";
@@ -24,6 +25,7 @@ import {
 } from "./merchandising-screen-query";
 export function screenSnapshotContext(snapshot: ScreenSnapshot) {
   return {
+    profileMode: snapshot.sales.context.settings.profileMode,
     snapshotId: snapshot.snapshotId,
     sourceId: snapshot.sourceId,
     timezone: snapshot.sourceState.timezone,
@@ -61,6 +63,15 @@ export async function getMerchandisingScreen(
   return withCalculationSnapshot(db, async (tx) => {
     await tx.$executeRaw(Prisma.sql`SET TRANSACTION READ ONLY`);
     const snapshot = await readScreenSnapshot(tenantId, q.snapshotId, tx);
+    const monobrand =
+      snapshot.sales.context.settings.profileMode === "MONOBRAND";
+    if (monobrand)
+      q = {
+        ...profileFilters(q, true),
+        groupBy: q.groupBy === "brand" ? "category" : q.groupBy,
+        page: q.groupBy === "brand" || q.brandId ? 1 : q.page,
+        mode: q.mode === "brand" ? "all" : q.mode,
+      };
     const live = await readScreenSourceState(tenantId, snapshot.sourceId, tx);
     const [sales, stock] = await Promise.all([
       screen === "sales" || screen === "overview"

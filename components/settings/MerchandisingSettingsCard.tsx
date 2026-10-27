@@ -7,6 +7,7 @@ import {
   type FormEvent,
   type ReactNode,
 } from "react";
+import PrimaryBrandCreator from "./PrimaryBrandCreator";
 import { apiFetch } from "@/lib/fetch";
 import { readApiJson } from "@/lib/api-response";
 import {
@@ -420,6 +421,9 @@ function SettingsEditor({
                 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
               ],
             };
+  const [createdBrands, setCreatedBrands] = useState<
+    Array<{ id: string; name: string }>
+  >([]);
   const [creationKey] = useState(() => crypto.randomUUID());
   const [listDrafts, setListDrafts] = useState<Record<string, string>>(() =>
     Object.fromEntries(
@@ -661,13 +665,32 @@ function SettingsEditor({
                   <option value="">
                     {uk ? "Виберіть бренд" : "Choose a brand"}
                   </option>
-                  {data.brands.map((b) => (
+                  {[
+                    ...data.brands,
+                    ...createdBrands.filter(
+                      (b) =>
+                        !data.brands.some((existing) => existing.id === b.id),
+                    ),
+                  ].map((b) => (
                     <option key={b.id} value={b.id}>
                       {b.name}
                     </option>
                   ))}
                 </select>
               </Field>
+              {values.profileMode === "MONOBRAND" && canManage && (
+                <PrimaryBrandCreator
+                  lang={lang}
+                  disabled={busy}
+                  onCreated={(brand) => {
+                    setCreatedBrands((list) => [
+                      ...list.filter((b) => b.id !== brand.id),
+                      brand,
+                    ]);
+                    edit("monoBrandId", brand.id);
+                  }}
+                />
+              )}
               {number(
                 "minMarginPct",
                 uk ? "Мінімальна маржа, %" : "Minimum margin, %",

@@ -28,7 +28,7 @@ export interface ScreenQuery {
   classification?: SkuStatus;
   ownership?: "OWN" | "CONSIGNMENT" | "UNKNOWN";
   supplierId?: string;
-  mode: "shortage" | "brand";
+  mode: "shortage" | "brand" | "all";
   measure?: "money" | "units";
   metric?: "revenue" | "coveredGrossProfit" | "gmPct";
   others?: boolean;
@@ -133,7 +133,7 @@ export function parseScreenQuery(
       !SKU_STATUSES.includes(classification as SkuStatus)) ||
     (ownership !== null &&
       !["OWN", "CONSIGNMENT", "UNKNOWN"].includes(ownership)) ||
-    !["shortage", "brand"].includes(mode)
+    !["shortage", "brand", "all"].includes(mode)
   )
     throw new ScreenApiError("INVALID_SCREEN_QUERY", 400);
   const filters: Partial<ScreenQuery> = {};

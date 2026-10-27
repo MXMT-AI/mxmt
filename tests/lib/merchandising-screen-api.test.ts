@@ -24,6 +24,7 @@ import { GET } from "@/app/api/merchandising/[screen]/route";
 import { POST } from "@/app/api/merchandising/snapshots/route";
 import { signAccessToken } from "@/lib/auth";
 import { ScreenApiError } from "@/lib/merchandising-snapshot";
+import { defaultClientSettings } from "@/lib/merchandising-settings";
 import { SalesPeriodError } from "@/lib/sales-period";
 const request = (query = "", body?: string) =>
   new NextRequest(`https://app.test/api/merchandising/stock${query}`, {
@@ -59,7 +60,10 @@ beforeEach(() => {
     sales: {
       calculationId: "sales",
       calculationVersion: 1,
-      context: { period: { from: "2026-09-01", to: "2026-09-30" } },
+      context: {
+        settings: defaultClientSettings(),
+        period: { from: "2026-09-01", to: "2026-09-30" },
+      },
     },
     stock: {
       calculationId: "daily",

@@ -557,105 +557,112 @@ export default function StockContent({
                 copy={copy}
               />
             </section>
-            <section className={panel}>
-              <div className="p-5 space-y-2">
-                <h3 className="font-semibold">K4 · {copy.brands}</h3>
-                <Note>{copy.brandBasis}</Note>
-                {model.selectedStatus ? <Note>{copy.groupFilter}</Note> : null}
-              </div>
-              <ReportTable
-                locale={locale}
-                columns={[
-                  { key: "name", label: copy.name, type: "text" },
-                  { key: "stockCost", label: copy.cost, type: "money" },
-                  { key: "quantity", label: copy.quantity, type: "quantity" },
-                  {
-                    key: "sellThroughRatio",
-                    label: copy.str,
-                    type: "percentage",
-                  },
-                  { key: "weeksOnHand", label: copy.woh, type: "number" },
-                  { key: "signal", label: copy.signal, type: "text" },
-                ]}
-                rows={block.brands.rows.map((r) => ({
-                  ...r,
-                  id: r.id ?? "__unassigned__",
-                  source: r,
-                }))}
-                renderCell={(row, col) => {
-                  const r = row.source as Group;
-                  if (col.key === "name")
+            {!model.monobrand && (
+              <section className={panel}>
+                <div className="p-5 space-y-2">
+                  <h3 className="font-semibold">K4 · {copy.brands}</h3>
+                  <Note>{copy.brandBasis}</Note>
+                  {model.selectedStatus ? (
+                    <Note>{copy.groupFilter}</Note>
+                  ) : null}
+                </div>
+                <ReportTable
+                  locale={locale}
+                  columns={[
+                    { key: "name", label: copy.name, type: "text" },
+                    { key: "stockCost", label: copy.cost, type: "money" },
+                    { key: "quantity", label: copy.quantity, type: "quantity" },
+                    {
+                      key: "sellThroughRatio",
+                      label: copy.str,
+                      type: "percentage",
+                    },
+                    { key: "weeksOnHand", label: copy.woh, type: "number" },
+                    { key: "signal", label: copy.signal, type: "text" },
+                  ]}
+                  rows={block.brands.rows.map((r) => ({
+                    ...r,
+                    id: r.id ?? "__unassigned__",
+                    source: r,
+                  }))}
+                  renderCell={(row, col) => {
+                    const r = row.source as Group;
+                    if (col.key === "name")
+                      return (
+                        <Link
+                          className="underline underline-offset-4"
+                          href={scoped({
+                            brandId: r.id ?? "__unassigned__",
+                            groupBy: "sku",
+                            page: null,
+                          })}
+                        >
+                          {r.id === null ? copy.unassigned : r.name}
+                        </Link>
+                      );
+                    if (col.key === "signal")
+                      return (
+                        <span
+                          className={
+                            r.signal === "DEAD"
+                              ? styles.bad
+                              : r.signal === "RISK"
+                                ? styles.warning
+                                : r.signal === "HEALTHY"
+                                  ? styles.good
+                                  : r.signal === "NEW" ||
+                                      r.signal === "OFF_SEASON"
+                                    ? styles.info
+                                    : "text-[var(--muted)]"
+                          }
+                        >
+                          {copy.signals[
+                            r.signal as keyof StockCopy["signals"]
+                          ] ?? copy.signals.UNAVAILABLE}
+                          {r.signal === "NEW" && r.firstReceiptDate ? (
+                            <small className="block">
+                              {copy.firstReceipt}: {date(r.firstReceiptDate)}
+                            </small>
+                          ) : null}
+                          {r.warnings.length ? (
+                            <small className="block mt-1 text-[var(--muted)]">
+                              {copy.ownershipUnknown}
+                            </small>
+                          ) : null}
+                        </span>
+                      );
+                    if (col.key === "stockCost")
+                      return (
+                        <Cost
+                          value={r.stockCost}
+                          covered={r.coveredStockCost}
+                          locale={locale}
+                          copy={copy}
+                        />
+                      );
                     return (
-                      <Link
-                        className="underline underline-offset-4"
-                        href={scoped({
-                          brandId: r.id ?? "__unassigned__",
-                          groupBy: "sku",
-                          page: null,
-                        })}
-                      >
-                        {r.id === null ? copy.unassigned : r.name}
-                      </Link>
-                    );
-                  if (col.key === "signal")
-                    return (
-                      <span
-                        className={
-                          r.signal === "DEAD"
-                            ? styles.bad
-                            : r.signal === "RISK"
-                              ? styles.warning
-                              : r.signal === "HEALTHY"
-                                ? styles.good
-                                : r.signal === "NEW" ||
-                                    r.signal === "OFF_SEASON"
-                                  ? styles.info
-                                  : "text-[var(--muted)]"
-                        }
-                      >
-                        {copy.signals[r.signal as keyof StockCopy["signals"]] ??
-                          copy.signals.UNAVAILABLE}
-                        {r.signal === "NEW" && r.firstReceiptDate ? (
-                          <small className="block">
-                            {copy.firstReceipt}: {date(r.firstReceiptDate)}
-                          </small>
+                      <>
+                        {format(row[col.key], col.type, locale)}
+                        {col.key === "sellThroughRatio" && !r.strComplete ? (
+                          <PartialMarker label={copy.strPartial} />
                         ) : null}
-                        {r.warnings.length ? (
-                          <small className="block mt-1 text-[var(--muted)]">
-                            {copy.ownershipUnknown}
-                          </small>
-                        ) : null}
-                      </span>
+                      </>
                     );
-                  if (col.key === "stockCost")
-                    return (
-                      <Cost
-                        value={r.stockCost}
-                        covered={r.coveredStockCost}
-                        locale={locale}
-                        copy={copy}
-                      />
-                    );
-                  return (
-                    <>
-                      {format(row[col.key], col.type, locale)}
-                      {col.key === "sellThroughRatio" && !r.strComplete ? (
-                        <PartialMarker label={copy.strPartial} />
-                      ) : null}
-                    </>
-                  );
-                }}
-              />
-              {!block.brands.rows.length ? (
-                <p className="p-5 text-sm text-[var(--muted)]">{copy.empty}</p>
-              ) : null}
-              <Pager
-                pagination={block.brands.pagination}
-                control="brandPage"
-                href={scoped}
-                copy={copy}
-              />
-            </section>
+                  }}
+                />
+                {!block.brands.rows.length ? (
+                  <p className="p-5 text-sm text-[var(--muted)]">
+                    {copy.empty}
+                  </p>
+                ) : null}
+                <Pager
+                  pagination={block.brands.pagination}
+                  control="brandPage"
+                  href={scoped}
+                  copy={copy}
+                />
+              </section>
+            )}{" "}
             <Link
               className={button}
               href={scoped({ groupBy: "sku", page: null })}
@@ -708,12 +715,13 @@ export default function StockContent({
                       row.currency === null
                         ? "__unassigned__"
                         : String(row.currency),
-                    brandId:
-                      details?.brandId === null
+                    brandId: model.monobrand
+                      ? null
+                      : details?.brandId === null
                         ? "__unassigned__"
                         : String(details?.brandId ?? "__unassigned__"),
                     classification: null,
-                    mode: "brand",
+                    mode: model.monobrand ? "all" : "brand",
                   };
                 return (
                   <div className="flex flex-wrap gap-2">

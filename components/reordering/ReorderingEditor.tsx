@@ -1,4 +1,5 @@
 "use client";
+import { profileReordering } from "@/lib/merchandising-profile";
 import { useEffect, useReducer, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { useScenarioPreview } from "@/components/merchandising/useScenarioPreview";
@@ -25,11 +26,13 @@ export type ReorderingPreview = Awaited<
 /** Preserve scenario intent and confirmations; every recommendation comes from the server. */
 export default function ReorderingEditor({
   snapshotId,
+  monobrand = false,
   asOf,
   lang,
   onRefresh,
 }: {
   snapshotId: string;
+  monobrand?: boolean;
   asOf: string;
   lang: Lang;
   onRefresh: () => void;
@@ -49,7 +52,7 @@ export default function ReorderingEditor({
     }
   }, [query]);
   const needsBrand =
-    state.draft.mode === "brand" && !state.draft.filters.brandId;
+    !monobrand && state.draft.mode === "brand" && !state.draft.filters.brandId;
   const request = needsBrand
     ? {
         snapshotId,
@@ -60,7 +63,10 @@ export default function ReorderingEditor({
         page: 1,
         pageSize: 25,
       }
-    : reorderingRequest(snapshotId, state);
+    : reorderingRequest(snapshotId, {
+        ...state,
+        draft: profileReordering(state.draft, monobrand),
+      });
   const preview = useScenarioPreview<ReorderingPreview>(
     "/api/merchandising/reordering/preview",
     request,
@@ -105,7 +111,8 @@ export default function ReorderingEditor({
   return (
     <div className="space-y-5">
       <Controls
-        draft={state.draft}
+        monobrand={monobrand}
+        draft={profileReordering(state.draft, monobrand)}
         data={preview.data}
         error={error}
         copy={copy}
@@ -155,6 +162,7 @@ export default function ReorderingEditor({
       ) : null}
       {!needsBrand && preview.data && preview.sameControls ? (
         <Table
+          monobrand={monobrand}
           data={preview.data}
           copy={copy}
           locale={locale}

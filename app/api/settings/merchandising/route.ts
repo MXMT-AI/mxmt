@@ -1,3 +1,4 @@
+import { createMerchandisingBrand } from "@/lib/merchandising-brand";
 import { NextRequest, NextResponse } from "next/server";
 import { requireApiUser } from "@/lib/server-auth";
 import { apiError, isRecord, parseJsonBody } from "@/lib/api-contracts";
@@ -61,6 +62,11 @@ export async function POST(request: NextRequest) {
   if (!isRecord(value))
     return apiError("Invalid action", 400, "INVALID_ACTION");
   try {
+    if (value.action === "createBrand")
+      return NextResponse.json(
+        await createMerchandisingBrand(user.tenantId, user.userId, value.name),
+        { headers },
+      );
     if (
       value.action === "preview" &&
       typeof value.skuId === "string" &&

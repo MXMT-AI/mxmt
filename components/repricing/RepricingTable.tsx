@@ -14,6 +14,7 @@ import { control } from "@/components/merchandising/FormControls";
 import styles from "@/components/merchandising/report.module.css";
 type Row = RepricingPreview["rows"][number];
 export default function RepricingTable({
+  monobrand = false,
   data,
   edits,
   copy,
@@ -25,6 +26,7 @@ export default function RepricingTable({
   onPrice,
   onPage,
 }: {
+  monobrand?: boolean;
   data: RepricingPreview;
   edits: RepricingEdits;
   copy: RepricingCopy;
@@ -125,10 +127,15 @@ export default function RepricingTable({
                       : copy.statuses.DEAD}
                   </span>
                   <div className="mt-1 text-[var(--muted)]">
-                    <span translate="no">
-                      {row.brandName ?? copy.unassigned}
-                    </span>{" "}
-                    · {row.categoryName ?? copy.unassigned}
+                    {!monobrand && (
+                      <>
+                        <span translate="no">
+                          {row.brandName ?? copy.unassigned}
+                        </span>{" "}
+                        ·{" "}
+                      </>
+                    )}
+                    {row.categoryName ?? copy.unassigned}
                     <br />
                     <span translate="no">{row.sku}</span>
                   </div>

@@ -216,3 +216,6 @@ export authorization, see [scenario export verification (#48)](48-scenario-csv-e
 
 For grouped current Data Quality diagnostics, safe import-warning lineage and
 synchronization-driven refresh, see [Settings data quality (#49)](49-settings-data-quality.md).
+
+For reusable second-client monobrand setup, five-screen behavior, tenant-isolation
+checks and the owner handoff, see [monobrand onboarding (#50)](50-monobrand-onboarding.md).

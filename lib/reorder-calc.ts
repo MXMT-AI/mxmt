@@ -92,8 +92,8 @@ export function parseReorderingRequest(value: unknown): ReorderingRequest {
     mode = (
       root.mode === undefined ? "shortage" : root.mode
     ) as ReorderingRequest["mode"];
-  if (!["shortage", "brand"].includes(mode))
-    issues.push("mode: expected shortage or brand");
+  if (!["shortage", "brand", "all"].includes(mode))
+    issues.push("mode: expected shortage, brand or all");
   const f = record(
       root.filters,
       ["brandId", "categoryId", "supplierId", "skuId", "currency"],
@@ -386,6 +386,7 @@ export function calculateReordering(
   const rows = calculated.filter(
     (row) =>
       request.mode === "brand" ||
+      request.mode === "all" ||
       row.shortage ||
       row.exclusionReasons.includes("OFF_SEASON") ||
       (!row.exclusionReasons.length &&
