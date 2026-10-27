@@ -49,8 +49,9 @@ export async function saveProviderConnection(tenantId: string, value:unknown, pr
       if(!actorId)throw new Error("INVALID_CONNECTOR_CONFIG");
       const mapping=registration.sourceMapping(parsed.credentials),key=`${provider}:${source.id}`;
       const [old]=await tx.$queryRaw<Array<{id:string;revision:number;values:unknown}>>(Prisma.sql`SELECT id,revision,values FROM "MerchandisingConfig" WHERE "tenantId"=${tenantId} AND "configType"='SOURCE_MAPPING' AND key=${key} AND "isActive" FOR UPDATE`);
-      if(old&&payloadHash(old.values)!==payloadHash(mapping.values)&&mapping.revision<=old.revision)throw new Error("CONNECTOR_CONFIG_CHANGED");
-      if(!old||payloadHash(old.values)!==payloadHash(mapping.values)) {
+      const changed=!old||payloadHash(old.values)!==payloadHash(mapping.values);
+      if(old&&changed&&mapping.revision<=old.revision)throw new Error("CONNECTOR_CONFIG_CHANGED");
+      if(changed) {
         const configId=randomUUID();
         await tx.$executeRaw(Prisma.sql`UPDATE "MerchandisingConfig" SET "isActive"=false WHERE "tenantId"=${tenantId} AND "configType"='SOURCE_MAPPING' AND key=${key}`);
         await tx.$executeRaw(Prisma.sql`INSERT INTO "MerchandisingConfig" (id,"tenantId","configType",key,revision,values,"isActive","approvedById","approvedAt","approvalReference") VALUES (${configId},${tenantId},'SOURCE_MAPPING',${key},${mapping.revision},${JSON.stringify(mapping.values)}::jsonb,true,${actorId},now(),${mapping.reference})`);

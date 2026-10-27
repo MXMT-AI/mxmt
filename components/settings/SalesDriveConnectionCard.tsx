@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { apiFetch } from "@/lib/fetch";
 import { readApiJson } from "@/lib/api-response";
-import type { CheckCode, PublicConnection } from "@/lib/connectors/contract";
+import { connectorCheckLabels } from "@/lib/connectors/check-copy";
+import type { PublicConnection } from "@/lib/connectors/contract";
 
 interface Props { initial: PublicConnection; lang: "uk" | "en"; canManage: boolean }
 
@@ -66,16 +67,7 @@ export default function SalesDriveConnectionCard({ initial, lang, canManage }: P
     void perform("save", Object.fromEntries(["accountHost", "ordersApiKey", "receiptsApiKey", "ymlUrl"].map((name) => [name, String(fields.get(name) ?? "")])));
   }
 
-  const checkLabels: Record<CheckCode, string> = {
-    OK: uk ? "Доступ є" : "Access confirmed",
-    NOT_CONFIGURED: uk ? "Не налаштовано" : "Not configured",
-    AUTH_FAILED: uk ? "Перевірте ключ і права читання" : "Check the key and read permissions",
-    RATE_LIMITED: uk ? "Ліміт запитів. Повторіть пізніше" : "Rate limit reached. Retry later",
-    TIMEOUT: uk ? "Час очікування вичерпано" : "Connection timed out",
-    NETWORK_ERROR: uk ? "Не вдалося підключитися" : "Could not connect",
-    INVALID_RESPONSE: uk ? "Відповідь джерела потребує перевірки" : "Source response needs verification",
-    RESPONSE_TOO_LARGE: uk ? "Відповідь перевищує розмір перевірки" : "Response exceeds the check size limit",
-  };
+  const checkLabels = connectorCheckLabels(lang);
   const resourceLabels = { orders: uk ? "Замовлення" : "Orders", statuses: uk ? "Статуси" : "Statuses",
     receipts: uk ? "Надходження" : "Receipts", products:uk?"Товари":"Products",offers:uk?"Варіанти":"Offers",stock:uk?"Залишки":"Stock",channels:uk?"Канали":"Channels",catalog: uk ? "Товари та залишки" : "Products and stock" };
   const fieldClass = "mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--input-bg)] px-3 py-2 text-sm text-[var(--text)]";

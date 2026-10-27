@@ -1,6 +1,10 @@
 "use client";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Field, control } from "@/components/merchandising/FormControls";
+import { apiFetch } from "@/lib/fetch";
+import { readApiJson } from "@/lib/api-response";
+import { connectorCheckLabels } from "@/lib/connectors/check-copy";
+import { isPublicConnection } from "@/lib/connectors/public-connection";
 import type { PublicConnection } from "@/lib/connectors/contract";
 const button =
   "min-h-11 rounded-lg border border-[var(--border)] px-4 py-2 text-sm text-[var(--text)] hover:bg-[var(--input-hover)] disabled:opacity-50";
@@ -52,13 +56,17 @@ export default function KeyCrmConnectionCard({
     setError("");
     setStatus("");
     try {
-      const r = await fetch("/api/connectors/keycrm", {
+      const r = await apiFetch("/api/connectors/keycrm", {
         method: action === "save" ? "PUT" : "POST",
         cache: "no-store",
         headers: { "Content-Type": "application/json" },
         ...(body ? { body: JSON.stringify(body) } : {}),
       });
-      const d = await r.json();
+      const payload = await readApiJson(r);
+      const d =
+        payload && typeof payload === "object" && !Array.isArray(payload)
+          ? payload
+          : {};
       if (!r.ok) {
         setError(
           d.code === "VALIDATION_ERROR"
@@ -74,7 +82,16 @@ export default function KeyCrmConnectionCard({
               : copy(
                   "Операцію не завершено. Повторіть спробу або перевірте доступи. Код: ",
                   "Operation failed. Retry or verify permissions. Code: ",
-                ) + d.code,
+                ) + String(typeof d.code === "string" ? d.code : r.status),
+        );
+        return;
+      }
+      if (!isPublicConnection(d)) {
+        setError(
+          copy(
+            "Відповідь сервера некоректна. Повторіть спробу.",
+            "The server response is invalid. Retry the operation.",
+          ),
         );
         return;
       }
@@ -167,6 +184,7 @@ export default function KeyCrmConnectionCard({
         : null,
     });
   }
+  const checkLabels = connectorCheckLabels(lang);
   const labels: Record<string, string> = {
     orders: copy("Замовлення", "Orders"),
     statuses: copy("Статуси", "Statuses"),
@@ -566,7 +584,8 @@ export default function KeyCrmConnectionCard({
             <ul>
               {connection.lastCheck.checks.map((c) => (
                 <li key={c.resource}>
-                  {labels[c.resource] ?? c.resource}: {c.code}
+                  {labels[c.resource] ?? c.resource}:{" "}
+                  {checkLabels[c.code] ?? c.code}
                 </li>
               ))}
             </ul>

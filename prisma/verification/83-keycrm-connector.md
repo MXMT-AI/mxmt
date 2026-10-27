@@ -63,7 +63,12 @@ key quota; facts/checkpoints remain bound to the existing source/revision guards
 The provider registration adds an optional versioned source-mapping hook to the
 shared save boundary. It writes approved status/channel/amount policy and actor
 audit in the same tenant-locked transaction as encrypted configuration. Changing
-mapping values requires a higher mapping revision. Source timezone conflicts,
+mapping values requires a higher mapping revision. The immutable mapping values
+also include non-secret evidence: full-payment-date and physical-stock flags,
+warehouse IDs, history interval/reference and approval reference. Their changes
+use the same fingerprint for revision rejection and audit publication; they cannot
+silently change imported facts at an unchanged business revision. Key-only rotation
+leaves the mapping approval/version unchanged. Source timezone conflicts,
 foreign actor FKs or mapping conflicts roll back the credential update as well.
 A tenant-row update coordinates mapping publication with financial-action locks.
 SalesDrive and CSV paths do not acquire this hook or change their contracts.
@@ -195,12 +200,19 @@ staging acceptance or a full visual comparison with the original project referen
 
 Local validation passed:
 
-- Full `npm test -- --maxWorkers=2`: 1070 tests across 107 files.
-- Focused KeyCRM contract, pipeline, API and UI regressions: 21 tests across 4 files.
+- Full `npm test -- --maxWorkers=2` after PR #89 review fixes:
+  1074 tests across 108 files.
+- Focused review regressions: 10 tests across 4 files, including same-revision
+  evidence rejection, actor-linked evidence publication, key-only rotation,
+  localized/future diagnostics and malformed/proxy response handling.
 - `npm run build` (production build, including Prisma client generation).
 - `npx tsc --noEmit` and `git diff --check`.
 - Synthetic local browser: evidence confirmation, save/check, cleared password,
   independent scopes, unsupported receipts and 390px no-horizontal-overflow layout.
+- PR #89 browser follow-up: synthetic 401/refresh/retry followed by non-JSON 502,
+  JSON 503 without code, malformed successful JSON, localized diagnostics and
+  unknown-code fallback. The shared apiFetch/readApiJson helpers handle requests;
+  successful connection JSON is shape-checked before replacing UI state.
 
 No real-account acceptance, key permission proof, customer fixture approval or
 production sync was performed. Real-account acceptance and production rollout

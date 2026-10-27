@@ -239,3 +239,103 @@ it("persists independent read checks while leaving receipts unsupported and reje
   expect(changed.status).toBe(200);
   expect(await changed.json()).toMatchObject({ revision: 2, lastCheck: null });
 });
+
+it("versions and audits all non-secret date/stock/history evidence while key-only rotation leaves mapping approval unchanged", async () => {
+  const current = {
+    ...keyCrmConfig,
+    channels: { "1": "Changed" },
+    mappingRevision: 2,
+  };
+  const before = (
+    await f.pg.query<{ encryptedConfig: string; revision: number }>(
+      `SELECT "encryptedConfig",revision FROM "ConnectorConnection" WHERE "tenantId"='a' AND provider='keycrm'`,
+    )
+  ).rows[0];
+  const changes = [
+    { fullPaymentDate: false },
+    { physicalStock: false },
+    { warehouseIds: ["1"] },
+    {
+      history: {
+        from: "2026-09-01T00:00:00.000Z",
+        to: "2026-09-30T23:59:59.999Z",
+        reference: "approved history fixture",
+      },
+    },
+    { reference: "new account approval" },
+  ];
+  for (const change of changes) {
+    const response = await PUT(
+      request("PUT", {
+        ...current,
+        apiKey: "must-not-be-persisted",
+        evidence: { ...current.evidence, ...change },
+      }),
+      ctx,
+    );
+    expect(response.status).toBe(409);
+    expect((await response.json()).code).toBe("CONNECTOR_CONFIG_CHANGED");
+  }
+  expect(
+    (
+      await f.pg.query(
+        `SELECT "encryptedConfig",revision FROM "ConnectorConnection" WHERE "tenantId"='a' AND provider='keycrm'`,
+      )
+    ).rows,
+  ).toEqual([before]);
+  const changed = {
+    ...current,
+    mappingRevision: 3,
+    evidence: {
+      ...current.evidence!,
+      fullPaymentDate: false,
+      physicalStock: false,
+      warehouseIds: ["1"],
+      history: {
+        from: "2026-09-01T00:00:00.000Z",
+        to: "2026-09-30T23:59:59.999Z",
+        reference: "approved history fixture",
+      },
+      reference: "new account approval",
+    },
+  };
+  expect((await PUT(request("PUT", changed), ctx)).status).toBe(200);
+  const mapping = (
+    await f.pg.query<{
+      revision: number;
+      approvalReference: string;
+      values: any;
+    }>(
+      `SELECT revision,"approvalReference",values FROM "MerchandisingConfig" WHERE "tenantId"='a' AND "configType"='SOURCE_MAPPING' AND key LIKE 'keycrm:%' AND "isActive"`,
+    )
+  ).rows[0];
+  expect(mapping).toMatchObject({
+    revision: 3,
+    approvalReference: "new account approval",
+    values: { evidence: changed.evidence },
+  });
+  const audit = (
+    await f.pg.query<{ actorId: string; revision: number; values: any }>(
+      `SELECT a."actorId",c.revision,c.values FROM "MerchandisingAction" a JOIN "MerchandisingConfig" c ON c.id=a."configId" AND c."tenantId"=a."tenantId" WHERE a.action='CONNECTOR_MAPPING_SAVED' AND a."tenantId"='a' ORDER BY c.revision`,
+    )
+  ).rows;
+  expect(audit.map((a) => a.revision)).toEqual([1, 2, 3]);
+  expect(audit[2].actorId).toBe("owner");
+  expect(audit[2].values.evidence).toEqual(changed.evidence);
+  expect(JSON.stringify(audit)).not.toContain(keyCrmConfig.apiKey);
+  expect(
+    (
+      await PUT(
+        request("PUT", { ...changed, apiKey: "rotated-synthetic-key" }),
+        ctx,
+      )
+    ).status,
+  ).toBe(200);
+  expect(
+    (
+      await f.pg.query(
+        `SELECT count(*)::int n FROM "MerchandisingAction" WHERE "tenantId"='a' AND action='CONNECTOR_MAPPING_SAVED'`,
+      )
+    ).rows,
+  ).toEqual([{ n: 3 }]);
+});

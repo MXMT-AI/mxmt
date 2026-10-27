@@ -128,6 +128,8 @@ export function keyCrmMapping(c: KeyCrmConfig) {
     revision: c.mappingRevision,
     reference: c.evidence?.reference ?? "Unverified KeyCRM mapping",
     values: {
+      // Public approval evidence changes date/stock/history facts as well as amounts.
+      evidence: c.evidence,
       statuses: c.statuses,
       channels: c.channels,
       ...(c.evidence?.netUnitPrice
