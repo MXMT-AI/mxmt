@@ -346,23 +346,25 @@ model DataSource {
 }
 
 model DataImportRun {
-  id               String            @id @default(cuid())
-  tenantId         String
-  tenant           Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  sourceId         String
-  source           DataSource        @relation("DataSourceImports", fields: [sourceId, tenantId], references: [id, tenantId], onDelete: Cascade)
-  trigger          DataImportTrigger
-  status           DataRunStatus     @default(PENDING)
-  idempotencyKey   String
-  businessDate     DateTime          @db.Date
-  sourceChecksum   String?
-  sourceModifiedAt DateTime?
-  stats            Json              @default("{}")
-  errorMessage     String?
-  startedAt        DateTime          @default(now())
-  completedAt      DateTime?
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
+  id                    String            @id @default(cuid())
+  tenantId              String
+  tenant                Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sourceId              String
+  source                DataSource        @relation("DataSourceImports", fields: [sourceId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  trigger               DataImportTrigger
+  status                DataRunStatus     @default(PENDING)
+  idempotencyKey        String
+  businessDate          DateTime          @db.Date
+  connectorJournalBytes Int               @default(0)
+  connectorJournalPages Int               @default(0)
+  sourceChecksum        String?
+  sourceModifiedAt      DateTime?
+  stats                 Json              @default("{}")
+  errorMessage          String?
+  startedAt             DateTime          @default(now())
+  completedAt           DateTime?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
 
   csvImport              CsvImport?
   connectorJobs          ConnectorSyncJob[]

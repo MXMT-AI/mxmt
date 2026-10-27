@@ -246,3 +246,8 @@ see [connector foundation (#81)](81-connector-foundation.md).
 
 See [Horoshop read connector and onboarding](84-horoshop-connector.md) for the
 full-rescan strategy, origin/DNS protection, account evidence and activation gates.
+
+## Shopify connector (#85)
+
+See [Shopify read connector and onboarding](85-shopify-connector.md) for API pinning,
+durable nested cursors, payment/refund evidence, cost budgets and activation gates.

@@ -34,6 +34,19 @@ export function isPublicConnection(v: unknown): v is PublicConnection {
     )
   )
     return false;
+  if (c.metadata !== undefined) {
+    const m = c.metadata;
+    if (
+      !record(m) ||
+      ![m.apiVersion, m.shopId, m.appId, m.timezone].every(
+        (s) => typeof s === "string" && s.length > 0 && s.length <= 200,
+      ) ||
+      !Array.isArray(m.scopes) ||
+      m.scopes.length > 200 ||
+      m.scopes.some((s) => typeof s !== "string" || !/^\w{1,100}$/.test(s))
+    )
+      return false;
+  }
   return ["statuses", "channels"].every((k) => {
     const d = c[k];
     return (

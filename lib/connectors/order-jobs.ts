@@ -76,13 +76,13 @@ export async function resumeOrderImport(tenantId: string, db: SqlDatabase = pris
 /** Read tenant-scoped order progress through the shared sanitized projection. */
 export async function getOrderImportProgress(tenantId: string, db: SqlClient = prisma) { return getConnectorProgress(tenantId, "orders", db); }
 
-type RuntimeLoader = (tenantId: string, backfill?: boolean, sourceId?:string) => Promise<{ sourceId: string; revision: number; timezone: string; connector: MerchandisingConnector }>;
+type RuntimeLoader = (tenantId: string, backfill?: boolean, sourceId?:string,importRunId?:string) => Promise<{ sourceId: string; revision: number; timezone: string; connector: MerchandisingConnector }>;
 /** One bounded remote page per invocation. No sleeping, recursive drains or request-lifetime backfills. */
-export async function processOrderJob(tenantId?: string, db: SqlDatabase = prisma, loadRuntime: RuntimeLoader = (id,backfill,sourceId)=>loadConnectorRuntime(id,backfill,db,undefined,sourceId), claimed?: OrderJob) {
+export async function processOrderJob(tenantId?: string, db: SqlDatabase = prisma, loadRuntime: RuntimeLoader = (id,backfill,sourceId,runId)=>loadConnectorRuntime(id,backfill,db,undefined,sourceId,runId), claimed?: OrderJob) {
   const job = claimed ?? await claimOrderJob(db, tenantId);
   if (!job) return { processed: false };
   try {
-    const runtime = await loadRuntime(job.tenantId, job.mode === "BACKFILL", job.sourceId);
+    const runtime = await loadRuntime(job.tenantId, job.mode === "BACKFILL", job.sourceId,job.importRunId);
     if (runtime.sourceId !== job.sourceId || runtime.revision !== job.connectionRevision) throw new Error("CONNECTOR_CONFIG_CHANGED");
     if (!runtime.connector.capabilities.orders) throw new ConnectorReadError("NOT_CONFIGURED");
     if(job.checkpoint.provider && job.checkpoint.provider!==runtime.connector.provider) throw new Error("CONNECTOR_CONFIG_CHANGED");

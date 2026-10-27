@@ -1,4 +1,7 @@
 import "server-only";
+import { ShopifyConnector } from "./shopify/adapter";
+import { parseShopifyConfig,shopifyMapping } from "./shopify/config";
+import { shopifyJournal,type JournalScope } from "./shopify/journal";
 import { HoroshopConnector } from "./horoshop/adapter";
 import { horoshopMapping, parseHoroshopConfig } from "./horoshop/config";
 import { horoshopFetch } from "./horoshop/transport";
@@ -45,12 +48,14 @@ export interface ProviderRegistration {
     credentials: any,
     fetcher: (url: URL, init: RequestInit) => Promise<Response>,
     timezone: string,
+    context?:JournalScope,
   ): MerchandisingConnector;
 }
 /** Static code registrations; never mutate a process-wide tenant/credential registry. Provider slices add entries here. */
 export const PROVIDER_ADAPTERS: Readonly<
   Partial<Record<SourceProvider, ProviderRegistration>>
 > = Object.freeze({
+  shopify:{parse:parseShopifyConfig,identity:c=>({accountHost:c.shop,sourceKey:c.shop,timezone:c.timezone,hasYmlUrl:false,hasReceiptsKey:false}),queryCost:{estimatedCost:500,maximum:1000,restoreRate:1},budgetIdentity:c=>`${c.shop}:${c.appId}`,sourceMapping:shopifyMapping,create:(c,f,_t,ctx)=>new ShopifyConnector(c,f,ctx?shopifyJournal(ctx):undefined)},
   horoshop:{parse:parseHoroshopConfig,identity:c=>({accountHost:c.origin,sourceKey:c.origin,timezone:c.timezone,hasYmlUrl:false,hasReceiptsKey:false}),accountRequestWindows:c=>[{milliseconds:c.evidence.windowSeconds*1000,limit:c.evidence.requestsPerWindow}],budgetIdentity:c=>c.origin,fetcher:horoshopFetch,sourceMapping:horoshopMapping,create:(c,f)=>new HoroshopConnector(c,f)},
   keycrm:{parse:parseKeyCrmConfig,identity:c=>({accountHost:c.accountId,sourceKey:c.accountId,timezone:c.timezone,hasYmlUrl:false,hasReceiptsKey:false}),requestWindows:[{milliseconds:60000,limit:20}],budgetIdentity:c=>createHash("sha256").update(c.apiKey).digest("hex"),sourceMapping:keyCrmMapping,create:(c,f)=>new KeyCrmConnector(c,f)},
   csv: {transport:"offline",parse:parseCsvConfig,identity:c=>({accountHost:"CSV upload",sourceKey:"manual",timezone:c.timezone,hasYmlUrl:false,hasReceiptsKey:false}),create:()=>new CsvConnector()},
@@ -73,6 +78,7 @@ export async function loadConnectorRuntime(
   db: SqlDatabase = prisma,
   registrations = PROVIDER_ADAPTERS,
   expectedSourceId?: string,
+  importRunId?:string,
 ) {
   const [row] = await db.$queryRaw<
     Array<{
@@ -96,6 +102,7 @@ export async function loadConnectorRuntime(
     db,
     backfill,
     registrations,
+    importRunId?{tenantId,sourceId:row.sourceId,revision:row.revision,importRunId,db}:undefined,
   );
   return {
     sourceId: row.sourceId,
@@ -113,6 +120,7 @@ export function createProviderConnector(
   db: SqlDatabase = prisma,
   backfill = false,
   registrations = PROVIDER_ADAPTERS,
+  context?:JournalScope,
 ) {
   const registration = registrations[provider];
   if (!registration) throw new Error("CONNECTOR_PROVIDER_UNAVAILABLE");
@@ -154,7 +162,7 @@ export function createProviderConnector(
         backfill,
       )
     : request;
-  const connector = registration.create(parsed.credentials, fetcher, timezone);
+  const connector = registration.create(parsed.credentials, fetcher, timezone,context);
   if (connector.provider !== provider)
     throw new Error("CONNECTOR_CONFIG_CHANGED");
   return connector;

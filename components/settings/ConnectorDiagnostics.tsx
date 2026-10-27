@@ -11,6 +11,10 @@ export default function ConnectorDiagnostics({
   const uk = lang === "uk",
     codes = connectorCheckLabels(lang),
     labels: Record<string, string> = {
+      identity: uk ? "Магазин і доступи" : "Shop and permissions",
+      history: uk ? "Повнота історії" : "History coverage",
+      locations: uk ? "Локації" : "Locations",
+      cost: uk ? "Доступ до вартості" : "Cost permission",
       orders: uk ? "Замовлення" : "Orders",
       statuses: uk ? "Статуси" : "Statuses",
       channels: uk ? "Канали" : "Channels",
@@ -25,6 +29,20 @@ export default function ConnectorDiagnostics({
       aria-live="polite"
       className="space-y-2 break-words text-sm text-[var(--muted)]"
     >
+      {check.metadata ? (
+        <details>
+          <summary className="cursor-pointer focus-visible:outline">
+            {uk
+              ? "Магазин, версія API та дозволи"
+              : "Shop, API version and permissions"}
+          </summary>
+          <p>
+            {check.metadata.shopId} · {check.metadata.apiVersion} ·{" "}
+            {check.metadata.timezone}
+          </p>
+          <p className="break-words">{check.metadata.scopes.join(", ")}</p>
+        </details>
+      ) : null}
       <ul>
         {check.checks.map((c) => (
           <li key={c.resource}>
