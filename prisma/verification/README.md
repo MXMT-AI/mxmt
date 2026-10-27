@@ -241,3 +241,8 @@ see [connector foundation (#81)](81-connector-foundation.md).
 - [KeyCRM connector and onboarding (#83)](83-keycrm-connector.md): official schema,
   fixed-origin reads, mapping/payment/warehouse evidence, account/key quota,
   secure Settings, durable integration tests and real-account acceptance gates.
+
+## Horoshop connector (#84)
+
+See [Horoshop read connector and onboarding](84-horoshop-connector.md) for the
+full-rescan strategy, origin/DNS protection, account evidence and activation gates.

@@ -135,7 +135,7 @@ export async function processOrderJob(tenantId?: string, db: SqlDatabase = prism
             ON CONFLICT ("importRunId",resource,"externalId") DO NOTHING`);
         }
         for (const order of page.records) {
-          const result = await storeOrder(tx, { ...job, timezone: runtime.timezone }, order, checkpoint.policy);
+          const result = await storeOrder(tx, { ...job, timezone: runtime.timezone,observationRevisions:runtime.connector.capabilities.orderRevisions==="observation" }, order, checkpoint.policy);
           stats.orders++; stats[result.outcome as "imported" | "duplicate" | "stale" | "quarantined"]++;
           result.issues.forEach((code) => codes.add(code));
         }

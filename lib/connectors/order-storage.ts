@@ -14,7 +14,7 @@ function canonical(value: unknown): unknown {
 /** Hash recursively ordered source content independently of host locale and ICU versions. */
 export const payloadHash = (value: unknown): string => createHash("sha256").update(JSON.stringify(canonical(value))).digest("hex");
 export interface OrderScope {
-  provider?: string; tenantId: string; sourceId: string; importRunId: string; timezone: string }
+  observationRevisions?:boolean; provider?: string; tenantId: string; sourceId: string; importRunId: string; timezone: string }
 
 /** Called inside the checkpoint transaction. Current projections are replaced as an order, never appended per replay. */
 export async function storeOrder(tx: SqlClient, scope: OrderScope, order: OrderDto, policy: OrderPolicy = {}) {
@@ -32,17 +32,18 @@ export async function storeOrder(tx: SqlClient, scope: OrderScope, order: OrderD
     VALUES (${randomUUID()},${tenantId},${sourceId},${importRunId},'orders',${rawKey},${JSON.stringify(order.raw)}::jsonb,${hash},${observedAt},${normalized.updatedAt})
     ON CONFLICT ("importRunId",resource,"externalId") DO NOTHING`);
   // A source has a single fenced job; the order row lock also guards direct consumers.
-  const [previous] = await tx.$queryRaw<Array<{ payloadHash: string; projectionHash: string; sourceVersion: number | null; sourceUpdatedAt: Date | null }>>(Prisma.sql`
-    SELECT "payloadHash","projectionHash","sourceVersion","sourceUpdatedAt" FROM "OrderImportState"
+  const [previous] = await tx.$queryRaw<Array<{ payloadHash: string; projectionHash: string; sourceVersion: number | null; sourceUpdatedAt: Date | null; observedAt:Date }>>(Prisma.sql`
+    SELECT "payloadHash","projectionHash","sourceVersion","sourceUpdatedAt","observedAt" FROM "OrderImportState"
     WHERE "tenantId"=${tenantId} AND "sourceId"=${sourceId} AND "externalOrderId"=${order.externalId} FOR UPDATE`);
   if (previous?.payloadHash === hash && previous.projectionHash === projectionHash) return { outcome: "duplicate", issues: [] as string[] };
   if (previous && previous.payloadHash !== hash) {
     const version = order.sourceVersion;
     const comparableVersion = version != null && previous.sourceVersion != null;
-    const newer = comparableVersion ? version > previous.sourceVersion!
+    const observationRevision=scope.observationRevisions===true && version==null && previous.sourceVersion==null && !normalized.updatedAt && !previous.sourceUpdatedAt;
+    const newer = observationRevision ? observedAt>previous.observedAt : comparableVersion ? version > previous.sourceVersion!
       : normalized.updatedAt && previous.sourceUpdatedAt && normalized.updatedAt > previous.sourceUpdatedAt;
     if (!newer) {
-      const stale = comparableVersion ? version < previous.sourceVersion! : normalized.updatedAt && previous.sourceUpdatedAt && normalized.updatedAt < previous.sourceUpdatedAt;
+      const stale = observationRevision ? observedAt<previous.observedAt : comparableVersion ? version < previous.sourceVersion! : normalized.updatedAt && previous.sourceUpdatedAt && normalized.updatedAt < previous.sourceUpdatedAt;
       return { outcome: stale ? "stale" : "quarantined", issues: stale ? [] : ["ORDER_VERSION_CONFLICT"] };
     }
   }

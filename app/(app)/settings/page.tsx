@@ -1,4 +1,5 @@
 import { readSelectedSource } from "@/lib/connectors/source";
+import HoroshopConnectionCard from "@/components/settings/HoroshopConnectionCard";
 import KeyCrmConnectionCard from "@/components/settings/KeyCrmConnectionCard";
 import CsvImportCard from "@/components/settings/CsvImportCard";
 import ConnectorSourceCard from "@/components/settings/ConnectorSourceCard";
@@ -22,12 +23,13 @@ export default async function SettingsPage() {
   const lang = (cookieStore.get("lang")?.value ?? "uk") as "uk" | "en";
   const t = getT(lang);
 
-  const [onboarding, driveSync, salesDrive, selectedSource, keyCrm] = await Promise.all([
+  const [onboarding, driveSync, salesDrive, selectedSource, keyCrm, horoshop] = await Promise.all([
     prisma.onboardingBrief.findUnique({ where: { tenantId } }),
     prisma.googleDriveSync.findFirst({ where: { tenantId }, orderBy: { createdAt: "desc" } }),
     getSalesDriveConnection(tenantId),
     readSelectedSource(tenantId, prisma),
     getProviderConnection(tenantId,"keycrm"),
+    getProviderConnection(tenantId,"horoshop"),
   ]);
 
   const generalContent = (
@@ -85,6 +87,8 @@ export default async function SettingsPage() {
       <SalesDriveConnectionCard initial={salesDrive} lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
 
       <KeyCrmConnectionCard initial={keyCrm} lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
+
+      <HoroshopConnectionCard initial={horoshop} lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
 
       <CsvImportCard lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
 

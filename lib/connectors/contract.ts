@@ -93,6 +93,8 @@ export interface PageRequest {
   orderId?: string;
 }
 export interface ConnectorCapabilities {
+  /** Full read snapshots without provider versions use fenced observation ordering. */
+  orderRevisions?: "observation";
   automaticSync?:boolean;
   pageSize?:Partial<Record<"orders"|"receipts"|"catalog",number>>;
   pagination?: Partial<Record<"orders"|"receipts"|"catalog", "page"|"offset"|"cursor">>;
