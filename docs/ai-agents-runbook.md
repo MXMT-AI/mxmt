@@ -18,7 +18,15 @@ At least one provider key must be configured for the selected provider:
 - `anthropic`
 - `openai`
 
-Invalid provider values fall back to `anthropic`.
+Invalid provider values fall back to `openai` (see `resolveAiProvider` in `lib/ai.ts`).
+
+## V2 planning and acceptance
+
+The audit and separate implementation specifications for #53 are in
+[`v2-ai-delivery-plan.md`](./v2-ai-delivery-plan.md). They describe planned work,
+not activated capabilities. Spreadsheet/business-rule and agent acceptance
+remain tracked in #92; a completed preparation PR does not satisfy that gate.
+Legacy architecture token/cost examples are not measured usage or approved budgets.
 
 ## Runtime Behavior
 
