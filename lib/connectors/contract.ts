@@ -26,6 +26,8 @@ export interface StockDto extends SourceContext {
   inTransit: DecimalValue | null;
 }
 export interface OrderDto extends SourceContext {
+  /** Identified source row rejected by the adapter; retain audit and skip projection atomically. */
+  rejectionCode?: "ORDER_CURRENCY_MISMATCH" | "ORDER_RECORD_INVALID";
   /** Original provider record, retained server-side only. */
   raw?: Record<string, unknown>;
   sourceVersion?: number | null;
@@ -93,6 +95,8 @@ export interface PageRequest {
   orderId?: string;
 }
 export interface ConnectorCapabilities {
+  /** Full read snapshots without provider versions use fenced observation ordering. */
+  orderRevisions?: "observation";
   automaticSync?:boolean;
   pageSize?:Partial<Record<"orders"|"receipts"|"catalog",number>>;
   pagination?: Partial<Record<"orders"|"receipts"|"catalog", "page"|"offset"|"cursor">>;

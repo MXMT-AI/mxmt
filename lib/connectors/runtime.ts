@@ -1,4 +1,7 @@
 import "server-only";
+import { HoroshopConnector } from "./horoshop/adapter";
+import { horoshopMapping, parseHoroshopConfig } from "./horoshop/config";
+import { horoshopFetch } from "./horoshop/transport";
 import { createHash } from "node:crypto";
 import { KeyCrmConnector } from "./keycrm/adapter";
 import { parseKeyCrmConfig, keyCrmMapping } from "./keycrm/config";
@@ -22,6 +25,8 @@ export interface ProviderRegistration {
   sourceMapping?(credentials:any):{revision:number;reference:string;values:unknown};
   transport?: "http" | "offline";
   requestWindows?: ReadonlyArray<RequestWindow>;
+  accountRequestWindows?(credentials:any):ReadonlyArray<RequestWindow>;
+  fetcher?: (url:URL,init:RequestInit)=>Promise<Response>;
   queryCost?: QueryCostPolicy;
   budgetIdentity?(credentials: any): string;
   parse(
@@ -46,6 +51,7 @@ export interface ProviderRegistration {
 export const PROVIDER_ADAPTERS: Readonly<
   Partial<Record<SourceProvider, ProviderRegistration>>
 > = Object.freeze({
+  horoshop:{parse:parseHoroshopConfig,identity:c=>({accountHost:c.origin,sourceKey:c.origin,timezone:c.timezone,hasYmlUrl:false,hasReceiptsKey:false}),accountRequestWindows:c=>[{milliseconds:c.evidence.windowSeconds*1000,limit:c.evidence.requestsPerWindow}],budgetIdentity:c=>c.origin,fetcher:horoshopFetch,sourceMapping:horoshopMapping,create:(c,f)=>new HoroshopConnector(c,f)},
   keycrm:{parse:parseKeyCrmConfig,identity:c=>({accountHost:c.accountId,sourceKey:c.accountId,timezone:c.timezone,hasYmlUrl:false,hasReceiptsKey:false}),requestWindows:[{milliseconds:60000,limit:20}],budgetIdentity:c=>createHash("sha256").update(c.apiKey).digest("hex"),sourceMapping:keyCrmMapping,create:(c,f)=>new KeyCrmConnector(c,f)},
   csv: {transport:"offline",parse:parseCsvConfig,identity:c=>({accountHost:"CSV upload",sourceKey:"manual",timezone:c.timezone,hasYmlUrl:false,hasReceiptsKey:false}),create:()=>new CsvConnector()},
   salesdrive: {
@@ -115,10 +121,11 @@ export function createProviderConnector(
   );
   if (!parsed.credentials) throw new Error("CONNECTOR_STORAGE_UNAVAILABLE");
   const identity = registration.identity(parsed.credentials);
+  const windows=registration.accountRequestWindows?.(parsed.credentials)??registration.requestWindows;
   if (
     registration.transport !== "offline" &&
     provider !== "salesdrive" &&
-    !registration.requestWindows?.length &&
+    !windows?.length &&
     !registration.queryCost
   )
     throw new Error("CONNECTOR_BUDGET_UNVERIFIED");
@@ -134,9 +141,9 @@ export function createProviderConnector(
         : budgetedFetcher(
             `${provider}:${budgetIdentity}`,
             db,
-            undefined,
+            registration.fetcher,
             backfill,
-            registration.requestWindows ?? [],
+            windows ?? [],
           );
   const fetcher = registration.queryCost
     ? graphqlBudgetedFetcher(

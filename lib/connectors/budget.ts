@@ -41,7 +41,7 @@ export function retryAfter(value: string | null, now = new Date()): Date {
 }
 
 /** Every application transport uses the same durable budget, including connection checks. */
-export function budgetedFetcher(host: string, db: SqlDatabase = prisma, fetcher = fetchWithTimeout, backfill = false, windows:ReadonlyArray<RequestWindow>=REQUEST_WINDOWS) {
+export function budgetedFetcher(host: string, db: SqlDatabase = prisma, fetcher: (url:URL,init:RequestInit)=>Promise<Response> = fetchWithTimeout, backfill = false, windows:ReadonlyArray<RequestWindow>=REQUEST_WINDOWS) {
   const key = accountBudgetKey(host);
   return async (url: URL, init: RequestInit): Promise<Response> => {
     const retryAt = await reserveRequest(db, key, new Date(), backfill,windows);

@@ -3,7 +3,8 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Field, control } from "@/components/merchandising/FormControls";
 import { apiFetch } from "@/lib/fetch";
 import { readApiJson } from "@/lib/api-response";
-import { connectorCheckLabels } from "@/lib/connectors/check-copy";
+import StatusMappingFields from "./StatusMappingFields";
+import ConnectorDiagnostics from "./ConnectorDiagnostics";
 import { isPublicConnection } from "@/lib/connectors/public-connection";
 import type { PublicConnection } from "@/lib/connectors/contract";
 const button =
@@ -184,16 +185,6 @@ export default function KeyCrmConnectionCard({
         : null,
     });
   }
-  const checkLabels = connectorCheckLabels(lang);
-  const labels: Record<string, string> = {
-    orders: copy("Замовлення", "Orders"),
-    statuses: copy("Статуси", "Statuses"),
-    channels: copy("Канали", "Channels"),
-    products: copy("Товари", "Products"),
-    offers: copy("Варіанти", "Offers"),
-    stock: copy("Залишки", "Stock"),
-    receipts: copy("Приходи", "Receipts"),
-  };
   return (
     <section
       id="keycrm"
@@ -304,60 +295,7 @@ export default function KeyCrmConnectionCard({
                   "Keep account ID and timezone stable. Increase the revision when changing mappings and re-enter the key on updates. The first save can omit verified financial mappings.",
                 )}
               </p>
-              <fieldset className="space-y-3">
-                <legend className="text-sm text-[var(--text)]">
-                  {copy("Значення статусів", "Status meanings")}
-                </legend>
-                {statuses.map((s, i) => (
-                  <div className="grid grid-cols-2 gap-3" key={i}>
-                    <Field label={copy("Код статусу", "Status code")}>
-                      <input
-                        className={control}
-                        value={s.id}
-                        onChange={(e) =>
-                          setStatuses((rows) =>
-                            rows.map((x, j) =>
-                              i === j ? { ...x, id: e.target.value } : x,
-                            ),
-                          )
-                        }
-                        required
-                        pattern="[0-9]+"
-                      />
-                    </Field>
-                    <Field label={copy("Значення", "Meaning")}>
-                      <select
-                        className={control}
-                        value={s.kind}
-                        onChange={(e) =>
-                          setStatuses((rows) =>
-                            rows.map((x, j) =>
-                              i === j ? { ...x, kind: e.target.value } : x,
-                            ),
-                          )
-                        }
-                      >
-                        <option value="">
-                          {copy("Не підтверджено", "Unverified")}
-                        </option>
-                        <option>SALE</option>
-                        <option>PREORDER</option>
-                        <option>REFUSAL</option>
-                      </select>
-                    </Field>
-                  </div>
-                ))}
-                <button
-                  className={button}
-                  type="button"
-                  onClick={() => {
-                    mutate();
-                    setStatuses((s) => [...s, { id: "", kind: "" }]);
-                  }}
-                >
-                  {copy("Додати статус", "Add status")}
-                </button>
-              </fieldset>
+              <StatusMappingFields rows={statuses} lang={lang} onChange={rows=>{mutate();setStatuses(rows);}} />
               <fieldset className="space-y-3">
                 <legend className="text-sm text-[var(--text)]">
                   {copy("Канали", "Channels")}
@@ -576,41 +514,7 @@ export default function KeyCrmConnectionCard({
             {status}
           </p>
         )}
-        {connection.lastCheck && (
-          <div
-            aria-live="polite"
-            className="space-y-2 text-sm text-[var(--muted)]"
-          >
-            <ul>
-              {connection.lastCheck.checks.map((c) => (
-                <li key={c.resource}>
-                  {labels[c.resource] ?? c.resource}:{" "}
-                  {checkLabels[c.code] ?? c.code}
-                </li>
-              ))}
-            </ul>
-            {(["statuses", "channels"] as const).map((k) => (
-              <details key={k}>
-                <summary className="cursor-pointer">{labels[k]}</summary>
-                {!connection.lastCheck![k].complete && (
-                  <p className="mt-1 text-xs">
-                    {copy(
-                      "Показано частину довідника. Повне читання виконується під час синхронізації.",
-                      "Only part of the dictionary is shown. Full reads run during synchronization.",
-                    )}
-                  </p>
-                )}
-                <ul>
-                  {connection.lastCheck![k].entries.slice(0, 100).map((d) => (
-                    <li key={d.id}>
-                      {d.id}: {d.name}
-                    </li>
-                  ))}
-                </ul>
-              </details>
-            ))}
-          </div>
-        )}
+        <ConnectorDiagnostics check={connection.lastCheck} lang={lang} />
       </div>
     </section>
   );
