@@ -20,6 +20,8 @@ export async function readCatalogPage(
   checkpoint: CatalogPageState,
 ) {
   if (!connector.getCatalogPage) throw new ConnectorReadError("NOT_CONFIGURED");
+  const limit=connector.capabilities.pageSize?.catalog??100;
+  if(!Number.isSafeInteger(limit)||limit<1||limit>100)throw new ConnectorReadError("INVALID_RESPONSE");
   const state = continuation(
     checkpoint.continuation,
     {
@@ -27,14 +29,14 @@ export async function readCatalogPage(
       provider: connector.provider,
       revision: job.connectionRevision,
       resource: "catalog",
-      limit: 100,
+      limit,
       observationId: checkpoint.observationId ?? null,
     },
     connector.capabilities.pagination?.catalog ?? "page",
   );
   const page = await connector.getCatalogPage({
     ...pageRequest(state),
-    limit: 100,
+    limit,
     ...(checkpoint.observationId
       ? { observationId: checkpoint.observationId }
       : {}),
@@ -49,7 +51,7 @@ export async function readCatalogPage(
       Date.parse(page.observedAt) < Date.parse(checkpoint.observedAt))
   )
     throw new ConnectorReadError("INVALID_RESPONSE");
-  const next = advancePage(state, page, 100);
+  const next = advancePage(state, page, limit);
   // Bind subsequent page positions to the observation established by the first response.
   const nextState = next
     ? {
@@ -61,7 +63,7 @@ export async function readCatalogPage(
             provider: connector.provider,
             revision: job.connectionRevision,
             resource: "catalog",
-            limit: 100,
+            limit,
             observationId: page.observationId,
           },
           state.position.kind,

@@ -77,7 +77,7 @@ export default function SalesDriveConnectionCard({ initial, lang, canManage }: P
     RESPONSE_TOO_LARGE: uk ? "Відповідь перевищує розмір перевірки" : "Response exceeds the check size limit",
   };
   const resourceLabels = { orders: uk ? "Замовлення" : "Orders", statuses: uk ? "Статуси" : "Statuses",
-    receipts: uk ? "Надходження" : "Receipts", catalog: uk ? "Товари та залишки" : "Products and stock" };
+    receipts: uk ? "Надходження" : "Receipts", products:uk?"Товари":"Products",offers:uk?"Варіанти":"Offers",stock:uk?"Залишки":"Stock",channels:uk?"Канали":"Channels",catalog: uk ? "Товари та залишки" : "Products and stock" };
   const fieldClass = "mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--input-bg)] px-3 py-2 text-sm text-[var(--text)]";
   const buttonClass = "rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--text)] hover:bg-[var(--input-hover)] disabled:opacity-50";
 

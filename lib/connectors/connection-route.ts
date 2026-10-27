@@ -64,6 +64,7 @@ export function connectionHandlers(provider: SourceProvider) {
               user.tenantId,
               config.credentials,
               provider,
+              user.userId,
             ),
           ),
         );
