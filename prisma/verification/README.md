@@ -213,3 +213,6 @@ summaries, see [Reordering workspace verification (#47)](47-reordering-workspace
 
 For validated Repricing/Reordering CSV downloads, retry-safe action history and
 export authorization, see [scenario export verification (#48)](48-scenario-csv-exports.md).
+
+For grouped current Data Quality diagnostics, safe import-warning lineage and
+synchronization-driven refresh, see [Settings data quality (#49)](49-settings-data-quality.md).

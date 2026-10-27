@@ -6,8 +6,7 @@ import OnboardingForm from "@/components/settings/OnboardingForm";
 import DriveSyncCard from "@/components/settings/DriveSyncCard";
 import AIProviderCard from "@/components/settings/AIProviderCard";
 import SettingsTabs from "@/components/settings/SettingsTabs";
-import DataQualityCard from "@/components/settings/DataQualityCard";
-import SalesDriveImportCard from "@/components/settings/SalesDriveImportCard";
+import DataHealthSection from "@/components/settings/DataHealthSection";
 import SalesDriveConnectionCard from "@/components/settings/SalesDriveConnectionCard";
 import { requireCurrentUser } from "@/lib/server-auth";
 import { getSalesDriveConnection } from "@/lib/connectors/service";
@@ -78,10 +77,7 @@ export default async function SettingsPage() {
       {/* Google Drive sync */}
       <SalesDriveConnectionCard initial={salesDrive} lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
 
-      <DataQualityCard lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
-      <SalesDriveImportCard resource="sync" lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
-      <SalesDriveImportCard resource="inventory" lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
-      <SalesDriveImportCard lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
+      <DataHealthSection lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
 
       <section className="mb-10">
         <div className="mb-4">
@@ -111,7 +107,7 @@ export default async function SettingsPage() {
   );
 
   return (
-    <div className="p-8 max-w-3xl">
+    <div className="p-4 sm:p-8 max-w-3xl">
       <div className="text-[10px] font-mono uppercase tracking-widest text-[var(--subtle)] mb-2">
         {t.nav_settings}
       </div>
