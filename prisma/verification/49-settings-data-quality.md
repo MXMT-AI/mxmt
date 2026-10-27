@@ -91,3 +91,22 @@ servers were removed/stopped, and the viewport override was reset before finishi
 Final checks: `npm test -- --maxWorkers=1` passed **950 tests across 84 files**,
 with no failures or skipped tests. `npm run build`, `npx tsc --noEmit` and
 `git diff --check` passed.
+
+## CodeRabbit follow-up
+
+Loaded diagnostics remain mounted while a newer read is pending. The existing
+loading status, disabled mutation controls, request ordering guards and `aria-busy`
+remain active, and the focused product heading still waits for fresh data. This
+preserves the warning panel's open state, selected code and page through diagnostic
+refreshes instead of remounting its local state. Added helper docstrings document
+navigation and localized correction behavior.
+
+A delayed local browser regression fixture with 27 synthetic warnings confirmed
+that an open panel set to all warnings, page 2 of 2 survives manual refresh, a
+simulated completed-import revision and product search. Request logs confirmed the
+open history refetched page 2 on revision. After a completed search, two matching
+products were shown, page 2 remained selected and the search input retained focus.
+Temporary fixture files and servers were removed/stopped afterward.
+
+Follow-up validation: 12 focused diagnostic/UI/API tests, `npx tsc --noEmit` and
+`git diff --check` passed. No production data or external source was changed.

@@ -115,6 +115,7 @@ export default function DataQualityCard({
     window.addEventListener("popstate", read);
     return () => window.removeEventListener("popstate", read);
   }, []);
+  /** Apply diagnostic navigation without replacing unrelated Settings URL state. */
   function select(nextCode: string, nextPage = 1, nextSearch = search) {
     setCode(nextCode);
     setPage(nextPage);
@@ -283,7 +284,7 @@ export default function DataQualityCard({
       >
         {uk ? "Оновити діагностику" : "Refresh diagnostics"}
       </button>
-      {data && !loading && (
+      {data && (
         <>
           <DataQualitySummary
             summary={data.summary}

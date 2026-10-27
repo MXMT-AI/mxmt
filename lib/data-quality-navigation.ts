@@ -8,6 +8,7 @@ export function readQualitySelection(params: URLSearchParams) {
     page: Number.isSafeInteger(page) && page > 0 && page <= 100000 ? page : 1,
   };
 }
+/** Update only diagnostic parameters, omitting empty filters and the default first page. */
 export function writeQualitySelection(
   params: URLSearchParams,
   value: { code: string; q: string; page: number },

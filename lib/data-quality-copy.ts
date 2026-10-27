@@ -91,15 +91,18 @@ const other: Record<string, [string, string]> = {
   RETURN_DATE_UNAVAILABLE: ["Unknown return date", "Невідома дата повернення"],
   INFERRED_PAYMENT_DATE: ["Inferred sale date", "Припущена дата продажу"],
 };
+/** Localize known diagnostics while retaining unknown source codes for investigation. */
 export const qualityLabel = (code: string, lang: Lang) =>
   issues[code]?.[lang === "uk" ? 1 : 0] ??
   other[code]?.[lang === "uk" ? 1 : 0] ??
   code;
+/** Explain coverage impact and the correction needed without inventing missing values. */
 export const qualityGuidance = (code: string, lang: Lang) =>
   issues[code]?.[lang === "uk" ? 3 : 2] ??
   (lang === "uk"
     ? "Перевірте походження рядка, виправте дані джерела й повторіть імпорт. Невідомі дані не замінюються нулями."
     : "Review row lineage, correct source data and import again. Unknown values are not replaced with zero.");
+/** Route policy exceptions to Merchandising and source exceptions to the connection settings. */
 export const qualityFixHref = (code: string) =>
   [
     "OWNERSHIP_UNKNOWN",
