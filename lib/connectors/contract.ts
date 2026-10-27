@@ -112,8 +112,10 @@ export interface ConnectorCapabilities {
   writes: false;
 }
 export type CheckCode = "OK" | "NOT_CONFIGURED" | "AUTH_FAILED" | "RATE_LIMITED" | "TIMEOUT" | "NETWORK_ERROR" | "INVALID_RESPONSE" | "RESPONSE_TOO_LARGE";
-export interface ResourceCheck { resource: "orders" | "statuses" | "receipts" | "catalog" | "products" | "offers" | "stock" | "channels"; code: CheckCode }
+export interface ResourceCheck { resource: "identity" | "history" | "locations" | "cost" | "orders" | "statuses" | "receipts" | "catalog" | "products" | "offers" | "stock" | "channels"; code: CheckCode }
 export interface ConnectionCheck {
+  /** Non-secret provider identity and actual granted scopes observed during checks. */
+  metadata?: {apiVersion:string;shopId:string;appId:string;timezone:string;scopes:string[]};
   checkedAt: string;
   ok: boolean;
   checks: ResourceCheck[];

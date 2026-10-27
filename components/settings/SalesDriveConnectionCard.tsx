@@ -68,7 +68,7 @@ export default function SalesDriveConnectionCard({ initial, lang, canManage }: P
   }
 
   const checkLabels = connectorCheckLabels(lang);
-  const resourceLabels = { orders: uk ? "Замовлення" : "Orders", statuses: uk ? "Статуси" : "Statuses",
+  const resourceLabels: Record<string,string> = { orders: uk ? "Замовлення" : "Orders", statuses: uk ? "Статуси" : "Statuses",
     receipts: uk ? "Надходження" : "Receipts", products:uk?"Товари":"Products",offers:uk?"Варіанти":"Offers",stock:uk?"Залишки":"Stock",channels:uk?"Канали":"Channels",catalog: uk ? "Товари та залишки" : "Products and stock" };
   const fieldClass = "mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--input-bg)] px-3 py-2 text-sm text-[var(--text)]";
   const buttonClass = "rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--text)] hover:bg-[var(--input-hover)] disabled:opacity-50";
@@ -99,7 +99,7 @@ export default function SalesDriveConnectionCard({ initial, lang, canManage }: P
         {connection.lastCheck && <div className="space-y-3">
           <p className="text-xs text-[var(--muted)]">{uk ? "Перевірено: " : "Checked: "}{new Intl.DateTimeFormat(uk ? "uk-UA" : "en-GB", { timeZone: "Europe/Kyiv", dateStyle: "medium", timeStyle: "short" }).format(new Date(connection.lastCheck.checkedAt))}</p>
           <dl className="space-y-2 text-sm">{connection.lastCheck.checks.map((check) => <div key={check.resource} className="flex flex-wrap justify-between gap-2">
-            <dt className="text-[var(--text)]">{resourceLabels[check.resource]}</dt>
+            <dt className="text-[var(--text)]">{resourceLabels[check.resource] ?? check.resource}</dt>
             <dd className={check.code === "OK" ? "font-medium text-[var(--text)]" : "text-[var(--muted)]"}>{checkLabels[check.code]}</dd>
           </div>)}</dl>
           {(["statuses", "channels"] as const).map((key) => <details key={key} className="border-t border-[var(--border)] pt-3">

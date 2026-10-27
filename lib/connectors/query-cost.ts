@@ -1,7 +1,7 @@
 import "server-only";
 import { Prisma } from "@prisma/client";
 import type { SqlDatabase } from "./database";
-import { accountBudgetKey } from "./budget";
+import { retryAfter, accountBudgetKey } from "./budget";
 import { ConnectorReadError } from "./read-error";
 import { parseSourceJson } from "./json";
 export interface QueryCostPolicy {
@@ -141,6 +141,8 @@ export function graphqlBudgetedFetcher(
       const throttled =
         Array.isArray(body?.errors) &&
         body.errors.some((e: any) => e?.extensions?.code === "THROTTLED");
+      const actual=number(body?.extensions?.cost?.actualQueryCost);
+      if(actual!==undefined&&actual!==null&&!finite(actual))throw new ConnectorReadError("INVALID_RESPONSE");
       if (throttle !== undefined) {
         if (
           !finite(throttle.maximumAvailable) ||
@@ -158,9 +160,9 @@ export function graphqlBudgetedFetcher(
             Prisma.sql`SELECT "costState" FROM "ConnectorRequestBudget" WHERE "accountKey"=${key} FOR UPDATE`,
           );
           const now = new Date();
-          // Out-of-order responses cannot credit cost already reserved by another worker.
+          // Refund only this request's unused reservation; concurrent reservations stay debited.
           const state = {
-            available: Math.min(available(row.costState, now), current),
+            available: Math.min(Math.max(0,available(row.costState, now)+(finite(actual)?policy.estimatedCost-actual:0)), current),
             maximum,
             restoreRate: rate,
             at: now.toISOString(),
@@ -171,7 +173,7 @@ export function graphqlBudgetedFetcher(
         });
       }
       if (throttled) {
-        const retryAt = new Date(Date.now() + 60000);
+        const retryAt = retryAfter(response.headers.get("Retry-After"));
         await db.$executeRaw(
           Prisma.sql`UPDATE "ConnectorRequestBudget" SET "blockedUntil"=GREATEST(COALESCE("blockedUntil",${retryAt}),${retryAt}) WHERE "accountKey"=${key}`,
         );

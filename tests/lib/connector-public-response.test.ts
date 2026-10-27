@@ -38,3 +38,40 @@ it("keeps HTTP error status available for non-JSON or code-less errors and rejec
     }),
   ).toBe(true);
 });
+
+it("rejects malformed optional Shopify identity metadata before diagnostics can render it", () => {
+  const initial = {
+    configured: true,
+    accountHost: "shop.myshopify.com",
+    hasReceiptsKey: false,
+    hasYmlUrl: false,
+    revision: 1,
+    lastCheck: {
+      ok: true,
+      checkedAt: "2026-10-27T16:00:00Z",
+      checks: [],
+      statuses: { entries: [], complete: true, reason: null },
+      channels: { entries: [], complete: false, reason: "UNSUPPORTED" },
+      metadata: {
+        apiVersion: "2026-10",
+        shopId: "gid://shopify/Shop/1",
+        appId: "gid://shopify/App/1",
+        timezone: "Europe/Kyiv",
+        scopes: ["read_orders"],
+      },
+    },
+  };
+  expect(isPublicConnection(initial)).toBe(true);
+  for (const metadata of [
+    null,
+    {},
+    { ...initial.lastCheck.metadata, scopes: "read_orders" },
+    { ...initial.lastCheck.metadata, scopes: [null] },
+  ])
+    expect(
+      isPublicConnection({
+        ...initial,
+        lastCheck: { ...initial.lastCheck, metadata },
+      }),
+    ).toBe(false);
+});

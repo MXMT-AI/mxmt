@@ -1,9 +1,7 @@
 "use client";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { Field, control } from "@/components/merchandising/FormControls";
-import { apiFetch } from "@/lib/fetch";
-import { readApiJson } from "@/lib/api-response";
-import { isPublicConnection } from "@/lib/connectors/public-connection";
+import { useConnectorConnection } from "./useConnectorConnection";
 import type { PublicConnection } from "@/lib/connectors/contract";
 import StatusMappingFields, {
   type StatusMappingRow,
@@ -21,98 +19,33 @@ export default function HoroshopConnectionCard({
   canManage: boolean;
 }) {
   const copy = (uk: string, en: string) => (lang === "uk" ? uk : en);
-  const [connection, setConnection] = useState(initial),
-    [busy, setBusy] = useState(false),
-    [dirty, setDirty] = useState(false),
-    [error, setError] = useState(""),
-    [status, setStatus] = useState("");
+  const {
+    connection,
+    busy,
+    dirty,
+    error,
+    status,
+    alert,
+    setError,
+    setDirty,
+    perform: mutateConnection,
+  } = useConnectorConnection("horoshop", initial, lang);
   const [statuses, setStatuses] = useState<StatusMappingRow[]>([]);
-  const form = useRef<HTMLFormElement>(null),
-    alert = useRef<HTMLParagraphElement>(null);
-  useEffect(() => {
-    if (error) alert.current?.focus();
-  }, [error]);
-  useEffect(() => {
-    if (!dirty) return;
-    const warn = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = "";
-    };
-    window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, [dirty]);
+  const form = useRef<HTMLFormElement>(null);
   async function perform(action: "save" | "check", body?: unknown) {
-    setBusy(true);
-    setError("");
-    setStatus("");
-    try {
-      const r = await apiFetch("/api/connectors/horoshop", {
-          method: action === "save" ? "PUT" : "POST",
-          cache: "no-store",
-          headers: { "Content-Type": "application/json" },
-          ...(body ? { body: JSON.stringify(body) } : {}),
-        }),
-        d = await readApiJson(r);
-      if (!r.ok) {
-        const code = typeof d?.code === "string" ? d.code : String(r.status);
-        setError(
-          code === "CONNECTOR_CONFIG_CHANGED"
-            ? copy(
-                "Підвищіть версію змінених правил і перевірте підключення знову.",
-                "Increase the revision of changed rules and check again.",
-              )
-            : copy(
-                "Перевірте поля, підтвердження й доступи. Код: ",
-                "Check fields, confirmations and permissions. Code: ",
-              ) + code,
-        );
-        return;
-      }
-      if (!isPublicConnection(d)) {
-        setError(
-          copy(
-            "Некоректна відповідь сервера. Повторіть спробу.",
-            "Invalid server response. Retry the operation.",
-          ),
-        );
-        return;
-      }
-      setConnection(d);
-      if (action === "check" && !statuses.length)
-        setStatuses(
-          (d.lastCheck?.statuses.entries ?? [])
-            .slice(0, 100)
-            .map((s) => ({ id: s.id, kind: "" })),
-        );
-      window.dispatchEvent(new Event("connector-connection-changed"));
-      setStatus(
-        action === "save"
-          ? copy(
-              "Збережено. Перевірте доступи, потім виберіть Horoshop у джерелах звітів.",
-              "Saved. Check read scopes, then select Horoshop as the reporting source.",
-            )
-          : copy(
-              "Перевірки завершено. Перегляньте результат кожного ресурсу.",
-              "Checks completed. Review each resource result.",
-            ),
+    const result = await mutateConnection(action, body);
+    if (!result) return;
+    if (action === "check" && !statuses.length)
+      setStatuses(
+        (result.lastCheck?.statuses.entries ?? [])
+          .slice(0, 100)
+          .map((s) => ({ id: s.id, kind: "" })),
       );
-      if (action === "save") {
-        for (const name of ["login", "password"]) {
-          const el = form.current?.elements.namedItem(name);
-          if (el instanceof HTMLInputElement) el.value = "";
-        }
-        setDirty(false);
+    if (action === "save")
+      for (const name of ["login", "password"]) {
+        const el = form.current?.elements.namedItem(name);
+        if (el instanceof HTMLInputElement) el.value = "";
       }
-    } catch {
-      setError(
-        copy(
-          "Не вдалося підключитися. Повторіть спробу.",
-          "Could not connect. Retry the operation.",
-        ),
-      );
-    } finally {
-      setBusy(false);
-    }
   }
   function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();

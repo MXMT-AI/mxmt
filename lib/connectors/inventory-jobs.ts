@@ -58,13 +58,13 @@ export async function getInventoryProgress(tenantId: string, db: SqlClient = pri
 }
 /** Resume a failed or paused inventory job at its retained receipt/catalog stage. */
 export const resumeInventoryImport = (tenantId: string, db: SqlDatabase = prisma) => resumeConnectorJob(tenantId, "inventory", db);
-type Runtime = (tenantId: string, backfill?:boolean,sourceId?:string) => Promise<{ sourceId: string; revision: number; timezone: string; connector: MerchandisingConnector }>;
+type Runtime = (tenantId: string, backfill?:boolean,sourceId?:string,importRunId?:string) => Promise<{ sourceId: string; revision: number; timezone: string; connector: MerchandisingConnector }>;
 /** One receipt page or one validated atomic catalogue refresh per worker invocation. */
-export async function processInventoryJob(tenantId?: string, db: SqlDatabase = prisma, load: Runtime = (id,backfill,sourceId)=>loadConnectorRuntime(id,backfill,db,undefined,sourceId), claimed?: InventoryJob) {
+export async function processInventoryJob(tenantId?: string, db: SqlDatabase = prisma, load: Runtime = (id,backfill,sourceId,runId)=>loadConnectorRuntime(id,backfill,db,undefined,sourceId,runId), claimed?: InventoryJob) {
   const job = claimed ?? await claimConnectorJob<InventoryJob>("inventory", db, tenantId);
   if (!job) return { processed: false };
   try {
-    const runtime = await load(job.tenantId,false,job.sourceId);
+    const runtime = await load(job.tenantId,false,job.sourceId,job.importRunId);
     if (runtime.sourceId !== job.sourceId || runtime.revision !== job.connectionRevision) throw new Error("CONNECTOR_CONFIG_CHANGED");
     const checkpoint = { ...job.checkpoint }, stats = { ...job.stats };
     if(checkpoint.provider&&checkpoint.provider!==runtime.connector.provider) throw new Error("CONNECTOR_CONFIG_CHANGED");
