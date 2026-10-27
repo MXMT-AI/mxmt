@@ -126,3 +126,78 @@ it("reserves query-cost headroom for routine work during backfill", async () => 
     await reserveQueryCost(f.db, "cost-headroom", policy, now, false),
   ).toBeNull();
 });
+
+it("cancels rejected response bodies and both tee branches of an oversized stream", async () => {
+  const url = new URL("https://fixture.myshopify.com/graphql"),
+    policy = { estimatedCost: 1, maximum: 100, restoreRate: 10 };
+  const invalid = [
+    new Response("{broken"),
+    Response.json({ errors: [{ extensions: { code: "THROTTLED" } }] }),
+    Response.json({ data: { private: true }, errors: [{ message: "failed" }] }),
+    Response.json({
+      data: {},
+      extensions: { cost: { throttleStatus: { maximumAvailable: -1 } } },
+    }),
+  ];
+  for (const [i, response] of invalid.entries()) {
+    let cancellations = 0;
+    const clone = response.clone.bind(response);
+    vi.spyOn(response, "clone").mockImplementation(() => {
+      const copy = clone();
+      const cancel = response.body!.cancel.bind(response.body!);
+      vi.spyOn(response.body!, "cancel").mockImplementation((reason) => {
+        cancellations++;
+        return cancel(reason);
+      });
+      return copy;
+    });
+    const fetcher = graphqlBudgetedFetcher(
+      `shopify:reject-${i}`,
+      f.db,
+      async () => response,
+      policy,
+    );
+    await expect(fetcher(url, {})).rejects.toMatchObject({
+      code: i === 1 ? "RATE_LIMITED" : "INVALID_RESPONSE",
+    });
+    expect(cancellations).toBe(1);
+  }
+  const cancelled = vi.fn();
+  const response = new Response(
+    new ReadableStream({
+      pull(controller) {
+        controller.enqueue(new Uint8Array(1024 * 1024));
+      },
+      cancel: cancelled,
+    }),
+  );
+  const fetcher = graphqlBudgetedFetcher(
+    "shopify:oversized",
+    f.db,
+    async () => response,
+    policy,
+  );
+  await expect(fetcher(url, {})).rejects.toMatchObject({
+    code: "RESPONSE_TOO_LARGE",
+  });
+  expect(cancelled).toHaveBeenCalledTimes(1);
+
+  const successful = Response.json({ data: { orders: [] } });
+  const accepted = graphqlBudgetedFetcher(
+    "shopify:success-body",
+    f.db,
+    async () => successful,
+    policy,
+  );
+  expect(await (await accepted(url, {})).json()).toEqual({
+    data: { orders: [] },
+  });
+  const failed = new Response("upstream error", { status: 500 });
+  const passthrough = graphqlBudgetedFetcher(
+    "shopify:http-error",
+    f.db,
+    async () => failed,
+    policy,
+  );
+  expect(await (await passthrough(url, {})).text()).toBe("upstream error");
+});

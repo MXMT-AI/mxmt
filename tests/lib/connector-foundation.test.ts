@@ -119,7 +119,7 @@ it("runs the same financial/daily/navigation consumers for equivalent non-SalesD
   const navigation = await readNavigationOptions("b", f.db);
   // Transform only this synthetic fixture's provider identity; production sources are never relabeled.
   await f.pg.exec(
-    `UPDATE "DataSource" SET kind='CSV' WHERE id='bimba:source'; UPDATE "ConnectorConnection" SET provider='csv',"lastCheck"='{"ok":true}' WHERE "tenantId"='b'; UPDATE "MerchandisingConfig" SET key=replace(key,'salesdrive:','csv:') WHERE "tenantId"='b' AND "configType"='SOURCE_MAPPING';`,
+    `UPDATE "DataSource" SET kind='CSV' WHERE id='bimba:source'; UPDATE "ConnectorSyncJob" SET checkpoint=checkpoint||'{"historyComplete":true}'::jsonb WHERE id='bimba:orders-job'; UPDATE "ConnectorConnection" SET provider='csv',"lastCheck"='{"ok":true}' WHERE "tenantId"='b'; UPDATE "MerchandisingConfig" SET key=replace(key,'salesdrive:','csv:') WHERE "tenantId"='b' AND "configType"='SOURCE_MAPPING';`,
   );
   expect(await readSelectedSource("b", f.db)).toBeNull();
   await selectConnectorSource("b", "owner-b", "bimba:source", 0, f.db);
@@ -141,4 +141,66 @@ it("uses explicitly bounded partial history for current metrics without claiming
   expect(report.history).toEqual({ current: true, ly: false });
   expect(report.summary[0].ly.coverage).toBe("PARTIAL");
   expect(report.summary[0].revenueChangePct).toBeNull();
+});
+
+it("does not bridge unverified history with a scan watermark but accepts contiguous verified incremental history", async () => {
+  const { readOrderHistory } = await import("@/lib/connectors/order-history");
+  const { createOrderHistoryCoverage } = await import("@/lib/order-history");
+  await f.pg
+    .exec(`UPDATE "ConnectorSyncJob" SET checkpoint=checkpoint||'{"coverageFrom":"2025-01-01T00:00:00.000Z","coverageTo":"2026-08-01T00:00:00.000Z"}'::jsonb WHERE id='bimba:orders-job';
+    INSERT INTO "DataImportRun" (id,"tenantId","sourceId",trigger,status,"idempotencyKey","businessDate","completedAt","updatedAt") VALUES ('unverified','b','bimba:source','MANUAL','WARNING','unverified',now(),now(),now());
+    INSERT INTO "ConnectorSyncJob" (id,"tenantId","sourceId","importRunId",resource,mode,state,"connectionRevision",checkpoint,"updatedAt") VALUES ('unverified','b','bimba:source','unverified','orders','BACKFILL','COMPLETE',1,'{"from":"2026-08-01T00:00:00.000Z","to":"2026-10-25T09:00:00.000Z","historyComplete":false}',now());`);
+  // The scan has advanced, but the old verified baseline stops in August.
+  let evidence = await readOrderHistory("b", "bimba:source", f.db);
+  expect(evidence.cursor?.through).toBe("2026-10-25T09:00:00Z");
+  expect(evidence.cursor?.coverageThrough).toBeNull();
+  expect(
+    (await getSalesReport("b", screenSelection, f.db)).history.current,
+  ).toBe(false);
+  const daily = await calculateSkuDaily("b", screenSelection, f.db);
+  const diagnostics = (
+    await f.pg.query<{ diagnostics: string[] }>(
+      `SELECT diagnostics FROM "SkuDaily" WHERE "tenantId"='b' AND "configId"=$1`,
+      [daily.calculationId],
+    )
+  ).rows;
+  expect(diagnostics.length).toBeGreaterThan(0);
+  expect(
+    diagnostics.every((r) =>
+      r.diagnostics.includes("SALES_HISTORY_INCOMPLETE"),
+    ),
+  ).toBe(true);
+  const blocked = await createScreenSnapshot("b", screenSelection, f.db);
+  expect(
+    (
+      await createRepricingInputs(
+        "b",
+        blocked.snapshotId,
+        f.db,
+        screenSelection.now,
+      )
+    ).windows[1].complete,
+  ).toBe(false);
+
+  await f.pg.exec(
+    `UPDATE "ConnectorSyncJob" SET mode='INCREMENTAL',checkpoint=checkpoint||'{"historyComplete":true,"coverageFrom":"2026-09-15T00:00:00.000Z","coverageTo":"2026-10-25T09:00:00.000Z"}'::jsonb WHERE id='unverified';`,
+  );
+  expect(
+    (await getSalesReport("b", screenSelection, f.db)).history.current,
+  ).toBe(false); // verified spans still have a gap
+  await f.pg.exec(
+    `UPDATE "ConnectorSyncJob" SET checkpoint=checkpoint||'{"coverageFrom":"2026-08-01T00:00:00.000Z"}'::jsonb WHERE id='unverified';`,
+  );
+  evidence = await readOrderHistory("b", "bimba:source", f.db);
+  expect(
+    createOrderHistoryCoverage(
+      evidence.windows,
+      evidence.cursor?.coverageThrough ?? null,
+      "Europe/Kyiv",
+      false,
+    ).covers("2026-09-01", "2026-09-30"),
+  ).toBe(true);
+  expect(
+    (await getSalesReport("b", screenSelection, f.db)).history.current,
+  ).toBe(true);
 });

@@ -78,7 +78,7 @@ export async function processInventoryJob(tenantId?: string, db: SqlDatabase = p
       checkpoint.continuation=next??state;
       if(runtime.connector.provider!=="salesdrive") {
         const coverage=page.historyCoverage;
-        const complete=Boolean(coverage?.complete && !checkpoint.from && Date.parse(coverage.to)>=Date.parse(checkpoint.to));
+        const complete=Boolean(coverage?.complete === true && Number.isFinite(Date.parse(coverage.from)) && Date.parse(coverage.from)<=Date.parse(coverage.to) && Date.parse(coverage.to)>=Date.parse(checkpoint.to) && (!checkpoint.from || Date.parse(coverage.from)<=Date.parse(checkpoint.from)));
         checkpoint.receiptHistoryComplete=state.sequence===0?complete:checkpoint.receiptHistoryComplete===true&&complete;
       }
     }

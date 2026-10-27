@@ -71,6 +71,7 @@ export type ConnectorPosition = {kind:"page";page:number} | {kind:"offset";offse
 export interface ConnectorPage<T> {
   /** Explicit continuation for v2 adapters. Undefined is the legacy numeric-page protocol. */
   next?: ConnectorPosition | null;
+  /** Verified order-creation/receipt history, not merely an updated-at scan window. */
   historyCoverage?: {from:string;to:string;complete:boolean};
   /** Original response text for server-side audit; never expose to client progress. */
   rawResponse?: string;

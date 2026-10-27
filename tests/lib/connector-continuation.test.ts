@@ -19,6 +19,11 @@ const page = {
 it("resumes old numeric checkpoints while detecting backwards or oversized pages", () => {
   const state = continuation(undefined, context, "page", 4);
   expect(pageRequest(state)).toEqual({ page: 4 });
+  expect(state.seen).toEqual([]);
+  expect(advancePage(state, { ...page, nextPage: 5 }, 2)?.seen).toEqual([]);
+  expect(() =>
+    advancePage({ ...state, sequence: 9999 }, { ...page, nextPage: 5 }, 2),
+  ).toThrow();
   expect(advancePage(state, { ...page, nextPage: 5 }, 2)?.position).toEqual({
     kind: "page",
     page: 5,
@@ -64,6 +69,7 @@ it("advances offsets by actual rows, preserving a short nonterminal page", () =>
     2,
   )!;
   expect(pageRequest(next)).toEqual({ offset: 1 });
+  expect(next.seen).toEqual([]);
   expect(() =>
     advancePage(
       next,

@@ -43,7 +43,7 @@ export function continuation(
     binding: key,
     position,
     sequence: 0,
-    seen: [payloadHash(position)],
+    seen: kind === "cursor" ? [payloadHash(position)] : [],
   };
 }
 function validPosition(p: ConnectorPosition) {
@@ -109,13 +109,13 @@ export function advancePage<T>(
         next.offset !== state.position.offset + page.records.length))
   )
     throw new ConnectorReadError("INVALID_RESPONSE");
-  const hash = payloadHash(next);
-  if (state.seen.includes(hash) || state.sequence >= 9999)
+  const hash = next.kind === "cursor" ? payloadHash(next) : null;
+  if ((hash !== null && state.seen.includes(hash)) || state.sequence >= 9999)
     throw new ConnectorReadError("INVALID_RESPONSE");
   return {
     ...state,
     position: next,
     sequence: state.sequence + 1,
-    seen: [...state.seen, hash],
+    seen: hash !== null ? [...state.seen, hash] : state.seen,
   };
 }

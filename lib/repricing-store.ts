@@ -1,3 +1,4 @@
+import { readOrderHistory } from "./connectors/order-history";
 import { assertSelectedSource } from "./connectors/source";
 import "server-only";
 import { profileFilters } from "./merchandising-profile";
@@ -158,9 +159,7 @@ export async function createRepricingInputs(
       )
         throw new RepricingError("REPRICING_SOURCE_CHANGED", 409);
       salesCalculationId = report.calculationRunId;
-      const spans = await tx.$queryRaw<Array<{ from: string; to: string }>>(
-        Prisma.sql`SELECT COALESCE(j.checkpoint->>'coverageFrom',j.checkpoint->>'from') "from",COALESCE(j.checkpoint->>'coverageTo',j.checkpoint->>'to') "to" FROM "ConnectorSyncJob" j JOIN "DataImportRun" r ON r.id=j."importRunId" AND r."tenantId"=j."tenantId" WHERE j."tenantId"=${tenantId} AND j."sourceId"=${snapshot.sourceId} AND j.resource='orders' AND j.mode='BACKFILL' AND j.state='COMPLETE' AND j.checkpoint->>'historyComplete' IS DISTINCT FROM 'false' AND r.status IN ('SUCCESS','WARNING') ORDER BY j."createdAt" LIMIT 1001`,
-      );
+      const { windows: spans, cursor } = await readOrderHistory(tenantId, snapshot.sourceId, tx);
       const badFacts = facts.some(
         (f) =>
           f.stale ||
@@ -175,7 +174,7 @@ export async function createRepricingInputs(
         report.issues.some((i) => i.code === "IMPORT_QUARANTINED");
       const history = createOrderHistoryCoverage(
         spans,
-        live.orderThrough,
+        cursor?.coverageThrough ?? null,
         live.timezone,
         blocked,
       );

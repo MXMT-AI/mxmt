@@ -163,6 +163,15 @@ coverage can support September current metrics while LY stays incomplete and the
 change percentage stays unavailable. Known partial amounts remain visible under
 existing partial-data rules; they are not converted into complete acceptance totals.
 
+For new providers, `SyncCursor.through` tracks scan progress only. The shared
+`readOrderHistory` boundary supplies all three consumers with explicitly verified
+backfill/incremental creation-history intervals; it never extends them to that
+scan cursor. Verified intervals are merged in SQL before the disconnected-span
+limit and complete-business-day calculation, retaining gaps. This also avoids
+counting every routine incremental page/window toward the history limit. A
+webhook or successful updated-at scan alone cannot certify creation history.
+SalesDrive retains its legacy baseline plus incremental-watermark contract.
+
 For a paginated catalog, each page carries a stable observation identity and an
 explicit complete-population declaration. Pages are staged durably under their
 job/source/tenant. A failed/partial/mismatched observation cannot change active
@@ -217,12 +226,16 @@ New synthetic tests exercise:
   without duplicate facts and source switching during a remote read.
 - Provider/account request isolation, durable cost restoration/headroom and HTTP-200
   GraphQL partial/error/throttle handling.
+- PR #87 review regressions: sale-cost evidence bounded by each stock observation,
+  complete versus gapped incremental receipt intervals, unverified/disconnected
+  order history versus contiguous verified incremental intervals, and cancellation
+  of both response tee branches when GraphQL inspection rejects a response.
 
 Local validation passed:
 
-- `npm test -- --maxWorkers=2`: 994 tests across 94 files.
-- Focused source-selection tests after tightening checked-source validation:
-  6 tests across 2 files.
+- `npm test -- --maxWorkers=2` after PR #87 review fixes: 998 tests across 95 files.
+- Focused continuation/source/history/receipt/cost/response-cleanup regression:
+  17 tests across 5 files.
 - `npm run build`: production build, including Prisma client generation.
 - `npx tsc --noEmit`, `npx prisma validate` and `git diff --check`.
 

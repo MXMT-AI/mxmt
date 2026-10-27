@@ -1,3 +1,4 @@
+import { readOrderHistory } from "./connectors/order-history";
 import { readSelectedSource, mappingKey } from "./connectors/source";
 import { trustedOrderProjectionSql } from "./order-projection-policy";
 import { withCalculationSnapshot } from "./calculation-snapshot";
@@ -115,14 +116,9 @@ export async function getSalesReportInSnapshot(
     Prisma.sql`SELECT r.id,COALESCE((j.stats->>'quarantined')::int,0) quarantined FROM "DataImportRun" r JOIN "ConnectorSyncJob" j ON j."importRunId"=r.id AND j."tenantId"=r."tenantId" AND j."sourceId"=r."sourceId" WHERE r."tenantId"=${tenantId} AND r."sourceId"=${source.id} AND r.status IN ('SUCCESS','WARNING') AND j.state='COMPLETE' AND j.resource='orders' ORDER BY r."completedAt" DESC,r.id DESC LIMIT 1`,
   );
   if (!anchor) throw new SalesReportError("SALES_IMPORT_NOT_READY");
-  const windows = await tx.$queryRaw<Array<{ from: string; to: string }>>(
-    Prisma.sql`SELECT COALESCE(j.checkpoint->>'coverageFrom',j.checkpoint->>'from') "from",COALESCE(j.checkpoint->>'coverageTo',j.checkpoint->>'to') "to" FROM "ConnectorSyncJob" j JOIN "DataImportRun" r ON r.id=j."importRunId" AND r."tenantId"=j."tenantId" WHERE j."tenantId"=${tenantId} AND j."sourceId"=${source.id} AND j.resource='orders' AND j.mode='BACKFILL' AND j.state='COMPLETE' AND j.checkpoint->>'historyComplete' IS DISTINCT FROM 'false' AND r.status IN ('SUCCESS','WARNING') ORDER BY j."createdAt" LIMIT 1001`,
-  );
+  const { windows, cursor } = await readOrderHistory(tenantId, source.id, tx);
   if (windows.length > 1000)
     throw new SalesReportError("SALES_HISTORY_LIMIT", 422);
-  const [cursor] = await tx.$queryRaw<Array<{ through: string | null }>>(
-    Prisma.sql`SELECT checkpoint->>'through' through FROM "SyncCursor" WHERE "tenantId"=${tenantId} AND "sourceId"=${source.id} AND resource='orders'`,
-  );
   const [pending] = await tx.$queryRaw<Array<{ n: number }>>(
     Prisma.sql`SELECT count(*)::int n FROM "ConnectorSyncJob" WHERE "tenantId"=${tenantId} AND "sourceId"=${source.id} AND resource IN ('orders','inventory','catalog') AND state<>'COMPLETE'`,
   );
@@ -169,7 +165,7 @@ export async function getSalesReportInSnapshot(
   });
   const history = salesHistoryCoverage(
     windows,
-    cursor?.through ?? null,
+    cursor?.coverageThrough ?? null,
     period,
     source.timezone,
     pending.n > 0,
@@ -193,7 +189,7 @@ export async function getSalesReportInSnapshot(
   const oneOffHistory =
     salesHistoryCoverage(
       windows,
-      cursor?.through ?? null,
+      cursor?.coverageThrough ?? null,
       { ...period, lyFrom: lyMonthFrom, lyTo: lyMonthTo },
       source.timezone,
       pending.n > 0,

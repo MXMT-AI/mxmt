@@ -76,7 +76,7 @@ export async function storeCatalog(tx: SqlClient, scope: OrderScope, snapshot: C
     SELECT l."skuId",MIN(CASE WHEN (l."sourceAmounts"->>'unitCost') ~ '^[0-9]{1,14}([.][0-9]{1,4})?$' THEN (l."sourceAmounts"->>'unitCost')::numeric END) cost,
       jsonb_agg(DISTINCT l."externalOrderId") ids,jsonb_agg(DISTINCT l."sourceRecordKey") "rawKeys",jsonb_agg(DISTINCT l."importRunId") "runIds",MAX(l."paidAt") "paidAt" FROM "OrderLine" l JOIN mxmt_catalog_stage t2 ON t2."skuId"=l."skuId"
     WHERE l."tenantId"=${tenantId} AND l."sourceId"=${sourceId} AND l.kind='SALE' AND l."eventKey"='current' AND l.quantity>0
-      AND l."paidAt"=(SELECT MAX(l2."paidAt") FROM "OrderLine" l2 WHERE l2."tenantId"=${tenantId} AND l2."sourceId"=${sourceId} AND l2."skuId"=l."skuId" AND l2.kind='SALE' AND l2."eventKey"='current' AND l2.quantity>0 AND l2."paidAt"<=${observedAt})
+      AND l."paidAt"=(SELECT MAX(l2."paidAt") FROM "OrderLine" l2 WHERE l2."tenantId"=${tenantId} AND l2."sourceId"=${sourceId} AND l2."skuId"=l."skuId" AND l2.kind='SALE' AND l2."eventKey"='current' AND l2.quantity>0 AND l2."paidAt"<=t2."observedAt")
     GROUP BY l."skuId" HAVING bool_and(l."costAmount" IS NOT NULL AND l.currency IS NOT NULL AND l.currency=t2.currency AND
       CASE WHEN (l."sourceAmounts"->>'unitCost') ~ '^[0-9]{1,14}([.][0-9]{1,4})?$' THEN (l."sourceAmounts"->>'unitCost')::numeric>0 ELSE false END)
       AND count(DISTINCT l."sourceAmounts"->>'unitCost')=1) s WHERE t."skuId"=s."skuId" AND t."costPrice" IS NULL`);

@@ -101,88 +101,96 @@ export function graphqlBudgetedFetcher(
     if (retry) throw new ConnectorReadError("RATE_LIMITED", retry);
     const response = await request(url, init);
     if (!response.ok) return response;
-    const reader = response.clone().body?.getReader();
-    if (!reader) throw new ConnectorReadError("INVALID_RESPONSE");
-    const chunks: Uint8Array[] = [];
-    let size = 0;
+    let copy: Response | undefined;
     try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        size += value.byteLength;
-        if (size > 8 * 1024 * 1024) {
-          void reader.cancel();
-          throw new ConnectorReadError("RESPONSE_TOO_LARGE");
+      copy = response.clone();
+      const reader = copy.body?.getReader();
+      if (!reader) throw new ConnectorReadError("INVALID_RESPONSE");
+      const chunks: Uint8Array[] = [];
+      let size = 0;
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          size += value.byteLength;
+          if (size > 8 * 1024 * 1024) {
+            throw new ConnectorReadError("RESPONSE_TOO_LARGE");
+          }
+          chunks.push(value);
         }
-        chunks.push(value);
+      } finally {
+        reader.releaseLock();
       }
-    } finally {
-      reader.releaseLock();
-    }
-    let body: any;
-    try {
-      body = parseSourceJson(Buffer.concat(chunks).toString("utf8"));
-    } catch {
-      throw new ConnectorReadError("INVALID_RESPONSE");
-    }
-    const rawThrottle = body?.extensions?.cost?.throttleStatus;
-    const number = (v: unknown) =>
-      typeof v === "string" && /^\d+(\.\d+)?$/.test(v) ? Number(v) : v;
-    const throttle =
-      rawThrottle === undefined
-        ? undefined
-        : {
-            maximumAvailable: number(rawThrottle?.maximumAvailable),
-            currentlyAvailable: number(rawThrottle?.currentlyAvailable),
-            restoreRate: number(rawThrottle?.restoreRate),
+      let body: any;
+      try {
+        body = parseSourceJson(Buffer.concat(chunks).toString("utf8"));
+      } catch {
+        throw new ConnectorReadError("INVALID_RESPONSE");
+      }
+      const rawThrottle = body?.extensions?.cost?.throttleStatus;
+      const number = (v: unknown) =>
+        typeof v === "string" && /^\d+(\.\d+)?$/.test(v) ? Number(v) : v;
+      const throttle =
+        rawThrottle === undefined
+          ? undefined
+          : {
+              maximumAvailable: number(rawThrottle?.maximumAvailable),
+              currentlyAvailable: number(rawThrottle?.currentlyAvailable),
+              restoreRate: number(rawThrottle?.restoreRate),
+            };
+      const throttled =
+        Array.isArray(body?.errors) &&
+        body.errors.some((e: any) => e?.extensions?.code === "THROTTLED");
+      if (throttle !== undefined) {
+        if (
+          !finite(throttle.maximumAvailable) ||
+          !finite(throttle.currentlyAvailable) ||
+          !finite(throttle.restoreRate) ||
+          throttle.restoreRate <= 0 ||
+          throttle.currentlyAvailable > throttle.maximumAvailable
+        )
+          throw new ConnectorReadError("INVALID_RESPONSE");
+        const maximum = throttle.maximumAvailable,
+          current = throttle.currentlyAvailable,
+          rate = throttle.restoreRate;
+        await db.$transaction(async (tx) => {
+          const [row] = await tx.$queryRaw<Array<{ costState: CostState }>>(
+            Prisma.sql`SELECT "costState" FROM "ConnectorRequestBudget" WHERE "accountKey"=${key} FOR UPDATE`,
+          );
+          const now = new Date();
+          // Out-of-order responses cannot credit cost already reserved by another worker.
+          const state = {
+            available: Math.min(available(row.costState, now), current),
+            maximum,
+            restoreRate: rate,
+            at: now.toISOString(),
           };
-    const throttled =
-      Array.isArray(body?.errors) &&
-      body.errors.some((e: any) => e?.extensions?.code === "THROTTLED");
-    if (throttle !== undefined) {
+          await tx.$executeRaw(
+            Prisma.sql`UPDATE "ConnectorRequestBudget" SET "costState"=${JSON.stringify(state)}::jsonb WHERE "accountKey"=${key}`,
+          );
+        });
+      }
+      if (throttled) {
+        const retryAt = new Date(Date.now() + 60000);
+        await db.$executeRaw(
+          Prisma.sql`UPDATE "ConnectorRequestBudget" SET "blockedUntil"=GREATEST(COALESCE("blockedUntil",${retryAt}),${retryAt}) WHERE "accountKey"=${key}`,
+        );
+        throw new ConnectorReadError("RATE_LIMITED", retryAt);
+      }
       if (
-        !finite(throttle.maximumAvailable) ||
-        !finite(throttle.currentlyAvailable) ||
-        !finite(throttle.restoreRate) ||
-        throttle.restoreRate <= 0 ||
-        throttle.currentlyAvailable > throttle.maximumAvailable
+        !body ||
+        typeof body !== "object" ||
+        (body.errors !== undefined &&
+          (!Array.isArray(body.errors) || body.errors.length > 0)) ||
+        !body.data
       )
         throw new ConnectorReadError("INVALID_RESPONSE");
-      const maximum = throttle.maximumAvailable,
-        current = throttle.currentlyAvailable,
-        rate = throttle.restoreRate;
-      await db.$transaction(async (tx) => {
-        const [row] = await tx.$queryRaw<Array<{ costState: CostState }>>(
-          Prisma.sql`SELECT "costState" FROM "ConnectorRequestBudget" WHERE "accountKey"=${key} FOR UPDATE`,
-        );
-        const now = new Date();
-        // Out-of-order responses cannot credit cost already reserved by another worker.
-        const state = {
-          available: Math.min(available(row.costState, now), current),
-          maximum,
-          restoreRate: rate,
-          at: now.toISOString(),
-        };
-        await tx.$executeRaw(
-          Prisma.sql`UPDATE "ConnectorRequestBudget" SET "costState"=${JSON.stringify(state)}::jsonb WHERE "accountKey"=${key}`,
-        );
-      });
+      return response;
+    } catch (error) {
+      // A tee waits for both branches: start both cancellations before awaiting.
+      // The inspection reader has released its lock, including on size/read errors.
+      await Promise.allSettled([response.body?.cancel(), copy?.body?.cancel()]);
+      throw error;
     }
-    if (throttled) {
-      const retryAt = new Date(Date.now() + 60000);
-      await db.$executeRaw(
-        Prisma.sql`UPDATE "ConnectorRequestBudget" SET "blockedUntil"=GREATEST(COALESCE("blockedUntil",${retryAt}),${retryAt}) WHERE "accountKey"=${key}`,
-      );
-      throw new ConnectorReadError("RATE_LIMITED", retryAt);
-    }
-    if (
-      !body ||
-      typeof body !== "object" ||
-      (body.errors !== undefined &&
-        (!Array.isArray(body.errors) || body.errors.length > 0)) ||
-      !body.data
-    )
-      throw new ConnectorReadError("INVALID_RESPONSE");
-    return response;
   };
 }

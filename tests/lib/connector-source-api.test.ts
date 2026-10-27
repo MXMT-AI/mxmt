@@ -67,7 +67,7 @@ it("rejects identity overrides, cross-tenant targets and stale revisions before 
   const saved = await POST(request({ sourceId: "alt", revision: 0 }));
   expect(saved.status).toBe(200);
   expect((await saved.json()).sourceId).toBe("alt");
-  expect(
-    (await POST(request({ sourceId: "source", revision: 0 }))).status,
-  ).toBe(409);
+  const stale = await POST(request({ sourceId: "source", revision: 0 }));
+  expect(stale.status).toBe(409);
+  expect((await stale.json()).code).toBe("SOURCE_SELECTION_CHANGED");
 });

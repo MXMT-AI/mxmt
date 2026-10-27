@@ -104,7 +104,7 @@ export async function processOrderJob(tenantId?: string, db: SqlDatabase = prism
       page={...page,next:next?.position??null};
       if(runtime.connector.provider!=="salesdrive") {
         const coverage=page.historyCoverage;
-        const valid=Boolean(coverage?.complete&&utcWatermark(coverage.from)&&utcWatermark(coverage.to)&&Date.parse(coverage.from)<=Date.parse(coverage.to));
+        const valid=Boolean(coverage?.complete===true&&utcWatermark(coverage.from)&&utcWatermark(coverage.to)&&Date.parse(coverage.from)<=Date.parse(coverage.to));
         checkpoint.historyComplete=position.sequence===0?valid:checkpoint.historyComplete===true&&valid;
         if(valid&&coverage) {
           const from=new Date(Math.max(Date.parse(checkpoint.coverageFrom??checkpoint.from),Date.parse(coverage.from))).toISOString();
