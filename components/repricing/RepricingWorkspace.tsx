@@ -52,6 +52,7 @@ export default function RepricingWorkspace() {
         <RepricingEditor
           key={data.context.snapshotId}
           snapshotId={data.context.snapshotId}
+          monobrand={data.context.profileMode === "MONOBRAND"}
           lang={lang}
           onRefresh={refresh}
         />

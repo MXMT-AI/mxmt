@@ -2,18 +2,14 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useLang } from "@/components/LanguageProvider";
-import {
-  useMerchandisingFilters,
-  useMerchandisingOptions,
-} from "@/components/merchandising/MerchandisingShell";
+import { useMerchandisingFilters } from "@/components/merchandising/MerchandisingShell";
 import { merchandisingHref } from "@/lib/merchandising-navigation";
 import { overviewCopy } from "@/lib/overview-copy";
 import { useOverview } from "./useOverview";
 import OverviewContent from "./OverviewContent";
 /** Existing auth-aware API wrapper and shared URL filters drive one published Overview. */
 export default function OverviewWorkspace() {
-  const filters = useMerchandisingFilters()!,
-    options = useMerchandisingOptions();
+  const filters = useMerchandisingFilters()!;
   const { lang } = useLang(),
     copy = overviewCopy[lang],
     params = useSearchParams();
@@ -57,7 +53,7 @@ export default function OverviewWorkspace() {
       data={data}
       lang={lang}
       query={params.toString()}
-      monobrand={options?.monobrand ?? true}
+      monobrand={data.context.profileMode === "MONOBRAND"}
       onRefresh={refresh}
     />
   );

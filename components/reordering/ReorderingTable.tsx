@@ -15,6 +15,7 @@ import styles from "@/components/merchandising/report.module.css";
 type Row = ReorderingPreview["rows"][number];
 /** Render frozen server recommendations and transient confirmations without deriving order quantities. */
 export default function ReorderingTable({
+  monobrand = false,
   data,
   copy,
   locale,
@@ -25,6 +26,7 @@ export default function ReorderingTable({
   onRestore,
   onPage,
 }: {
+  monobrand?: boolean;
   data: ReorderingPreview;
   copy: ReorderingCopy;
   locale: string;
@@ -78,10 +80,15 @@ export default function ReorderingTable({
                 <div className="min-w-48 max-w-72 whitespace-normal break-words">
                   <strong className="font-semibold">{row.name}</strong>
                   <p className="mt-1 text-[var(--muted)]">
-                    <span translate="no">
-                      {row.brandName ?? copy.unassigned}
-                    </span>{" "}
-                    · {row.categoryName ?? copy.unassigned}
+                    {!monobrand && (
+                      <>
+                        <span translate="no">
+                          {row.brandName ?? copy.unassigned}
+                        </span>{" "}
+                        ·{" "}
+                      </>
+                    )}
+                    {row.categoryName ?? copy.unassigned}
                   </p>
                   <p translate="no">
                     {copy.sku}: {row.sku}

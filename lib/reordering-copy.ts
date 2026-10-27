@@ -9,7 +9,11 @@ export const reorderingCopy = {
     updating: "Updating recommendations…",
     ready: "Recommendations updated",
     mode: "What to order",
-    modes: { shortage: "Shortage and at risk", brand: "Specific brand" },
+    modes: {
+      shortage: "Shortage and at risk",
+      brand: "Specific brand",
+      all: "All products",
+    },
     brand: "Brand",
     allBrands: "All brands",
     supplier: "Supplier",
@@ -48,6 +52,8 @@ export const reorderingCopy = {
       "Confirm a known quantity or explicit zero. Unknown transit is never assumed to be zero.",
     scopeNote:
       "Changing brand, supplier or mode clears transit confirmations. Changing delivery terms or table page preserves them.",
+    scopeNoteMono:
+      "Changing supplier or mode clears transit confirmations. Changing delivery terms or table page preserves them.",
     urgent: "Stock runs out before delivery",
     offSeason: "Off season — no order",
     new: "New-product quarantine — no automatic order",
@@ -124,7 +130,11 @@ export const reorderingCopy = {
     updating: "Оновлення рекомендацій…",
     ready: "Рекомендації оновлено",
     mode: "Що замовляємо",
-    modes: { shortage: "Дефіцитні та під ризиком", brand: "Конкретний бренд" },
+    modes: {
+      shortage: "Дефіцитні та під ризиком",
+      brand: "Конкретний бренд",
+      all: "Усі товари",
+    },
     brand: "Бренд",
     allBrands: "Усі бренди",
     supplier: "Постачальник",
@@ -163,6 +173,8 @@ export const reorderingCopy = {
       "Підтвердьте відому кількість або явний нуль. Невідомий товар у дорозі не вважається нулем.",
     scopeNote:
       "Зміна бренду, постачальника чи режиму скидає підтвердження товару в дорозі. Зміна термінів або сторінки таблиці зберігає їх.",
+    scopeNoteMono:
+      "Зміна постачальника чи режиму скидає підтвердження товару в дорозі. Зміна термінів або сторінки таблиці зберігає їх.",
     urgent: "Закінчиться раніше, ніж приїде поставка",
     offSeason: "Поза сезоном — не замовляємо",
     new: "Карантин нового товару — без автоматичного замовлення",

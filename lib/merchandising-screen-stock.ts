@@ -25,7 +25,7 @@ export function screenStockFilter(
     candidates = Prisma.sql`${merchandise} AND d.classification IN ('DEAD','RISK') AND d.quantity>0`;
   if (screen === "reordering")
     candidates =
-      q.mode === "brand"
+      q.mode === "brand" || q.mode === "all"
         ? Prisma.sql`${merchandise} AND (d.active IS TRUE OR d.classification='OFF_SEASON')`
         : Prisma.sql`COALESCE((d.metrics->>'shortage')::boolean,false)`;
   return Prisma.sql`s."tenantId"=${tenantId} AND s."snapshotId"=${q.snapshotId} AND ${screenIdPredicate(Prisma.sql`d.metrics->>'brandId'`, q.brandId)} AND ${screenIdPredicate(Prisma.sql`d.metrics->>'categoryId'`, q.categoryId)} AND ${screenIdPredicate(Prisma.sql`s."skuId"`, q.skuId)} AND ${screenIdPredicate(Prisma.sql`d.currency`, q.currency)} AND ${screenIdPredicate(Prisma.sql`s.details->'policy'->>'supplierId'`, q.supplierId)} AND (${classification ?? null}::text IS NULL OR d.classification=${classification ?? null}) AND (${q.ownership ?? null}::text IS NULL OR d.metrics->>'ownership'=${q.ownership ?? null}) AND ${candidates} AND (${search}::text IS NULL OR d.metrics->>'sku' ILIKE ${search} OR d.metrics->>'name' ILIKE ${search} OR d.metrics->>'brandName' ILIKE ${search} OR s.details->>'categoryName' ILIKE ${search})`;

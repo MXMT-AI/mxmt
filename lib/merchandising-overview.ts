@@ -119,6 +119,12 @@ async function overviewStock(
   q: ScreenQuery,
   tx: SqlClient,
 ) {
+  const monobrand = snapshot.sales.context.settings.profileMode === "MONOBRAND",
+    group = monobrand ? "category" : "brand";
+  const groupId = Prisma.raw(`d.metrics->>'${group}Id'`),
+    groupName = monobrand
+      ? Prisma.sql`COALESCE(s.details->>'categoryName','Unassigned category')`
+      : Prisma.sql`COALESCE(d.metrics->>'brandName','Unassigned brand')`;
   const where = screenStockFilter(tenantId, q, "overview"),
     stats = stockStatsSql();
   const statuses = await readStockStatusGroups(tenantId, snapshot, q, tx);
@@ -131,7 +137,7 @@ async function overviewStock(
   const bottlenecks = await tx.$queryRaw<
     Array<StockGroup & { deadCost: string; receiptDate: string | null }>
   >(Prisma.sql`
-    WITH brands AS (SELECT d.metrics->>'brandId' id,MIN(COALESCE(d.metrics->>'brandName','Unassigned brand')) name,d.currency,${stats} stats,NULL::jsonb details,
+    WITH brands AS (SELECT ${groupId} id,MIN(${groupName}) name,d.currency,${stats} stats,NULL::jsonb details,
       COALESCE(sum((d.metrics->>'stockCostValue')::numeric) FILTER(WHERE d.classification='DEAD'),0) "deadCost",
       count(*) FILTER(WHERE d.classification='DEAD') dead,
       CASE WHEN count(*) FILTER(WHERE d.metrics->>'productKind'='MERCHANDISE' AND d.metrics->>'firstReceiptDate' IS NULL)>0 THEN NULL ELSE MIN(d.metrics->>'firstReceiptDate') END "receiptDate"
@@ -148,7 +154,8 @@ async function overviewStock(
     })),
     bottlenecks: bottlenecks.map((r) => ({
       ...stockGroupValues(r, norm),
-      brandId: r.id,
+      brandId: monobrand ? null : r.id,
+      categoryId: monobrand ? r.id : null,
       name: r.name,
       deadStockCost: D(r.deadCost).toString(),
       firstReceiptDate: r.receiptDate,
@@ -193,7 +200,15 @@ export async function readOverview(
   tx: SqlClient,
 ) {
   const [brands, trend, stock] = await Promise.all([
-    readSalesComparisons(tenantId, snapshot, q, tx),
+    readSalesComparisons(
+      tenantId,
+      snapshot,
+      q,
+      tx,
+      snapshot.sales.context.settings.profileMode === "MONOBRAND"
+        ? "category"
+        : "brand",
+    ),
     overviewTrend(tenantId, snapshot, q, tx),
     overviewStock(tenantId, snapshot, q, tx),
   ]);

@@ -1,4 +1,5 @@
 import "server-only";
+import { profileFilters } from "./merchandising-profile";
 import { Prisma } from "@prisma/client";
 import { Temporal } from "@js-temporal/polyfill";
 import { randomUUID } from "node:crypto";
@@ -265,6 +266,13 @@ export async function calculateRepricingInSnapshot(
   const snapshot = await readScreenSnapshot(tenantId, inputs.snapshotId, tx),
     rows = await frozenSkus(tenantId, snapshot, tx),
     sold = new Map(inputs.soldBySku.map((r) => [r.skuId, r.sold]));
+  request = {
+    ...request,
+    filters: profileFilters(
+      request.filters,
+      snapshot.sales.context.settings.profileMode === "MONOBRAND",
+    ),
+  };
   if (rows.length !== sold.size || rows.some((r) => !sold.has(r.skuId)))
     throw new RepricingError("INCOMPLETE_REPRICING_INPUTS", 409);
   return {

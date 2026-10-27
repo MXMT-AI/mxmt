@@ -1,4 +1,5 @@
 import "server-only";
+import { profileReordering } from "./merchandising-profile";
 import { Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
 import type { SqlClient, SqlDatabase } from "./connectors/database";
@@ -76,6 +77,7 @@ export async function calculateReorderingInSnapshot(
     };
   });
   const client = snapshot.sales.context.settings;
+  request = profileReordering(request, client.profileMode === "MONOBRAND");
   const options = (
     id: "brandId" | "supplierId",
     name: "brandName" | "supplierName",

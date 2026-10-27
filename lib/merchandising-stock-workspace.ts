@@ -122,7 +122,9 @@ export async function readStockWorkspace(
   const [statuses, categories, brands] = await Promise.all([
     readStockStatusGroups(tenantId, snapshot, base, db),
     groupPages(tenantId, snapshot, q, db, "category"),
-    groupPages(tenantId, snapshot, q, db, "brand"),
+    snapshot.sales.context.settings.profileMode === "MONOBRAND"
+      ? Promise.resolve([])
+      : groupPages(tenantId, snapshot, q, db, "brand"),
   ]);
   const norm = snapshot.sales.context.settings.turnoverMonths,
     policy = resolveMerchandisingPolicy({}, snapshot.sales.context.settings);
@@ -189,6 +191,7 @@ export async function readStockWorkspace(
     ]),
   ];
   return {
+    monobrand: snapshot.sales.context.settings.profileMode === "MONOBRAND",
     classificationAvailable: snapshot.stock.calculationVersion >= 2,
     classificationVersion: snapshot.stock.calculationVersion,
     asOf: snapshot.stock.asOf,

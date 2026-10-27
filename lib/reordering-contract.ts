@@ -12,7 +12,7 @@ export interface ReorderingOverride extends ReorderingParameters {
 }
 export interface ReorderingRequest {
   snapshotId: string;
-  mode: "shortage" | "brand";
+  mode: "shortage" | "brand" | "all";
   filters: {
     brandId?: string;
     categoryId?: string;

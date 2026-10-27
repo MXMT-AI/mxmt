@@ -6,6 +6,7 @@ const m = vi.hoisted(() => ({
   list: vi.fn(),
   effective: vi.fn(),
   save: vi.fn(),
+  createBrand: vi.fn(),
 }));
 vi.mock("next/headers", () => ({
   cookies: async () => ({
@@ -16,6 +17,9 @@ vi.mock("@/lib/merchandising-settings-store", () => ({
   listMerchandisingSettings: m.list,
   getEffectiveSkuSettings: m.effective,
   saveMerchandisingSettings: m.save,
+}));
+vi.mock("@/lib/merchandising-brand", () => ({
+  createMerchandisingBrand: m.createBrand,
 }));
 import { GET, POST } from "@/app/api/settings/merchandising/route";
 import { signAccessToken } from "@/lib/auth";
@@ -213,4 +217,24 @@ describe("tenant settings boundary", () => {
     ).toBe(413);
     expect(m.save).not.toHaveBeenCalled();
   });
+});
+
+it("creates a primary brand only for the signed tenant administrator", async () => {
+  await login("VIEWER");
+  expect(
+    (await POST(req({ action: "createBrand", name: "Bimba" }))).status,
+  ).toBe(403);
+  expect(m.createBrand).not.toHaveBeenCalled();
+  await login("ADMIN");
+  m.createBrand.mockResolvedValueOnce({ id: "brand-a", name: "Client brand" });
+  const r = await POST(
+    req({
+      action: "createBrand",
+      name: "Client brand",
+      tenantId: "b",
+      actorId: "owner-b",
+    }),
+  );
+  expect(r.status).toBe(200);
+  expect(m.createBrand).toHaveBeenCalledWith("a", "owner-a", "Client brand");
 });

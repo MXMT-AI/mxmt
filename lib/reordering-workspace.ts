@@ -20,7 +20,12 @@ export function readReorderingDraft(query: URLSearchParams): ReorderingDraft {
     if (value !== null) filters[key] = value;
   }
   return {
-    mode: query.get("mode") === "brand" ? "brand" : "shortage",
+    mode:
+      query.get("mode") === "all"
+        ? "all"
+        : query.get("mode") === "brand"
+          ? "brand"
+          : "shortage",
     filters,
     leadDays: query.get("leadDays") ?? "",
     coverDays: query.get("coverDays") ?? "",

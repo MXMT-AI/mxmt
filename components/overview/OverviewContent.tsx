@@ -400,8 +400,12 @@ export default function OverviewContent({
                       {" "}
                       {fill(copy.bottleneckSentence, {
                         brand:
-                          bottleneck.brandId === null
-                            ? copy.unknownBrand
+                          (monobrand
+                            ? bottleneck.categoryId
+                            : bottleneck.brandId) === null
+                            ? monobrand
+                              ? copy.unknownCategory
+                              : copy.unknownBrand
                             : bottleneck.name,
                         amount: money(bottleneck.stockCost),
                       })}
@@ -479,7 +483,9 @@ export default function OverviewContent({
                     {sale.plan.reason === "PLAN_ZERO" ? (
                       <Small>{copy.planZero}</Small>
                     ) : null}
-                    <Small>{copy.clientPlan}</Small>
+                    <Small>
+                      {monobrand ? copy.clientPlanMono : copy.clientPlan}
+                    </Small>
                   </>
                 ) : (
                   <Small>{copy.noPlan}</Small>
@@ -574,9 +580,17 @@ export default function OverviewContent({
                         "underline underline-offset-4 " + styles.warning
                       }
                     >
-                      {copy.unknownOwnership}:{" "}
-                      {block.ownership.reduce((n, o) => n + o.unknownBrands, 0)}{" "}
-                      {copy.brands}
+                      {copy.unknownOwnership}
+                      {!monobrand && (
+                        <>
+                          :{" "}
+                          {block.ownership.reduce(
+                            (n, o) => n + o.unknownBrands,
+                            0,
+                          )}{" "}
+                          {copy.brands}
+                        </>
+                      )}
                     </Link>
                   ) : null
                 }
@@ -754,8 +768,12 @@ export default function OverviewContent({
                         translate="no"
                         className="mt-4 font-semibold break-words"
                       >
-                        {bottleneck.brandId === null
-                          ? copy.unknownBrand
+                        {(monobrand
+                          ? bottleneck.categoryId
+                          : bottleneck.brandId) === null
+                          ? monobrand
+                            ? copy.unknownCategory
+                            : copy.unknownBrand
                           : bottleneck.name}
                       </h4>
                       <Small>
@@ -775,11 +793,16 @@ export default function OverviewContent({
                       <Link
                         className={button + " mt-5"}
                         href={link("/stock", {
-                          brandId: bottleneck.brandId ?? "__unassigned__",
+                          brandId: monobrand
+                            ? null
+                            : (bottleneck.brandId ?? "__unassigned__"),
+                          categoryId: monobrand
+                            ? (bottleneck.categoryId ?? "__unassigned__")
+                            : null,
                           classification: null,
                         })}
                       >
-                        {copy.openBrand}
+                        {monobrand ? copy.openCategory : copy.openBrand}
                       </Link>
                     </>
                   ) : (

@@ -54,6 +54,7 @@ export default function ReorderingWorkspace() {
           key={data.context.snapshotId}
           snapshotId={data.context.snapshotId}
           asOf={data.context.asOf}
+          monobrand={data.context.profileMode === "MONOBRAND"}
           lang={lang}
           onRefresh={refresh}
         />
