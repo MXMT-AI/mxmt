@@ -224,3 +224,8 @@ For the five MVP readiness criteria, repeatable acceptance journey, private Zavo
 reconciliation/UAT gates and ordered Vercel/Neon release, see
 [MVP acceptance and rollout (#51)](51-mvp-acceptance-rollout.md). Local test success
 does not close customer acceptance or authorize deployment.
+
+For provider discovery, the shared credential-isolation prerequisite and ordered
+implementation sub-issues for KeyCRM, Horoshop, Shopify and CSV, see
+[additional connector discovery (#52)](52-connector-discovery.md). The adapters
+and their activation remain separate implementation deliveries.
