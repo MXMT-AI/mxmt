@@ -237,3 +237,7 @@ see [connector foundation (#81)](81-connector-foundation.md).
 - [CSV connector and onboarding (#82)](82-csv-connector.md): versioned bounded upload,
   mapping/preview/activation, offline durable jobs, source-isolated observations,
   lifecycle/RBAC checks and equivalent five-screen/scenario-export fixtures.
+
+- [KeyCRM connector and onboarding (#83)](83-keycrm-connector.md): official schema,
+  fixed-origin reads, mapping/payment/warehouse evidence, account/key quota,
+  secure Settings, durable integration tests and real-account acceptance gates.

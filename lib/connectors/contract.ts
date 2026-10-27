@@ -108,7 +108,7 @@ export interface ConnectorCapabilities {
   writes: false;
 }
 export type CheckCode = "OK" | "NOT_CONFIGURED" | "AUTH_FAILED" | "RATE_LIMITED" | "TIMEOUT" | "NETWORK_ERROR" | "INVALID_RESPONSE" | "RESPONSE_TOO_LARGE";
-export interface ResourceCheck { resource: "orders" | "statuses" | "receipts" | "catalog"; code: CheckCode }
+export interface ResourceCheck { resource: "orders" | "statuses" | "receipts" | "catalog" | "products" | "offers" | "stock" | "channels"; code: CheckCode }
 export interface ConnectionCheck {
   checkedAt: string;
   ok: boolean;

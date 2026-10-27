@@ -1,4 +1,7 @@
 import "server-only";
+import { createHash } from "node:crypto";
+import { KeyCrmConnector } from "./keycrm/adapter";
+import { parseKeyCrmConfig, keyCrmMapping } from "./keycrm/config";
 import { CsvConnector, parseCsvConfig } from "./csv/adapter";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -16,6 +19,7 @@ import {
 import type { MerchandisingConnector } from "./contract";
 import type { SqlDatabase } from "./database";
 export interface ProviderRegistration {
+  sourceMapping?(credentials:any):{revision:number;reference:string;values:unknown};
   transport?: "http" | "offline";
   requestWindows?: ReadonlyArray<RequestWindow>;
   queryCost?: QueryCostPolicy;
@@ -42,6 +46,7 @@ export interface ProviderRegistration {
 export const PROVIDER_ADAPTERS: Readonly<
   Partial<Record<SourceProvider, ProviderRegistration>>
 > = Object.freeze({
+  keycrm:{parse:parseKeyCrmConfig,identity:c=>({accountHost:c.accountId,sourceKey:c.accountId,timezone:c.timezone,hasYmlUrl:false,hasReceiptsKey:false}),requestWindows:[{milliseconds:60000,limit:20}],budgetIdentity:c=>createHash("sha256").update(c.apiKey).digest("hex"),sourceMapping:keyCrmMapping,create:(c,f)=>new KeyCrmConnector(c,f)},
   csv: {transport:"offline",parse:parseCsvConfig,identity:c=>({accountHost:"CSV upload",sourceKey:"manual",timezone:c.timezone,hasYmlUrl:false,hasReceiptsKey:false}),create:()=>new CsvConnector()},
   salesdrive: {
     parse: parseSalesDriveCredentials,

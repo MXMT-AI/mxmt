@@ -1,4 +1,5 @@
 import { readSelectedSource } from "@/lib/connectors/source";
+import KeyCrmConnectionCard from "@/components/settings/KeyCrmConnectionCard";
 import CsvImportCard from "@/components/settings/CsvImportCard";
 import ConnectorSourceCard from "@/components/settings/ConnectorSourceCard";
 import { cookies } from "next/headers";
@@ -12,7 +13,7 @@ import SettingsTabs from "@/components/settings/SettingsTabs";
 import DataHealthSection from "@/components/settings/DataHealthSection";
 import SalesDriveConnectionCard from "@/components/settings/SalesDriveConnectionCard";
 import { requireCurrentUser } from "@/lib/server-auth";
-import { getSalesDriveConnection } from "@/lib/connectors/service";
+import { getProviderConnection, getSalesDriveConnection } from "@/lib/connectors/service";
 
 export default async function SettingsPage() {
   const user = await requireCurrentUser();
@@ -21,11 +22,12 @@ export default async function SettingsPage() {
   const lang = (cookieStore.get("lang")?.value ?? "uk") as "uk" | "en";
   const t = getT(lang);
 
-  const [onboarding, driveSync, salesDrive, selectedSource] = await Promise.all([
+  const [onboarding, driveSync, salesDrive, selectedSource, keyCrm] = await Promise.all([
     prisma.onboardingBrief.findUnique({ where: { tenantId } }),
     prisma.googleDriveSync.findFirst({ where: { tenantId }, orderBy: { createdAt: "desc" } }),
     getSalesDriveConnection(tenantId),
     readSelectedSource(tenantId, prisma),
+    getProviderConnection(tenantId,"keycrm"),
   ]);
 
   const generalContent = (
@@ -81,6 +83,8 @@ export default async function SettingsPage() {
       {/* Google Drive sync */}
       <ConnectorSourceCard lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
       <SalesDriveConnectionCard initial={salesDrive} lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
+
+      <KeyCrmConnectionCard initial={keyCrm} lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
 
       <CsvImportCard lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
 
