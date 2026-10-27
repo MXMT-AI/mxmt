@@ -37,17 +37,31 @@ export function shopifyJournal(scope: JournalScope): ReadJournal {
         );
         if (connection?.revision !== revision)
           throw new Error("CONNECTOR_CONFIG_CHANGED");
-        const [size] = await tx.$queryRaw<Array<{ bytes: number; n: number }>>(
-          Prisma.sql`SELECT COALESCE(sum(octet_length(payload::text)),0)::int bytes,count(*)::int n FROM "DataSourceRecord" WHERE "tenantId"=${tenantId} AND "sourceId"=${sourceId} AND "importRunId"=${importRunId} AND resource='shopify-query'`,
+        // Serialize inserts on the import row, including duplicate-key retries.
+        const [run] = await tx.$queryRaw<Array<{ bytes: number; n: number }>>(
+          Prisma.sql`SELECT "connectorJournalBytes" bytes,"connectorJournalPages" n FROM "DataImportRun"
+            WHERE id=${importRunId} AND "tenantId"=${tenantId} AND "sourceId"=${sourceId} FOR UPDATE`,
         );
-        if (
-          size.bytes + Buffer.byteLength(payload) > 128 * 1024 * 1024 ||
-          size.n >= 10000
-        )
+        if (!run) throw new Error("CONNECTOR_CONFIG_CHANGED");
+        const [existing] = await tx.$queryRaw<Array<{ id: string }>>(
+          Prisma.sql`SELECT id FROM "DataSourceRecord" WHERE "tenantId"=${tenantId} AND "sourceId"=${sourceId}
+            AND "importRunId"=${importRunId} AND resource='shopify-query' AND "externalId"=${`${revision}:${key}`}`,
+        );
+        if (existing) return;
+        // Count only the incoming JSONB text once. Never rescan/decompress earlier payloads.
+        const [incoming] = await tx.$queryRaw<Array<{ bytes: number }>>(
+          Prisma.sql`SELECT octet_length(${payload}::jsonb::text)::int bytes`,
+        );
+        if (run.bytes + incoming.bytes > 128 * 1024 * 1024 || run.n >= 10000)
           throw new ConnectorReadError("RESPONSE_TOO_LARGE");
-        await tx.$executeRaw(
+        const inserted = await tx.$executeRaw(
           Prisma.sql`INSERT INTO "DataSourceRecord" (id,"tenantId","sourceId","importRunId",resource,"externalId",payload,"payloadHash","observedAt") VALUES (${randomUUID()},${tenantId},${sourceId},${importRunId},'shopify-query',${`${revision}:${key}`},${payload}::jsonb,${payloadHash(value)},now()) ON CONFLICT ("importRunId",resource,"externalId") DO NOTHING`,
         );
+        if (inserted)
+          await tx.$executeRaw(
+            Prisma.sql`UPDATE "DataImportRun" SET "connectorJournalBytes"="connectorJournalBytes"+${incoming.bytes},
+            "connectorJournalPages"="connectorJournalPages"+1 WHERE id=${importRunId} AND "tenantId"=${tenantId} AND "sourceId"=${sourceId}`,
+          );
       });
     },
   };

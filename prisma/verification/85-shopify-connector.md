@@ -54,7 +54,9 @@ connection does not select the reporting source. Automatic sync remains disabled
 ## Durable nested pagination
 
 All query pages use the existing `DataSourceRecord` import lifecycle with resource
-`shopify-query`. No new database migration is required. The journal is scoped to
+`shopify-query`. Migration `20261027020000_connector_journal_counters` adds
+integer byte/page counters to the existing import run and backfills existing journal
+pages once. The journal is scoped to
 tenant, source, connection revision and import run. Its immutable page key also
 binds query text, API version, app/shop identity, credential fingerprint, approved
 mapping, filters, top-level cursor, variables and bounded generation.
@@ -196,3 +198,37 @@ UI evidence. Final command results are recorded after verification below.
 Final validation: `npm test -- --maxWorkers=2` — 117 files / 1148 tests passed;
 `npm run build`, `npx tsc --noEmit` and `git diff --check` passed. The journal
 content-hash follow-up was also verified by all six Shopify SQL pipeline tests.
+
+## PR #91 review follow-up: constant-work journal budget
+
+The previous writer recomputed `sum(octet_length(payload::text))` across every
+stored page on each insertion. It now locks the tenant/source-scoped import run,
+reads its durable byte/page totals and looks up the exact immutable journal key.
+A duplicate is replayed without charging the budget, even at capacity. For a new
+page, PostgreSQL computes `octet_length(incoming::jsonb::text)` once; insertion and
+counter increment commit or roll back together. This preserves serialized JSONB
+text semantics, including UTF-8 and JSONB spacing, rather than measuring compressed
+storage with `pg_column_size`. The 128 MiB/10,000-page bounds remain unchanged.
+
+The migration backfills totals using a single grouped pass of existing
+`shopify-query` records. Empty and unrelated runs keep zero defaults. Existing pages
+are neither deleted nor rewritten; existing over-limit runs may replay pages but
+cannot add more. Counters account for immutable journal inserts, including old
+credential revisions within the same run. Raw-page edits or deletion outside the
+journal writer would require matching counter maintenance; no such runtime path is
+introduced here.
+
+Deployment requires pausing/draining connector workers, applying the migration and
+deploying the new writer before resuming. Old application writers do not maintain
+these counters, so they must not continue writing after the backfill. No migration
+was applied to the configured development or production database during this review.
+
+Isolated SQL tests execute the actual migration against pre-existing UTF-8 pages,
+verify exact byte counts, duplicate retries, both limits, tenant/run isolation,
+transaction rollback and competing puts. PGlite serializes its transactions; the
+production run-row locking strategy is exercised through the SQL boundary, without
+claiming a multi-process production load benchmark.
+
+Review validation: 118 files / 1154 tests passed; production build,
+`npx tsc --noEmit` and `git diff --check` passed. Migration execution and backfill
+verification used isolated PGlite only; no live database schema/data was changed.
