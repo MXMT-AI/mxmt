@@ -27,6 +27,7 @@ export const CSV_FIELDS = {
     "retailPrice",
     "oldPrice",
     "observedAt",
+    "attributes",
   ],
   stock: ["productId", "observedAt", "quantity"],
   receipts: [

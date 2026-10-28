@@ -6,6 +6,11 @@ interface AttributeAiCategory {
   recommendation?: string;
 }
 
+/** Physical-attribute recommendations depend only on approved coverage/sparsity rules, never legacy category STR bands. */
+export function physicalAttributeRecommendation(status:"SPARSE"|"REVIEW_MAPPING"|"COVERED"){
+  return status==="SPARSE"?"Мала група: перевірити репрезентативність перед бізнес-рішенням.":status==="REVIEW_MAPPING"?"Перевірити поля джерела та погоджений словник значень.":"Порівняти збережені продажі, повернення та залишки у відповідному періоді.";
+}
+
 interface AttributeAiOutput {
   by_category?: AttributeAiCategory[];
   summary?: string;

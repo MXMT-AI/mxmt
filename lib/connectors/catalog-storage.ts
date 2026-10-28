@@ -8,11 +8,13 @@ import type { SqlClient } from "./database";
 import type { OrderScope } from "./order-storage";
 import { normalizeCatalog } from "./inventory-normalization";
 import { retainRecord, refreshFirstReceipt } from "./receipt-storage";
+import { payloadHash } from "./order-storage";
 
 /** Activate a fully validated observation in one transaction using set-based catalogue writes. */
 export async function storeCatalog(tx: SqlClient, scope: OrderScope, snapshot: CatalogSnapshot) {
   const { tenantId, sourceId, importRunId, timezone } = scope;
-  const { rows, issues } = normalizeCatalog(snapshot, sourceId, scope.provider);
+  const normalized=normalizeCatalog(snapshot, sourceId, scope.provider),issues=normalized.issues;
+  const rows=normalized.rows.map(row=>({...row,attributeHash:payloadHash(row.attributeEvidence)}));
   const observedAt = new Date(snapshot.observedAt);
   const businessDate = Temporal.Instant.from(snapshot.observedAt).toZonedDateTimeISO(timezone).toPlainDate().toString();
   const [newer] = await tx.$queryRaw<Array<{ n: number }>>(Prisma.sql`SELECT count(*)::int n FROM "DataSourceRecord" WHERE "tenantId"=${tenantId} AND "sourceId"=${sourceId} AND resource=${scope.provider&&scope.provider!=="salesdrive"?"catalog-json":"catalog-yml"} AND "observedAt">${observedAt}`);
@@ -21,7 +23,10 @@ export async function storeCatalog(tx: SqlClient, scope: OrderScope, snapshot: C
   // Transaction-local staging never becomes an active catalogue or stock observation.
   await tx.$executeRaw(Prisma.sql`CREATE TEMP TABLE mxmt_catalog_stage ON COMMIT DROP AS
     SELECT x.*, NULL::text AS "skuId", NULL::text AS "canonicalCategoryId", NULL::text AS "brandId", NULL::numeric AS "costPrice", '{}'::jsonb AS "costProvenance"
-    FROM jsonb_to_recordset(${JSON.stringify(rows)}::jsonb) AS x("observedAt" timestamptz,"priceObservedAt" timestamptz,"proposedId" text,"externalId" text,article text,"canonicalSku" text,name text,"categoryId" text,"categoryName" text,vendor text,barcode text,"retailPrice" numeric,"oldPrice" numeric,quantity numeric,currency text,attributes jsonb)`);
+    FROM jsonb_to_recordset(${JSON.stringify(rows)}::jsonb) AS x("observedAt" timestamptz,"priceObservedAt" timestamptz,"proposedId" text,"externalId" text,article text,"canonicalSku" text,name text,"categoryId" text,"categoryName" text,vendor text,barcode text,"retailPrice" numeric,"oldPrice" numeric,quantity numeric,currency text,attributes jsonb,"attributeEvidence" jsonb,"attributeHash" text)`);
+  await tx.$executeRaw(Prisma.sql`INSERT INTO "DataSourceRecord" (id,"tenantId","sourceId","importRunId",resource,"externalId",payload,"payloadHash","observedAt")
+    SELECT ${randomUUID()}||':'||t."externalId",${tenantId},${sourceId},${importRunId},'product-attributes',t."externalId"||':'||t."attributeHash",t."attributeEvidence",t."attributeHash",t."priceObservedAt" FROM mxmt_catalog_stage t
+    ON CONFLICT ("importRunId",resource,"externalId") DO NOTHING`);
   const [conflicts] = await tx.$queryRaw<Array<{ n: number }>>(Prisma.sql`SELECT count(*)::int n FROM mxmt_catalog_stage t WHERE
     (SELECT count(DISTINCT id) FROM (SELECT a."skuId" id FROM "SkuAlias" a WHERE a."tenantId"=${tenantId} AND a."sourceId"=${sourceId}
        AND ((a.type='SOURCE_PRODUCT_ID' AND a.value=t."externalId") OR (a.type IN ('SKU','VENDOR_CODE') AND a.value=t.article))

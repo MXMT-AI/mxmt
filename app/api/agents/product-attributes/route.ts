@@ -7,6 +7,9 @@ import { serverError } from "@/lib/api-contracts";
 import { parseAgentJson } from "@/lib/agent-output";
 import { startAgentRun } from "@/lib/agent-runs";
 import { buildAttributeAnalysis } from "@/lib/attribute-analysis";
+import { analyzeProductAttributes } from "@/lib/product-attribute-report";
+import { productAttributeApiError } from "@/lib/product-attribute-api";
+import { apiError } from "@/lib/api-contracts";
 
 export const runtime = "nodejs";
 export const maxDuration = 180;
@@ -51,6 +54,11 @@ export async function POST(req: NextRequest) {
   const { tenantId } = user;
 
   const body = await req.json().catch(() => ({}));
+  if(body?.mode==="attributes_v2"){
+    try{return NextResponse.json(await analyzeProductAttributes({tenantId,userId:user.userId},body),{headers:{"Cache-Control":"private, no-store"}});}
+    catch(error){return productAttributeApiError(error);}
+  }
+  if(body?.mode!==undefined)return apiError("Unsupported attribute mode",400,"INVALID_ATTRIBUTE_REPORT");
   const providerOverride: string | undefined = body.provider ?? undefined;
   const asOf: Date | undefined = body.asOf ? new Date(body.asOf) : undefined;
   const dateFrom: Date | undefined = body.dateFrom ? new Date(body.dateFrom) : undefined;
