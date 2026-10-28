@@ -1,5 +1,6 @@
 import {afterAll,afterEach,beforeAll,beforeEach,expect,it,vi} from "vitest";
 import {Prisma} from "@prisma/client";
+import {readFile} from "node:fs/promises";
 vi.mock("server-only",()=>({}));vi.mock("@/lib/prisma",()=>({prisma:{}}));
 const ai=vi.hoisted(()=>({chat:vi.fn(),chatWithUsage:vi.fn()}));vi.mock("@/lib/ai",()=>ai);
 import {createScreenDb,screenSelection} from "../helpers/screen-db";
@@ -68,6 +69,40 @@ it("requires all mapped canonical SKUs to belong to the approving tenant",async(
 it("rejects duplicate profiles for the same target rather than hiding competing mappings",async()=>{
  await approve();await expect(approveCustomLabelProfile(p,"conflict",{expectedRevision:0,profile:profile(),approvalReference:"synthetic"},f.db,now)).rejects.toMatchObject({code:"LABEL_TARGET_PROFILE_CONFLICT"});
 });
+it("releases a target after another profile moves to a new approved target",async()=>{
+ await approve();const moved=profile();moved.target.accountId="new-catalog";await approve(moved,1);
+ const reused=await approveCustomLabelProfile(p,"replacement",{expectedRevision:0,profile:profile(),approvalReference:"synthetic reuse"},f.db,now);
+ expect(reused.profile.target.accountId).toBe("fixture-catalog");
+ await expect(approveCustomLabelProfile(p,"conflict",{expectedRevision:0,profile:moved,approvalReference:"synthetic conflict"},f.db,now)).rejects.toMatchObject({code:"LABEL_TARGET_PROFILE_CONFLICT"});
+});
+it("builds scoped observations and provenance without full sales/stock aggregation",async()=>{
+ await approve();const queries:string[]=[];
+ const traced={...f.db,$transaction:<T>(fn:Parameters<typeof f.db.$transaction<T>>[0])=>f.db.$transaction(tx=>fn({...tx,$queryRaw:async<T>(q:Prisma.Sql)=>{queries.push(q.text);return tx.$queryRaw<T>(q);}}))};
+ const result=await previewCustomLabels(p,{...scope(),filters:{skuId:"sku-b"}},traced);
+ expect(result.summary.sourceRows).toBe(1);expect(result.provenance.source.filters.skuId).toBe("sku-b");
+ const observations=result.provenance.source.stockObservation.observations;expect(observations.first).toBe(observations.last);expect(observations.first).toMatch(/Z$/);expect(observations.missing).toBe(0);
+ expect(queries.some(q=>q.includes('FROM "MerchandisingScreenFact"')||q.includes('SELECT "financialResult" FROM')||q.includes('SELECT count(*)::int n FROM "SkuDaily"')||q.includes('sum('))).toBe(false);
+ const rowIndex=queries.findIndex(q=>q.startsWith('SELECT s."skuId",d.classification'));
+ const publicationIndex=queries.findIndex(q=>q.includes('FROM "ReportCalculationRun"'));expect(rowIndex).toBeGreaterThan(-1);expect(publicationIndex).toBeGreaterThan(rowIndex);
+});
+it("rejects mismatched publication headers on the bounded evidence path",async()=>{
+ await approve();const broken={...f.db,$transaction:<T>(fn:Parameters<typeof f.db.$transaction<T>>[0])=>f.db.$transaction(tx=>fn({...tx,$queryRaw:async<T>(q:Prisma.Sql)=>{
+   const rows=await tx.$queryRaw<T>(q);return q.text.includes('FROM "ReportCalculationRun"')?(rows as Array<Record<string,unknown>>).map(r=>({...r,sourceId:"foreign-source"})) as T:rows;
+ }}))};
+ await expect(previewCustomLabels(p,scope(),broken)).rejects.toMatchObject({code:"AI_CONTEXT_INCOMPLETE"});
+});
+it("reads history solely from small receipt metadata instead of the stored artifact",async()=>{
+ await approve();const a=await preview(),receipt=await create(a.previewId),queries:string[]=[];
+ const metadataOnly={...f.db,$transaction:<T>(fn:Parameters<typeof f.db.$transaction<T>>[0])=>f.db.$transaction(tx=>fn({...tx,$queryRaw:async<T>(q:Prisma.Sql)=>{queries.push(q.text);if(q.text.includes('after'))throw Error("artifact payload must not be read");return tx.$queryRaw<T>(q);}}))};
+ expect((await readCustomLabelHistory(p,metadataOnly)).rows).toEqual([receipt]);expect(queries.some(q=>q.includes("context->'receipt'"))).toBe(true);
+});
+it("backfills legacy receipt metadata once without changing historical CSV bytes",async()=>{
+ await approve();const a=await preview(),receipt=await create(a.previewId),before=await readCustomLabelFile(p,id,f.db);
+ await f.pg.query(`UPDATE "MerchandisingAction" SET context=context-'receipt' WHERE id=$1`,[receipt.actionId]);
+ const migration=await readFile(new URL("../../prisma/migrations/20261028210000_custom_label_history_receipts/migration.sql",import.meta.url),"utf8");
+ await f.pg.exec(migration);await f.pg.exec(migration);
+ expect((await readCustomLabelHistory(p,f.db)).rows).toEqual([receipt]);expect(await readCustomLabelFile(p,id,f.db)).toEqual(before);
+});
 it("enforces current tenant membership for previews, history and download",async()=>{
  await approve();const a=await preview();await create(a.previewId);
  const other={tenantId:"b",userId:"other96"};await expect(readCustomLabelFile(other,id,f.db)).rejects.toMatchObject({code:"LABEL_EXPORT_NOT_FOUND",status:404});expect((await readCustomLabelHistory(other,f.db)).rows).toHaveLength(0);
@@ -80,8 +115,9 @@ it("does not export a stale source snapshot or silently switch provider sources"
  await expect(preview()).rejects.toMatchObject({code:"AI_CONTEXT_STALE"});await expect(create(a.previewId)).rejects.toMatchObject({code:"AI_CONTEXT_STALE"});
 });
 it("limits source rows before exporting instead of silently truncating the selection",async()=>{
- await approve();const broken={...f.db,$transaction:<T>(fn:Parameters<typeof f.db.$transaction<T>>[0])=>f.db.$transaction(tx=>fn({...tx,$queryRaw:async<T>(q:Prisma.Sql)=>q.text.startsWith('SELECT s."skuId",d.classification')?Array.from({length:5001},(_,i)=>({skuId:`synthetic-${i}`,classification:"HEALTHY",productKind:"MERCHANDISE",quantity:"1",shortage:false} satisfies LabelInputRow)) as T:tx.$queryRaw<T>(q)}))};
+ await approve();const queries:string[]=[];const broken={...f.db,$transaction:<T>(fn:Parameters<typeof f.db.$transaction<T>>[0])=>f.db.$transaction(tx=>fn({...tx,$queryRaw:async<T>(q:Prisma.Sql)=>{queries.push(q.text);return q.text.startsWith('SELECT s."skuId",d.classification')?Array.from({length:5001},(_,i)=>({skuId:`synthetic-${i}`,classification:"HEALTHY",productKind:"MERCHANDISE",quantity:"1",shortage:false} satisfies LabelInputRow)) as T:tx.$queryRaw<T>(q);}}))};
  await expect(previewCustomLabels(p,scope(),broken)).rejects.toMatchObject({code:"LABEL_ROW_LIMIT",status:422});
+ expect(queries.some(q=>q.includes('FROM "ReportCalculationRun"')||q.includes("values->'calculation'")||q.includes('sum('))).toBe(false);
 });
 it("enforces the daily tenant quota while keeping replay/download free",async()=>{
  await approve();const a=await preview(),receipt=await create(a.previewId);

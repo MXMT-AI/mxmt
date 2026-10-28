@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { payloadHash } from "../connectors/order-storage";
 import type { SqlClient } from "../connectors/database";
 import { readSelectedSource } from "../connectors/source";
-import { readScreenSnapshot, readScreenSourceState, screenSourceKey } from "../merchandising-snapshot";
+import { readScreenSnapshot, readScreenSourceState, screenSourceKey, type ScreenSnapshot } from "../merchandising-snapshot";
 import { parseScreenQuery, type ScreenQuery } from "../merchandising-screen-query";
 import { profileFilters } from "../merchandising-profile";
 import { readScreenSales } from "../merchandising-screen-sales";
@@ -38,8 +38,8 @@ export function evidenceQuery(snapshotId: string, filters: AiFilters): ScreenQue
     throw error;
   }
 }
-/** Read saved tenant-scoped facts and reject stale selection, settings or calculation provenance. */
-export async function resolveAiEvidence(p: AiPrincipal, snapshotId: string, filters: AiFilters, tx: SqlClient, scenario?: AiScenarioSelection) {
+/** Validate shared identity/source freshness without scanning sales or stock facts. */
+export async function resolveAiSnapshot(p: AiPrincipal, snapshotId: string, tx: SqlClient) {
   await assertAiPrincipal(p, tx);
   const selected = await readSelectedSource(p.tenantId, tx);
   if (!selected) throw new AiExecutionError("AI_CONTEXT_UNSUPPORTED");
@@ -48,6 +48,29 @@ export async function resolveAiEvidence(p: AiPrincipal, snapshotId: string, filt
   if (selected.id !== snapshot.sourceId || selected.revision !== (snapshot.sourceState.selectionRevision ?? 0) ||
       !live || live.pending > 0 || screenSourceKey(live) !== snapshot.sourceStateKey)
     throw new AiExecutionError("AI_CONTEXT_STALE");
+  return {selected,snapshot};
+}
+/** Apply the same profile-aware canonical scope to paid AI evidence and bounded deterministic exports. */
+export function snapshotEvidenceQuery(snapshot:ScreenSnapshot,filters:AiFilters){
+  const query=profileFilters(evidenceQuery(snapshot.snapshotId,filters),snapshot.sales.context.settings.profileMode==="MONOBRAND");
+  return {query,canonical:Object.fromEntries(FILTERS.map(k=>[k,query[k]??null]))};
+}
+/** Build the common provenance envelope from already verified context and scoped observations. */
+export function buildEvidenceEnvelope(tenantId:string,selected:NonNullable<Awaited<ReturnType<typeof readSelectedSource>>>,snapshot:ScreenSnapshot,canonical:Record<string,string|null>,observations:{first:string|null;last:string|null;missing:number}){
+  return {
+    version: 1, tenantId, snapshotId: snapshot.snapshotId,
+    modelVersion: snapshot.modelVersion, sourceId: selected.id, provider: selected.provider,
+    selectionRevision: selected.revision, sourceStateKey: snapshot.sourceStateKey,
+    sales: {id: snapshot.sales.calculationId, version: snapshot.sales.calculationVersion, inputKey: snapshot.sales.inputKey},
+    daily: {id: snapshot.stock.calculationId, version: snapshot.stock.calculationVersion, inputKey: snapshot.stock.inputKey},
+    settings: snapshot.settings, period: snapshot.sales.context.period, timezone: selected.timezone,
+    stockObservation: {asOf: snapshot.stock.asOf, cutoff: snapshot.stock.cutoff, observations},
+    filters: canonical, coverage: {sales: snapshot.sales.issues, stock: snapshot.stock.issues},
+  };
+}
+/** Read saved tenant-scoped facts and reject stale selection, settings or calculation provenance. */
+export async function resolveAiEvidence(p: AiPrincipal, snapshotId: string, filters: AiFilters, tx: SqlClient, scenario?: AiScenarioSelection) {
+  const {selected,snapshot}=await resolveAiSnapshot(p,snapshotId,tx);
   const published = await readPublishedSalesReport(p.tenantId, snapshot.sales.calculationId, tx);
   const daily = await readSkuDaily(p.tenantId, snapshot.stock.calculationId, {q: "", page: 1, pageSize: 1, sort: "sku", direction: "asc"}, tx);
   const sameIds = (ids: string[]) => payloadHash(ids.slice().sort()) === payloadHash(snapshot.settings.configIds.slice().sort());
@@ -60,24 +83,13 @@ export async function resolveAiEvidence(p: AiPrincipal, snapshotId: string, filt
       daily.provenance.clientConfigId !== snapshot.settings.clientConfigId || !sameIds(daily.provenance.configIds) ||
       daily.rowCount !== daily.pagination.totalRows || daily.asOf !== snapshot.stock.asOf || daily.period.cutoff !== snapshot.stock.cutoff)
     throw new AiExecutionError("AI_CONTEXT_INCOMPLETE");
-  let query = evidenceQuery(snapshotId, filters);
-  query = profileFilters(query, snapshot.sales.context.settings.profileMode === "MONOBRAND");
-  const canonical = Object.fromEntries(FILTERS.map(k => [k, query[k] ?? null]));
+  const {query,canonical}=snapshotEvidenceQuery(snapshot,filters);
   const [observations] = await tx.$queryRaw<Array<{first: string | null; last: string | null; missing: number}>>(Prisma.sql`
     SELECT min((d.metrics->>'sourceObservedAt')::timestamptz)::text first,
       max((d.metrics->>'sourceObservedAt')::timestamptz)::text last,
       count(*) FILTER(WHERE d.metrics->>'sourceObservedAt' IS NULL)::int missing
     FROM ${screenStockJoin} WHERE ${screenStockFilter(p.tenantId,query,"overview")}`);
-  const envelope = {
-    version: 1, tenantId: p.tenantId, snapshotId: snapshot.snapshotId,
-    modelVersion: snapshot.modelVersion, sourceId: selected.id, provider: selected.provider,
-    selectionRevision: selected.revision, sourceStateKey: snapshot.sourceStateKey,
-    sales: {id: snapshot.sales.calculationId, version: snapshot.sales.calculationVersion, inputKey: snapshot.sales.inputKey},
-    daily: {id: snapshot.stock.calculationId, version: snapshot.stock.calculationVersion, inputKey: snapshot.stock.inputKey},
-    settings: snapshot.settings, period: snapshot.sales.context.period, timezone: selected.timezone,
-    stockObservation: {asOf: snapshot.stock.asOf, cutoff: snapshot.stock.cutoff, observations},
-    filters: canonical, coverage: {sales: snapshot.sales.issues, stock: snapshot.stock.issues},
-  };
+  const envelope = buildEvidenceEnvelope(p.tenantId,selected,snapshot,canonical,observations);
   const sales = await readScreenSales(p.tenantId, snapshot, query, "overview", tx, false);
   const stock = await readScreenStock(p.tenantId, snapshot, query, "overview", tx, false);
   // Server facts remain separate from model text; channel filtering intentionally never narrows shared stock.

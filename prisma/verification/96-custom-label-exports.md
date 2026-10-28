@@ -80,7 +80,9 @@ custom-label profiles do not become financial settings or invalidate the saved
 MVP metric configuration just because their mappings changed. The label reader
 explicitly selects the latest approved revision. Expected-revision conflicts
 prevent overwriting a concurrent owner decision. A target already assigned to
-another profile cannot be silently reintroduced under a competing profile key.
+another profile's latest approved revision cannot be silently reintroduced under
+a competing profile key. Superseded revisions remain historical: moving a
+profile to a new target releases its former target for a different live profile.
 
 `GET` on the same URL returns the latest approved profile to an ANALYST-or-higher
 signed tenant member. There is no default live profile, no seeded real account
@@ -100,12 +102,21 @@ and no automatic activation from the general owner policy decision above.
 
 Filters are optional and limited to brand/category/SKU. Their effective values
 reuse the MVP context's canonical profile/filter semantics, including explicit
-unassigned values. The service reuses #93's principal/tenant lock and pinned
-evidence resolver, but does not create a budget period or paid execution.
+unassigned values. The service reuses #93's principal/tenant lock, snapshot
+freshness validation and provenance-envelope builder, but does not create a
+budget period or paid execution.
 The snapshot must be current for the selected source, its settings and saved
 sales/daily publication versions. The profile source must match it exactly.
 
 One bounded batch joins the saved screen SKU rows to their `SkuDaily` records.
+The row limit is checked before reading publication headers. No full sales/stock
+summaries, full daily counts or scope-wide observation aggregates are computed.
+Only two publication headers are checked against the saved snapshot; observation
+min/max/missing values and the source fingerprint are derived from the bounded
+rows, including their saved daily IDs, calculation versions and observed times.
+The bounded evidence fingerprint has its own `custom-label-evidence-v1` version;
+old previews must be refreshed, while already audited export artifacts remain
+downloadable unchanged.
 Classification, shortage, product kind and quantity come from those publications;
 the service never falls back to legacy Sheets classification or recalculates a
 marketing class. Unknown/error classes and non-merchandise products are rejected.
@@ -149,7 +160,8 @@ historical retrieval even after the live profile changes. It does not assert
 that the old file is current or execute a new provider action.
 
 `GET /api/merchandising/custom-labels/exports` returns the latest 50 receipts for
-the signed tenant, without loading full file/assignment bodies.
+the signed tenant, reading `context.receipt` without touching the potentially
+large `after` artifact payload.
 `GET /api/merchandising/custom-labels/exports/<exportId>` returns the originally
 audited bytes with attachment, UTF-8, no-store and nosniff headers. Current tenant
 membership/ANALYST permission is rechecked; another tenant cannot retrieve an
@@ -197,8 +209,16 @@ precedence and missing inputs, platform limits, Unicode/formula handling, target
 identity collisions, CSV exactness, role/tenant/source isolation, quota, profile
 revision invalidation, idempotent export, metadata history and unchanged download.
 
-Completed checks: `npm test -- --maxWorkers=2` — 128 files / 1,295 tests passed;
-`npx tsc --noEmit` and `npm run build` passed. All 49 new feature tests pass as
+Apply the data-only migration
+`20261028210000_custom_label_history_receipts` before releasing the updated
+history path against existing artifacts. It copies missing legacy receipts into
+the small context object once and leaves the original receipt/CSV/assignments in
+`after` unchanged. It is safe to repeat and adds no schema/table changes. Tests
+exercise this upgrade with a legacy-format artifact and verify exact file bytes;
+the migration was not applied to a live database during development.
+
+Completed checks: `npm test -- --maxWorkers=2` — 128 files / 1,300 tests passed;
+`npx tsc --noEmit` and `npm run build` passed. All 54 new feature tests pass as
 part of the full suite. Diff/whitespace checks cover tracked and new files. No
 frontend/browser UAT is claimed for these APIs; the browser was used only to
 verify official Meta documentation.

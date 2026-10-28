@@ -7,10 +7,9 @@ import type { SqlClient,SqlDatabase } from "./connectors/database";
 import { payloadHash } from "./connectors/order-storage";
 import { aiTransaction } from "./ai-execution/budget";
 import type { AiPrincipal } from "./ai-execution/contracts";
-import { resolveAiEvidence,evidenceQuery } from "./ai-execution/context";
-import { screenStockJoin,screenStockFilter } from "./merchandising-screen-stock";
-import { CustomLabelError,LABEL_CONTRACT_VERSION,LABEL_EXPORTS_PER_DAY,LABEL_MAX_ROWS,parseLabelProfile,parseLabelScope,labelIdentifier,
-  assignCustomLabels,customLabelCsv,type LabelProfile,type LabelScope,type LabelInputRow } from "./custom-labels";
+import { resolveCustomLabelEvidence } from "./custom-label-evidence";
+import { CustomLabelError,LABEL_CONTRACT_VERSION,LABEL_EXPORTS_PER_DAY,parseLabelProfile,parseLabelScope,labelIdentifier,
+  assignCustomLabels,customLabelCsv,type LabelProfile,type LabelScope } from "./custom-labels";
 
 interface ProfileRecord {id:string;revision:number;values:LabelProfile;approvedById:string;approvedAt:string;approvalReference:string}
 const key=(id:string)=>`custom-labels:${id}`;
@@ -32,8 +31,10 @@ export async function approveCustomLabelProfile(p:AiPrincipal,profileId:string,v
     if(!source)throw new CustomLabelError("LABEL_SOURCE_NOT_FOUND",404);
     const [previous]=await tx.$queryRaw<Array<{id:string;revision:number}>>(Prisma.sql`SELECT id,revision FROM "MerchandisingConfig" WHERE "tenantId"=${p.tenantId} AND "configType"='GENERAL' AND key=${key(profileId)} ORDER BY revision DESC LIMIT 1`);
     if((previous?.revision??0)!==expectedRevision)throw new CustomLabelError("LABEL_PROFILE_REVISION_CONFLICT",409);
-    const [other]=await tx.$queryRaw<Array<{id:string}>>(Prisma.sql`SELECT id FROM "MerchandisingConfig" WHERE "tenantId"=${p.tenantId} AND "configType"='GENERAL'
-      AND key LIKE 'custom-labels:%' AND key<>${key(profileId)} AND "approvedAt" IS NOT NULL AND values->'target'=${JSON.stringify(profile.target)}::jsonb LIMIT 1`);
+    const [other]=await tx.$queryRaw<Array<{id:string}>>(Prisma.sql`SELECT id FROM (
+      SELECT DISTINCT ON (key) id,values FROM "MerchandisingConfig" WHERE "tenantId"=${p.tenantId} AND "configType"='GENERAL'
+        AND key LIKE 'custom-labels:%' AND key<>${key(profileId)} AND "approvedAt" IS NOT NULL ORDER BY key,revision DESC) latest
+      WHERE values->'target'=${JSON.stringify(profile.target)}::jsonb LIMIT 1`);
     if(other)throw new CustomLabelError("LABEL_TARGET_PROFILE_CONFLICT",409);
     const skuIds=[...new Set(profile.mappings.map(m=>m.skuId))];
     if(skuIds.length){
@@ -56,19 +57,14 @@ export async function readCustomLabelProfile(p:AiPrincipal,profileId:string,db:S
 /** Resolve pinned MVP provenance and batch-load saved classifications with no raw-source or LLM fallback. */
 async function previewInTx(p:AiPrincipal,scope:LabelScope,tx:SqlClient){
   const profile=await profileInTx(p,scope.profileId,tx);
-  const evidence=await resolveAiEvidence(p,scope.snapshotId,scope.filters??{},tx);
-  if(profile.values.sourceId!==evidence.envelope.sourceId)throw new CustomLabelError("LABEL_SOURCE_MISMATCH",409);
-  const q=evidenceQuery(scope.snapshotId,Object.fromEntries(Object.entries(evidence.envelope.filters).filter((entry):entry is [string,string]=>entry[1]!==null)));
-  const rows=await tx.$queryRaw<LabelInputRow[]>(Prisma.sql`SELECT s."skuId",d.classification,d.metrics->>'productKind' "productKind",d.quantity::text quantity,(d.metrics->>'shortage')::boolean shortage
-    FROM ${screenStockJoin} WHERE ${screenStockFilter(p.tenantId,q,"stock")} ORDER BY s."skuId" LIMIT ${LABEL_MAX_ROWS+1}`);
-  if(rows.length>LABEL_MAX_ROWS)throw new CustomLabelError("LABEL_ROW_LIMIT",422);
+  const evidence=await resolveCustomLabelEvidence(p,scope,profile.values.sourceId,tx),rows=evidence.rows;
   const result=assignCustomLabels(profile.values,rows);
   const file=customLabelCsv(profile.values,result.assignments);
   const uniqueValues=Object.fromEntries(profile.values.ownedSlots.map(slot=>{const field=`custom_label_${slot}`;return [field,new Set(result.assignments.map(a=>a.labels[field].toLowerCase())).size];}));
   const quotaExceeded=Object.values(uniqueValues).some(n=>n>1000)&&profile.values.target.provider==="google";
   const provenance={contractVersion:LABEL_CONTRACT_VERSION,profileId:scope.profileId,configId:profile.id,ruleRevision:profile.revision,
     profileHash:payloadHash(profile.values),approvedBy:profile.approvedById,approvedAt:profile.approvedAt,approvalReference:profile.approvalReference,
-    snapshotId:scope.snapshotId,snapshotCreatedAt:(await tx.$queryRaw<Array<{createdAt:string}>>(Prisma.sql`SELECT values->'snapshot'->>'createdAt' "createdAt" FROM "MerchandisingConfig" WHERE id=${scope.snapshotId} AND "tenantId"=${p.tenantId}`))[0]?.createdAt??null,
+    snapshotId:scope.snapshotId,snapshotCreatedAt:evidence.snapshotCreatedAt,
     source:evidence.envelope,sourceFingerprint:evidence.fingerprint,scope};
   const sha256=createHash("sha256").update(file,"utf8").digest("hex");
   const previewId=payloadHash({provenance,result,sha256});
@@ -109,7 +105,7 @@ export async function createCustomLabelExport(p:AiPrincipal,value:unknown,db:Sql
     await tx.$executeRaw(Prisma.sql`INSERT INTO "MerchandisingAction" (id,"tenantId","actorId","configId",action,"entityType","entityId","idempotencyKey",after,context,"createdAt")
       VALUES (${actionId},${p.tenantId},${p.userId},${preview.provenance.configId},'CUSTOM_LABEL_EXPORT','CUSTOM_LABEL_EXPORT',${id},${`label-export:${id}`},
       ${JSON.stringify({receipt,content:preview.file.content,assignments:preview.assignments,rejected:preview.rejected})}::jsonb,
-      ${JSON.stringify({kind:"CUSTOM_LABEL_EXPORT_V1",requestHash,contractVersion:LABEL_CONTRACT_VERSION})}::jsonb,${now})`);
+      ${JSON.stringify({kind:"CUSTOM_LABEL_EXPORT_V1",requestHash,contractVersion:LABEL_CONTRACT_VERSION,receipt})}::jsonb,${now})`);
     return receipt;
   });
 }
@@ -122,6 +118,6 @@ export async function readCustomLabelFile(p:AiPrincipal,exportId:string,db:SqlDa
 }
 /** Bounded metadata history never loads full files or assignment payloads. */
 export async function readCustomLabelHistory(p:AiPrincipal,db:SqlDatabase=prisma){
-  return aiTransaction(p,db,async tx=>({rows:(await tx.$queryRaw<Array<{receipt:LabelReceipt}>>(Prisma.sql`SELECT after->'receipt' receipt FROM "MerchandisingAction"
+  return aiTransaction(p,db,async tx=>({rows:(await tx.$queryRaw<Array<{receipt:LabelReceipt}>>(Prisma.sql`SELECT context->'receipt' receipt FROM "MerchandisingAction"
     WHERE "tenantId"=${p.tenantId} AND "entityType"='CUSTOM_LABEL_EXPORT' AND context->>'kind'='CUSTOM_LABEL_EXPORT_V1' ORDER BY "createdAt" DESC,id DESC LIMIT 50`)).map(r=>r.receipt)}));
 }
