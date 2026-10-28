@@ -13,8 +13,9 @@ import {resolveCustomLabelEvidence} from "./custom-label-evidence";
 import {resolveAiSnapshot} from "./ai-execution/context";
 import {attributeDictionaryInTx,readAttributeEvidenceBatch} from "./product-attribute-store";
 import {normalizeProductAttribute} from "./product-attributes";
-import {AnalogForecastError,forecastId,parseAnalogPolicy,forecastPeriod,estimateAnalogs,scoreAnalogCases,type AnalogPolicy,type AnalogRow,type ForecastScoreCase} from "./analog-forecast";
+import {ANALOG_EVALUATION_CASE_LIMIT,AnalogForecastError,forecastId,parseAnalogPolicy,forecastPeriod,estimateAnalogs,scoreAnalogCases,type AnalogPolicy,type AnalogRow,type ForecastScoreCase} from "./analog-forecast";
 interface PolicyRecord {id:string;revision:number;values:AnalogPolicy}
+/** Resolve the latest tenant draft so a previous revision cannot silently replace current policy. */
 async function policyInTx(p:AiPrincipal,profileId:string,tx:SqlClient){
  forecastId(profileId);
  const [row]=await tx.$queryRaw<PolicyRecord[]>(Prisma.sql`SELECT id,revision,values FROM "MerchandisingConfig" WHERE "tenantId"=${p.tenantId} AND "configType"='GENERAL' AND key=${`analog-policy:${profileId}`} ORDER BY revision DESC LIMIT 1`);
@@ -38,6 +39,7 @@ export async function saveAnalogPolicy(p:AiPrincipal,profileId:string,value:unkn
 }
 export async function readAnalogPolicy(p:AiPrincipal,profileId:string,db:SqlDatabase=prisma){return aiTransaction(p,db,async tx=>({profileId,...await policyInTx(p,profileId,tx),state:"draft",businessRulesApproved:false}));}
 export interface AnalogPreviewRequest {profileId:string;snapshotId:string;targetId:string;preview:true}
+/** Accept server-evidence selectors only and reject activation or caller-authored forecast inputs. */
 export function parseAnalogPreview(v:unknown):AnalogPreviewRequest {
  if(!isRecord(v)||Object.keys(v).sort().join()!=="preview,profileId,snapshotId,targetId"||v.preview!==true)throw new AnalogForecastError("ANALOG_PREVIEW_ONLY");
  for(const id of [v.profileId,v.snapshotId,v.targetId])forecastId(id);return structuredClone(v) as unknown as AnalogPreviewRequest;
@@ -92,7 +94,7 @@ export async function createAnalogPreview(p:AiPrincipal,value:unknown,db:SqlData
 
 /** Score only forecasts frozen before their outcome window, using later saved sales rather than caller-authored actuals. */
 export async function evaluateAnalogForecasts(p:AiPrincipal,value:unknown,db:SqlDatabase=prisma,now=new Date()){
- if(!isRecord(value)||Object.keys(value).sort().join()!=="cases,profileId"||!Array.isArray(value.cases)||!value.cases.length||value.cases.length>20)throw new AnalogForecastError("INVALID_FORECAST_EVALUATION");
+ if(!isRecord(value)||Object.keys(value).sort().join()!=="cases,profileId"||!Array.isArray(value.cases)||!value.cases.length||value.cases.length>ANALOG_EVALUATION_CASE_LIMIT)throw new AnalogForecastError("INVALID_FORECAST_EVALUATION");
  const profileId=forecastId(value.profileId),cases=value.cases.map(c=>{
   if(!isRecord(c)||Object.keys(c).sort().join()!=="forecastId,outcomeSnapshotId")throw new AnalogForecastError("INVALID_FORECAST_EVALUATION");return {forecastId:forecastId(c.forecastId),outcomeSnapshotId:forecastId(c.outcomeSnapshotId)};
  });

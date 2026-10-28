@@ -1,5 +1,5 @@
 import {expect,it} from "vitest";
-import {parseAnalogPolicy,estimateAnalogs,scoreAnalogCases,forecastPeriod} from "@/lib/analog-forecast";
+import {ANALOG_EVALUATION_CASE_LIMIT,parseAnalogPolicy,estimateAnalogs,scoreAnalogCases,forecastPeriod} from "@/lib/analog-forecast";
 import {analogPolicy,analogPacket,analogRow} from "../fixtures/analog-forecast";
 it("requires explicit draft policy bounds instead of installing business defaults",()=>{
  expect(parseAnalogPolicy(analogPolicy())).toEqual(analogPolicy());
@@ -37,4 +37,13 @@ it("never treats empty coverage or a passing draft score as release approval",()
 });
 it("preserves saved Decimal precision, including very small rates, without presentation rounding",()=>{
  const packet=analogPacket();packet.rows[1].velocityPerWeek="0.000000000000000000000000000001";packet.rows[2].velocityPerWeek="0.000000000000000000000000000001";const r=estimateAnalogs(packet,analogPolicy());expect(r.status).toBe("estimated");expect(r.forecastUnits).toBe("1e-30");expect(scoreAnalogCases([{forecastId:"tiny",horizonDays:7,forecastUnits:r.forecastUnits,baselines:r.baselines,actualUnits:"0",exclusion:null}],analogPolicy()).scored).toBe(1);
+});
+
+it("aligns reachable policy thresholds with the API and scorer case limit",()=>{
+ const p=analogPolicy();p.evaluation.minScoredCases=ANALOG_EVALUATION_CASE_LIMIT;
+ expect(parseAnalogPolicy(p).evaluation.minScoredCases).toBe(20);
+ expect(()=>parseAnalogPolicy({...p,evaluation:{...p.evaluation,minScoredCases:ANALOG_EVALUATION_CASE_LIMIT+1}})).toThrow("INVALID_ANALOG_POLICY");
+ const cases=Array.from({length:ANALOG_EVALUATION_CASE_LIMIT},(_,i)=>({forecastId:`case-${i}`,horizonDays:p.horizonDays,forecastUnits:"0",baselines:{zero:"0",category_mean:"0"},actualUnits:"0",exclusion:null}));
+ expect(scoreAnalogCases(cases,p)).toMatchObject({scored:20,meetsDraftThresholds:true,releaseApproved:false});
+ expect(()=>scoreAnalogCases([...cases,{...cases[0],forecastId:"overflow"}],p)).toThrow("INVALID_FORECAST_EVALUATION");
 });

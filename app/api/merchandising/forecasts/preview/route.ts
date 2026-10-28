@@ -5,6 +5,7 @@ import {createAnalogPreview} from "@/lib/analog-forecast-store";
 import {analogForecastApiError} from "@/lib/analog-forecast-api";
 import {AnalogForecastError} from "@/lib/analog-forecast";
 export const runtime="nodejs";export const dynamic="force-dynamic";
+/** Authorize signed analysts and reject query overrides before preparing a private research result. */
 export async function POST(request:NextRequest){
  const {user,response}=await requireApiUser("ANALYST");if(response)return response;
  const {data,response:invalid}=await parseJsonBody(request);if(invalid)return invalid;

@@ -2,9 +2,13 @@ import {Temporal} from "@js-temporal/polyfill";
 import {isRecord} from "./api-contracts";
 import {financialDecimal as D} from "./financial-decimal.mjs";
 
+/** Policy thresholds and scoring share the API batch bound; evaluations are not accumulated across requests. */
+export const ANALOG_EVALUATION_CASE_LIMIT=20;
+
 export class AnalogForecastError extends Error {
  constructor(readonly code:string,readonly status=400){super(code);}
 }
+/** Validate opaque selectors before they enter tenant-scoped forecast lookups. */
 export const forecastId=(v:unknown):string=>{
  if(typeof v!=="string"||!/^[A-Za-z0-9][A-Za-z0-9_.:-]{0,159}$/.test(v))throw new AnalogForecastError("INVALID_FORECAST_ID");return v;
 };
@@ -30,7 +34,7 @@ export function parseAnalogPolicy(v:unknown):AnalogPolicy {
  if(!integer(v.minInStockDays,28,84)||!integer(v.minAnalogs,1,50)||!integer(v.maxAnalogs,Number(v.minAnalogs),50)||!integer(v.candidateLimit,Number(v.maxAnalogs)+1,500)||!integer(v.horizonDays,1,84)||!integer(v.maxTargetAgeDays,0,83))return bad();
  const p=v.price,e=v.evaluation;
  if(!isRecord(p)||!exact(p,["mode","maxRelativeDifference"])||p.mode!=="ratio_filter_no_elasticity"||!decimal(p.maxRelativeDifference)||D(p.maxRelativeDifference as string).gt(1))return bad();
- if(!isRecord(e)||!exact(e,["baselines","actuals","minScoredCases","minCoverage","maxMae","maxAbsBias"])||JSON.stringify(e.baselines)!=='["zero","category_mean"]'||e.actuals!=="complete_horizon_stock_observations"||!integer(e.minScoredCases,1,100)||![e.minCoverage,e.maxMae,e.maxAbsBias].every(decimal)||D(e.minCoverage as string).gt(1))return bad();
+ if(!isRecord(e)||!exact(e,["baselines","actuals","minScoredCases","minCoverage","maxMae","maxAbsBias"])||JSON.stringify(e.baselines)!=='["zero","category_mean"]'||e.actuals!=="complete_horizon_stock_observations"||!integer(e.minScoredCases,1,ANALOG_EVALUATION_CASE_LIMIT)||![e.minCoverage,e.maxMae,e.maxAbsBias].every(decimal)||D(e.minCoverage as string).gt(1))return bad();
  return structuredClone(v) as unknown as AnalogPolicy;
 }
 export interface AnalogRow {
@@ -43,6 +47,7 @@ export interface AnalogRow {
 export interface AnalogPacket {asOf:string;from:string;to:string;targetId:string;rows:AnalogRow[]}
 export const forecastPeriod=(asOf:string,horizon:number)=>({from:Temporal.PlainDate.from(asOf).add({days:1}).toString(),to:Temporal.PlainDate.from(asOf).add({days:horizon}).toString()});
 const age=(a:string,b:string)=>Temporal.PlainDate.from(a).until(Temporal.PlainDate.from(b)).days;
+/** Require every calendar date in the inclusive interval to belong to the saved season. */
 const seasonCovers=(months:number[],from:string,to:string)=>{
  let date=Temporal.PlainDate.from(from),end=Temporal.PlainDate.from(to);
  while(Temporal.PlainDate.compare(date,end)<=0){if(!months.includes(date.month))return false;date=date.add({days:1});}return true;
@@ -83,7 +88,7 @@ export function estimateAnalogs(packet:AnalogPacket,p:AnalogPolicy){
 export interface ForecastScoreCase {forecastId:string;horizonDays:number;forecastUnits:string|null;baselines:{zero:string;category_mean:string|null};actualUnits:string|null;exclusion:string|null}
 /** Paired, time-split scores: zero actuals remain in MAE/bias; WAPE is undefined for an all-zero denominator. */
 export function scoreAnalogCases(cases:ForecastScoreCase[],p:AnalogPolicy){
- if(!cases.length||cases.length>100||new Set(cases.map(c=>c.forecastId)).size!==cases.length||cases.some(c=>c.horizonDays!==p.horizonDays||c.actualUnits!==null&&!measure(c.actualUnits)||c.forecastUnits!==null&&!measure(c.forecastUnits)||!measure(c.baselines.zero)||c.baselines.category_mean!==null&&!measure(c.baselines.category_mean)))throw new AnalogForecastError("INVALID_FORECAST_EVALUATION");
+ if(!cases.length||cases.length>ANALOG_EVALUATION_CASE_LIMIT||new Set(cases.map(c=>c.forecastId)).size!==cases.length||cases.some(c=>c.horizonDays!==p.horizonDays||c.actualUnits!==null&&!measure(c.actualUnits)||c.forecastUnits!==null&&!measure(c.forecastUnits)||!measure(c.baselines.zero)||c.baselines.category_mean!==null&&!measure(c.baselines.category_mean)))throw new AnalogForecastError("INVALID_FORECAST_EVALUATION");
  const scored=cases.filter(c=>!c.exclusion&&c.actualUnits!==null&&c.forecastUnits!==null&&c.baselines.category_mean!==null);
  const metric=(name:"forecast"|"zero"|"category_mean")=>{
   if(!scored.length)return {mae:null,bias:null,wape:null};

@@ -102,3 +102,8 @@ it("keeps changed future retail prices out of the constant-price evaluation coho
  await f.pg.exec(`UPDATE "InventorySnapshot" SET "retailPrice"=10 WHERE "skuId"='sku-c' AND "snapshotDate"='2026-10-27'`);
  expect(await evaluateAnalogForecasts(p,{profileId:"watch",cases:[{forecastId:a.forecastId,outcomeSnapshotId:later.snapshotId}]},f.db,new Date("2026-10-29T10:00:00Z"))).toMatchObject({scored:0,cases:[{exclusion:"OUTCOME_PRICE_NOT_COMPARABLE"}]});
 });
+
+it("rejects evaluation batches above the shared policy/scoring bound before loading cases",async()=>{
+ const cases=Array.from({length:21},(_,i)=>({forecastId:`case-${i}`,outcomeSnapshotId:snapshot.snapshotId}));
+ await expect(evaluateAnalogForecasts(p,{profileId:"watch",cases},f.db,now)).rejects.toMatchObject({code:"INVALID_FORECAST_EVALUATION"});
+});

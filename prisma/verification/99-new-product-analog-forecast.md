@@ -134,7 +134,9 @@ features were known at an old origin. This follows the temporal separation in
 }
 ```
 
-At most 20 cases are loaded per API request. Cases must reference this tenant's
+At most 20 cases are loaded per API request. The same shared limit caps
+`minScoredCases` and the scorer, so a saved threshold is reachable within one
+evaluation; separate requests do not accumulate scored cases. Cases must reference this tenant's
 stored forecast and current policy revision; duplicate forecast IDs or duplicate
 source/target/business-date origins are rejected. Forecast timestamps must precede
 the forecast period and the outcome period must have fully ended before scoring.
