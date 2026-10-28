@@ -41,30 +41,36 @@ export interface AiBudgetPolicy {
   capabilities: Record<string, CapabilityLimits>;
 }
 export const fail = (code = "AI_INVALID_INPUT", status = 400): never => { throw new AiExecutionError(code, status); };
+/** Validate bounded opaque IDs without accepting whitespace or control characters. */
 export function identifier(value: unknown): string {
   if (typeof value !== "string" || !/^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,159}$/.test(value)) return fail();
   return value;
 }
+/** Require nonblank text within the caller's explicit character bound. */
 export function boundedText(value: unknown, max = 2000): string {
   if (typeof value !== "string" || !value.trim() || value.length > max) return fail();
   return value;
 }
+/** Normalize nonnegative monetary strings to the ledger's eight-place precision. */
 export function money(value: unknown): string {
   if (typeof value !== "string" || !/^\d{1,12}(\.\d{1,8})?$/.test(value)) return fail("AI_INVALID_POLICY");
   return D(value).toFixed(8);
 }
+/** Require exactly the four supported, nonnegative integer token categories. */
 export function validateUsage(value: TokenUsage): TokenUsage {
   if (!isRecord(value) || Object.keys(value).sort().join() !== "cacheRead,cacheWrite,input,output" ||
       ![value.input, value.output, value.cacheRead, value.cacheWrite].every(n => Number.isSafeInteger(n) && n >= 0 && n <= 10_000_000))
     return fail("AI_INVALID_USAGE");
   return value;
 }
+/** Price disjoint token categories using the immutable rates, rounding monetary fractions upward. */
 export function usageCost(usage: TokenUsage, policy: AiBudgetPolicy): string {
   validateUsage(usage);
   return Object.entries(usage).reduce((sum, [key, count]) =>
     sum.plus(D(policy.rates[key as keyof TokenUsage]).times(count)), D(0))
     .div(1_000_000).toDecimalPlaces(8, 0).toFixed(8);
 }
+/** Validate and copy explicit provider pricing, caps and bounded per-capability execution limits. */
 export function validatePolicy(input: AiBudgetPolicy): AiBudgetPolicy {
   if (!isRecord(input) || input.version !== 1 || !/^[A-Z]{3}$/.test(input.currency) ||
       !["openai", "anthropic"].includes(input.provider) || !isRecord(input.rates) || !isRecord(input.capabilities))
@@ -84,6 +90,7 @@ export function validatePolicy(input: AiBudgetPolicy): AiBudgetPolicy {
   return {version: 1, currency: input.currency, provider: input.provider, model: input.model,
     pricingRevision: input.pricingRevision, rates, periodCap: money(input.periodCap), capabilities};
 }
+/** Reserve the highest applicable input/cache rate and the complete output allowance. */
 export function attemptAllowance(policy: AiBudgetPolicy, limits: CapabilityLimits): string {
   const highestInput = [policy.rates.input, policy.rates.cacheRead, policy.rates.cacheWrite]
     .reduce((highest, rate) => D(rate).gt(highest) ? D(rate) : highest, D(0));

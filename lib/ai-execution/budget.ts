@@ -18,6 +18,7 @@ export interface ExecutionRow {
   state: "RUNNING" | "DONE" | "ERROR"; held: string; charged: string; result: unknown;
   errorCode: string | null; metadata: {policy: AiBudgetPolicy; allowance: string; maxAttempts: number; [key: string]: unknown};
 }
+/** Serialize tenant ledger operations and recheck membership before running the transaction body. */
 export async function aiTransaction<T>(p: AiPrincipal, db: SqlDatabase, fn: (tx: SqlClient) => Promise<T>, admin = false) {
   return db.$transaction(async tx => {
     await tx.$queryRaw(Prisma.sql`SELECT id FROM "Tenant" WHERE id=${p.tenantId} FOR UPDATE`);
@@ -41,6 +42,7 @@ export async function createAiBudgetPeriod(p: AiPrincipal, input: {startsAt: str
     return id;
   }, true);
 }
+/** Audit an administrator's activation/disable action without resetting charges or reservations. */
 export async function setAiBudgetEnabled(p: AiPrincipal, periodId: string, enabled: boolean, approvalReference: string, db: SqlDatabase = prisma) {
   if (typeof enabled !== "boolean") throw new AiExecutionError("AI_INVALID_POLICY", 400);
   identifier(periodId); boundedText(approvalReference);
@@ -51,21 +53,25 @@ export async function setAiBudgetEnabled(p: AiPrincipal, periodId: string, enabl
       VALUES (${randomUUID()},${p.tenantId},${p.userId},'AI_BUDGET_ENABLED','AI_BUDGET_PERIOD',${periodId},${randomUUID()},'{}',${JSON.stringify({enabled, approvalReference})}::jsonb,'{}')`);
   }, true);
 }
+/** Require an enabled, validated policy covering this instant; never infer a default paid budget. */
 export async function activeAiBudget(p: AiPrincipal, tx: SqlClient, now: Date): Promise<BudgetPeriod> {
   const [period] = await tx.$queryRaw<BudgetPeriod[]>(Prisma.sql`SELECT id,policy,spent::text,reserved::text FROM "AiBudgetPeriod" WHERE "tenantId"=${p.tenantId} AND enabled AND "startsAt"<=${now} AND "endsAt">${now}`);
   if (!period) throw new AiExecutionError("AI_POLICY_REQUIRED");
   period.policy = validatePolicy(period.policy);
   return period;
 }
+/** Look up an idempotency key within the authenticated tenant, returning null when absent. */
 export async function executionByKey(p: AiPrincipal, key: string, tx: SqlClient) {
   const [row] = await tx.$queryRaw<ExecutionRow[]>(Prisma.sql`SELECT *,held::text,charged::text FROM "AiExecution" WHERE "tenantId"=${p.tenantId} AND "requestKey"=${key}`);
   return row ?? null;
 }
+/** Retrieve an execution without falling back across tenants or accepting a missing row. */
 export async function executionById(p: AiPrincipal, id: string, tx: SqlClient) {
   const [row] = await tx.$queryRaw<ExecutionRow[]>(Prisma.sql`SELECT *,held::text,charged::text FROM "AiExecution" WHERE "tenantId"=${p.tenantId} AND id=${id}`);
   if (!row) throw new AiExecutionError("AI_EXECUTION_NOT_FOUND", 404);
   return row;
 }
+/** Under aiTransaction, atomically enforce all caps and create the run with its full retry allowance. */
 export async function reserveAiExecution(p: AiPrincipal, data: {key: string; fingerprint: string; capability: string; period: BudgetPeriod; allowance: string; maxAttempts: number; metadata: object}, tx: SqlClient, now: Date) {
   const {period} = data, limits = period.policy.capabilities[data.capability], total = D(data.allowance).times(data.maxAttempts);
   if (!limits || total.gt(limits.requestCap) || total.plus(period.spent).plus(period.reserved).gt(period.policy.periodCap))
@@ -83,6 +89,7 @@ export async function reserveAiExecution(p: AiPrincipal, data: {key: string; fin
   await tx.$executeRaw(Prisma.sql`UPDATE "AiBudgetPeriod" SET reserved=reserved+${total.toFixed(8)}::numeric WHERE id=${period.id} AND "tenantId"=${p.tenantId}`);
   return executionById(p, id, tx);
 }
+/** Persist STARTED before network dispatch, requiring an active run, period and unused allowance. */
 export async function beginAiAttempt(p: AiPrincipal, row: ExecutionRow, ordinal: number, tx: SqlClient, now: Date) {
   if (row.state !== "RUNNING" || ordinal < 1 || ordinal > row.metadata.maxAttempts || D(row.held).lt(row.metadata.allowance))
     throw new AiExecutionError("AI_ATTEMPT_NOT_ALLOWED");
@@ -110,6 +117,7 @@ export async function settleAiAttempt(p: AiPrincipal, execution: ExecutionRow, a
   await tx.$executeRaw(Prisma.sql`UPDATE "AiBudgetPeriod" SET reserved=reserved-${attempt.allowance}::numeric,spent=spent+${charge}::numeric WHERE id=${execution.periodId} AND "tenantId"=${p.tenantId}`);
   return charge;
 }
+/** Close run and execution together, releasing only never-started allowances after settlement. */
 export async function finishAiExecution(p: AiPrincipal, row: ExecutionRow, result: unknown, errorCode: string | null, tx: SqlClient) {
   if (row.state !== "RUNNING") throw new AiExecutionError("AI_EXECUTION_TERMINAL");
   const [pending] = await tx.$queryRaw<Array<{id: string}>>(Prisma.sql`SELECT id FROM "AiUsageAttempt" WHERE "executionId"=${row.id} AND "tenantId"=${p.tenantId} AND state='STARTED' LIMIT 1`);

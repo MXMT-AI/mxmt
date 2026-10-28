@@ -12,6 +12,7 @@ import { readPublishedSalesReport } from "../sales-report";
 import { readSkuDaily } from "../sku-daily-store";
 import { AiExecutionError, type AiPrincipal } from "./contracts";
 
+/** Verify current same-tenant membership and the role required by the requested operation. */
 export async function assertAiPrincipal(p: AiPrincipal, tx: SqlClient, admin = false) {
   const [user] = await tx.$queryRaw<Array<{role: string}>>(Prisma.sql`SELECT role FROM "User" WHERE id=${p.userId} AND "tenantId"=${p.tenantId}`);
   if (!user || !(admin ? ["ADMIN", "SUPER_ADMIN"] : ["ADMIN", "SUPER_ADMIN", "ANALYST"]).includes(user.role))
@@ -19,14 +20,22 @@ export async function assertAiPrincipal(p: AiPrincipal, tx: SqlClient, admin = f
 }
 const FILTERS = ["brandId", "categoryId", "skuId", "channelId", "currency", "classification", "ownership", "supplierId", "search"] as const;
 export type AiFilters = Partial<Record<typeof FILTERS[number], string>>;
+/** Reuse canonical screen validation while keeping caller filter errors in the AI 400 contract. */
 export function evidenceQuery(snapshotId: string, filters: AiFilters): ScreenQuery {
   const params = new URLSearchParams({snapshotId, pageSize: "1", domain: "stock"});
   for (const [key, value] of Object.entries(filters)) {
     if (!FILTERS.includes(key as typeof FILTERS[number]) || typeof value !== "string") throw new AiExecutionError("AI_INVALID_FILTER", 400);
     params.set(key, value);
   }
-  return parseScreenQuery(params, "overview");
+  try {
+    return parseScreenQuery(params, "overview");
+  } catch (error) {
+    if ((error as {code?: string})?.code === "INVALID_SCREEN_QUERY")
+      throw new AiExecutionError("AI_INVALID_FILTER", 400);
+    throw error;
+  }
 }
+/** Read saved tenant-scoped facts and reject stale selection, settings or calculation provenance. */
 export async function resolveAiEvidence(p: AiPrincipal, snapshotId: string, filters: AiFilters, tx: SqlClient) {
   await assertAiPrincipal(p, tx);
   const selected = await readSelectedSource(p.tenantId, tx);

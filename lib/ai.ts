@@ -37,6 +37,7 @@ export class AiConfigurationError extends Error {
   }
 }
 
+/** Resolve the explicit/session provider or retain the established OpenAI fallback. */
 export function resolveAiProvider(providerOverride?: string): AiProvider {
   const rawProvider = (providerOverride ?? process.env.AI_PROVIDER ?? DEFAULT_PROVIDER).toLowerCase();
   if (PROVIDERS.has(rawProvider as AiProvider)) {
@@ -50,12 +51,14 @@ export function getAiModel(provider: AiProvider): string {
   return MODEL_BY_PROVIDER[provider];
 }
 
+/** Clamp the configured SDK timeout to the existing serverless execution bounds. */
 export function resolveAiTimeoutMs(): number {
   const configured = Number.parseInt(process.env.AI_TIMEOUT_MS ?? "", 10);
   if (!Number.isFinite(configured)) return DEFAULT_AI_TIMEOUT_MS;
   return Math.min(MAX_AI_TIMEOUT_MS, Math.max(MIN_AI_TIMEOUT_MS, configured));
 }
 
+/** Read the selected provider's server key, failing before SDK dispatch when absent. */
 function requireApiKey(provider: AiProvider): string {
   const key = provider === "openai" ? process.env.OPENAI_API_KEY : process.env.ANTHROPIC_API_KEY;
   if (!key) {
@@ -90,6 +93,7 @@ export async function chatWithUsage(options: Omit<ChatOptions, "providerOverride
   return performChat(options, 0);
 }
 
+/** Adapt one SDK call to text and disjoint token usage; retry ownership is chosen by the caller. */
 async function performChat({systemPrompt, messages, maxTokens = 2000, provider, model}:
   Omit<ChatOptions, "providerOverride"> & {provider: AiProvider; model: string}, maxRetries: number): Promise<AttemptResult> {
   const timeout = resolveAiTimeoutMs();

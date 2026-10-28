@@ -220,6 +220,14 @@ malformed/hostile extra fact fields, unknown references, output truncation, roll
 of ledger writes, crash recovery and period expiry. SDK fakes verify no hidden v2
 retries and preserve the legacy text interface/retry configuration.
 
-Recorded checks: full `npm test -- --maxWorkers=2` — 120 files / 1,181 tests passed;
+Recorded checks: full `npm test -- --maxWorkers=2` — 120 files / 1,185 tests passed;
 `npx prisma validate`, `npx tsc --noEmit`, `npm run build` and `git diff --check`
 passed. No synthetic result is customer or forecast accuracy acceptance.
+
+CodeRabbit follow-up (October 28): invalid screen filter values now preserve the
+AI_INVALID_FILTER / HTTP 400 contract before reservation or dispatch. All five
+AI foreign keys explicitly use ON UPDATE CASCADE, matching Prisma-generated DDL;
+isolated PostgreSQL catalog checks confirm both update/delete actions. Additional
+function contracts document validation and ledger mutation preconditions. Full
+tests, TypeScript, Prisma validation and diff checks passed after these fixes;
+the build result above is from the initial implementation.

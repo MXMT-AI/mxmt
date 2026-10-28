@@ -43,6 +43,17 @@ afterEach(async () => {
 afterAll(async () => await f?.pg.close());
 
 describe("versioned AI execution", () => {
+  it.each([{channelId:""},{currency:"usd"},{brandId:"x".repeat(201)}])("reports invalid screen filter values as AI 400 errors without reserving money: %j",async filters=>{
+    await provision();
+    await expect(executeAiCapability(p,capability,{...input(),filters},{db:f.db,now,transport})).rejects.toMatchObject({code:"AI_INVALID_FILTER",status:400});
+    expect(transport).not.toHaveBeenCalled();expect(await executions()).toHaveLength(0);
+    expect(await balance()).toEqual({spent:"0.00000000",reserved:"0.00000000"});
+  });
+  it("creates all five AI foreign keys with Prisma-compatible update/delete cascade actions",async()=>{
+    const rows=(await f.pg.query<{update:string;deletion:string}>(`SELECT confupdtype::text AS update,confdeltype::text AS deletion FROM pg_constraint WHERE contype='f' AND conrelid IN ('"AiBudgetPeriod"'::regclass,'"AiExecution"'::regclass,'"AiUsageAttempt"'::regclass)`)).rows;
+    expect(rows).toHaveLength(5);
+    expect(rows.every(row=>row.update==="c"&&row.deletion==="c")).toBe(true);
+  });
   it("distinguishes unsupported legacy context, cross-tenant requests and missing budgets before any provider call", async () => {
     await expect(execute()).rejects.toMatchObject({code:"AI_POLICY_REQUIRED"});
     await expect(executeAiCapability({tenantId:"b",userId:"owner"},capability,input(),{db:f.db,now,transport})).rejects.toMatchObject({code:"AI_FORBIDDEN"});
