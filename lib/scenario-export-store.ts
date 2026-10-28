@@ -20,6 +20,7 @@ import {
   SCENARIO_EXPORT_VERSION,
   type ExportKind,
   type ScenarioExportReceipt,
+  type ScenarioExportCommand,
 } from "./scenario-export-contract";
 export { ScenarioExportError } from "./scenario-csv";
 const uuid =
@@ -89,6 +90,21 @@ async function readExport(tenantId: string, exportId: string, tx: SqlClient) {
     Prisma.sql`SELECT "actorId",context,after FROM "MerchandisingAction" WHERE "tenantId"=${tenantId} AND "idempotencyKey"=${`export:${exportId}`} AND "entityType"='SCENARIO_EXPORT' AND context->>'kind'='SCENARIO_EXPORT_V1'`,
   );
   return row ?? null;
+}
+/** Read only immutable scenario evidence for advice; never return CSV bodies or execute an export. */
+export async function readScenarioAdviceEvidence(tenantId: string, actorId: string, exportId: string, snapshotId: string, tx: SqlClient) {
+  if (!uuid.test(exportId)) throw new ScenarioExportError("INVALID_EXPORT_REQUEST");
+  const [row] = await tx.$queryRaw<Array<{actorId: string; context: {dataVersion: {snapshotId: string; calculationVersion: unknown}; request: ScenarioExportCommand}; receipt: ScenarioExportReceipt; totals: unknown}>>(Prisma.sql`
+    SELECT "actorId",context,after->'receipt' receipt,after->'totals' totals FROM "MerchandisingAction"
+    WHERE "tenantId"=${tenantId} AND "idempotencyKey"=${`export:${exportId.toLowerCase()}`} AND "entityType"='SCENARIO_EXPORT'
+      AND context->>'kind'='SCENARIO_EXPORT_V1'`);
+  if (!row || row.actorId !== actorId) throw new ScenarioExportError("AI_SCENARIO_NOT_FOUND",404);
+  if (row.context.dataVersion.snapshotId !== snapshotId) throw new ScenarioExportError("AI_SCENARIO_CONTEXT_CHANGED",409);
+  const {files, actorId: _, ...receipt} = row.receipt;
+  // Intent and totals retain the export's own filters/parameters; they are not recomputed or treated as actual sales.
+  return {receipt, sourceHref:files[0]?`/api/merchandising/exports/${receipt.exportId}?fileId=${encodeURIComponent(files[0].id)}`:null,
+    totals: row.totals, scenario: row.context.request.scenario,
+    target: row.context.request.target ?? null, version: row.context.dataVersion};
 }
 /** Publish generated files and the actor/scenario audit as one atomic, retry-safe database operation. */
 export async function createScenarioExport(

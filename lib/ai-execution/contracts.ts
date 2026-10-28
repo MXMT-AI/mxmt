@@ -7,6 +7,15 @@ export class AiExecutionError extends Error {
     super(code);
   }
 }
+/** Keep library/context errors consistent at AI entry points without exposing database exception text. */
+export function aiExecutionFailure(error:unknown):AiExecutionError {
+  if(error instanceof AiExecutionError)return error;
+  const code=(error as {code?:string})?.code;
+  if(code==="SCREEN_SNAPSHOT_NOT_FOUND")return new AiExecutionError("AI_CONTEXT_NOT_FOUND",404);
+  if(code==="SCREEN_VERSION_UNSUPPORTED")return new AiExecutionError("AI_CONTEXT_UNSUPPORTED");
+  if(code==="SALES_REPORT_NOT_FOUND"||code==="DAILY_CALCULATION_NOT_FOUND")return new AiExecutionError("AI_CONTEXT_INCOMPLETE");
+  return new AiExecutionError("AI_EXECUTION_FAILED",500);
+}
 export interface AiPrincipal { tenantId: string; userId: string }
 export interface TokenUsage {
   input: number;

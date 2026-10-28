@@ -1,5 +1,8 @@
 "use client";
 import { useState } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import {chatCopy} from "@/lib/merchandising-chat-copy";
 import { panel, button, Note } from "./ReportPrimitives";
 import { exportCopy, exportKindLabel } from "@/lib/scenario-export-client";
 import type { ScenarioExportReceipt } from "@/lib/scenario-export-contract";
@@ -78,7 +81,8 @@ export default function ScenarioExportPanel({
   lang: Lang;
 }) {
   const copy = exportCopy[lang],
-    locale = lang === "uk" ? "uk-UA" : "en-US";
+    locale = lang === "uk" ? "uk-UA" : "en-US",params=useSearchParams();
+  const adviceHref=(receipt:ScenarioExportReceipt)=>{const q=new URLSearchParams(params);q.set("chat","1");q.set("chatTopic",receipt.kind==="reprice"?"repricing":"reordering");q.set("chatExportId",receipt.exportId);return `/overview?${q}`;};
   return (
     <section className={panel + " p-5 space-y-4"} aria-label={copy.history}>
       {!allowed ? <p className="text-sm">{copy.readOnly}</p> : null}
@@ -111,6 +115,7 @@ export default function ScenarioExportPanel({
           lang={lang}
         />
       ) : null}
+      {allowed&&state.receipt&&state.receipt.previewId===previewId?<Link href={adviceHref(state.receipt)} className={button}>{chatCopy[lang].askScenario}</Link>:null}
       <Note>{copy.note}</Note>
       <details>
         <summary className="min-h-11 cursor-pointer py-2 font-semibold">

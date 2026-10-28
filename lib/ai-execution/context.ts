@@ -10,6 +10,7 @@ import { readScreenSales } from "../merchandising-screen-sales";
 import { readScreenStock, screenStockFilter, screenStockJoin } from "../merchandising-screen-stock";
 import { readPublishedSalesReport } from "../sales-report";
 import { readSkuDaily } from "../sku-daily-store";
+import { readScenarioAdviceEvidence } from "../scenario-export-store";
 import { AiExecutionError, type AiPrincipal } from "./contracts";
 
 /** Verify current same-tenant membership and the role required by the requested operation. */
@@ -20,6 +21,7 @@ export async function assertAiPrincipal(p: AiPrincipal, tx: SqlClient, admin = f
 }
 const FILTERS = ["brandId", "categoryId", "skuId", "channelId", "currency", "classification", "ownership", "supplierId", "search"] as const;
 export type AiFilters = Partial<Record<typeof FILTERS[number], string>>;
+export interface AiScenarioSelection {exportId: string; kind: "reprice" | "reorder"}
 /** Reuse canonical screen validation while keeping caller filter errors in the AI 400 contract. */
 export function evidenceQuery(snapshotId: string, filters: AiFilters): ScreenQuery {
   const params = new URLSearchParams({snapshotId, pageSize: "1", domain: "stock"});
@@ -36,7 +38,7 @@ export function evidenceQuery(snapshotId: string, filters: AiFilters): ScreenQue
   }
 }
 /** Read saved tenant-scoped facts and reject stale selection, settings or calculation provenance. */
-export async function resolveAiEvidence(p: AiPrincipal, snapshotId: string, filters: AiFilters, tx: SqlClient) {
+export async function resolveAiEvidence(p: AiPrincipal, snapshotId: string, filters: AiFilters, tx: SqlClient, scenario?: AiScenarioSelection) {
   await assertAiPrincipal(p, tx);
   const selected = await readSelectedSource(p.tenantId, tx);
   if (!selected) throw new AiExecutionError("AI_CONTEXT_UNSUPPORTED");
@@ -78,7 +80,17 @@ export async function resolveAiEvidence(p: AiPrincipal, snapshotId: string, filt
   const sales = await readScreenSales(p.tenantId, snapshot, query, "overview", tx, false);
   const stock = await readScreenStock(p.tenantId, snapshot, query, "overview", tx, false);
   // Server facts remain separate from model text; channel filtering intentionally never narrows shared stock.
-  const facts = {sales: sales.summary, stock: stock.summary};
+  let savedScenario: Awaited<ReturnType<typeof readScenarioAdviceEvidence>> | undefined;
+  if (scenario) {
+    if (!["reprice","reorder"].includes(scenario.kind) || typeof scenario.exportId !== "string") throw new AiExecutionError("AI_INVALID_SCENARIO",400);
+    try { savedScenario = await readScenarioAdviceEvidence(p.tenantId,p.userId,scenario.exportId,snapshotId,tx); }
+    catch (error) {
+      const e=error as {code?: string;status?:number};
+      throw new AiExecutionError(e.code?.startsWith("AI_SCENARIO_") ? e.code : "AI_INVALID_SCENARIO",e.status ?? 400);
+    }
+    if (savedScenario.receipt.kind !== scenario.kind) throw new AiExecutionError("AI_INVALID_SCENARIO",400);
+  }
+  const facts = {sales: sales.summary, stock: stock.summary, ...(savedScenario ? {scenario:savedScenario} : {})};
   return {envelope, facts, fingerprint: payloadHash({envelope, facts})};
 }
 export type AiEvidence = Awaited<ReturnType<typeof resolveAiEvidence>>;

@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { chat, type ChatMessage } from "@/lib/ai";
 import { requireApiUser } from "@/lib/server-auth";
-import { isRecord, parseJsonBody, serverError, stringField, validationError } from "@/lib/api-contracts";
+import { apiError, isRecord, parseJsonBody, serverError, stringField, validationError } from "@/lib/api-contracts";
+import { merchandisingChat } from "@/lib/merchandising-chat";
+import { AiExecutionError } from "@/lib/ai-execution/contracts";
 import { createRequestContext, logError, requestLogContext, withRequestId } from "@/lib/observability";
 
 export const runtime = "nodejs";
@@ -14,7 +16,7 @@ export async function POST(request: NextRequest) {
   const context = createRequestContext(request, "api.ai");
 
   try {
-    const { response } = await requireApiUser("ANALYST", context.requestId);
+    const { user, response } = await requireApiUser("ANALYST", context.requestId);
     if (response) return withRequestId(response, context.requestId);
 
     const { data, response: parseResponse } = await parseJsonBody(request, context.requestId);
@@ -22,6 +24,15 @@ export async function POST(request: NextRequest) {
 
     if (!isRecord(data)) {
       return withRequestId(validationError(["body must be an object"], context.requestId), context.requestId);
+    }
+
+    if (data.mode !== undefined) {
+      if (data.mode !== "merchandising") return withRequestId(validationError(["unsupported AI mode"],context.requestId),context.requestId);
+      const reply=await merchandisingChat({tenantId:user.tenantId,userId:user.userId},data);
+      const status=reply.mode!=="fallback"?200:
+        reply.code?.includes("BUDGET_EXCEEDED")?429:reply.code==="AI_INPUT_LIMIT"?413:
+          ["AI_PROVIDER_UNAVAILABLE","AI_INVALID_OUTPUT","AI_OUTPUT_TRUNCATED","AI_INVALID_USAGE","AI_USAGE_OVERRUN"].includes(reply.code??"")?502:409;
+      return withRequestId(NextResponse.json({...reply,requestId:context.requestId},{status,headers:{"Cache-Control":"no-store"}}),context.requestId);
     }
 
     const issues: string[] = [];
@@ -64,6 +75,7 @@ export async function POST(request: NextRequest) {
 
     return withRequestId(NextResponse.json({ content, requestId: context.requestId }), context.requestId);
   } catch (err) {
+    if(err instanceof AiExecutionError)return withRequestId(apiError(err.code,err.status,err.code,undefined,context.requestId),context.requestId);
     logError("AI request failed", err, requestLogContext(context));
     return withRequestId(serverError("AI request failed", context.requestId), context.requestId);
   }

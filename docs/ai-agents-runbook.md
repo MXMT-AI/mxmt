@@ -34,6 +34,12 @@ It validates saved MVP evidence and reserves/meters each paid attempt. It does n
 migrate the legacy routes or enable a policy by default. Only explicitly approved
 administrative provisioning may enable a new tenant-period budget.
 
+The read-only merchandising chat uses explicit `mode: "merchandising"` on
+`POST /api/ai`; see
+[`94-evidence-backed-merchandising-chat.md`](../prisma/verification/94-evidence-backed-merchandising-chat.md).
+It requires the `merchandising_chat` capability in an approved budget policy and
+keeps legacy planner/analyst requests separate. Customer evaluation remains in #92.
+
 ## Runtime Behavior
 
 - Agent output JSON is parsed through `parseAgentJson`.
