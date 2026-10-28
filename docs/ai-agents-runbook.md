@@ -79,6 +79,15 @@ source selection and activation remain deferred. Production has no market adapte
 no external request is made, and no optional LLM summary or forecast input is enabled.
 Verify source rights, costs, relevance and daily cleanup before a future integration.
 
+## New-product forecast research (#99)
+
+See [`99-new-product-analog-forecast.md`](../prisma/verification/99-new-product-analog-forecast.md)
+for explicit draft policies, frozen analog evidence and later time-split evaluation.
+The owner chose mechanism preparation on 2026-10-28; business rules and activation
+remain deferred. All outputs stay drafts, uncertainty is unevaluated, and a passing
+draft score never approves release. No LLM call, scheduled forecast or procurement
+conversion is enabled; existing reordering calculations and exports are unchanged.
+
 ## Runtime Behavior
 
 - Agent output JSON is parsed through `parseAgentJson`.
