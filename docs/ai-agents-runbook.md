@@ -60,6 +60,16 @@ slot-zero/class and omission policy was owner-approved on 2026-10-28; real
 account mappings/ownership still require profile-specific approval. Downloads
 do not upload a feed, modify campaigns or activate a provider integration.
 
+The opt-in Product Attributes mode (`attributes_v2`) uses retained physical-field
+evidence, versioned dictionaries and saved MVP stock/sales metrics; see
+[`97-product-attribute-analysis.md`](../prisma/verification/97-product-attribute-analysis.md).
+Dictionary preparation, sample projection and explicit sample/rubric approval
+are separate operations. The owner deferred real samples and activation on
+2026-10-28. No customer dictionary or default physical dimension is installed.
+V2 analysis makes no LLM calls and cannot reinterpret legacy category STR as
+dial-color/size evidence. Apply the attribute-evidence lookup index migration
+before enabling this path for an approved client.
+
 ## Runtime Behavior
 
 - Agent output JSON is parsed through `parseAgentJson`.

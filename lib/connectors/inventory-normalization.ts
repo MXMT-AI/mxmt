@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { isRecord } from "@/lib/api-contracts";
 import type { CatalogSnapshot } from "./contract";
 import { exact } from "./order-normalization";
+import { productAttributeEvidence } from "../product-attributes";
 
 export interface InventoryPolicy {
   receipts?: { postedStatuses: string[]; suppliers: Record<string, string>; productIdField?: "id" | "parameter"; currency?: string; unitCostVerified?: boolean };
@@ -23,6 +24,7 @@ export interface CatalogEntry {
   categoryId: string | null; categoryName: string | null; vendor: string | null; barcode: string | null;
   retailPrice: string | null; oldPrice: string | null; quantity: string | null; currency: string | null;
   attributes: Record<string, unknown>;
+  attributeEvidence:ReturnType<typeof productAttributeEvidence>;
 }
 /** Validate the entire observation before any catalogue or business snapshot is changed. */
 export function normalizeCatalog(snapshot: CatalogSnapshot, sourceId: string, provider="salesdrive") {
@@ -55,7 +57,8 @@ export function normalizeCatalog(snapshot: CatalogSnapshot, sourceId: string, pr
     const canonicalSku = product.sku ?? `@${provider}:${sourceId}:${product.externalId}`;
     if (!product.sku) issues.add("MISSING_SOURCE_SKU");
     if (skus.has(canonicalSku)) throw new Error("DUPLICATE_CATALOG_SKU"); skus.add(canonicalSku);
-    return {observedAt:observation!.observedAt,priceObservedAt:product.observedAt,proposedId: randomUUID(), externalId: product.externalId, article: product.sku, canonicalSku, name: product.name,
+    const attributeEvidence=productAttributeEvidence(product.externalId,product.raw);
+    return {attributeEvidence,observedAt:observation!.observedAt,priceObservedAt:product.observedAt,proposedId: randomUUID(), externalId: product.externalId, article: product.sku, canonicalSku, name: product.name,
       categoryId: product.categoryId, categoryName: product.categoryName ?? null, vendor: normalizedBrandKey(product.brand), barcode: product.barcode,
       retailPrice, oldPrice, quantity, currency, attributes: { observedAt:product.observedAt, sourceStatus: product.sourceStatus ?? null, sourceSku: product.sku,
         vendor: product.brand, categoryId: product.categoryId, categoryName: product.categoryName ?? null,
