@@ -28,6 +28,12 @@ not activated capabilities. Spreadsheet/business-rule and agent acceptance
 remain tracked in #92; a completed preparation PR does not satisfy that gate.
 Legacy architecture token/cost examples are not measured usage or approved budgets.
 
+The opt-in v2 server foundation is documented in
+[`93-ai-execution-context-budgets.md`](../prisma/verification/93-ai-execution-context-budgets.md).
+It validates saved MVP evidence and reserves/meters each paid attempt. It does not
+migrate the legacy routes or enable a policy by default. Only explicitly approved
+administrative provisioning may enable a new tenant-period budget.
+
 ## Runtime Behavior
 
 - Agent output JSON is parsed through `parseAgentJson`.

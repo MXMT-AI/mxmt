@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
+import type { AttemptResult } from "./ai-execution/contracts";
 
 export type AiProvider = "anthropic" | "openai";
 
@@ -64,6 +65,10 @@ function requireApiKey(provider: AiProvider): string {
   return key;
 }
 
+export function assertAiProviderConfigured(provider: AiProvider): void {
+  requireApiKey(provider);
+}
+
 /**
  * Unified AI chat function.
  * Switch provider via env var: AI_PROVIDER=openai (default) | anthropic
@@ -77,10 +82,20 @@ export async function chat({
 }: ChatOptions): Promise<string> {
   const provider = resolveAiProvider(providerOverride);
   const model = getAiModel(provider);
+  return (await performChat({systemPrompt, messages, maxTokens, provider, model}, 1)).text;
+}
+
+/** V2 transport: exactly one SDK attempt; the durable execution layer owns every retry and reservation. */
+export async function chatWithUsage(options: Omit<ChatOptions, "providerOverride"> & {provider: AiProvider; model: string}): Promise<AttemptResult> {
+  return performChat(options, 0);
+}
+
+async function performChat({systemPrompt, messages, maxTokens = 2000, provider, model}:
+  Omit<ChatOptions, "providerOverride"> & {provider: AiProvider; model: string}, maxRetries: number): Promise<AttemptResult> {
   const timeout = resolveAiTimeoutMs();
 
   if (provider === "openai") {
-    const client = new OpenAI({ apiKey: requireApiKey(provider), timeout, maxRetries: 1 });
+    const client = new OpenAI({ apiKey: requireApiKey(provider), timeout, maxRetries });
     const res = await client.chat.completions.create({
       model,
       max_tokens: maxTokens,
@@ -91,11 +106,14 @@ export async function chat({
         ...messages,
       ],
     });
-    return res.choices[0]?.message?.content ?? "";
+    const cached = res.usage?.prompt_tokens_details?.cached_tokens ?? 0;
+    return {text: res.choices[0]?.message?.content ?? "", model: res.model,
+      requestId: res.id, complete: res.choices[0]?.finish_reason === "stop", quality: "EXACT",
+      ...(res.usage ? {usage: {input: res.usage.prompt_tokens-cached, output: res.usage.completion_tokens, cacheRead: cached, cacheWrite: 0}} : {})};
   }
 
   // Anthropic remains available as an explicit override.
-  const client = new Anthropic({ apiKey: requireApiKey(provider), timeout, maxRetries: 1 });
+  const client = new Anthropic({ apiKey: requireApiKey(provider), timeout, maxRetries });
   const anthropicMessages = messages.filter(
     (message): message is AnthropicChatMessage => message.role !== "system"
   );
@@ -110,7 +128,10 @@ export async function chat({
       : {}),
     messages: anthropicMessages,
   });
-  return res.content[0]?.type === "text" ? res.content[0].text : "";
+  return {text: res.content[0]?.type === "text" ? res.content[0].text : "", model: res.model,
+    requestId: res.id, complete: res.stop_reason === "end_turn", quality: "EXACT",
+    ...(res.usage ? {usage: {input: res.usage.input_tokens, output: res.usage.output_tokens,
+      cacheRead: res.usage.cache_read_input_tokens ?? 0, cacheWrite: res.usage.cache_creation_input_tokens ?? 0}} : {})};
 }
 
 export function getProviderName(): string {
