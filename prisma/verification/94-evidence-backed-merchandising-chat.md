@@ -173,3 +173,13 @@ scenario ownership/snapshot checks and exact LY citations. Full suite:
 production build and diff checks passed. The final UI retry control was also
 verified in the isolated browser fixture. No production rollout or customer
 acceptance is asserted here.
+
+## Review follow-up
+
+Only typed scenario errors are mapped to client/context failures; unexpected
+storage failures retain HTTP 500. Unexpected AI failures preserve their original
+cause for server-side request logging while responses remain sanitized. Expected
+client/context errors remain unlogged. Regression checks cover scenario storage,
+post-dispatch settlement, original-cause logging and private-message exclusion.
+After these changes, all 123 files / 1,217 tests, TypeScript and diff checks
+passed. The production build was not rerun for this error-handling follow-up.

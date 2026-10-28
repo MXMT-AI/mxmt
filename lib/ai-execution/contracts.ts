@@ -3,8 +3,8 @@ import { isRecord } from "../api-contracts";
 import type { AiProvider } from "../ai";
 
 export class AiExecutionError extends Error {
-  constructor(readonly code: string, readonly status = 409) {
-    super(code);
+  constructor(readonly code: string, readonly status = 409, options?: ErrorOptions) {
+    super(code, options);
   }
 }
 /** Keep library/context errors consistent at AI entry points without exposing database exception text. */
@@ -14,7 +14,7 @@ export function aiExecutionFailure(error:unknown):AiExecutionError {
   if(code==="SCREEN_SNAPSHOT_NOT_FOUND")return new AiExecutionError("AI_CONTEXT_NOT_FOUND",404);
   if(code==="SCREEN_VERSION_UNSUPPORTED")return new AiExecutionError("AI_CONTEXT_UNSUPPORTED");
   if(code==="SALES_REPORT_NOT_FOUND"||code==="DAILY_CALCULATION_NOT_FOUND")return new AiExecutionError("AI_CONTEXT_INCOMPLETE");
-  return new AiExecutionError("AI_EXECUTION_FAILED",500);
+  return new AiExecutionError("AI_EXECUTION_FAILED",500,{cause:error});
 }
 export interface AiPrincipal { tenantId: string; userId: string }
 export interface TokenUsage {

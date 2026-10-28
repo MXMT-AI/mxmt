@@ -205,6 +205,13 @@ describe("versioned AI execution", () => {
     expect(calls).toBe(1);
     expect(await balance()).toEqual({spent:attemptAllowance(policy(),policy().capabilities.advice),reserved:"0.00000000"});
   });
+  it("preserves unexpected executor failures after dispatch while settling the run",async()=>{
+    await provision();const cause=new Error("synthetic result processing failure");
+    await expect(execute("unexpected-result",async()=>({get text():string {throw cause;},usage})))
+      .rejects.toMatchObject({code:"AI_EXECUTION_FAILED",status:500,cause});
+    expect(await executions()).toEqual([expect.objectContaining({state:"ERROR",errorCode:"AI_EXECUTION_FAILED"})]);
+    expect(await balance()).toEqual({spent:usageCost(usage,policy()),reserved:"0.00000000"});
+  });
   it("rolls back run creation and reservations together if the ledger counter write fails",async()=>{
     await provision();
     const broken={...f.db,$transaction:<T>(fn:Parameters<typeof f.db.$transaction<T>>[0])=>f.db.$transaction(tx=>fn({...tx,$executeRaw:async(q:Prisma.Sql)=>{

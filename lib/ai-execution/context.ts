@@ -11,6 +11,7 @@ import { readScreenStock, screenStockFilter, screenStockJoin } from "../merchand
 import { readPublishedSalesReport } from "../sales-report";
 import { readSkuDaily } from "../sku-daily-store";
 import { readScenarioAdviceEvidence } from "../scenario-export-store";
+import { ScenarioExportError } from "../scenario-csv";
 import { AiExecutionError, type AiPrincipal } from "./contracts";
 
 /** Verify current same-tenant membership and the role required by the requested operation. */
@@ -85,8 +86,8 @@ export async function resolveAiEvidence(p: AiPrincipal, snapshotId: string, filt
     if (!["reprice","reorder"].includes(scenario.kind) || typeof scenario.exportId !== "string") throw new AiExecutionError("AI_INVALID_SCENARIO",400);
     try { savedScenario = await readScenarioAdviceEvidence(p.tenantId,p.userId,scenario.exportId,snapshotId,tx); }
     catch (error) {
-      const e=error as {code?: string;status?:number};
-      throw new AiExecutionError(e.code?.startsWith("AI_SCENARIO_") ? e.code : "AI_INVALID_SCENARIO",e.status ?? 400);
+      if (!(error instanceof ScenarioExportError)) throw error;
+      throw new AiExecutionError(error.code.startsWith("AI_SCENARIO_") ? error.code : "AI_INVALID_SCENARIO",error.status ?? 400);
     }
     if (savedScenario.receipt.kind !== scenario.kind) throw new AiExecutionError("AI_INVALID_SCENARIO",400);
   }

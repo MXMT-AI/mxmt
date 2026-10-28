@@ -5,6 +5,7 @@ import {createScreenSnapshot,type ScreenSnapshot} from "@/lib/merchandising-snap
 import {merchandisingChat,parseMerchandisingChat,chatFactCards} from "@/lib/merchandising-chat";
 import type {MerchandisingChatRequest} from "@/lib/merchandising-chat-contract";
 import {resolveAiEvidence} from "@/lib/ai-execution/context";
+import * as scenarioStore from "@/lib/scenario-export-store";
 import {createAiBudgetPeriod,setAiBudgetEnabled} from "@/lib/ai-execution/budget";
 import type {AiAttemptTransport} from "@/lib/ai-execution/execute";
 let f:Awaited<ReturnType<typeof createScreenDb>>,snapshot:ScreenSnapshot;
@@ -24,7 +25,7 @@ beforeAll(async()=>{f=await createScreenDb();snapshot=await createScreenSnapshot
  await f.pg.exec(`INSERT INTO "User" (id,email,"passwordHash",name,role,"tenantId","updatedAt") VALUES ('other','chat-other@test.invalid','test','Other','ANALYST','a',now()),('other-b','chat-other-b@test.invalid','test','Other tenant','ADMIN','b',now());`);
 },30000);
 beforeEach(async()=>{provider.mockClear();await f.pg.exec(`DELETE FROM "AiBudgetPeriod";DELETE FROM "AgentRun" WHERE "agentType" LIKE 'v2:%';DELETE FROM "MerchandisingAction" WHERE "entityType"='SCENARIO_EXPORT';`);});
-afterEach(async()=>{await f.pg.exec(`DELETE FROM "ConnectorSelection";`);});
+afterEach(async()=>{vi.restoreAllMocks();await f.pg.exec(`DELETE FROM "ConnectorSelection";`);});
 afterAll(async()=>f?.pg.close());
 it("returns exact saved financial cards, scope and drill-downs while AI is disabled",async()=>{
  const reply=await run();const evidence=await f.db.$transaction(tx=>resolveAiEvidence(p,snapshot.snapshotId,{},tx));
@@ -111,6 +112,12 @@ it("reads authorized saved scenario totals and cites existing artifacts without 
  });
  expect(reply.citations[0]).toMatchObject({value:"123.4500",href:`/api/merchandising/exports/${exportId}?fileId=file`});
  expect((await f.pg.query(`SELECT id FROM "MerchandisingAction" WHERE "entityType"='SCENARIO_EXPORT'`)).rows).toHaveLength(1);
+});
+it("preserves unexpected scenario storage failures as server errors with their original cause",async()=>{
+ const cause=new Error("synthetic scenario storage failure");
+ vi.spyOn(scenarioStore,"readScenarioAdviceEvidence").mockRejectedValueOnce(cause);
+ await expect(run({...request(),topic:"repricing",scenarioExportId:exportId})).rejects.toMatchObject({code:"AI_EXECUTION_FAILED",status:500,cause});
+ expect(provider).not.toHaveBeenCalled();
 });
 it("rejects another actor's saved scenario before provider use",async()=>{
  await enable();await saveScenario("other");await expect(run({...request(),topic:"repricing",scenarioExportId:exportId})).rejects.toMatchObject({code:"AI_SCENARIO_NOT_FOUND"});expect(provider).not.toHaveBeenCalled();

@@ -75,7 +75,10 @@ export async function POST(request: NextRequest) {
 
     return withRequestId(NextResponse.json({ content, requestId: context.requestId }), context.requestId);
   } catch (err) {
-    if(err instanceof AiExecutionError)return withRequestId(apiError(err.code,err.status,err.code,undefined,context.requestId),context.requestId);
+    if(err instanceof AiExecutionError){
+      if(err.status >= 500)logError("AI request failed",err.cause ?? err,requestLogContext(context));
+      return withRequestId(apiError(err.code,err.status,err.code,undefined,context.requestId),context.requestId);
+    }
     logError("AI request failed", err, requestLogContext(context));
     return withRequestId(serverError("AI request failed", context.requestId), context.requestId);
   }

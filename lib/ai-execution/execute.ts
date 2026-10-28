@@ -136,7 +136,7 @@ async function executeCapability(p: AiPrincipal, capability: AiCapability, input
       const current = await executionById(p, row.id, tx);
       if (current.state === "RUNNING") await finishAiExecution(p, current, null, code, tx);
     });
-    throw new AiExecutionError(code, error instanceof AiExecutionError ? error.status : 500);
+    throw aiExecutionFailure(error);
   }
 }
 
