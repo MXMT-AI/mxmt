@@ -1,0 +1,8 @@
+import type {MarketPolicy,MarketQuery,MarketObservation} from "@/lib/market-evidence";
+export const marketNow=new Date("2026-10-25T10:00:00Z");
+export const marketPolicy=():MarketPolicy=>({version:1,adapterId:"fixture-market",sourceName:"Synthetic market source",sourceUrl:"https://evidence.example.test/",internalSourceId:"source",
+ scope:{geography:"UA",categoryId:"cat-a",externalCategory:"watches",attribute:null},metric:{name:"search_interest",unit:"index",normalization:"relative_index",definitionReference:"Synthetic index: peak in the requested period equals 100; no cross-period comparability.",currency:null},
+ rights:{reference:"synthetic fixture license; no actual provider approval",canIngest:true,canRetain:true,canDisplay:true,redistribution:"internal_only",validFrom:"2026-10-01T00:00:00Z",validUntil:"2026-12-01T00:00:00Z",retentionHours:72},
+ cadence:{refreshHours:6,maxAgeHours:48},budget:{key:"fixture-account",from:"2026-10-01T00:00:00Z",to:"2026-11-01T00:00:00Z",currency:"USD",subscriptionAmount:"1",perRequestAmount:"0.25",periodCap:"5",maxRequests:3},relevanceRubric:"Synthetic reviewed scope and index definition; no causation or uplift claims."});
+export const marketQuery=(snapshotId="snapshot"):MarketQuery=>({profileId:"market",snapshotId,requestKey:"lookup",refresh:true,geography:"UA",categoryId:"cat-a",from:"2026-09-01",to:"2026-09-30"});
+export const marketObservation=():MarketObservation=>({version:1,sourceUrl:"https://evidence.example.test/report",publishedAt:"2026-10-25T09:00:00Z",geography:"UA",externalCategory:"watches",externalAttribute:null,period:{from:"2026-09-01",to:"2026-09-30"},metric:marketPolicy().metric,points:[{date:"2026-09-01",value:"20"},{date:"2026-09-30",value:"30"}]});

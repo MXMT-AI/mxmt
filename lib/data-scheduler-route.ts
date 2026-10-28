@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isDriveConfigured } from "@/lib/gdrive";
+import { purgeExpiredMarketEvidence } from "@/lib/market-source-store";
 import {
   cronSecretMatches,
   runScheduledDataPipelines,
@@ -15,6 +16,10 @@ export async function handleScheduledDataImport(request: NextRequest) {
   }
   if (!cronSecretMatches(request.headers.get("authorization"), process.env.CRON_SECRET)) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  }
+  try { await purgeExpiredMarketEvidence(); }
+  catch {
+    return NextResponse.json({ok:false,error:"Could not enforce market evidence retention"},{status:500,headers:{"Cache-Control":"no-store"}});
   }
   if (!isDriveConfigured()) {
     return NextResponse.json(
