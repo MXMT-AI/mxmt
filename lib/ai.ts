@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
+import type { AttemptResult } from "./ai-execution/contracts";
 
 export type AiProvider = "anthropic" | "openai";
 
@@ -36,6 +37,7 @@ export class AiConfigurationError extends Error {
   }
 }
 
+/** Resolve the explicit/session provider or retain the established OpenAI fallback. */
 export function resolveAiProvider(providerOverride?: string): AiProvider {
   const rawProvider = (providerOverride ?? process.env.AI_PROVIDER ?? DEFAULT_PROVIDER).toLowerCase();
   if (PROVIDERS.has(rawProvider as AiProvider)) {
@@ -49,12 +51,14 @@ export function getAiModel(provider: AiProvider): string {
   return MODEL_BY_PROVIDER[provider];
 }
 
+/** Clamp the configured SDK timeout to the existing serverless execution bounds. */
 export function resolveAiTimeoutMs(): number {
   const configured = Number.parseInt(process.env.AI_TIMEOUT_MS ?? "", 10);
   if (!Number.isFinite(configured)) return DEFAULT_AI_TIMEOUT_MS;
   return Math.min(MAX_AI_TIMEOUT_MS, Math.max(MIN_AI_TIMEOUT_MS, configured));
 }
 
+/** Read the selected provider's server key, failing before SDK dispatch when absent. */
 function requireApiKey(provider: AiProvider): string {
   const key = provider === "openai" ? process.env.OPENAI_API_KEY : process.env.ANTHROPIC_API_KEY;
   if (!key) {
@@ -62,6 +66,10 @@ function requireApiKey(provider: AiProvider): string {
   }
 
   return key;
+}
+
+export function assertAiProviderConfigured(provider: AiProvider): void {
+  requireApiKey(provider);
 }
 
 /**
@@ -77,10 +85,21 @@ export async function chat({
 }: ChatOptions): Promise<string> {
   const provider = resolveAiProvider(providerOverride);
   const model = getAiModel(provider);
+  return (await performChat({systemPrompt, messages, maxTokens, provider, model}, 1)).text;
+}
+
+/** V2 transport: exactly one SDK attempt; the durable execution layer owns every retry and reservation. */
+export async function chatWithUsage(options: Omit<ChatOptions, "providerOverride"> & {provider: AiProvider; model: string}): Promise<AttemptResult> {
+  return performChat(options, 0);
+}
+
+/** Adapt one SDK call to text and disjoint token usage; retry ownership is chosen by the caller. */
+async function performChat({systemPrompt, messages, maxTokens = 2000, provider, model}:
+  Omit<ChatOptions, "providerOverride"> & {provider: AiProvider; model: string}, maxRetries: number): Promise<AttemptResult> {
   const timeout = resolveAiTimeoutMs();
 
   if (provider === "openai") {
-    const client = new OpenAI({ apiKey: requireApiKey(provider), timeout, maxRetries: 1 });
+    const client = new OpenAI({ apiKey: requireApiKey(provider), timeout, maxRetries });
     const res = await client.chat.completions.create({
       model,
       max_tokens: maxTokens,
@@ -91,11 +110,14 @@ export async function chat({
         ...messages,
       ],
     });
-    return res.choices[0]?.message?.content ?? "";
+    const cached = res.usage?.prompt_tokens_details?.cached_tokens ?? 0;
+    return {text: res.choices[0]?.message?.content ?? "", model: res.model,
+      requestId: res.id, complete: res.choices[0]?.finish_reason === "stop", quality: "EXACT",
+      ...(res.usage ? {usage: {input: res.usage.prompt_tokens-cached, output: res.usage.completion_tokens, cacheRead: cached, cacheWrite: 0}} : {})};
   }
 
   // Anthropic remains available as an explicit override.
-  const client = new Anthropic({ apiKey: requireApiKey(provider), timeout, maxRetries: 1 });
+  const client = new Anthropic({ apiKey: requireApiKey(provider), timeout, maxRetries });
   const anthropicMessages = messages.filter(
     (message): message is AnthropicChatMessage => message.role !== "system"
   );
@@ -110,7 +132,10 @@ export async function chat({
       : {}),
     messages: anthropicMessages,
   });
-  return res.content[0]?.type === "text" ? res.content[0].text : "";
+  return {text: res.content[0]?.type === "text" ? res.content[0].text : "", model: res.model,
+    requestId: res.id, complete: res.stop_reason === "end_turn", quality: "EXACT",
+    ...(res.usage ? {usage: {input: res.usage.input_tokens, output: res.usage.output_tokens,
+      cacheRead: res.usage.cache_read_input_tokens ?? 0, cacheWrite: res.usage.cache_creation_input_tokens ?? 0}} : {})};
 }
 
 export function getProviderName(): string {

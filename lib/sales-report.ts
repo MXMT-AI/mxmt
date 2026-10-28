@@ -266,7 +266,7 @@ export async function getSalesReportInSnapshot(
 export async function readPublishedSalesReport(
   tenantId: string,
   id: string,
-  db: SqlDatabase = prisma,
+  db: SqlClient = prisma,
 ) {
   const [row] = await db.$queryRaw<
     Array<{ financialResult: PublishedSalesReport }>

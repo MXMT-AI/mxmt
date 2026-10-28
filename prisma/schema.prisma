@@ -30,6 +30,8 @@ model Tenant {
   plannerCart             PlannerCart?
   marketingEvents         MarketingEvent[]
   agentRuns               AgentRun[]
+  aiBudgetPeriods         AiBudgetPeriod[]
+  aiExecutions            AiExecution[]
   dataSources             DataSource[]
   dataImportRuns          DataImportRun[]
   dataSheetSnapshots      DataSheetSnapshot[]
@@ -736,9 +738,75 @@ model AgentRun {
   errorMsg   String?
   startedAt  DateTime  @default(now())
   finishedAt DateTime?
+  aiExecution AiExecution?
 
+  @@unique([id, tenantId])
   @@index([tenantId, agentType])
   @@index([tenantId])
+}
+
+// V2 execution is opt-in; old AgentRun rows and routes keep their existing contract.
+model AiBudgetPeriod {
+  id                String @id
+  tenantId          String
+  tenant            Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  startsAt          DateTime @db.Timestamptz(3)
+  endsAt            DateTime @db.Timestamptz(3)
+  enabled           Boolean @default(false)
+  policy            Json
+  approvedBy        String
+  approvalReference String
+  spent             Decimal @default(0) @db.Decimal(24, 8)
+  reserved          Decimal @default(0) @db.Decimal(24, 8)
+  createdAt         DateTime @default(now()) @db.Timestamptz(3)
+  executions        AiExecution[]
+  @@unique([id, tenantId])
+  @@index([tenantId, startsAt, endsAt])
+}
+
+model AiExecution {
+  id          String @id
+  tenantId    String
+  tenant      Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  periodId    String
+  period      AiBudgetPeriod @relation(fields: [periodId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  runId       String @unique
+  run         AgentRun @relation(fields: [runId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  requestKey  String
+  fingerprint String
+  capability  String
+  metadata    Json
+  state       String @default("RUNNING")
+  held        Decimal @db.Decimal(24, 8)
+  charged     Decimal @default(0) @db.Decimal(24, 8)
+  result      Json?
+  errorCode   String?
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  finishedAt  DateTime? @db.Timestamptz(3)
+  attempts    AiUsageAttempt[]
+  @@unique([id, tenantId])
+  @@unique([tenantId, requestKey])
+  @@unique([runId, tenantId])
+  @@index([periodId, capability])
+}
+
+model AiUsageAttempt {
+  id           String @id
+  tenantId     String
+  executionId  String
+  execution    AiExecution @relation(fields: [executionId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  ordinal      Int
+  state        String @default("STARTED")
+  allowance    Decimal @db.Decimal(24, 8)
+  charged      Decimal? @db.Decimal(24, 8)
+  usage        Json?
+  quality      String?
+  requestId    String?
+  responseModel String?
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+  finishedAt   DateTime? @db.Timestamptz(3)
+  @@unique([executionId, ordinal])
+  @@index([tenantId, state, createdAt])
 }
 
 // ─── PLANNER CART (draft purchase order — one per tenant) ─────────────────────
