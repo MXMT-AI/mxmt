@@ -49,6 +49,17 @@ actual usage, and owner approval/calendar handoff are separate idempotent steps.
 Website is an explicit channel. No policy, advertising or publication is enabled
 by adding this mode. Legacy calendar `ai-plan` is not used as v2 evidence.
 
+Versioned Meta/Google custom-label exports are deterministic and make zero LLM
+calls. See the dated
+[`provider contract`](../prisma/verification/96-custom-label-provider-contract.md)
+and [`API/verification guide`](../prisma/verification/96-custom-label-exports.md).
+Owner-approved profiles bind source, catalog/feed identity, mappings, slot
+ownership and ordered rules. Preview/export use saved MVP classifications and
+retain exact CSV bytes, source/rule versions and actor history. The initial
+slot-zero/class and omission policy was owner-approved on 2026-10-28; real
+account mappings/ownership still require profile-specific approval. Downloads
+do not upload a feed, modify campaigns or activate a provider integration.
+
 ## Runtime Behavior
 
 - Agent output JSON is parsed through `parseAgentJson`.
