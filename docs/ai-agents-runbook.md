@@ -70,6 +70,15 @@ V2 analysis makes no LLM calls and cannot reinterpret legacy category STR as
 dial-color/size evidence. Apply the attribute-evidence lookup index migration
 before enabling this path for an approved client.
 
+## External market evidence (#98)
+
+See [`98-external-market-evidence.md`](../prisma/verification/98-external-market-evidence.md)
+for versioned source policies, source-only quotas, retained evidence, recovery and
+retention operations. The owner chose mechanism preparation on 2026-10-28;
+source selection and activation remain deferred. Production has no market adapter,
+no external request is made, and no optional LLM summary or forecast input is enabled.
+Verify source rights, costs, relevance and daily cleanup before a future integration.
+
 ## Runtime Behavior
 
 - Agent output JSON is parsed through `parseAgentJson`.
