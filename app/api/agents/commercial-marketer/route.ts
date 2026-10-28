@@ -12,6 +12,9 @@ import {
   normalizeCommercialBrief,
 } from "@/lib/agent-fallbacks";
 import { getCurrentDependencyRun, resolveAgentRunContext } from "@/lib/agent-dependencies";
+import { generateMarketingBrief } from "@/lib/marketing-briefs";
+import { AiExecutionError } from "@/lib/ai-execution/contracts";
+import { logError } from "@/lib/observability";
 
 export const runtime = "nodejs";
 export const maxDuration = 180;
@@ -93,6 +96,17 @@ export async function POST(req: NextRequest) {
   const { tenantId } = user;
 
   const body = await req.json().catch(() => ({}));
+  if (body?.mode === "marketing_v2") {
+    try { return NextResponse.json(await generateMarketingBrief({tenantId,userId:user.userId},body),{headers:{"Cache-Control":"no-store"}}); }
+    catch(error){
+      if(error instanceof AiExecutionError){
+        if(error.status>=500)logError("Marketing brief failed",error.cause??error,{tenantId});
+        return apiError(error.code,error.status,error.code);
+      }
+      logError("Marketing brief failed",error,{tenantId});return serverError("Marketing brief failed");
+    }
+  }
+  if (body?.mode !== undefined) return apiError("Unsupported marketing mode",400,"AI_INVALID_INPUT");
   const providerOverride: string | undefined = body.provider ?? undefined;
   const asOf: Date | undefined = body.asOf ? new Date(body.asOf) : undefined;
   const dateFrom: Date | undefined = body.dateFrom ? new Date(body.dateFrom) : undefined;

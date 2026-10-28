@@ -92,7 +92,7 @@ async function readExport(tenantId: string, exportId: string, tx: SqlClient) {
   return row ?? null;
 }
 /** Read only immutable scenario evidence for advice; never return CSV bodies or execute an export. */
-export async function readScenarioAdviceEvidence(tenantId: string, actorId: string, exportId: string, snapshotId: string, tx: SqlClient) {
+export async function readScenarioAdviceEvidence(tenantId: string, actorId: string, exportId: string, snapshotId: string, tx: SqlClient, offerBrandId?: string) {
   if (!uuid.test(exportId)) throw new ScenarioExportError("INVALID_EXPORT_REQUEST");
   const [row] = await tx.$queryRaw<Array<{actorId: string; context: {dataVersion: {snapshotId: string; calculationVersion: unknown}; request: ScenarioExportCommand}; receipt: ScenarioExportReceipt; totals: unknown}>>(Prisma.sql`
     SELECT "actorId",context,after->'receipt' receipt,after->'totals' totals FROM "MerchandisingAction"
@@ -101,10 +101,23 @@ export async function readScenarioAdviceEvidence(tenantId: string, actorId: stri
   if (!row || row.actorId !== actorId) throw new ScenarioExportError("AI_SCENARIO_NOT_FOUND",404);
   if (row.context.dataVersion.snapshotId !== snapshotId) throw new ScenarioExportError("AI_SCENARIO_CONTEXT_CHANGED",409);
   const {files, actorId: _, ...receipt} = row.receipt;
+  let offerRows: Array<Record<string,unknown>> | undefined;
+  if (offerBrandId) {
+    const [stored] = await tx.$queryRaw<Array<{rows: Array<Record<string,unknown>>}>>(Prisma.sql`
+      SELECT CASE WHEN jsonb_array_length(after->'rows')<=50 THEN after->'rows' ELSE NULL END rows
+      FROM "MerchandisingAction" WHERE "tenantId"=${tenantId} AND "idempotencyKey"=${`export:${exportId.toLowerCase()}`}`);
+    const rows = stored?.rows;
+    if (!Array.isArray(rows) || !rows.length || rows.length > 50) throw new ScenarioExportError("AI_SCENARIO_SCOPE_LIMIT",422);
+    const skus = await tx.$queryRaw<Array<{id:string;brandId:string|null}>>(Prisma.sql`
+      SELECT id,"brandId" FROM "Sku" WHERE "tenantId"=${tenantId} AND id IN (${Prisma.join(rows.map(r=>String(r.skuId)))})`);
+    if (rows.some(r=>!skus.some(s=>s.id===r.skuId&&s.brandId===offerBrandId))) throw new ScenarioExportError("AI_SCENARIO_BRAND_MISMATCH",409);
+    // Price/quantity strings are copied from the frozen export; no CSV bodies, cost or arbitrary row fields enter AI context.
+    offerRows = rows.map(r=>Object.fromEntries(["skuId","sku","name","currency","quantity","oldPrice","newPrice","effectiveDiscount","stock"].filter(k=>k in r).map(k=>[k,r[k]])));
+  }
   // Intent and totals retain the export's own filters/parameters; they are not recomputed or treated as actual sales.
   return {receipt, sourceHref:files[0]?`/api/merchandising/exports/${receipt.exportId}?fileId=${encodeURIComponent(files[0].id)}`:null,
     totals: row.totals, scenario: row.context.request.scenario,
-    target: row.context.request.target ?? null, version: row.context.dataVersion};
+    target: row.context.request.target ?? null, version: row.context.dataVersion, ...(offerRows ? {offerRows} : {})};
 }
 /** Publish generated files and the actor/scenario audit as one atomic, retry-safe database operation. */
 export async function createScenarioExport(
