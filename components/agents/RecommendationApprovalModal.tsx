@@ -16,6 +16,7 @@ export type ApprovalRecommendation = {
 };
 
 const CHANNEL_LABELS: Record<RecommendationChannel, string> = {
+  website: "Сайт",
   smm: "Соцмережі",
   email: "Email / SMS",
   ads: "Реклама",

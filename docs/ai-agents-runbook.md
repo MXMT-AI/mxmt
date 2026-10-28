@@ -40,6 +40,15 @@ The read-only merchandising chat uses explicit `mode: "merchandising"` on
 It requires the `merchandising_chat` capability in an approved budget policy and
 keeps legacy planner/analyst requests separate. Customer evaluation remains in #92.
 
+Versioned Commercial Marketer briefs use explicit `mode: "marketing_v2"` on
+the existing commercial-marketer and recommendation approval routes; see
+[`95-versioned-marketing-briefs.md`](../prisma/verification/95-versioned-marketing-briefs.md).
+The `marketing_briefs` capability reserves the whole selected-channel request.
+Exact offers remain server facts, channel failures retain successful drafts and
+actual usage, and owner approval/calendar handoff are separate idempotent steps.
+Website is an explicit channel. No policy, advertising or publication is enabled
+by adding this mode. Legacy calendar `ai-plan` is not used as v2 evidence.
+
 ## Runtime Behavior
 
 - Agent output JSON is parsed through `parseAgentJson`.
@@ -49,6 +58,10 @@ keeps legacy planner/analyst requests separate. Customer evaluation remains in #
 - A second run request returns `409` with `AGENT_RUN_ALREADY_RUNNING`.
 
 ## Recovery
+
+For ledger-backed v2 runs, use the explicit recovery/reconciliation procedures in
+the #93 verification guide. Updating `AgentRun` alone does not settle usage or
+release budget reservations. The manual procedure below applies to legacy runs.
 
 If an agent appears stuck:
 

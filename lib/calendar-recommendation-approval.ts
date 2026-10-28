@@ -1,4 +1,4 @@
-export const RECOMMENDATION_CHANNELS = ["smm", "email", "ads", "store", "marketplace", "general"] as const;
+export const RECOMMENDATION_CHANNELS = ["smm", "email", "ads", "store", "marketplace", "general", "website"] as const;
 
 export type RecommendationChannel = (typeof RECOMMENDATION_CHANNELS)[number];
 
@@ -26,6 +26,7 @@ const CHANNEL_CONFIG: Record<RecommendationChannel, { rowKey: string; type: stri
   store: { rowKey: "promo", type: "promo", label: "Магазин" },
   marketplace: { rowKey: "focus", type: "agent", label: "Маркетплейс" },
   general: { rowKey: "focus", type: "agent", label: "Загальний план" },
+  website: { rowKey: "ban1", type: "agent", label: "Сайт" },
 };
 
 export function isRecommendationChannel(value: unknown): value is RecommendationChannel {

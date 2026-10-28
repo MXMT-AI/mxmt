@@ -22,7 +22,7 @@ export async function assertAiPrincipal(p: AiPrincipal, tx: SqlClient, admin = f
 }
 const FILTERS = ["brandId", "categoryId", "skuId", "channelId", "currency", "classification", "ownership", "supplierId", "search"] as const;
 export type AiFilters = Partial<Record<typeof FILTERS[number], string>>;
-export interface AiScenarioSelection {exportId: string; kind: "reprice" | "reorder"}
+export interface AiScenarioSelection {exportId: string; kind: "reprice" | "reorder"; offerBrandId?:string}
 /** Reuse canonical screen validation while keeping caller filter errors in the AI 400 contract. */
 export function evidenceQuery(snapshotId: string, filters: AiFilters): ScreenQuery {
   const params = new URLSearchParams({snapshotId, pageSize: "1", domain: "stock"});
@@ -84,7 +84,7 @@ export async function resolveAiEvidence(p: AiPrincipal, snapshotId: string, filt
   let savedScenario: Awaited<ReturnType<typeof readScenarioAdviceEvidence>> | undefined;
   if (scenario) {
     if (!["reprice","reorder"].includes(scenario.kind) || typeof scenario.exportId !== "string") throw new AiExecutionError("AI_INVALID_SCENARIO",400);
-    try { savedScenario = await readScenarioAdviceEvidence(p.tenantId,p.userId,scenario.exportId,snapshotId,tx); }
+    try { savedScenario = await readScenarioAdviceEvidence(p.tenantId,p.userId,scenario.exportId,snapshotId,tx,scenario.offerBrandId); }
     catch (error) {
       if (!(error instanceof ScenarioExportError)) throw error;
       throw new AiExecutionError(error.code.startsWith("AI_SCENARIO_") ? error.code : "AI_INVALID_SCENARIO",error.status ?? 400);

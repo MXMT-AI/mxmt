@@ -4,6 +4,9 @@ import { requireApiUser } from "@/lib/server-auth";
 import { apiError, isRecord, parseJsonBody, serverError, stringField, validationError } from "@/lib/api-contracts";
 import { buildAgentRunContext } from "@/lib/agent-context";
 import { getCurrentDependencyRun } from "@/lib/agent-dependencies";
+import { approveMarketingBrief } from "@/lib/marketing-briefs";
+import { aiExecutionFailure } from "@/lib/ai-execution/contracts";
+import { logError } from "@/lib/observability";
 import {
   buildRecommendationCalendarEvents,
   isRecommendationChannel,
@@ -40,6 +43,12 @@ export async function POST(request: NextRequest) {
   const { data, response: parseResponse } = await parseJsonBody(request);
   if (parseResponse) return parseResponse;
   if (!isRecord(data)) return validationError(["body must be an object"]);
+  if (data.mode === "marketing_v2") {
+    const {mode:_,...command}=data;
+    try{return NextResponse.json(await approveMarketingBrief({tenantId,userId},command),{headers:{"Cache-Control":"no-store"}});}
+    catch(error){const failure=aiExecutionFailure(error);if(failure.status>=500)logError("Marketing approval failed",failure.cause??failure,{tenantId});return apiError(failure.code,failure.status,failure.code);}
+  }
+  if (data.mode !== undefined) return apiError("Unsupported approval mode",400,"AI_INVALID_INPUT");
 
   const issues: string[] = [];
   const calendarRunId = stringField(data, "calendarRunId", issues, { required: true, maxLength: 64 });
