@@ -26,7 +26,13 @@
         "./*"
       ]
     },
-    "target": "ES2017"
+    "target": "ES2017",
+    "types": [
+      "node",
+      "react",
+      "react-dom"
+    ],
+    "rootDir": "."
   },
   "include": [
     "next-env.d.ts",

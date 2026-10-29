@@ -271,3 +271,15 @@ Pinned @next/codemod 16.4.3 ran both migrations. Async codemod could not process
 
 
 Next 16 validation: first isolated Turbopack build rejected external node_modules symlink by design. Changed only the temporary verification runner to install the accepted lock with independent npm ci, then both builds passed. First parallel test run had worker-start/hook timeouts during a long host stall; repeated after the build with unchanged timeouts/assertions: 166 files / 1,647 passed / one optional workbook skip; MVP 80 files / 965 passed; TypeScript passed. Local production HTTP login/database-health/auth redirect passed. Earlier jose Edge warning is gone with Node proxy. npm audit now two findings (xlsx high, Tailwind's selector-parser moderate); no forced overrides. Schema and business logic unchanged.
+
+
+## Block 11 — TypeScript 6 intermediate checkpoint
+
+Reviewed official announcement https://devblogs.microsoft.com/typescript/announcing-typescript-6-0/ and exact stable 6.0.3 metadata before installation. Relevant changes: explicit ambient types, side-effect imports checked by default, stricter defaults and deprecations preparing for native TypeScript 7. Project already uses strict, bundler resolution and ES2017 target. Preserve these semantics; explicitly list required Node/React ambient types and project root. Do not use ignoreDeprecations, disable strictness or skip new application errors.
+
+
+TypeScript 6.0.3 validation: tsc passed without suppressions or application changes; 166 files / 1,647 tests passed / one optional workbook skip; MVP 80 files / 965 passed; independent npm ci and both builds passed. Explicit types/rootDir preserve the intended environment.
+
+## Block 12 — TypeScript 7
+
+Reviewed https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/ before mutation. Native compiler retains tsc CLI but removes deprecated configuration/API assumptions; strict bundler project already compiles on 6 with no ignoreDeprecations. No compiler API imports exist in application source. Preserve explicit target/types/rootDir and verify Next's own type-check integration, not just standalone tsc. Install only stable 7.0.2, not 7.1 beta.
