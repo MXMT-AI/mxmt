@@ -47,11 +47,11 @@ describe("jose 5 token compatibility", () => {
 });
 
 describe("middleware with pre-upgrade tokens", () => {
-  let middleware: typeof import("../../middleware").middleware;
+  let middleware: typeof import("../../proxy").proxy;
 
   beforeAll(async () => {
     vi.stubEnv("JWT_ACCESS_SECRET", fixture.secret);
-    middleware = (await import("../../middleware")).middleware;
+    middleware = (await import("../../proxy")).proxy;
   });
   afterAll(() => vi.unstubAllEnvs());
 

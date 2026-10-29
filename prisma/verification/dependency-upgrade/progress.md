@@ -258,3 +258,16 @@ CLI config uses DIRECT_URL and loads existing Next env precedence; generation/bu
 
 
 Prisma 7 validation complete: TypeScript; 166 test files / 1,647 passed / one optional workbook skip; MVP 80 files / 965 passed; both isolated builds; native CRUD, SQL/JSON/Decimal/BigInt and Serializable rollback; empty schema diff through the new CLI config. Local production HTTP login and protected redirect passed; /api/health confirmed the application's adapter reaches the disposable database. No schema migration was generated or applied. Audit is five remaining findings, as before. Explicit URL pool_timeout has no separate pg equivalent; the finite acquisition/connect timeout is now five seconds by default, documented above. Production connection performance/TLS remains a deployment check.
+
+
+## Block 10 — Next 16
+
+Reviewed https://nextjs.org/docs/app/guides/upgrading/version-16 before changes; exact stable Next/codemod 16.4.3 verified. React pair/types already on latest stable 19.3.x from block 2. Relevant changes: async request APIs are mandatory; production/dev default to Turbopack; middleware becomes Node-runtime proxy; removed next lint/build lint behavior. Existing project has no custom webpack config, next lint script, PPR or cacheComponents configuration. Preserve auth route matching, identity verification, cron/webhook exemptions and silent-refresh redirects during proxy migration; do not add new caching behavior.
+
+Run official pinned async-request and middleware-to-proxy codemods, inspect their diffs, then verify production HTTP auth/health in addition to all gates. Node proxy also removes the earlier Edge-only jose JWE compression warning boundary without changing JWT algorithms.
+
+
+Pinned @next/codemod 16.4.3 ran both migrations. Async codemod could not process two route alias exports and added three re-export review markers plus an unnecessary double-await in an already-async preference route. Manually inspected: both aliases already await Promise params in the shared handler, re-export targets do not use route params, and the preference helper already awaits params. Restored those four unnecessary codemod edits rather than accepting invalid Promise typing or leaving markers. middleware-to-proxy renamed only the file/export; updated direct tests to import proxy without changing Next response header names. No auth matching or caching logic changed.
+
+
+Next 16 validation: first isolated Turbopack build rejected external node_modules symlink by design. Changed only the temporary verification runner to install the accepted lock with independent npm ci, then both builds passed. First parallel test run had worker-start/hook timeouts during a long host stall; repeated after the build with unchanged timeouts/assertions: 166 files / 1,647 passed / one optional workbook skip; MVP 80 files / 965 passed; TypeScript passed. Local production HTTP login/database-health/auth redirect passed. Earlier jose Edge warning is gone with Node proxy. npm audit now two findings (xlsx high, Tailwind's selector-parser moderate); no forced overrides. Schema and business logic unchanged.
