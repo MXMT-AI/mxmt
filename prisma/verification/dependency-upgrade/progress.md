@@ -244,3 +244,17 @@ Before installation reviewed https://www.prisma.io/docs/guides/upgrade-prisma-or
 Prisma 5 migrate diff against the fully migrated disposable native PostgreSQL database is empty. Never ran schema push/reset or production migrations. After upgrade require the same empty diff and native SQL/transaction/JSON/Decimal/BigInt checks in addition to the existing PGlite suites.
 
 Validated matching Prisma 6.19.3: TypeScript; 165 files / 1,641 passed / one optional workbook skip; MVP 80 files / 965 passed; build and build:vercel; native CRUD, parameterized SQL, JSON/Decimal/BigInt and serializable rollback; empty migrate diff. No schema changes or application adaptations were required. Ready for committed checkpoint before Prisma 7.
+
+
+## Block 9 — Prisma 7 adapter/configuration
+
+Pre-change review: https://www.prisma.io/docs/guides/upgrade-prisma-orm/v7. Matching stable client/CLI/adapter-pg 7.10.1 verified; reject registry latest 8 RC. Prisma 7 requires a driver adapter and moves datasource URLs out of schema to config; explicit environment loading is required. Native PostgreSQL TCP adapter preserves the existing pooled runtime URL and direct CLI URL; no Neon HTTP driver, Accelerate or new infrastructure.
+
+Keep supported prisma-client-js generator with explicit output in node_modules/.prisma/client for existing @prisma/client imports; the new prisma-client generator is recommended but not necessary to change every application import during this compatibility block. No generated files committed. Current Next/Vitest pipeline supports TS/ESM and Node 24 supports require(esm); avoid unrelated whole-package module conversion unless required by actual gates.
+
+Configure finite adapter connection timeout (5s by default, matching old connect timeout), idle eviction (300s), and a bounded 10-connection pool unless the existing URL specifies connection_limit. Preserve explicit connect_timeout; strip Prisma-only URL options before passing to pg. Transaction timeouts/retries stay controlled by existing calls. No blanket disabling of SSL certificate verification.
+
+CLI config uses DIRECT_URL and loads existing Next env precedence; generation/build without a database URL remains supported, while database lifecycle checks still require both URLs and validate they target the same database. Require an empty schema diff and native SQL verification before committing.
+
+
+Prisma 7 validation complete: TypeScript; 166 test files / 1,647 passed / one optional workbook skip; MVP 80 files / 965 passed; both isolated builds; native CRUD, SQL/JSON/Decimal/BigInt and Serializable rollback; empty schema diff through the new CLI config. Local production HTTP login and protected redirect passed; /api/health confirmed the application's adapter reaches the disposable database. No schema migration was generated or applied. Audit is five remaining findings, as before. Explicit URL pool_timeout has no separate pg equivalent; the finite acquisition/connect timeout is now five seconds by default, documented above. Production connection performance/TLS remains a deployment check.
