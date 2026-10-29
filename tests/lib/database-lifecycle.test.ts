@@ -26,3 +26,21 @@ it.each([
 it("allows local PostgreSQL and equivalent pooled/direct Neon targets",()=>{
  expect(()=>validateDatabaseTarget(env)).not.toThrow();expect(()=>validateDatabaseTarget({DATABASE_URL:"postgresql://a:b@localhost:5432/app",DIRECT_URL:"postgresql://a:b@localhost:5432/app"})).not.toThrow();
 });
+
+it.each([
+ {DATABASE_URL:"postgresql://a:b@db-pooler.example.com/app",DIRECT_URL:"postgresql://a:b@db.example.com/app"},
+ {DATABASE_URL:"postgresql://a:b@ep-app-pooler.neon.tech.example.com/app",DIRECT_URL:"postgresql://a:b@ep-app.neon.tech.example.com/app"},
+ {DATABASE_URL:"postgresql://a:b@localhost/app?host=/run/postgres-a",DIRECT_URL:"postgresql://a:b@localhost/app?host=/run/postgres-b"},
+ {DATABASE_URL:"postgresql://a:b@localhost/app?host=/run/postgres-a",DIRECT_URL:"postgresql://a:b@localhost/app"},
+ {DATABASE_URL:"postgresql://a:b@localhost/app",DIRECT_URL:"postgresql://a:b@localhost/app?host=/run/postgres-a"},
+ {DATABASE_URL:"postgresql://a:b@localhost/app?host=/run/a&host=/run/b",DIRECT_URL:"postgresql://a:b@localhost/app?host=/run/a&host=/run/b"},
+])("stops before migration status for mismatched or ambiguous effective hosts: %#",targets=>{
+ const run=vi.fn<(tool:string,args:string[])=>number>(()=>0),log=vi.fn();
+ expect(runDatabaseLifecycle("check",{env:targets,run,log})).toBe(1);
+ expect(run).not.toHaveBeenCalled();
+ expect(log).toHaveBeenCalledWith("DATABASE_URL and DIRECT_URL must target the same database and schema.");
+});
+it("accepts identical non-Neon hosts and matching decoded Unix-socket targets",()=>{
+ expect(()=>validateDatabaseTarget({DATABASE_URL:"postgresql://a:b@db-pooler.example.com/app",DIRECT_URL:"postgresql://a:b@db-pooler.example.com/app"})).not.toThrow();
+ expect(()=>validateDatabaseTarget({DATABASE_URL:"postgresql://a:b@localhost/app?host=%2Fvar%2Frun%2Fpostgresql",DIRECT_URL:"postgresql://a:b@localhost:5432/app?host=/var/run/postgresql"})).not.toThrow();
+});

@@ -12,9 +12,11 @@ export function validateDatabaseTarget(env){
   catch{throw new Error("DATABASE_URL and DIRECT_URL must both be configured PostgreSQL URLs.");}
   if(![runtime,direct].every(url=>["postgres:","postgresql:"].includes(url.protocol)))
     throw new Error("DATABASE_URL and DIRECT_URL must use PostgreSQL.");
-  const host=url=>url.hostname.replace(/-pooler(?=\.)/,"");
+  const host=url=>url.hostname.endsWith(".neon.tech")?url.hostname.replace(/-pooler(?=\.)/,""):url.hostname;
   const schema=url=>url.searchParams.get("schema")??"public";
-  if(host(runtime)!==host(direct)||(runtime.port||"5432")!==(direct.port||"5432")||runtime.pathname!==direct.pathname||schema(runtime)!==schema(direct))
+  // Prisma uses the host query parameter for Unix sockets; reject ambiguous repeats.
+  const socket=url=>url.searchParams.get("host");
+  if([runtime,direct].some(url=>url.searchParams.getAll("host").length>1)||socket(runtime)!==socket(direct)||host(runtime)!==host(direct)||(runtime.port||"5432")!==(direct.port||"5432")||runtime.pathname!==direct.pathname||schema(runtime)!==schema(direct))
     throw new Error("DATABASE_URL and DIRECT_URL must target the same database and schema.");
   if(direct.hostname.endsWith(".neon.tech")&&direct.hostname.includes("-pooler."))
     throw new Error("DIRECT_URL must use the direct Neon endpoint, without -pooler.");

@@ -77,3 +77,15 @@ The prepared guard does not automatically apply migrations in any environment.
 Future releases must rehearse and apply migrations to the intended database before
 the guarded build. The two temporary Neon branches automatically expire as recorded;
 the backup is not an indefinite backup policy.
+
+## PR #114 CodeRabbit follow-up
+
+Host equivalence now removes `-pooler` only for genuine `*.neon.tech` hosts.
+Non-Neon hosts must match exactly. The guard also compares Prisma's decoded `host`
+query parameter for Unix-socket connections and rejects repeated/ambiguous socket
+parameters before executing migration status. This prevents readiness checks on a
+server different from the runtime target. No database was contacted or changed.
+
+Validation: all 20 lifecycle tests passed, including seven new regressions for
+non-Neon hosts, misleading Neon suffixes, distinct/missing/repeated socket targets
+and valid identical hosts/decoded sockets. TypeScript and whitespace checks passed.
