@@ -224,3 +224,14 @@ Additional references:
 Audit after installation: 5 total, zero critical, three high, two moderate (form-data advisory path removed). Final validation passed: TypeScript; 165 test files / 1,641 passed / one optional private-workbook test skipped; 80 MVP files / 965 passed; both build and build:vercel against disposable native PostgreSQL; git diff --check. Existing jose Edge and Vitest config advisory warnings remain documented above. No application code or business logic changed.
 
 Owner authorized each validated remaining block to be committed without individual approval on 2026-10-30. No push or PR creation was requested in that authorization.
+
+
+## Block 7 — official SheetJS tarball
+
+Official distribution documentation rechecked: https://docs.sheetjs.com/docs/getting-started/installation/nodejs/ specifies 0.20.3 at https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz. Owner chose this supply-source migration. Preserve existing read(buffer)/utils APIs; no parser replacement or business normalization change.
+
+Before mutation, froze the existing private workbook bytes and captured per-sheet raw/formatted matrices and cell-value/formula/type metadata hashes in both cellDates modes. Also reran workbook audit, reference-only reconciliation (expected review/block exit 2) and actual-workbook offline reporting suite (6 files / 84 passed). Complete real reconciliation remains blocked by missing approved business inputs; reference-only output is compared as limited evidence, not claimed as full acceptance.
+
+Attempted installation completed with official 0.20.3 tarball; TypeScript/build/build:vercel passed, but full tests failed (2 workbook audit tests; 1,639 passed / 1 skipped). The same real workbook produced different typed dates, decoded XML text, period aggregates and offline projection diagnostics; reference-only reconciliation was identical. Offline test assertions alone passed but semantic comparison did not, so this block was NOT accepted.
+
+Rolled package.json and lockfile back to the previously committed 0.18.5 and restored dependencies with npm ci. No failing upgrade was committed. Owner decision requested for a separately scoped import compatibility adapter versus deferral. The customer workbook and comparison outputs remain private temporary evidence. Other independent blocks may proceed from the restored accepted lock.
