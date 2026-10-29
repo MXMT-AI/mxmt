@@ -7,6 +7,7 @@ const state = vi.hoisted(() => ({
   metadata: vi.fn(),
   preview: vi.fn(),
   approve: vi.fn(),
+  project: vi.fn(),
 }));
 vi.mock("next/headers", () => ({
   cookies: async () => ({ get: () => ({ value: state.cookie }) }),
@@ -16,6 +17,10 @@ vi.mock("@/lib/connectors/sheets-mapping-store", () => ({
   previewSheetsMapping: state.preview,
   approveSheetsMapping: state.approve,
 }));
+vi.mock("@/lib/connectors/sheets-projection-store", () => ({
+  projectSheetsImport: state.project,
+}));
+import { POST as project } from "@/app/api/connectors/sheets/projection/[sourceId]/route";
 import { signAccessToken } from "@/lib/auth";
 import { SheetsMappingError } from "@/lib/connectors/sheets-mapping-validation";
 import { GET } from "@/app/api/connectors/sheets/mapping/[sourceId]/route";
@@ -45,17 +50,19 @@ beforeEach(() => {
   state.metadata.mockResolvedValue({ revision: 0 });
   state.preview.mockResolvedValue({ revision: 1 });
   state.approve.mockResolvedValue({ state: "APPROVED" });
+  state.project.mockResolvedValue({ outcome: "projected" });
 });
 afterAll(() => vi.unstubAllEnvs());
 it("requires a signed admin session for metadata, preview and approval, ignoring identity headers", async () => {
-  for (const handler of [GET, preview, approve])
+  for (const handler of [GET, preview, approve, project])
     expect((await handler(req("{}"), context)).status).toBe(401);
   await login("ANALYST");
-  for (const handler of [GET, preview, approve])
+  for (const handler of [GET, preview, approve, project])
     expect((await handler(req("{}"), context)).status).toBe(403);
   expect(state.metadata).not.toHaveBeenCalled();
   expect(state.preview).not.toHaveBeenCalled();
   expect(state.approve).not.toHaveBeenCalled();
+  expect(state.project).not.toHaveBeenCalled();
   await login();
   const response = await GET(req(), context);
   expect(response.status).toBe(200);
@@ -70,7 +77,7 @@ it("rejects query overrides, oversized bodies and malformed JSON before reaching
   expect((await GET(req(undefined, "?tenantId=foreign"), context)).status).toBe(
     400,
   );
-  for (const handler of [preview, approve]) {
+  for (const handler of [preview, approve, project]) {
     expect(
       (await handler(req("{}", "?sourceId=foreign"), context)).status,
     ).toBe(400);
@@ -87,6 +94,7 @@ it("rejects query overrides, oversized bodies and malformed JSON before reaching
   expect(state.metadata).not.toHaveBeenCalled();
   expect(state.preview).not.toHaveBeenCalled();
   expect(state.approve).not.toHaveBeenCalled();
+  expect(state.project).not.toHaveBeenCalled();
 });
 it("keeps preview and approval separate and sanitizes unexpected infrastructure errors", async () => {
   await login();
@@ -97,6 +105,7 @@ it("keeps preview and approval separate and sanitizes unexpected infrastructure 
     { expectedRevision: 0 },
   );
   expect(state.approve).not.toHaveBeenCalled();
+  expect(state.project).not.toHaveBeenCalled();
   state.approve.mockRejectedValueOnce(
     new SheetsMappingError("SHEETS_MAPPING_PREVIEW_EXPIRED", 409),
   );
@@ -117,4 +126,22 @@ it("keeps preview and approval separate and sanitizes unexpected infrastructure 
   } finally {
     log.mockRestore();
   }
+});
+
+it("keeps projection intent scoped to the signed tenant and returns no source rows", async () => {
+  await login();
+  const intent = {
+    importRunId: "run",
+    mappingId: "mapping",
+    selectionRevision: 1,
+  };
+  const result = await project(req(JSON.stringify(intent)), context);
+  expect(result.status).toBe(200);
+  expect(result.headers.get("cache-control")).toBe("private, no-store");
+  expect(state.project).toHaveBeenCalledWith(
+    { tenantId: "a", userId: "owner" },
+    "sheet",
+    intent,
+  );
+  expect(await result.json()).toEqual({ outcome: "projected" });
 });

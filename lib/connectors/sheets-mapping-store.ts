@@ -1,4 +1,5 @@
 import "server-only";
+import { sheetsOrderPolicy } from "./sheets-order-policy";
 import { randomUUID } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../prisma";
@@ -47,7 +48,7 @@ async function latest(p: AiPrincipal, sourceId: string, tx: SqlClient) {
   );
   return row;
 }
-async function inputInTx(
+export async function readSheetsMappingInput(
   p: AiPrincipal,
   sourceId: string,
   tx: SqlClient,
@@ -89,7 +90,7 @@ async function metadata(
   sourceId: string,
   tx: SqlClient,
 ): Promise<SheetsMappingMetadata> {
-  const input = await inputInTx(p, sourceId, tx),
+  const input = await readSheetsMappingInput(p, sourceId, tx),
     old = await latest(p, sourceId, tx),
     suggestion = suggestSheetsMapping(input);
   const [active] = await tx.$queryRaw<Array<{ revision: number }>>(
@@ -148,7 +149,7 @@ export async function readSheetsMappingMetadata(
   return aiTransaction(p, db, (tx) => metadata(p, sourceId, tx), true);
 }
 /** Inspect frozen selected columns only, in bounded pages; never fetch a file or calculate financial reports. */
-async function analyze(
+async function analyzeSheetsMapping(
   p: AiPrincipal,
   input: SheetsMappingInput,
   mapping: SheetsFieldMapping,
@@ -206,20 +207,20 @@ export async function previewSheetsMapping(
   const input = await aiTransaction(
     p,
     db,
-    (tx) => inputInTx(p, sourceId, tx),
+    (tx) => readSheetsMappingInput(p, sourceId, tx),
     true,
   );
   if (input.importRunId !== importRunId)
     throw new E("SHEETS_RAW_IMPORT_CHANGED", 409);
   validateMappingColumns(mapping, input);
-  const summary = await analyze(p, input, mapping, db),
+  const summary = await analyzeSheetsMapping(p, input, mapping, db),
     bindingHash = payloadHash(input),
     schemaHash = sheetsSchemaHash(input);
   return aiTransaction(
     p,
     db,
     async (tx) => {
-      const current = await inputInTx(p, sourceId, tx),
+      const current = await readSheetsMappingInput(p, sourceId, tx),
         old = await latest(p, sourceId, tx);
       if (payloadHash(current) !== bindingHash)
         throw new E("SHEETS_RAW_IMPORT_CHANGED", 409);
@@ -232,8 +233,7 @@ export async function previewSheetsMapping(
         ).toISOString();
       const values = {
         sheets: { version: 1, fileId: input.fileId, schemaHash, mapping },
-        statuses: mapping.policy.statuses,
-        channels: mapping.policy.channels,
+        ...sheetsOrderPolicy(mapping),
       };
       const previewHash = payloadHash({ input, mapping, revision, summary }),
         preview = {
@@ -293,7 +293,7 @@ export async function approveSheetsMapping(
       );
       if (!audit || audit.after.previewHash !== hash)
         throw new E("SHEETS_MAPPING_PREVIEW_CHANGED", 409);
-      const input = await inputInTx(p, sourceId, tx);
+      const input = await readSheetsMappingInput(p, sourceId, tx);
       if (payloadHash(input) !== audit.context.bindingHash)
         throw new E("SHEETS_RAW_IMPORT_CHANGED", 409);
       const mapping = parseSheetsMapping(old.values.sheets.mapping);
@@ -326,7 +326,7 @@ export async function approveSheetsMapping(
         Prisma.sql`UPDATE "MerchandisingConfig" SET "isActive"=false WHERE "tenantId"=${p.tenantId} AND "configType"='SOURCE_MAPPING' AND key=${`sheets:${sourceId}`} AND "isActive"`,
       );
       await tx.$executeRaw(
-        Prisma.sql`UPDATE "MerchandisingConfig" SET values=${JSON.stringify({ sheets: { version: 1, fileId: input.fileId, schemaHash: sheetsSchemaHash(input), mapping }, statuses: mapping.policy.statuses, channels: mapping.policy.channels })}::jsonb,"isActive"=true,"approvedAt"=${now},"approvedById"=${p.userId},"approvalReference"=${reference} WHERE "tenantId"=${p.tenantId} AND id=${configId}`,
+        Prisma.sql`UPDATE "MerchandisingConfig" SET values=${JSON.stringify({ sheets: { version: 1, fileId: input.fileId, schemaHash: sheetsSchemaHash(input), mapping }, ...sheetsOrderPolicy(mapping) })}::jsonb,"isActive"=true,"approvedAt"=${now},"approvedById"=${p.userId},"approvalReference"=${reference} WHERE "tenantId"=${p.tenantId} AND id=${configId}`,
       );
       await tx.$executeRaw(
         Prisma.sql`INSERT INTO "MerchandisingAction" (id,"tenantId","actorId","configId",action,"entityType","entityId","idempotencyKey",after,context,"createdAt") VALUES (${randomUUID()},${p.tenantId},${p.userId},${configId},'SHEETS_MAPPING_APPROVED','SHEETS_MAPPING',${sourceId},${`sheets-mapping-approved:${configId}`},${JSON.stringify({ previewHash: hash, revision: old.revision, reference, summary: audit.after.summary })}::jsonb,'{"version":1}',${now})`,

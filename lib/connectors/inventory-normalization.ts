@@ -22,7 +22,7 @@ export function inventoryPolicy(value: unknown): InventoryPolicy {
 export interface CatalogEntry {
   observedAt:string;priceObservedAt:string;proposedId: string; externalId: string; article: string | null; canonicalSku: string; name: string;
   categoryId: string | null; categoryName: string | null; vendor: string | null; barcode: string | null;
-  retailPrice: string | null; oldPrice: string | null; quantity: string | null; currency: string | null;
+  exportedCost:string|null; inTransit:string|null; retailPrice: string | null; oldPrice: string | null; quantity: string | null; currency: string | null;
   attributes: Record<string, unknown>;
   attributeEvidence:ReturnType<typeof productAttributeEvidence>;
 }
@@ -60,9 +60,9 @@ export function normalizeCatalog(snapshot: CatalogSnapshot, sourceId: string, pr
     const attributeEvidence=productAttributeEvidence(product.externalId,product.raw);
     return {attributeEvidence,observedAt:observation!.observedAt,priceObservedAt:product.observedAt,proposedId: randomUUID(), externalId: product.externalId, article: product.sku, canonicalSku, name: product.name,
       categoryId: product.categoryId, categoryName: product.categoryName ?? null, vendor: normalizedBrandKey(product.brand), barcode: product.barcode,
-      retailPrice, oldPrice, quantity, currency, attributes: { observedAt:product.observedAt, sourceStatus: product.sourceStatus ?? null, sourceSku: product.sku,
+      exportedCost:exact(product.costPrice)?.gt(0)?product.costPrice:null, inTransit:exact(observation.inTransit)?.gte(0)?observation.inTransit:null, retailPrice, oldPrice, quantity, currency, attributes: { observedAt:product.observedAt, sourceStatus: product.sourceStatus ?? null, sourceSku: product.sku,
         vendor: product.brand, categoryId: product.categoryId, categoryName: product.categoryName ?? null,
-        exportedCost: product.costPrice, identityDerived: !product.sku } };
+        exportedCost: product.costPrice, ...(provider === "sheets" ? {sourceRow:{snapshotId:product.raw?.snapshotId,rowNumber:product.raw?.rowNumber}} : {}), identityDerived: !product.sku } };
   });
   return { rows, issues };
 }
