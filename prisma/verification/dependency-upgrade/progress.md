@@ -290,3 +290,12 @@ TypeScript 7.0.2 validation complete: tsc, 166 files / 1,647 passed / one option
 ## Block 13 — Vitest 5
 
 Before mutation reviewed https://vitest.dev/guide/migration/. Verified stable Vitest 5.0.5, Vite 8.3.5 peer and Node requirements. Relevant changes: Vite becomes peer, clearMocks defaults true, hoisted mocking calls must be top-level. No projects/browser custom runner configuration is used. Preserve prior explicit mock-history behavior with clearMocks:false rather than silently changing the meaning of cross-test call assertions; existing tests continue clearing mocks where intended. Rename config to .mts for native ESM loading, resolving the previous Vite warning without converting the entire package. No skips or timeouts will be added to bypass regressions.
+
+
+Vitest 5 validation complete: TypeScript including .mts config; full suite 166 files / 1,647 passed / one optional workbook skip; clean npm ci and both builds passed. Initial MVP run had SQL-fixture hook timeouts during a host stall; rerun with unchanged timeouts/assertions passed all 80 files / 965 tests. No test skips or isolation weakening added. Explicit clearMocks:false retains the prior runner contract; all behavior tests remain intact.
+
+## Block 14 — approved SheetJS compatibility adapter
+
+Owner approved a separate adapter step after the failed dependency-only attempt. Prototype compared every raw cell/matrix across all sheets of the same frozen private workbook in numeric and cellDates modes; zero value differences achieved. The adapter preserves the existing local date and millisecond truncation contract, avoids new implicit date conversion in sheet_to_json for wrongly formatted financial/text cells, and retains one XML decode for cached string results. This preserves persisted row hashes, SKU identity and financial rules rather than changing formulas to fit the library.
+
+Use one shared server-side reader/row adapter for raw import, legacy import, audit and catalogue upload; existing 15MB/4MB input limits and normalization stay at their boundaries. No old full parser or vulnerable package is retained. XML lookup is restricted to entries already decoded by SheetJS; reject entity declarations and never fetch external relationships. Regression tests and real-data before/after audit/projection evidence are required before acceptance.
