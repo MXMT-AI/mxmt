@@ -243,7 +243,9 @@ export default function OverviewContent({
       <header className="flex flex-wrap justify-between items-start gap-4">
         <div>
           <p className="text-xs text-[var(--muted)]">
-            {copy.observed}: {stamp(data.freshness.orderWatermark)}
+            {data.freshness.freshnessBasis === "SHEETS_IMPORT"
+              ? copy.sheetsImported
+              : copy.observed}: {stamp(data.freshness.sourceObservedAt)}
           </p>
           <h1 className="mt-2 text-2xl font-bold">{copy.title}</h1>
           <p className="mt-1 text-sm text-[var(--muted)]">
@@ -339,6 +341,7 @@ export default function OverviewContent({
             block.statuses.find((s) => s.status === "OFF_SEASON")?.skuCount ??
             0;
         const bottleneck = block.bottleneck;
+        const assessmentComplete = block.classificationCoverage.state === "COMPLETE";
         const statusNames: Record<string, string> = {
           HEALTHY: copy.healthy,
           RISK: copy.risk,
@@ -682,14 +685,20 @@ export default function OverviewContent({
             </section>
             <section aria-label={copy.actions}>
               <h2 className="mb-4 font-semibold">{copy.actions}</h2>
+              {!assessmentComplete ? (
+                <p role="status" className="mb-4 text-sm text-[var(--muted)]">
+                  {block.classificationCoverage.state === "PARTIAL"
+                    ? copy.classificationPartial : copy.classificationUnavailable}
+                </p>
+              ) : null}
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <article className={panel + " p-5"}>
                   <h3 className="font-semibold">{copy.dead}</h3>
                   <div className="mt-4">
-                    <Value>{money(dead ? dead.stockCost : "0")}</Value>
+                    <Value>{money(dead ? dead.stockCost : assessmentComplete ? "0" : null)}</Value>
                   </div>
                   <Small>
-                    {deadCount} {copy.skus}
+                    {deadCount > 0 || assessmentComplete ? deadCount : "—"} {copy.skus}
                   </Small>
                   <Small>
                     {fill(copy.deadRule, {
@@ -705,18 +714,18 @@ export default function OverviewContent({
                       {copy.reprice}
                     </Link>
                   ) : (
-                    <p className={"mt-4 text-sm " + styles.good}>
-                      {copy.noDead}
+                    <p className={"mt-4 text-sm " + (assessmentComplete ? styles.good : "text-[var(--muted)]")}>
+                      {assessmentComplete ? copy.noDead : copy.assessmentUnavailable}
                     </p>
                   )}
                 </article>
                 <article className={panel + " p-5"}>
                   <h3 className="font-semibold">{copy.risk}</h3>
                   <div className="mt-4">
-                    <Value>{money(risk ? risk.stockCost : "0")}</Value>
+                    <Value>{money(risk ? risk.stockCost : assessmentComplete ? "0" : null)}</Value>
                   </div>
                   <Small>
-                    {riskCount} {copy.skus}
+                    {riskCount > 0 || assessmentComplete ? riskCount : "—"} {copy.skus}
                   </Small>
                   {riskCount > 0 ? (
                     <>
@@ -732,8 +741,8 @@ export default function OverviewContent({
                       </Link>
                     </>
                   ) : (
-                    <p className={"mt-4 text-sm " + styles.good}>
-                      {copy.noRisk}
+                    <p className={"mt-4 text-sm " + (assessmentComplete ? styles.good : "text-[var(--muted)]")}>
+                      {assessmentComplete ? copy.noRisk : copy.assessmentUnavailable}
                     </p>
                   )}
                 </article>
@@ -741,7 +750,7 @@ export default function OverviewContent({
                   <h3 className="font-semibold">{copy.shortage}</h3>
                   <div className="mt-4">
                     <Value>
-                      {shortage} {copy.skus}
+                      {shortage > 0 || assessmentComplete ? shortage : "—"} {copy.skus}
                     </Value>
                   </div>
                   <Small>
@@ -755,8 +764,8 @@ export default function OverviewContent({
                       {copy.reorder}
                     </Link>
                   ) : (
-                    <p className={"mt-4 text-sm " + styles.good}>
-                      {copy.noShortage}
+                    <p className={"mt-4 text-sm " + (assessmentComplete ? styles.good : "text-[var(--muted)]")}>
+                      {assessmentComplete ? copy.noShortage : copy.assessmentUnavailable}
                     </p>
                   )}
                 </article>
@@ -807,9 +816,8 @@ export default function OverviewContent({
                     </>
                   ) : (
                     <Small>
-                      {deadCount > 0
-                        ? copy.missingBottleneck
-                        : copy.noBottleneck}
+                      {!assessmentComplete ? copy.assessmentUnavailable
+                        : deadCount > 0 ? copy.missingBottleneck : copy.noBottleneck}
                     </Small>
                   )}
                 </article>

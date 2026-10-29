@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import OverviewContent from "@/components/overview/OverviewContent";
 import {
   overviewContributors,
+  overviewClassificationCoverage,
   readSalesComparisons,
 } from "@/lib/merchandising-overview";
 import { beforeAll, afterAll, describe, it, expect, vi } from "vitest";
@@ -452,4 +453,53 @@ describe("Overview O1–O8 pinned read model", () => {
       ).toBe(total.coveredStockCost);
     }
   });
+});
+
+it("distinguishes complete, partial and unavailable classification without treating service-only stock as assessed", () => {
+  expect(overviewClassificationCoverage([{ status: "HEALTHY", skuCount: 2 }])).toMatchObject({ state: "COMPLETE", evaluatedSkuCount: 2, reviewSkuCount: 0 });
+  expect(overviewClassificationCoverage([{ status: "DEAD", skuCount: 1 }, { status: "DATA_ERROR", skuCount: 2 }])).toMatchObject({ state: "PARTIAL", evaluatedSkuCount: 1, reviewSkuCount: 2 });
+  expect(overviewClassificationCoverage([{ status: "DATA_ERROR", skuCount: 2 }]).state).toBe("UNAVAILABLE");
+  expect(overviewClassificationCoverage([{ status: "SERVICE", skuCount: 2 }]).state).toBe("UNAVAILABLE");
+  expect(overviewClassificationCoverage([]).state).toBe("UNAVAILABLE");
+});
+it.each(["uk", "en"] as const)("does not render absence claims when every SKU requires review (%s)", async (lang) => {
+  const data = await read({ currency: "UAH" });
+  const block = data.overview!.byCurrency[0];
+  const statuses = [{ ...block.statuses[0], status: "DATA_ERROR", skuCount: 2, shortageSkuCount: 0 }];
+  const html = renderToStaticMarkup(createElement(OverviewContent, {
+    data: { ...data, overview: { ...data.overview!, byCurrency: [{ ...block,
+      statuses, classificationCoverage: overviewClassificationCoverage(statuses), deadShare: null, bottleneck: null,
+    }] } }, lang, query: "", monobrand: false,
+  }));
+  expect(html).toContain(lang === "uk" ? "Недостатньо даних для оцінки" : "Insufficient data to assess");
+  expect(html).not.toMatch(/Неліквіду немає|Ризикових SKU немає|Дефіциту немає|Пробок неліквіду немає|No dead stock|No at-risk SKUs|No shortage|No dead-stock bottlenecks/);
+  expect(html).not.toContain(lang === "uk" ? "— неліквід" : "is dead stock");
+});
+it("retains confirmed zero absence claims for completely assessed stock", async () => {
+  const data = await read({ currency: "UAH" });
+  const block = data.overview!.byCurrency[0];
+  const statuses = [{ ...block.statuses[0], status: "HEALTHY", shortageSkuCount: 0 }];
+  const html = renderToStaticMarkup(createElement(OverviewContent, {
+    data: { ...data, overview: { ...data.overview!, byCurrency: [{ ...block,
+      statuses, classificationCoverage: overviewClassificationCoverage(statuses), deadShare: "0", bottleneck: null,
+    }] } }, lang: "en", query: "", monobrand: false,
+  }));
+  expect(html).toContain("No dead stock");
+  expect(html).toContain("No shortage");
+  expect(html).not.toContain("Insufficient data for a conclusion");
+});
+it("keeps known positive findings visible with an explicit partial assessment warning", async () => {
+  const data = await read({ currency: "UAH" });
+  const block = data.overview!.byCurrency[0];
+  const statuses = [{ ...block.statuses[0], status: "DEAD", skuCount: 1, shortageSkuCount: 1 },
+    { ...block.statuses[0], status: "DATA_ERROR", skuCount: 1, shortageSkuCount: 0 }];
+  const html = renderToStaticMarkup(createElement(OverviewContent, {
+    data: { ...data, overview: { ...data.overview!, byCurrency: [{ ...block,
+      statuses, classificationCoverage: overviewClassificationCoverage(statuses), deadShare: null, bottleneck: null,
+    }] } }, lang: "en", query: "", monobrand: false,
+  }));
+  expect(html).toContain("Only confirmed results are shown");
+  expect(html).toContain("/repricing?");
+  expect(html).toContain("/reordering?");
+  expect(html).not.toContain("No shortage");
 });
