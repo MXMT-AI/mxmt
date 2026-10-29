@@ -99,6 +99,21 @@ daily own-stock cost, with its sampling approximation disclosed and no annualiza
 Missing evidence/zero denominator stays unavailable. No legacy Campaign Tracking
 output, external action, causal uplift model or procurement export is activated.
 
+## SalesDrive price-write preparation (#109)
+
+See [`109-salesdrive-price-writeback.md`](../prisma/verification/109-salesdrive-price-writeback.md)
+for the audited provider contract and owner-approved preview/approval/execute limits.
+Production has no write transport or access policy; the SalesDrive reader still
+advertises `writes: false`. An exported CSV, approval or matching current price
+cannot activate or prove a mutation. Unknown attempts retain product exclusion
+until terminal attempt proof; restoration is a new explicitly approved action.
+Account permissions/cost limits, atomic existing-only updates, native read-back,
+terminal fencing and a separately approved real canary remain activation gates.
+The #109 guide also specifies proposed out-of-band recovery for an unavailable
+original actor. Its owner approval, operator-only tooling and rehearsal are required
+before live activation; existing actor-only API access is unchanged. Preserve the
+actual recovery actor separately in audit and never reassign the original actor.
+
 ## Runtime Behavior
 
 - Agent output JSON is parsed through `parseAgentJson`.
