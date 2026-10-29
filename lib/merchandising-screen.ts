@@ -112,12 +112,23 @@ export async function getMerchandisingScreen(
     const orderAge = Number.isFinite(through)
       ? Math.max(0, Math.floor((now.getTime() - through) / 1000))
       : null;
+    // Import observation time is not a promise of historical sales coverage.
+    const freshnessBasis = live?.sheetsInput ? "SHEETS_IMPORT" : "ORDER_WATERMARK";
+    const sourceObservedAt = freshnessBasis === "SHEETS_IMPORT"
+      ? live?.sheetsImportedAt ?? null
+      : live?.orderThrough ?? null;
+    const observed = sourceObservedAt ? Date.parse(sourceObservedAt) : NaN;
+    const sourceAge = freshnessBasis === "ORDER_WATERMARK"
+      ? orderAge
+      : Number.isFinite(observed) && observed <= now.getTime()
+        ? Math.floor((now.getTime() - observed) / 1000)
+        : null;
     const today = Temporal.Instant.from(now.toISOString())
       .toZonedDateTimeISO(snapshot.sourceState.timezone)
       .toPlainDate()
       .toString();
     const historical = snapshot.stock.asOf < today;
-    const sourceStale = orderAge === null || orderAge > 7200;
+    const sourceStale = sourceAge === null || sourceAge > 7200;
     const freshness = {
       status: !live
         ? "SOURCE_UNAVAILABLE"
@@ -132,6 +143,9 @@ export async function getMerchandisingScreen(
                 : "FRESH",
       sourceChanged: changed,
       sourceBusy: (live?.pending ?? 0) > 0,
+      freshnessBasis,
+      sourceObservedAt,
+      sourceAgeSeconds: sourceAge,
       orderWatermark: live?.orderThrough ?? null,
       orderAgeSeconds: orderAge,
       sourceStale,

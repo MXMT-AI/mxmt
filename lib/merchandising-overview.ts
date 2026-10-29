@@ -189,6 +189,17 @@ export function overviewContributors(
     .slice(0, 3)
     .map((b) => ({ ...b, delta: b.delta! }));
 }
+/** Absence claims require a classified stock population, not merely zero matches. */
+export function overviewClassificationCoverage(rows: Array<{ status: string; skuCount: number }>) {
+  const reviewed = rows.filter((r) => r.status !== "SERVICE");
+  const reviewSkuCount = reviewed.filter((r) => r.status === "DATA_ERROR")
+    .reduce((n, r) => n + r.skuCount, 0);
+  const evaluatedSkuCount = reviewed.filter((r) => r.status !== "DATA_ERROR")
+    .reduce((n, r) => n + r.skuCount, 0);
+  const state = evaluatedSkuCount === 0 ? "UNAVAILABLE" as const
+    : reviewSkuCount > 0 ? "PARTIAL" as const : "COMPLETE" as const;
+  return { state, evaluatedSkuCount, reviewSkuCount };
+}
 export type OverviewSalesSummary = ReturnType<typeof salesAggregateMetric> & {
   plan: ReturnType<typeof salesPlan> & { targetScope: string };
 };
@@ -245,8 +256,11 @@ export async function readOverview(
       const statuses = stock.statuses.filter((s) => s.currency === currency);
       const dead = statuses.find((s) => s.status === "DEAD");
       const structure = stockStructure(statuses);
+      const classificationCoverage = q.classification == null
+        ? overviewClassificationCoverage(statuses)
+        : { state: "UNAVAILABLE" as const, evaluatedSkuCount: 0, reviewSkuCount: 0 };
       const bottleneck =
-        (dead?.missingCostSkuCount ?? 0) === 0
+        classificationCoverage.state === "COMPLETE" && (dead?.missingCostSkuCount ?? 0) === 0
           ? (stock.bottlenecks.find((s) => s.currency === currency) ?? null)
           : null;
       const score = sale?.plan.pacePct;
@@ -267,11 +281,12 @@ export async function readOverview(
               : D(score).gte("0.8")
                 ? "AMBER"
                 : "RED",
+        classificationCoverage,
         statuses: statuses.map((s) => ({
           ...s,
           share: structure.shares[s.status]?.all ?? null,
         })),
-        deadShare:
+        deadShare: classificationCoverage.state !== "COMPLETE" ? null :
           structure.shares.DEAD?.all ??
           (structure.stockCost !== null && D(structure.stockCost).gt(0)
             ? "0"

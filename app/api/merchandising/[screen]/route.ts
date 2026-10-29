@@ -8,6 +8,7 @@ import {
 } from "@/lib/merchandising-screen-query";
 import { getMerchandisingScreen } from "@/lib/merchandising-screen";
 import { merchandisingApiError } from "@/lib/merchandising-api-error";
+import { createRequestContext, withRequestId } from "@/lib/observability";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -15,6 +16,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ screen: string }> },
 ) {
+  const context = createRequestContext(request, "api.merchandising.screen");
   const { user, response } = await requireApiUser("VIEWER");
   if (response) return response;
   const { screen } = await params;
@@ -30,6 +32,6 @@ export async function GET(
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch (error) {
-    return merchandisingApiError(error);
+    return withRequestId(merchandisingApiError(error, context), context.requestId);
   }
 }

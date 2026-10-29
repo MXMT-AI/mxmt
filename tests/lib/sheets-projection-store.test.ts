@@ -491,6 +491,7 @@ it("does not mutate the approved mapping revision while publishing derived input
 });
 
 it("loads all five MVP screens from the actual native Sheets projection without a connector row", async () => {
+  await f.pg.exec(`UPDATE "DataImportRun" SET "completedAt"='2026-10-29T11:30:00Z' WHERE id='run'`);
   const request = await approved();
   expect(await readSheetsProjectionIntent(principal, "sheet", f.db)).toEqual({
     sourceId: "sheet",
@@ -513,7 +514,29 @@ it("loads all five MVP screens from the actual native Sheets projection without 
     const result = await getMerchandisingScreen("a", screen, q, f.db, now);
     expect(result.context.sourceId).toBe("sheet");
     expect(result.context.snapshotId).toBe(snapshot.snapshotId);
+    expect(result.freshness).toMatchObject({
+      status: "FRESH", sourceStale: false, freshnessBasis: "SHEETS_IMPORT",
+      sourceAgeSeconds: 1800, orderWatermark: null, orderAgeSeconds: null,
+    });
+    expect(Date.parse(result.freshness.sourceObservedAt!)).toBe(Date.parse("2026-10-29T11:30:00Z"));
+    expect(snapshot.sales.context.history.current).toBe(false);
+    if (screen === "overview") {
+      expect(result.overview!.byCurrency[0]).toMatchObject({
+        classificationCoverage: { state: "UNAVAILABLE", evaluatedSkuCount: 0, reviewSkuCount: 1 },
+        deadShare: null, bottleneck: null,
+      });
+    }
   }
+  const q = parseScreenQuery(new URLSearchParams({ snapshotId: snapshot.snapshotId }), "overview");
+  const expired = await getMerchandisingScreen("a", "overview", q, f.db, new Date("2026-10-29T14:00:00Z"));
+  expect(expired.freshness).toMatchObject({ status: "STALE", sourceStale: true, sourceAgeSeconds: 9000 });
+  expect(expired.overview).toEqual((await getMerchandisingScreen("a", "overview", q, f.db, now)).overview);
+  await f.pg.exec(`UPDATE "DataImportRun" SET "completedAt"=NULL WHERE id='run'`);
+  const missingTime = await getMerchandisingScreen("a", "overview", q, f.db, now);
+  expect(missingTime.freshness).toMatchObject({ status: "STALE", sourceAgeSeconds: null });
+  await f.pg.exec(`UPDATE "DataImportRun" SET "completedAt"='2026-10-29T13:00:00Z' WHERE id='run'`);
+  const futureTime = await getMerchandisingScreen("a", "overview", q, f.db, now);
+  expect(futureTime.freshness).toMatchObject({ status: "STALE", sourceAgeSeconds: null });
   expect(
     (await f.pg.query(`SELECT count(*)::int n FROM "ConnectorConnection"`))
       .rows,

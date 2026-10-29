@@ -5,7 +5,8 @@ import { SalesReportError } from "./sales-report";
 import { DailySkuError } from "./sku-daily-store";
 import { SalesPeriodError } from "./sales-period";
 import { DailySkuPeriodError } from "./sku-daily-period";
-export function merchandisingApiError(error: unknown) {
+import { logError, requestLogContext, type RequestContext } from "./observability";
+export function merchandisingApiError(error: unknown, context?: RequestContext) {
   if (
     error instanceof ConnectorSourceError ||
     error instanceof ScreenApiError ||
@@ -21,9 +22,13 @@ export function merchandisingApiError(error: unknown) {
     );
   if (error instanceof SalesPeriodError || error instanceof DailySkuPeriodError)
     return apiError(error.message, 400, "INVALID_SCREEN_PERIOD");
+  if (context)
+    logError("Merchandising data request failed", error, requestLogContext(context));
   return apiError(
     "Could not load merchandising data. Retry after synchronization completes.",
     503,
     "SCREEN_DATA_UNAVAILABLE",
+    undefined,
+    context?.requestId,
   );
 }

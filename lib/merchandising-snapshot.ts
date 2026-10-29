@@ -32,6 +32,7 @@ export class ScreenApiError extends Error {
 }
 export interface ScreenSourceState {
   sheetsInput?: unknown;
+  sheetsImportedAt?: string | null;
   timezone: string;
   selectionRevision?: number;
   selected?: boolean;
@@ -79,6 +80,7 @@ export async function readScreenSourceState(
     Array<ScreenSourceState & { sheetsInput: unknown }>
   >(Prisma.sql`SELECT s.timezone,
  CASE WHEN s.kind='GOOGLE_SHEETS' THEN jsonb_build_object('importRunId',s."activeImportRunId",'checksum',(SELECT "sourceChecksum" FROM "DataImportRun" WHERE id=s."activeImportRunId" AND "tenantId"=s."tenantId"),'projection',(SELECT stats->'merchandisingProjection'->>'inputHash' FROM "DataImportRun" WHERE id=s."activeImportRunId" AND "tenantId"=s."tenantId")) END "sheetsInput",
+ CASE WHEN s.kind='GOOGLE_SHEETS' THEN (SELECT to_char("completedAt",'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') FROM "DataImportRun" WHERE id=s."activeImportRunId" AND "tenantId"=s."tenantId" AND status IN ('SUCCESS','WARNING')) END "sheetsImportedAt",
  (SELECT checkpoint->>'through' FROM "SyncCursor" WHERE "tenantId"=s."tenantId" AND "sourceId"=s.id AND resource='orders') "orderThrough",
  COALESCE((SELECT jsonb_agg(id ORDER BY key,id) FROM "MerchandisingConfig" WHERE "tenantId"=s."tenantId" AND "isActive" AND "approvedAt" IS NOT NULL),'[]') "configIds",
  COALESCE((SELECT jsonb_agg(jsonb_build_array(resource,checkpoint,"lastSuccessfulRunId") ORDER BY resource) FROM "SyncCursor" WHERE "tenantId"=s."tenantId" AND "sourceId"=s.id),'[]') "cursorState",

@@ -192,9 +192,13 @@ it("keeps all-channel inventory and currency amounts unchanged by sales channel"
     one.stockWorkspace!.byCurrency.find((b) => b.currency === "USD")!.stockCost,
   ).toBe("16");
 });
-it.each(["uk", "en"] as const)(
-  "renders K1–K4, real denominators, observed history and and pinned action links (%s)",
-  async (lang) => {
+it.each(
+  (["uk", "en"] as const).flatMap((lang) =>
+    (["SHEETS_IMPORT", "ORDER_WATERMARK"] as const).map((basis) => ({ lang, basis })),
+  ),
+)(
+  "renders K1–K4, observed provider-neutral history and pinned action links ($lang, $basis)",
+  async ({ lang, basis }) => {
     const data = await read({
         currency: "UAH",
         groupBy: "sku",
@@ -202,7 +206,7 @@ it.each(["uk", "en"] as const)(
       }),
       html = renderToStaticMarkup(
         createElement(StockContent, {
-          data,
+          data: { ...data, freshness: { ...data.freshness, freshnessBasis: basis } },
           lang,
           query:
             "channelId=1&period=month&dateFrom=2026-09-01&dateTo=2026-09-30&brandId=brand-a&groupBy=sku",
@@ -215,6 +219,13 @@ it.each(["uk", "en"] as const)(
         ? "Ті самі SKU, що у вибраному знімку та фільтрах."
         : "The same SKUs as the selected snapshot and filters.",
     );
+    const history = html.split("K2 ·")[1].split("K3 ·")[0];
+    expect(history).not.toContain("SalesDrive");
+    expect(history).not.toMatch(/через місяць|after one month|from connection day/);
+    expect(history).toContain(lang === "uk"
+      ? "Точні значення та повнота історії"
+      : "Exact values and history coverage");
+    expect(history).toContain("<svg");
     expect(html).toContain("snapshotId=" + id);
     expect(html).toContain("channelId=1");
     expect(html).toContain("skuId=sku-a");

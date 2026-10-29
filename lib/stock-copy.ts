@@ -41,9 +41,9 @@ export const stockCopy = {
     repricing: "В уцінку",
     reordering: "В дозамовлення",
     clearDrill: "Скинути деталізацію",
-    historyTitle: "Історія з’явиться через місяць",
+    historyTitle: "Історичний графік поки недоступний",
     historyBody:
-      "SalesDrive не віддає залишки заднім числом. Система зберігає щоденні спостереження з дня підключення. Графік історії та LY заплановано у v2; історичні значення не підставляються.",
+      "Графік залишків і порівняння з минулим роком ще недоступні. Поточний залишок не підтверджує залишки на минулі дати. Для історії потрібні підтверджені спостереження з датою; відсутні значення не відновлюються.",
     ringBasis:
       "Частки за собівартістю лише серед неліквіду, ризику та здорового стоку. Кількість SKU — окремий показник, вона не визначає розмір сегмента.",
     outside: "Поза кільцем",
@@ -127,9 +127,9 @@ export const stockCopy = {
     repricing: "To repricing",
     reordering: "To reordering",
     clearDrill: "Clear drill-down",
-    historyTitle: "History will appear after one month",
+    historyTitle: "Historical chart is not available yet",
     historyBody:
-      "SalesDrive cannot return past stock. Daily observations are retained from connection day. The history and LY chart is planned for v2; historical values are never substituted.",
+      "The stock history chart and prior-year comparison are not available yet. Current stock does not establish stock levels on past dates. History requires verified dated observations; missing values are not reconstructed.",
     ringBasis:
       "Cost shares within dead, risk and healthy stock only. SKU counts are separate and do not determine segment sizes.",
     outside: "Outside the ring",
