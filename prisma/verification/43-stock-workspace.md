@@ -1,3 +1,5 @@
+> Superseded for K2 by #54: see `54-stock-history-retrospectives.md` for the observed-history implementation. Other K1/K3/K4 contracts below remain applicable.
+
 # Stock structure, categories and brands K1–K4 (#43)
 
 `/stock` replaces the navigation placeholder with the Stock workspace. Authority:
