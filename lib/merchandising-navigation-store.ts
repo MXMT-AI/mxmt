@@ -1,4 +1,4 @@
-import { selectedConnection } from "./connectors/source";
+import { readSelectedSource } from "./connectors/source";
 import "server-only";
 import { Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
@@ -17,12 +17,10 @@ export async function readNavigationOptions(
 ): Promise<NavigationOptions> {
   return withCalculationSnapshot(db, async (tx) => {
     await tx.$executeRaw(Prisma.sql`SET TRANSACTION READ ONLY`);
-    const settings = await readClientSettings(tenantId, tx);
+    const [settings,selected] = await Promise.all([readClientSettings(tenantId, tx),readSelectedSource(tenantId,tx)]);
     const channels = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
       SELECT DISTINCT COALESCE(l."channelId",'__unassigned__') id FROM "OrderLine" l
-      JOIN "ConnectorConnection" c ON c."sourceId"=l."sourceId" AND c."tenantId"=l."tenantId" AND ${selectedConnection()}
-      JOIN "DataSource" s ON s.id=c."sourceId" AND s."tenantId"=c."tenantId" AND s.kind::text=upper(c.provider)
-      WHERE l."tenantId"=${tenantId}
+      WHERE l."tenantId"=${tenantId} AND l."sourceId"=${selected?.id??null}
       ${settings.values.excludedChannels.length ? Prisma.sql`AND (l."channelId" IS NULL OR l."channelId" NOT IN (${Prisma.join(settings.values.excludedChannels)}))` : Prisma.empty}
       ORDER BY id LIMIT 201`);
     return {

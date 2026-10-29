@@ -1,5 +1,5 @@
 import { readOrderHistory } from "./connectors/order-history";
-import { readSelectedSource, mappingKey } from "./connectors/source";
+import { readSelectedSource, mappingKey, assertReportingSourceReady } from "./connectors/source";
 import { trustedOrderProjectionSql } from "./order-projection-policy";
 import { withCalculationSnapshot } from "./calculation-snapshot";
 import { salesHistoryCoverage } from "./order-history";
@@ -83,6 +83,7 @@ export async function getSalesReportInSnapshot(
 ): Promise<PublishedSalesReport> {
   const source = await readSelectedSource(tenantId, tx);
   if (!source) throw new SalesReportError("SALESDRIVE_NOT_CONFIGURED");
+  await assertReportingSourceReady(tenantId,source,tx);
   const reportKind = source.provider === "salesdrive" ? "SALESDRIVE" : "CONNECTOR";
   const client = await readClientSettings(tenantId, tx);
   const configs = await tx.$queryRaw<
