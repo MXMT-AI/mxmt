@@ -548,3 +548,33 @@ require independent owner approval. Its live connection remains deferred.
 Passing tests or merging a PR does not establish customer acceptance. Zavod's
 [September reconciliation and threshold approvals](prisma/verification/38-zavod-reconciliation.md),
 Sasha/Olia UAT and operational release evidence remain required before closing #51.
+
+
+### Database readiness before local startup and Vercel deployment
+
+`npm run dev` and `npm start` now check migration history before starting Next.js.
+Vercel uses `npm run build:vercel`, which checks migration readiness before generating
+Prisma Client and building the app. These checks do **not** apply migrations.
+The ordinary `npm run build` remains available for an offline build/test.
+
+If Prisma reports `Sku.catalogAttributes does not exist` (P2022), generating the
+client or redeploying alone cannot update the database. Check the configured
+database using `npm run db:check`. Verify that pooled `DATABASE_URL` and direct
+`DIRECT_URL` refer to the same database/schema and intended Neon branch. The
+startup check rejects mismatched endpoints without logging connection credentials.
+
+Before applying an accumulated migration backlog:
+1. Create a Neon staging branch from that exact database; retain a restore point.
+2. Run `npm run db:migrate:deploy` against the staging branch using its direct URL.
+   Inspect failures, legacy counts/totals and application reads before continuing.
+3. Apply the reviewed migrations to the intended release database with
+   `npm run db:migrate:deploy`, then run `npm run db:check`.
+4. Restart local Next.js or redeploy Vercel with that same database target.
+
+Preview builds check readiness too; they never migrate a shared production database.
+Use a separate migrated Neon branch for previews. Ensure the Vercel project's Build
+Command uses the repository's `npm run build:vercel` and that both database variables
+are present in the relevant environment. Do not reset the database, use `db push`,
+or add only the missing column by hand: later features require the full migration
+history. A successful status check verifies migration history, not arbitrary manual
+schema drift; investigate P2022 even when history claims all migrations are applied.
