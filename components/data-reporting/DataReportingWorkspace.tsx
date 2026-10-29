@@ -391,7 +391,7 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
       if(canImport){
         try {
           const projected=await refreshSelectedSheetsReports(importedRunId);
-          if(projected.state==="READY")setReportsReady(true);
+          if(projected.state==="READY"){setReportsReady(true);window.dispatchEvent(new Event("connector-connection-changed"));}
           if(projected.state==="NOT_SELECTED"&&kind==="projection")messages.push(lang==="uk"?"Виберіть погоджене джерело Google Sheets у налаштуваннях.":"Select an approved Google Sheets reporting source in Settings.");
         }catch(error){messages.push(sheetsRefreshMessage(error instanceof SheetsReportingRefreshError?error.code:"SHEETS_REFRESH_FAILED",lang));}
       }

@@ -1,4 +1,5 @@
 "use client";
+import ReportingError from "@/components/merchandising/ReportingError";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useLang } from "@/components/LanguageProvider";
@@ -41,12 +42,7 @@ export default function ReorderingWorkspace() {
         </button>
       </header>
       {error ? (
-        <div role="alert" className="space-y-3">
-          <p>{copy.error}</p>
-          <button className={button} type="button" onClick={refresh}>
-            {copy.retry}
-          </button>
-        </div>
+        <ReportingError code={error} lang={lang} onRetry={refresh}/>
       ) : busy || !data ? (
         <p role="status">{copy.loading}</p>
       ) : (

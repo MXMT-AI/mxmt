@@ -1,4 +1,5 @@
 "use client";
+import ReportingSourceStatus from "@/components/merchandising/ReportingSourceStatus";
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { useLang } from "@/components/LanguageProvider";
@@ -34,7 +35,7 @@ export default function DataReportingHub(props: {
   return (
     <>
       <nav
-        aria-label={lang === "uk" ? "Джерело звітності" : "Reporting source"}
+        aria-label={lang === "uk" ? "Перегляд даних" : "Data view"}
         className="px-5 md:px-8 pt-5 flex flex-wrap gap-2"
       >
         {[
@@ -52,6 +53,7 @@ export default function DataReportingHub(props: {
           </button>
         ))}
       </nav>
+      <div className="px-5 md:px-8 pt-5"><ReportingSourceStatus explainTabs/></div>
       {sales ? (
         <SalesReportingWorkspace />
       ) : (

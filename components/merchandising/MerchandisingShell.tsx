@@ -1,4 +1,5 @@
 "use client";
+import ReportingSourceStatus from "./ReportingSourceStatus";
 import Link from "next/link";
 import {
   createContext,
@@ -98,6 +99,7 @@ export default function MerchandisingShell({
                   onApply={setAppliedAt}
                   options={options}
                 />
+                <ReportingSourceStatus compact/>
                 {children}
               </>
             )}

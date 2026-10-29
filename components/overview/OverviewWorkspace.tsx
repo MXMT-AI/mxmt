@@ -1,4 +1,5 @@
 "use client";
+import ReportingError from "@/components/merchandising/ReportingError";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useState } from "react";
@@ -21,33 +22,7 @@ export default function OverviewWorkspace() {
     params = useSearchParams(),router=useRouter(),allowed=useScenarioExportPermission();
   const [chatLoaded,setChatLoaded]=useState(params.get("chat")==="1");
   const { data, busy, error, refresh } = useOverview(filters);
-  if (error)
-    return (
-      <div
-        role="alert"
-        className="space-y-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6"
-      >
-        <h1 className="text-2xl font-bold">{copy.title}</h1>
-        <p>
-          {error === "SCREEN_SELECTION_MISMATCH" ? copy.mismatch : copy.error}
-        </p>
-        <div className="flex flex-wrap gap-3">
-          <button
-            type="button"
-            onClick={refresh}
-            className="min-h-11 rounded-lg border border-[var(--border)] px-4 py-2 hover:bg-[var(--input-bg)]"
-          >
-            {copy.refresh}
-          </button>
-          <Link
-            href={merchandisingHref("/settings", new URLSearchParams(params))}
-            className="inline-flex min-h-11 items-center underline underline-offset-4"
-          >
-            {copy.settings}
-          </Link>
-        </div>
-      </div>
-    );
+  if (error) return <ReportingError code={error} lang={lang} title={copy.title} onRetry={refresh}/>;
   if (busy || !data)
     return (
       <div role="status" aria-live="polite" className="py-6">
