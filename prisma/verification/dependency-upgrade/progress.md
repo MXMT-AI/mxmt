@@ -155,4 +155,38 @@ Implemented bcryptjs 3.0.3 and jose 6.2.14; removed @types/bcryptjs because bcry
 
 HTTP auth checks used one synthetic user/tenant in the disposable native PostgreSQL database; the tenant was removed afterward and local smoke servers stopped. No customer account, production secrets, production database or paid API was used. These checks do not replace customer-data five-screen acceptance.
 
-The current auth block is ready for owner review; not committed or pushed. Lucide remains a separate following API/render compatibility block.
+Owner approved the auth block; committed as `cf83170` (`chore: upgrade authentication libraries`). No push has been made. Lucide remains a separate following API/render compatibility block.
+
+
+## Block 5 — Lucide icon compatibility
+
+Pre-change review: lucide-react 0.468.0 → stable 1.64.0 (npm version and React peer dependencies checked). The official React migration guide removes brand icons; AST inventory found 59 imported icon components in 18 application files and none of the removed brand icons. Only the LucideIcon type is imported in the additional type-only file.
+
+Lucide 1 defaults decorative SVGs to aria-hidden, removes UMD distribution, and adds optional context providers. This Next/React application uses named ESM component imports and the LucideIcon type; no UMD or provider conversion is needed. Preserve existing size/stroke/className and accessible control labels; do not add dynamic whole-library imports to application code.
+
+Before changing the dependency, rendered all 59 current icons to SVG using the installed 0.468.0 package. The private temporary inventory is available for export/geometry comparison after upgrade.
+
+Official sources:
+- https://lucide.dev/guide/react/migration
+- https://lucide.dev/guide/version-1
+- https://github.com/lucide-icons/lucide/releases/tag/1.64.0
+
+Installed lucide-react 1.64.0 without application source changes. All 59 imported components still export and render. Across all icons, width/height, viewBox, fill, stroke width/caps/joins are preserved. No application CSS selectors target renamed Lucide-generated class names. The default aria-hidden behavior was verified; visible text labels in sidebar controls and the theme toggle aria-label remain intact. This is a scoped icon-compatibility review, not a complete accessibility audit.
+
+Rendered and visually inspected all 59 before/after SVG pairs at 24px on the existing dark background. Twenty-six geometries changed with upstream icon refinements (most visibly Megaphone); no missing, clipped or illegible icons were observed. Application layout, icon sizing and theme styles remain unchanged. This comparison is an icon sheet, not authenticated browser acceptance of every product page.
+
+A separate existing issue was noticed while reviewing the full logs: clean Next 15 builds with jose 6 warn that JWE compression references CompressionStream/DecompressionStream in Edge. The app uses HS256 JWTs, not compressed JWE; compiled middleware HTTP checks passed in the previous block. These are warnings, not build failures. Revisit the import/runtime boundary during the planned Next framework block and check the final clean build; do not suppress the warning or claim warning-free builds.
+
+| Check | Result |
+| --- | --- |
+| tsc --noEmit --incremental false | Passed |
+| Full tests | 164 files; 1,633 passed, one optional private-workbook test skipped |
+| test:mvp | 80 files; 965 passed |
+| npm run build | Passed; jose Edge warnings described above |
+| npm run build:vercel | Passed against disposable native local PostgreSQL |
+| Imported icon exports / SVG render / dimensions | All 59 passed |
+| Before/after visual icon sheet | Inspected; upstream geometry refinements retained |
+| npm audit | Unchanged: 6 total; 0 critical, 4 high, 2 moderate |
+| git diff --check | Passed |
+
+Ready for owner review; Lucide block has not been committed or pushed. Next is the external AI SDK compatibility block.
