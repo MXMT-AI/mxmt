@@ -8,6 +8,7 @@ const state = vi.hoisted(() => ({
   preview: vi.fn(),
   approve: vi.fn(),
   project: vi.fn(),
+  intent: vi.fn(),
 }));
 vi.mock("next/headers", () => ({
   cookies: async () => ({ get: () => ({ value: state.cookie }) }),
@@ -19,8 +20,12 @@ vi.mock("@/lib/connectors/sheets-mapping-store", () => ({
 }));
 vi.mock("@/lib/connectors/sheets-projection-store", () => ({
   projectSheetsImport: state.project,
+  readSheetsProjectionIntent: state.intent,
 }));
-import { POST as project } from "@/app/api/connectors/sheets/projection/[sourceId]/route";
+import {
+  POST as project,
+  GET as intent,
+} from "@/app/api/connectors/sheets/projection/[sourceId]/route";
 import { signAccessToken } from "@/lib/auth";
 import { SheetsMappingError } from "@/lib/connectors/sheets-mapping-validation";
 import { GET } from "@/app/api/connectors/sheets/mapping/[sourceId]/route";
@@ -51,13 +56,19 @@ beforeEach(() => {
   state.preview.mockResolvedValue({ revision: 1 });
   state.approve.mockResolvedValue({ state: "APPROVED" });
   state.project.mockResolvedValue({ outcome: "projected" });
+  state.intent.mockResolvedValue({
+    sourceId: "sheet",
+    importRunId: "run",
+    mappingId: "mapping",
+    selectionRevision: 1,
+  });
 });
 afterAll(() => vi.unstubAllEnvs());
 it("requires a signed admin session for metadata, preview and approval, ignoring identity headers", async () => {
-  for (const handler of [GET, preview, approve, project])
+  for (const handler of [GET, preview, approve, project, intent])
     expect((await handler(req("{}"), context)).status).toBe(401);
   await login("ANALYST");
-  for (const handler of [GET, preview, approve, project])
+  for (const handler of [GET, preview, approve, project, intent])
     expect((await handler(req("{}"), context)).status).toBe(403);
   expect(state.metadata).not.toHaveBeenCalled();
   expect(state.preview).not.toHaveBeenCalled();
@@ -144,4 +155,25 @@ it("keeps projection intent scoped to the signed tenant and returns no source ro
     intent,
   );
   expect(await result.json()).toEqual({ outcome: "projected" });
+});
+
+it("returns a private projection intent to the signed admin without changing approval or source", async () => {
+  await login();
+  const result = await intent(req(), context);
+  expect(result.status).toBe(200);
+  expect(result.headers.get("cache-control")).toBe("private, no-store");
+  expect(state.intent).toHaveBeenCalledWith(
+    { tenantId: "a", userId: "owner" },
+    "sheet",
+  );
+  expect(await result.json()).toEqual({
+    sourceId: "sheet",
+    importRunId: "run",
+    mappingId: "mapping",
+    selectionRevision: 1,
+  });
+  expect(state.project).not.toHaveBeenCalled();
+  expect(
+    (await intent(req(undefined, "?tenantId=foreign"), context)).status,
+  ).toBe(400);
 });

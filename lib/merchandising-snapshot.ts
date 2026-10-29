@@ -31,6 +31,7 @@ export class ScreenApiError extends Error {
   }
 }
 export interface ScreenSourceState {
+  sheetsInput?: unknown;
   timezone: string;
   selectionRevision?: number;
   selected?: boolean;
@@ -75,8 +76,9 @@ export async function readScreenSourceState(
   tx: SqlClient,
 ): Promise<ScreenSourceState | null> {
   const [row] = await tx.$queryRaw<
-    ScreenSourceState[]
+    Array<ScreenSourceState & { sheetsInput: unknown }>
   >(Prisma.sql`SELECT s.timezone,
+ CASE WHEN s.kind='GOOGLE_SHEETS' THEN jsonb_build_object('importRunId',s."activeImportRunId",'checksum',(SELECT "sourceChecksum" FROM "DataImportRun" WHERE id=s."activeImportRunId" AND "tenantId"=s."tenantId"),'projection',(SELECT stats->'merchandisingProjection'->>'inputHash' FROM "DataImportRun" WHERE id=s."activeImportRunId" AND "tenantId"=s."tenantId")) END "sheetsInput",
  (SELECT checkpoint->>'through' FROM "SyncCursor" WHERE "tenantId"=s."tenantId" AND "sourceId"=s.id AND resource='orders') "orderThrough",
  COALESCE((SELECT jsonb_agg(id ORDER BY key,id) FROM "MerchandisingConfig" WHERE "tenantId"=s."tenantId" AND "isActive" AND "approvedAt" IS NOT NULL),'[]') "configIds",
  COALESCE((SELECT jsonb_agg(jsonb_build_array(resource,checkpoint,"lastSuccessfulRunId") ORDER BY resource) FROM "SyncCursor" WHERE "tenantId"=s."tenantId" AND "sourceId"=s.id),'[]') "cursorState",
@@ -85,13 +87,22 @@ export async function readScreenSourceState(
  FROM "DataSource" s WHERE s."tenantId"=${tenantId} AND s.id=${sourceId}`);
   if (!row) return null;
   const selected = await readSelectedSource(tenantId, tx);
-  return {...row, selectionRevision: selected?.revision ?? 0, selected: selected?.id===sourceId};
+  const { sheetsInput, ...base } = row;
+  return {
+    ...base,
+    ...(sheetsInput ? { sheetsInput } : {}),
+    selectionRevision: selected?.revision ?? 0,
+    selected: selected?.id === sourceId,
+  };
 }
 export function screenSourceKey(state: ScreenSourceState | null) {
   return payloadHash(
     state && {
-      ...(state.selectionRevision ? {selectionRevision:state.selectionRevision} : {}),
-      ...(state.selected===false ? {selected:false} : {}),
+      ...(state.selectionRevision
+        ? { selectionRevision: state.selectionRevision }
+        : {}),
+      ...(state.selected === false ? { selected: false } : {}),
+      ...(state.sheetsInput ? { sheetsInput: state.sheetsInput } : {}),
       configIds: state.configIds,
       cursorState: state.cursorState,
       recalculationRequestedAt: state.recalculationRequestedAt,

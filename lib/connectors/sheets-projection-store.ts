@@ -287,6 +287,9 @@ export async function projectSheetsImport(
       );
       await completeConnectorInputs(tx, { ...scope, resource: "orders" });
       await tx.$executeRaw(
+        Prisma.sql`UPDATE "ConnectorRecalculation" SET state='WAITING_ENGINE',"requestedAt"=now(),"inputProvenance"=("inputProvenance"-'leaseToken'-'leaseUntil'-'availableAt'-'errorCode'-'phase'-'dailyCalculationId'-'salesCalculationId'-'phaseCompletedAt')||jsonb_build_object('projectionHash',${initial.hash}::text) WHERE "tenantId"=${p.tenantId} AND "importRunId"=${expectedRun}`,
+      );
+      await tx.$executeRaw(
         Prisma.sql`INSERT INTO "MerchandisingAction" (id,"tenantId","actorId","configId",action,"entityType","entityId","idempotencyKey",after,context) VALUES (${randomUUID()},${p.tenantId},${p.userId},${expectedMapping},'SHEETS_PROJECTED','DATA_IMPORT',${expectedRun},${`sheets-projection:${initial.hash}`},${JSON.stringify(stats)}::jsonb,${JSON.stringify({ version: 1, input: initial.input, mappingId: expectedMapping, selectionRevision: initial.selectionRevision, inputHash: initial.hash })}::jsonb) ON CONFLICT DO NOTHING`,
       );
       return {
@@ -297,5 +300,27 @@ export async function projectSheetsImport(
       };
     },
     { timeout: 45000, maxWait: 5000 },
+  );
+}
+
+/** Return only the current fenced intent, never raw rows or workbook credentials. */
+export async function readSheetsProjectionIntent(
+  p: AiPrincipal,
+  sourceId: string,
+  db: SqlDatabase = prisma,
+) {
+  return aiTransaction(
+    p,
+    db,
+    async (tx) => {
+      const state = await context(p, sourceId, tx);
+      return {
+        sourceId,
+        importRunId: state.input.importRunId,
+        mappingId: state.mappingId,
+        selectionRevision: state.selectionRevision,
+      };
+    },
+    true,
   );
 }

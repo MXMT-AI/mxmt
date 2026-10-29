@@ -8,7 +8,17 @@ import {
   previewSheetsMapping,
   approveSheetsMapping,
 } from "@/lib/connectors/sheets-mapping-store";
-import { projectSheetsImport } from "@/lib/connectors/sheets-projection-store";
+import { createScreenSnapshot } from "@/lib/merchandising-snapshot";
+import { getMerchandisingScreen } from "@/lib/merchandising-screen";
+import {
+  parseScreenQuery,
+  SCREEN_NAMES,
+} from "@/lib/merchandising-screen-query";
+import { processConnectorRecalculation } from "@/lib/connectors/recalculation";
+import {
+  projectSheetsImport,
+  readSheetsProjectionIntent,
+} from "@/lib/connectors/sheets-projection-store";
 import {
   selectConnectorSource,
   listConnectorSources,
@@ -478,4 +488,80 @@ it("does not mutate the approved mapping revision while publishing derived input
       ])
     ).rows,
   ).toEqual(before);
+});
+
+it("loads all five MVP screens from the actual native Sheets projection without a connector row", async () => {
+  const request = await approved();
+  expect(await readSheetsProjectionIntent(principal, "sheet", f.db)).toEqual({
+    sourceId: "sheet",
+    ...request,
+  });
+  await projectSheetsImport(principal, "sheet", request, f.db);
+  const now = new Date("2026-10-29T12:00:00Z"),
+    snapshot = await createScreenSnapshot(
+      "a",
+      { dateFrom: "2026-10-01", dateTo: "2026-10-28", asOf: "2026-10-29", now },
+      f.db,
+    );
+  expect(snapshot.sourceId).toBe("sheet");
+  expect(snapshot.sales.context.history.current).toBe(false);
+  for (const screen of SCREEN_NAMES) {
+    const q = parseScreenQuery(
+      new URLSearchParams({ snapshotId: snapshot.snapshotId }),
+      screen,
+    );
+    const result = await getMerchandisingScreen("a", screen, q, f.db, now);
+    expect(result.context.sourceId).toBe("sheet");
+    expect(result.context.snapshotId).toBe(snapshot.snapshotId);
+  }
+  expect(
+    (await f.pg.query(`SELECT count(*)::int n FROM "ConnectorConnection"`))
+      .rows,
+  ).toEqual([{ n: 0 }]);
+  await f.pg.exec(
+    `UPDATE "DataSource" SET "activeImportRunId"=NULL WHERE id='sheet'`,
+  );
+  const stale = await getMerchandisingScreen(
+    "a",
+    "overview",
+    parseScreenQuery(
+      new URLSearchParams({ snapshotId: snapshot.snapshotId }),
+      "overview",
+    ),
+    f.db,
+    now,
+  );
+  expect(stale.freshness.sourceChanged).toBe(true);
+});
+it("consumes native Sheets recalculation in two phases and resets it only for a changed projection", async () => {
+  const request = await approved();
+  await projectSheetsImport(principal, "sheet", request, f.db);
+  expect(await processConnectorRecalculation("a", f.db)).toMatchObject({
+    processed: true,
+    phase: "DAILY",
+    published: true,
+  });
+  expect(await processConnectorRecalculation("a", f.db)).toMatchObject({
+    processed: true,
+    phase: "SALES",
+    published: true,
+  });
+  expect(await processConnectorRecalculation("a", f.db)).toMatchObject({
+    processed: false,
+  });
+  await projectSheetsImport(principal, "sheet", request, f.db);
+  expect(
+    (await f.pg.query(`SELECT state FROM "ConnectorRecalculation"`)).rows,
+  ).toEqual([{ state: "COMPLETE" }]);
+  await f.pg.exec(
+    `UPDATE "DataImportRun" SET "sourceChecksum"='new synthetic observation' WHERE id='run'`,
+  );
+  await projectSheetsImport(principal, "sheet", request, f.db);
+  expect(
+    (
+      await f.pg.query(
+        `SELECT state,"inputProvenance"->>'leaseToken' lease FROM "ConnectorRecalculation"`,
+      )
+    ).rows,
+  ).toEqual([{ state: "WAITING_ENGINE", lease: null }]);
 });

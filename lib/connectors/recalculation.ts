@@ -27,8 +27,8 @@ export async function processConnectorRecalculation(
   const token = randomUUID();
   const intent = await db.$transaction(async (tx) => {
     // Serialize claims for a source, without holding a lock during the calculation.
-    const [source] = await tx.$queryRaw<
-      Array<{ tenantId: string; sourceId: string }>
+    let [source] = await tx.$queryRaw<
+      Array<{ tenantId: string; sourceId: string; nativeRunId?: string }>
     >(Prisma.sql`
       SELECT c."tenantId",c."sourceId" FROM "ConnectorConnection" c
       WHERE ${selectedConnection()} AND (${tenantId ?? null}::text IS NULL OR c."tenantId"=${tenantId ?? null})
@@ -36,6 +36,16 @@ export async function processConnectorRecalculation(
       AND NOT EXISTS(SELECT 1 FROM "ConnectorRecalculation" r WHERE r."tenantId"=c."tenantId" AND r."sourceId"=c."sourceId" AND r.state='RUNNING' AND (r."inputProvenance"->>'leaseUntil')::timestamptz>now())
       AND EXISTS(SELECT 1 FROM "ConnectorRecalculation" r WHERE r."tenantId"=c."tenantId" AND r."sourceId"=c."sourceId" AND r.state<>'COMPLETE' AND (r.state='WAITING_ENGINE' OR COALESCE((r."inputProvenance"->>'availableAt')::timestamptz,'-infinity'::timestamptz)<=now()))
       ORDER BY (SELECT min(r."requestedAt") FROM "ConnectorRecalculation" r WHERE r."tenantId"=c."tenantId" AND r."sourceId"=c."sourceId" AND r.state<>'COMPLETE'),c.id LIMIT 1 FOR UPDATE OF c SKIP LOCKED`);
+    if (!source)
+      [source] = await tx.$queryRaw<
+        Array<{ tenantId: string; sourceId: string; nativeRunId: string }>
+      >(Prisma.sql`
+      SELECT s."tenantId",s.id "sourceId",s."activeImportRunId" "nativeRunId" FROM "DataSource" s
+      WHERE s.kind='GOOGLE_SHEETS' AND EXISTS(SELECT 1 FROM "ConnectorSelection" x WHERE x."tenantId"=s."tenantId" AND x."sourceId"=s.id)
+      AND (${tenantId ?? null}::text IS NULL OR s."tenantId"=${tenantId ?? null})
+      AND NOT EXISTS(SELECT 1 FROM "ConnectorRecalculation" r WHERE r."tenantId"=s."tenantId" AND r."sourceId"=s.id AND r.state='RUNNING' AND (r."inputProvenance"->>'leaseUntil')::timestamptz>now())
+      AND EXISTS(SELECT 1 FROM "ConnectorRecalculation" r WHERE r."tenantId"=s."tenantId" AND r."sourceId"=s.id AND r."importRunId"=s."activeImportRunId" AND r.state<>'COMPLETE' AND (r.state='WAITING_ENGINE' OR COALESCE((r."inputProvenance"->>'availableAt')::timestamptz,'-infinity'::timestamptz)<=now()))
+      ORDER BY s.id LIMIT 1 FOR UPDATE OF s SKIP LOCKED`);
     if (!source) return null;
     // READ COMMITTED can select the source using a snapshot from before another
     // claimant committed. Recheck after its connection lock has been acquired.
@@ -50,6 +60,7 @@ export async function processConnectorRecalculation(
     const [row] = await tx.$queryRaw<Intent[]>(Prisma.sql`
       SELECT "importRunId","tenantId","sourceId",state,"inputProvenance" FROM "ConnectorRecalculation"
       WHERE "tenantId"=${source.tenantId} AND "sourceId"=${source.sourceId} AND state<>'COMPLETE'
+      AND (${source.nativeRunId ?? null}::text IS NULL OR "importRunId"=${source.nativeRunId ?? null})
       AND (state='WAITING_ENGINE' OR COALESCE(("inputProvenance"->>'availableAt')::timestamptz,'-infinity'::timestamptz)<=now())
       AND (state<>'RUNNING' OR COALESCE(("inputProvenance"->>'leaseUntil')::timestamptz,'-infinity'::timestamptz)<=now())
       ORDER BY (state='RUNNING') DESC,"requestedAt","importRunId" LIMIT 1 FOR UPDATE`);
@@ -82,7 +93,7 @@ export async function processConnectorRecalculation(
     const updated = await db.$executeRaw(Prisma.sql`
       UPDATE "ConnectorRecalculation" SET state=${phase === "DAILY" ? "PENDING" : "COMPLETE"},
       "inputProvenance"=("inputProvenance"-'leaseToken'-'leaseUntil'-'availableAt'-'errorCode')||${JSON.stringify(publication)}::jsonb||jsonb_build_object('engine','salesdrive-v2','phaseCompletedAt',now(),'inputConsistency','separate-immutable-phase-calculations')
-      WHERE "importRunId"=${intent.importRunId} AND "tenantId"=${intent.tenantId} AND state='RUNNING' AND "inputProvenance"->>'leaseToken'=${token} AND EXISTS(SELECT 1 FROM "ConnectorConnection" c WHERE c."tenantId"=${intent.tenantId} AND c."sourceId"=${intent.sourceId} AND ${selectedConnection()})`);
+      WHERE "importRunId"=${intent.importRunId} AND "tenantId"=${intent.tenantId} AND state='RUNNING' AND "inputProvenance"->>'leaseToken'=${token} AND (EXISTS(SELECT 1 FROM "ConnectorConnection" c WHERE c."tenantId"=${intent.tenantId} AND c."sourceId"=${intent.sourceId} AND ${selectedConnection()}) OR EXISTS(SELECT 1 FROM "DataSource" s JOIN "ConnectorSelection" x ON x."tenantId"=s."tenantId" AND x."sourceId"=s.id WHERE s.kind='GOOGLE_SHEETS' AND s."tenantId"=${intent.tenantId} AND s.id=${intent.sourceId} AND s."activeImportRunId"=${intent.importRunId}))`);
     return { processed: true, phase, published: updated === 1 };
   } catch (error) {
     const errorCode =
