@@ -85,7 +85,7 @@ it("reconciles K1 ring amounts, gray remainder, category totals and O4 with expl
   expect(
     block.statuses.filter((s) => s.inRing).some((s) => s.status === "OOS"),
   ).toBe(false);
-  expect(stock.history.state).toBe("MVP_PLACEHOLDER");
+  expect(stock.history.scope).toBe("CURRENT_SNAPSHOT_COHORT");
 });
 it("verifies synthetic CITIZEN/CASIO/CHPO signals using the same daily rule and first receipt", async () => {
   const data = await read({ currency: "UAH" }),
@@ -193,7 +193,7 @@ it("keeps all-channel inventory and currency amounts unchanged by sales channel"
   ).toBe("16");
 });
 it.each(["uk", "en"] as const)(
-  "renders K1–K4, real denominators, a history placeholder and pinned action links (%s)",
+  "renders K1–K4, real denominators, observed history and and pinned action links (%s)",
   async (lang) => {
     const data = await read({
         currency: "UAH",
@@ -212,8 +212,8 @@ it.each(["uk", "en"] as const)(
       expect(html).toContain(key + " ·");
     expect(html).toContain(
       lang === "uk"
-        ? "Історія з’явиться через місяць"
-        : "History will appear after one month",
+        ? "Ті самі SKU, що у вибраному знімку та фільтрах."
+        : "The same SKUs as the selected snapshot and filters.",
     );
     expect(html).toContain("snapshotId=" + id);
     expect(html).toContain("channelId=1");
@@ -248,14 +248,15 @@ it("preserves unknown cost and refuses a fabricated complete ring or zero-valued
     );
   }
 });
-it("never draws a fabricated history curve even when many daily observations exist", async () => {
+it("shows observed history without fabricating missing LY or interpolated month-end values", async () => {
   const data = await read(),
     html = renderToStaticMarkup(
       createElement(StockContent, { data, lang: "en", query: "" }),
     );
   const k2 = html.split("K2 ·")[1].split("K3 ·")[0];
-  expect(k2).not.toContain("<svg");
-  expect(data.stockWorkspace!.history).toEqual({ state: "MVP_PLACEHOLDER" });
+  expect(k2).toContain("<svg");
+  expect(k2).not.toContain("<polyline");
+  expect(data.stockWorkspace!.history.byCurrency.every(b=>b.points.every(p=>p.priorYear.stockCost===null))).toBe(true);
 });
 it("reads a published Stock workspace immutably after live metadata/settings changes", async () => {
   const before = await read({ currency: "UAH" });
