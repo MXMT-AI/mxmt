@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { insertImportBatch } from "./import-batch";
 import {
   DataImportTrigger,
   DataRunStatus,
@@ -156,16 +157,14 @@ async function insertRawRows(
 ): Promise<void> {
   for (let index = 0; index < rows.length; index += RAW_ROW_BATCH_SIZE) {
     const batch = rows.slice(index, index + RAW_ROW_BATCH_SIZE);
-    await db.dataSheetRow.createMany({
-      data: batch.map((row) => ({
+    await insertImportBatch(batch.map((row) => ({
         tenantId,
         snapshotId,
         rowNumber: row.rowNumber,
         data: asJson(row.data),
         rowHash: row.rowHash,
         searchText: row.searchText || null,
-      })),
-    });
+      })), input=>db.dataSheetRow.createMany(input));
   }
 }
 
@@ -185,8 +184,7 @@ async function insertIssues(
   issues: NormalizationIssue[]
 ): Promise<void> {
   await insertInBatches(issues, (batch) =>
-    db.importIssue.createMany({
-      data: batch.map((item) => ({
+    insertImportBatch(batch.map((item) => ({
         tenantId,
         importRunId,
         sheetKey: item.sheetKey,
@@ -195,8 +193,7 @@ async function insertIssues(
         severity: item.severity,
         message: item.message,
         context: asJson(item.context),
-      })),
-    })
+      })), input=>db.importIssue.createMany(input))
   );
 }
 
@@ -207,19 +204,15 @@ async function insertTypedProjection(
   normalized: NormalizedWorkbook
 ): Promise<void> {
   await insertInBatches(normalized.products, (batch) =>
-    db.sourceProduct.createMany({
-      data: batch.map(({ barcode: _barcode, ...product }) => ({
+    insertImportBatch(batch.map(({ barcode: _barcode, ...product }) => ({
         ...product,
         tenantId,
         importRunId,
         sourceValues: asJson(product.sourceValues),
-      })),
-    })
+      })), input=>db.sourceProduct.createMany(input))
   );
   await insertInBatches(normalized.saleLines, (batch) =>
-    db.sourceSaleLine.createMany({
-      data: batch.map((saleLine) => ({ ...saleLine, tenantId, importRunId, sourceValues: asJson(saleLine.sourceValues) })),
-    })
+    insertImportBatch(batch.map((saleLine) => ({ ...saleLine, tenantId, importRunId, sourceValues: asJson(saleLine.sourceValues) })), input=>db.sourceSaleLine.createMany(input))
   );
   await insertIssues(db, tenantId, importRunId, normalized.issues);
 }

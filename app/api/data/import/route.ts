@@ -8,6 +8,7 @@ import {
   ArticleReportImportError,
   ArticleReportPeriodError,
 } from "@/lib/article-report";
+import { isImportConnectionError } from "@/lib/import-batch";
 import { runDataPipeline } from "@/lib/data-pipeline";
 import { RawWorkbookValidationError } from "@/lib/data-import-workbook";
 
@@ -51,6 +52,9 @@ export async function POST(request: NextRequest) {
     }
     if (error instanceof ArticleReportImportError) {
       return apiError(error.message, 409, "IMPORTED_DATA_NOT_ACTIVE");
+    }
+    if (isImportConnectionError(error)) {
+      return apiError("Import could not finish because the database connection was interrupted. Please retry.", 503, "IMPORT_DATABASE_CONNECTION_INTERRUPTED");
     }
     console.error("[data/import]", error);
     return serverError("Data import failed");

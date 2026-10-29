@@ -267,6 +267,7 @@ describe("atomic raw import", () => {
     ).rejects.toBeInstanceOf(TypedProjectionValidationError);
 
     expect(db.importIssue.createMany).toHaveBeenCalledWith({
+      skipDuplicates: false,
       data: expect.arrayContaining([
         expect.objectContaining({ code: "DUPLICATE_PRODUCT_ID", severity: "ERROR" }),
       ]),
