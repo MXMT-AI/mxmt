@@ -11,9 +11,9 @@ import type { OverviewModel } from "@/lib/merchandising-overview";
 import styles from "@/components/merchandising/report.module.css";
 
 type CurrencyBlock = OverviewModel["byCurrency"][number];
-const panel = "rounded-xl border border-[var(--border)] bg-[var(--surface)]";
+const panel = "rounded-xl border border-(--border) bg-(--surface)";
 const button =
-  "inline-flex min-h-11 items-center rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-medium hover:bg-[var(--input-bg)] touch-manipulation";
+  "inline-flex min-h-11 items-center rounded-lg border border-(--border) px-4 py-2 text-sm font-medium hover:bg-(--input-bg) touch-manipulation";
 const tone = (value: string) =>
   value === "GREEN"
     ? styles.good
@@ -21,7 +21,7 @@ const tone = (value: string) =>
       ? styles.warning
       : value === "RED"
         ? styles.bad
-        : "text-[var(--muted)]";
+        : "text-(--muted)";
 const fill = (template: string, values: Record<string, string>) =>
   template.replace(/\{(\w+)\}/g, (_, key: string) => values[key] ?? "");
 function Metric({
@@ -39,7 +39,7 @@ function Metric({
     <article className={panel + " min-w-0"}>
       <Link
         href={href}
-        className="block rounded-xl p-5 md:p-6 hover:bg-[var(--input-bg)]"
+        className="block rounded-xl p-5 md:p-6 hover:bg-(--input-bg)"
       >
         <div className="mb-4 flex justify-between items-baseline gap-3">
           <h3 className="font-semibold">{title}</h3>
@@ -48,7 +48,7 @@ function Metric({
         {children}
       </Link>
       {footer ? (
-        <div className="border-t border-[var(--border)] px-5 py-3 text-xs md:px-6">
+        <div className="border-t border-(--border) px-5 py-3 text-xs md:px-6">
           {footer}
         </div>
       ) : null}
@@ -57,14 +57,14 @@ function Metric({
 }
 function Small({ children }: { children: ReactNode }) {
   return (
-    <p className="mt-2 text-xs leading-relaxed text-[var(--muted)]">
+    <p className="mt-2 text-xs leading-relaxed text-(--muted)">
       {children}
     </p>
   );
 }
 function Value({ children }: { children: ReactNode }) {
   return (
-    <p className="text-2xl md:text-3xl font-bold tracking-tight tabular-nums break-words">
+    <p className="text-2xl md:text-3xl font-bold tracking-tight tabular-nums wrap-break-word">
       {children}
     </p>
   );
@@ -99,7 +99,7 @@ function Trend({
   );
   return (
     <figure className="mt-5">
-      <figcaption className="text-xs text-[var(--muted)]">
+      <figcaption className="text-xs text-(--muted)">
         {copy.trend} · {rows[0]?.month.slice(0, 4)}
       </figcaption>
       <svg
@@ -242,16 +242,16 @@ export default function OverviewContent({
     <div className="space-y-5">
       <header className="flex flex-wrap justify-between items-start gap-4">
         <div>
-          <p className="text-xs text-[var(--muted)]">
+          <p className="text-xs text-(--muted)">
             {data.freshness.freshnessBasis === "SHEETS_IMPORT"
               ? copy.sheetsImported
               : copy.observed}: {stamp(data.freshness.sourceObservedAt)}
           </p>
           <h1 className="mt-2 text-2xl font-bold">{copy.title}</h1>
-          <p className="mt-1 text-sm text-[var(--muted)]">
+          <p className="mt-1 text-sm text-(--muted)">
             {copy.snapshot}: {date(data.context.asOf)} · {copy.allChannels}
           </p>
-          <p className="mt-1 text-xs text-[var(--muted)]">
+          <p className="mt-1 text-xs text-(--muted)">
             {freshness[data.freshness.status as keyof typeof freshness]}
             {data.freshness.historical && data.freshness.sourceStale
               ? ` · ${copy.stale}`
@@ -299,7 +299,7 @@ export default function OverviewContent({
         </section>
       ) : null}
       {view && view.byCurrency.length > 1 ? (
-        <p className="text-sm text-[var(--muted)]">{copy.currencies}</p>
+        <p className="text-sm text-(--muted)">{copy.currencies}</p>
       ) : null}
       {view?.byCurrency.map((block) => {
         const sale = data.sales?.summary.find(
@@ -367,7 +367,7 @@ export default function OverviewContent({
             <h2 className="text-sm font-semibold">{currency}</h2>
             <section
               aria-label={copy.summary}
-              className="rounded-xl bg-[var(--text)] p-5 md:p-6 text-[var(--bg)] space-y-3 text-sm leading-relaxed break-words"
+              className="rounded-xl bg-(--text) p-5 md:p-6 text-(--bg) space-y-3 text-sm leading-relaxed wrap-break-word"
             >
               {revenueSentence ? (
                 <p>
@@ -459,7 +459,7 @@ export default function OverviewContent({
                       {pct(sale.plan.attainmentPct)}
                     </Small>
                     <div
-                      className="mt-3 h-2 rounded bg-[var(--input-hover)] overflow-hidden"
+                      className="mt-3 h-2 rounded-sm bg-(--input-hover) overflow-hidden"
                       aria-hidden="true"
                     >
                       <div
@@ -609,7 +609,7 @@ export default function OverviewContent({
                   </Small>
                 ) : null}
                 <div
-                  className="mt-4 flex h-2 overflow-hidden rounded bg-[var(--input-hover)]"
+                  className="mt-4 flex h-2 overflow-hidden rounded-sm bg-(--input-hover)"
                   aria-hidden="true"
                 >
                   {block.statuses
@@ -635,7 +635,7 @@ export default function OverviewContent({
                       >
                         <span>
                           <span
-                            className="inline-block mr-2 h-2 w-2 rounded-sm"
+                            className="inline-block mr-2 h-2 w-2 rounded-xs"
                             style={{ background: statusColors[s.status] }}
                             aria-hidden="true"
                           />
@@ -686,7 +686,7 @@ export default function OverviewContent({
             <section aria-label={copy.actions}>
               <h2 className="mb-4 font-semibold">{copy.actions}</h2>
               {!assessmentComplete ? (
-                <p role="status" className="mb-4 text-sm text-[var(--muted)]">
+                <p role="status" className="mb-4 text-sm text-(--muted)">
                   {block.classificationCoverage.state === "PARTIAL"
                     ? copy.classificationPartial : copy.classificationUnavailable}
                 </p>
@@ -714,7 +714,7 @@ export default function OverviewContent({
                       {copy.reprice}
                     </Link>
                   ) : (
-                    <p className={"mt-4 text-sm " + (assessmentComplete ? styles.good : "text-[var(--muted)]")}>
+                    <p className={"mt-4 text-sm " + (assessmentComplete ? styles.good : "text-(--muted)")}>
                       {assessmentComplete ? copy.noDead : copy.assessmentUnavailable}
                     </p>
                   )}
@@ -741,7 +741,7 @@ export default function OverviewContent({
                       </Link>
                     </>
                   ) : (
-                    <p className={"mt-4 text-sm " + (assessmentComplete ? styles.good : "text-[var(--muted)]")}>
+                    <p className={"mt-4 text-sm " + (assessmentComplete ? styles.good : "text-(--muted)")}>
                       {assessmentComplete ? copy.noRisk : copy.assessmentUnavailable}
                     </p>
                   )}
@@ -764,7 +764,7 @@ export default function OverviewContent({
                       {copy.reorder}
                     </Link>
                   ) : (
-                    <p className={"mt-4 text-sm " + (assessmentComplete ? styles.good : "text-[var(--muted)]")}>
+                    <p className={"mt-4 text-sm " + (assessmentComplete ? styles.good : "text-(--muted)")}>
                       {assessmentComplete ? copy.noShortage : copy.assessmentUnavailable}
                     </p>
                   )}
@@ -775,7 +775,7 @@ export default function OverviewContent({
                     <>
                       <h4
                         translate="no"
-                        className="mt-4 font-semibold break-words"
+                        className="mt-4 font-semibold wrap-break-word"
                       >
                         {(monobrand
                           ? bottleneck.categoryId

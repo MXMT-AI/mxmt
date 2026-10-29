@@ -12,22 +12,22 @@ export const ChatReply=memo(function ChatReply({reply,lang}:{reply:Merchandising
  const copy=chatCopy[lang],citation=citationCopy[lang],locale=lang==="uk"?"uk-UA":"en-US";
  const date=(value:string)=>new Intl.DateTimeFormat(locale,{dateStyle:"medium",timeZone:"UTC"}).format(new Date(`${value}T00:00:00Z`));
  return <div className="min-w-0 space-y-4">
-   {reply.answer?<div className="space-y-2"><h3 className="font-semibold">{copy.answer}</h3><p className="whitespace-pre-wrap break-words leading-relaxed">{reply.answer.summary}</p>
-     {reply.answer.recommendations.length?<ul className="list-disc space-y-2 pl-5">{reply.answer.recommendations.map((item,i)=><li className="whitespace-pre-wrap break-words" key={i}>{item.text}</li>)}</ul>:null}
+   {reply.answer?<div className="space-y-2"><h3 className="font-semibold">{copy.answer}</h3><p className="whitespace-pre-wrap wrap-break-word leading-relaxed">{reply.answer.summary}</p>
+     {reply.answer.recommendations.length?<ul className="list-disc space-y-2 pl-5">{reply.answer.recommendations.map((item,i)=><li className="whitespace-pre-wrap wrap-break-word" key={i}>{item.text}</li>)}</ul>:null}
      <p className="text-xs leading-relaxed opacity-80">{copy.warning}</p></div>:<p role="status" className="text-sm leading-relaxed">{chatNotice(reply.code,copy)}</p>}
    <div className="space-y-2"><h3 className="font-semibold">{copy.facts}</h3>{!reply.cards.length?<p className="text-sm">{copy.unavailable}</p>:null}
      <p className="text-xs leading-relaxed">{copy.period}: <time dateTime={reply.context.period.from}>{date(reply.context.period.from)}</time> – <time dateTime={reply.context.period.to}>{date(reply.context.period.to)}</time>. {copy.stockDate}: <time dateTime={reply.context.stockAsOf}>{date(reply.context.stockAsOf)}</time>.</p>
-     <dl className="grid min-w-0 gap-3 sm:grid-cols-2">{reply.cards.map(card=><div key={card.id} className="min-w-0 border-l-2 border-[var(--border)] pl-3">
+     <dl className="grid min-w-0 gap-3 sm:grid-cols-2">{reply.cards.map(card=><div key={card.id} className="min-w-0 border-l-2 border-(--border) pl-3">
        <dt className="text-xs">{copy.labels[card.label]}{card.currency?` (${card.currency})`:""}{card.status==="partial"?` · ${card.label==="grossProfit"?copy.partial:copy.incomplete}`:""}</dt>
-       <dd className="mt-1 break-words text-base tabular-nums" translate="no">{card.value===null?copy.unavailable:<>{card.value} {card.unit==="units"?copy.units:card.currency??copy.unknownCurrency}</>}</dd>
-       <dd><a href={card.href} className="inline-flex min-h-11 items-center text-xs underline underline-offset-4 focus-visible:outline focus-visible:outline-2">{copy.source}<span className="sr-only">: {copy.labels[card.label]} {card.currency}</span></a></dd>
+       <dd className="mt-1 wrap-break-word text-base tabular-nums" translate="no">{card.value===null?copy.unavailable:<>{card.value} {card.unit==="units"?copy.units:card.currency??copy.unknownCurrency}</>}</dd>
+       <dd><a href={card.href} className="inline-flex min-h-11 items-center text-xs underline underline-offset-4 focus-visible:outline-solid focus-visible:outline-2">{copy.source}<span className="sr-only">: {copy.labels[card.label]} {card.currency}</span></a></dd>
      </div>)}</dl>
      <p className="text-xs leading-relaxed opacity-80">{copy.scope}</p>
    </div>
-   {reply.citations.length?<details><summary className="min-h-11 cursor-pointer py-2 text-sm font-semibold focus-visible:outline focus-visible:outline-2">{copy.sources} ({reply.citations.length})</summary>
-     <ol className="list-decimal space-y-2 pl-5">{reply.citations.map(c=><li className="min-w-0 break-words text-xs" key={c.ref}>
+   {reply.citations.length?<details><summary className="min-h-11 cursor-pointer py-2 text-sm font-semibold focus-visible:outline-solid focus-visible:outline-2">{copy.sources} ({reply.citations.length})</summary>
+     <ol className="list-decimal space-y-2 pl-5">{reply.citations.map(c=><li className="min-w-0 wrap-break-word text-xs" key={c.ref}>
        <span>{(citation.fields as Record<string,string>)[c.label??""]??citation.metric}{c.scope?` · ${citation[c.scope]}`:""}{c.scope==="priorYear"&&reply.context.period.lyFrom&&reply.context.period.lyTo?` (${date(reply.context.period.lyFrom)} – ${date(reply.context.period.lyTo)})`:""}: </span>
-       <span translate="no">{c.value??copy.unavailable}{c.currency?` ${c.currency}`:""}</span>{" "}<a href={c.href} className="inline-flex min-h-11 items-center underline underline-offset-4 focus-visible:outline focus-visible:outline-2">{copy.source}</a></li>)}</ol>
+       <span translate="no">{c.value??copy.unavailable}{c.currency?` ${c.currency}`:""}</span>{" "}<a href={c.href} className="inline-flex min-h-11 items-center underline underline-offset-4 focus-visible:outline-solid focus-visible:outline-2">{copy.source}</a></li>)}</ol>
    </details>:null}
  </div>;
 });
@@ -41,7 +41,7 @@ export default function MerchandisingChat(props:Props){
  return <div className="space-y-4 p-4 sm:p-5">
    <p className="max-w-3xl text-sm leading-relaxed">{copy.intro}</p>
    <label htmlFor={`${id}-topic`} className="flex max-w-sm flex-col gap-1 text-sm">{copy.topic}
-     <select id={`${id}-topic`} name="chat-topic" value={topic} onChange={e=>setTopic(e.target.value as ChatTopic)} className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-[var(--text)] focus-visible:outline focus-visible:outline-2">
+     <select id={`${id}-topic`} name="chat-topic" value={topic} onChange={e=>setTopic(e.target.value as ChatTopic)} className="min-h-11 rounded-lg border border-(--border) bg-(--surface) px-3 text-(--text) focus-visible:outline-solid focus-visible:outline-2">
        {CHAT_TOPICS.map(t=><option key={t} value={t}>{copy.topics[t]}</option>)}
      </select>
    </label>
@@ -78,21 +78,21 @@ function ChatThread({snapshotId,filters,lang,allowed,topic,scenarioExportId}:Pro
  }
  return <div className="space-y-4">
    {!allowed?<p className="text-sm">{copy.readOnly}</p>:null}
-   <div role="log" aria-label={copy.title} aria-relevant="additions" className="max-h-[36rem] space-y-5 overflow-y-auto overscroll-contain">
+   <div role="log" aria-label={copy.title} aria-relevant="additions" className="max-h-144 space-y-5 overflow-y-auto overscroll-contain">
      {!turns.length?<p className="py-2 text-sm opacity-80">{copy.empty}</p>:null}
-     {turns.map(turn=><article key={turn.key} className="min-w-0 space-y-4 border-t border-[var(--border)] pt-4 text-sm">
-       <div><h3 className="font-semibold">{copy.you}</h3><p className="mt-1 whitespace-pre-wrap break-words">{turn.question}</p></div>
+     {turns.map(turn=><article key={turn.key} className="min-w-0 space-y-4 border-t border-(--border) pt-4 text-sm">
+       <div><h3 className="font-semibold">{copy.you}</h3><p className="mt-1 whitespace-pre-wrap wrap-break-word">{turn.question}</p></div>
        {turn.reply?<ChatReply reply={turn.reply} lang={lang}/>:null}
      </article>)}
    </div>
    {busy?<p role="status" aria-live="polite" className="text-sm">{copy.sending}</p>:null}
-   {error||pendingRetry?<div>{error?<p ref={errorRef} tabIndex={-1} role="alert" className="text-sm focus-visible:outline focus-visible:outline-2">{error==="AI_CHAT_CONNECTION_ERROR"?copy.network:chatNotice(error,copy)}</p>:null}
+   {error||pendingRetry?<div>{error?<p ref={errorRef} tabIndex={-1} role="alert" className="text-sm focus-visible:outline-solid focus-visible:outline-2">{error==="AI_CHAT_CONNECTION_ERROR"?copy.network:chatNotice(error,copy)}</p>:null}
      <button type="button" className={button+" mt-2"} disabled={busy} onClick={()=>lastRequest.current&&void send(lastRequest.current)}>{copy.retry}</button></div>:null}
    {turns.length>=6?<p role="status" className="text-sm">{copy.limit}</p>:null}
    <form onSubmit={submit} className="space-y-2">
      <label htmlFor={`${id}-question`} className="block text-sm font-medium">{copy.question}</label>
      <textarea id={`${id}-question`} name="merchandising-question" autoComplete="off" required rows={3} maxLength={2000} value={question} onChange={e=>setQuestion(e.target.value)} disabled={!allowed||busy||turns.length>=6} placeholder={copy.placeholder}
-       className="w-full resize-y rounded-lg border border-[var(--border)] bg-[var(--input-bg)] p-3 text-sm text-[var(--text)] focus-visible:outline focus-visible:outline-2 disabled:opacity-60"/>
+       className="w-full resize-y rounded-lg border border-(--border) bg-(--input-bg) p-3 text-sm text-(--text) focus-visible:outline-solid focus-visible:outline-2 disabled:opacity-60"/>
      <div className="flex flex-wrap gap-2"><button type="submit" className={button} disabled={!allowed||busy||turns.length>=6}>{busy?copy.sending:copy.send}</button>
        <button type="button" className={button} disabled={busy} onClick={()=>{setTurns([]);setHistory([]);setQuestion("");setError("");lastRequest.current=null;}}>{copy.reset}</button></div>
    </form>

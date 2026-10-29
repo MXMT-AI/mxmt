@@ -47,10 +47,10 @@ export default function PrimaryBrandCreator({
     }
   }
   const input =
-    "min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2";
+    "min-h-11 rounded-lg border border-(--border) bg-(--surface) px-3 py-2 text-sm focus-visible:outline-solid focus-visible:outline-2";
   return (
     <details className="text-sm sm:col-span-2">
-      <summary className="min-h-11 py-3 cursor-pointer focus-visible:outline">
+      <summary className="min-h-11 py-3 cursor-pointer focus-visible:outline-solid">
         {uk ? "Бренду ще немає в каталозі?" : "Brand not in the catalog yet?"}
       </summary>
       <label className="block">
@@ -87,7 +87,7 @@ export default function PrimaryBrandCreator({
             : "Create brand"}
       </button>
       {error && <p role="alert">{error}</p>}
-      <p role="status" className="mt-2 text-[var(--muted)]">
+      <p role="status" className="mt-2 text-(--muted)">
         {saved
           ? uk
             ? "Бренд обрано. Збережіть профіль клієнта й окремо підтвердьте власність та умови."

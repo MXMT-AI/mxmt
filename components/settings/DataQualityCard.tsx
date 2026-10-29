@@ -235,20 +235,20 @@ export default function DataQualityCard({
         : "Unavailable"
       : `${Number(amount).toLocaleString(locale, { maximumFractionDigits: 2 })} ${currency ?? (uk ? "валюта невідома" : "currency unknown")}`;
   const control =
-    "min-w-0 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--text)]";
+    "min-w-0 rounded-lg border border-(--border) bg-(--surface) px-3 py-2 text-sm text-(--text) focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--text)";
   const button =
     control +
-    " touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--bg)]";
+    " touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed hover:bg-(--bg)";
   return (
     <section
-      className="mb-10 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5"
+      className="mb-10 rounded-xl border border-(--border) bg-(--surface) p-5"
       aria-labelledby="data-quality-title"
       aria-busy={busy || loading}
     >
-      <h2 id="data-quality-title" className="font-semibold text-[var(--text)]">
+      <h2 id="data-quality-title" className="font-semibold text-(--text)">
         {uk ? "Якість даних" : "Data quality"}
       </h2>
-      <p className="mt-1 text-sm text-[var(--muted)]">
+      <p className="mt-1 text-sm text-(--muted)">
         {uk
           ? "Проблеми поточного каталогу з прив’язкою до товарів. Послуги й сертифікати не входять у товарний сток або класифікацію."
           : "Current catalog exceptions linked to products. Services and gift cards are excluded from merchandise stock and classification."}
@@ -263,7 +263,7 @@ export default function DataQualityCard({
           {error}
         </p>
       )}
-      <p role="status" className="mt-3 text-sm text-[var(--muted)]">
+      <p role="status" className="mt-3 text-sm text-(--muted)">
         {message ||
           (loading || !data ? (uk ? "Завантаження…" : "Loading…") : "")}
       </p>
@@ -302,7 +302,7 @@ export default function DataQualityCard({
             .map((row) => (
               <p
                 key={row.currency ?? "unknown"}
-                className="mt-3 text-sm text-[var(--text)]"
+                className="mt-3 text-sm text-(--text)"
               >
                 {uk
                   ? "Без бренду · товарний залишок"
@@ -316,16 +316,16 @@ export default function DataQualityCard({
                 · {value(row.costValue, row.currency)}
               </p>
             ))}
-          <h3 className="mt-6 font-medium text-[var(--text)]">
+          <h3 className="mt-6 font-medium text-(--text)">
             {uk ? "Рухи за типом" : "Movement components"}
           </h3>
-          <p className="mt-1 text-sm text-[var(--muted)]">
+          <p className="mt-1 text-sm text-(--muted)">
             {uk
               ? "Усі збережені поточні рядки замовлень. Це перевірка нормалізації, а не фінансовий звіт за період. Суми без підтвердженої дати не включено."
               : "All retained current order lines. This checks normalization, not a period financial report. Amounts without a verified date are excluded."}
           </p>
           {data.normalizationReplayRequired > 0 && (
-            <p className="mt-2 text-sm text-[var(--text)]">
+            <p className="mt-2 text-sm text-(--text)">
               {uk
                 ? "Повторіть історичний імпорт для застосування нових правил до старих рядків:"
                 : "Replay history to apply the new rules to older lines:"}{" "}
@@ -335,7 +335,7 @@ export default function DataQualityCard({
           {data.components.map((c) => (
             <p
               key={`${c.component}:${c.currency}`}
-              className="mt-2 text-sm text-[var(--text)]"
+              className="mt-2 text-sm text-(--text)"
             >
               {c.component === "RETURNS_CORRECTIONS"
                 ? uk
@@ -349,15 +349,15 @@ export default function DataQualityCard({
             </p>
           ))}
           {Boolean(data.orderExceptions?.length) && (
-            <details className="mt-4 text-sm text-[var(--text)]">
-              <summary className="cursor-pointer focus-visible:outline">
+            <details className="mt-4 text-sm text-(--text)">
+              <summary className="cursor-pointer focus-visible:outline-solid">
                 {uk ? "Рядки замовлень для перевірки" : "Order lines to review"}
               </summary>
               <ul className="mt-2 list-disc space-y-1 pl-5">
                 {data.orderExceptions?.map((row, i) => (
                   <li
                     key={`${row.orderId}:${row.lineId}:${row.code}:${i}`}
-                    className="break-words"
+                    className="wrap-break-word"
                   >
                     {row.sourceSku ?? (uk ? "SKU невідомий" : "Unknown SKU")}:{" "}
                     {label(row.code)} · {uk ? "замовлення" : "order"}{" "}
@@ -370,7 +370,7 @@ export default function DataQualityCard({
           <h3
             ref={productListRef}
             tabIndex={-1}
-            className="mt-6 font-semibold scroll-mt-6 focus-visible:outline"
+            className="mt-6 font-semibold scroll-mt-6 focus-visible:outline-solid"
           >
             {code
               ? `${uk ? "Проблема" : "Issue"}: ${label(code)}`
@@ -385,7 +385,7 @@ export default function DataQualityCard({
               select(code, 1, q);
             }}
           >
-            <label className="min-w-0 flex-1 text-sm text-[var(--muted)]">
+            <label className="min-w-0 flex-1 text-sm text-(--muted)">
               {uk ? "Пошук SKU або назви" : "Search SKU or name"}
               <input
                 name="quality-search"
@@ -404,12 +404,12 @@ export default function DataQualityCard({
             {data.rows.map((row) => (
               <article
                 key={row.id}
-                className="border-t border-[var(--border)] pt-3 text-sm"
+                className="border-t border-(--border) pt-3 text-sm"
               >
-                <p className="break-words font-medium text-[var(--text)]">
+                <p className="wrap-break-word font-medium text-(--text)">
                   {row.name} · <span translate="no">{row.sku}</span>
                 </p>
-                <p className="mt-1 text-[var(--muted)]">
+                <p className="mt-1 text-(--muted)">
                   {row.brandKey === "UNBRANDED"
                     ? uk
                       ? "Без бренду"
@@ -417,13 +417,13 @@ export default function DataQualityCard({
                     : row.brandKey}
                 </p>
                 {row.issues.length > 0 && (
-                  <ul className="mt-2 list-disc space-y-1 pl-5 text-[var(--muted)]">
+                  <ul className="mt-2 list-disc space-y-1 pl-5 text-(--muted)">
                     {row.issues.map((code) => (
                       <li key={code}>
                         {label(code)}
                         <p>{qualityGuidance(code, lang)}</p>
                         <a
-                          className="inline-flex min-h-11 items-center underline focus-visible:outline"
+                          className="inline-flex min-h-11 items-center underline focus-visible:outline-solid"
                           href={qualityFixHref(code)}
                         >
                           {uk ? "Де виправити" : "Where to fix"}
@@ -433,7 +433,7 @@ export default function DataQualityCard({
                   </ul>
                 )}
                 {row.ageReference.basis === "FIRST_SALE_PROXY" && (
-                  <p className="mt-2 text-[var(--muted)]">
+                  <p className="mt-2 text-(--muted)">
                     {uk
                       ? "Перше підтверджене замовлення як орієнтир віку, не дата надходження:"
                       : "First verified sale as an age proxy, not a receipt date:"}{" "}
@@ -444,7 +444,7 @@ export default function DataQualityCard({
                   </p>
                 )}
                 {canManage ? (
-                  <label className="mt-2 flex flex-wrap items-center gap-2 text-[var(--muted)]">
+                  <label className="mt-2 flex flex-wrap items-center gap-2 text-(--muted)">
                     {uk ? "Тип товару" : "Product type"}
                     <select
                       aria-label={`${uk ? "Тип товару" : "Product type"} ${row.sku}`}
@@ -469,12 +469,12 @@ export default function DataQualityCard({
                     </select>
                   </label>
                 ) : (
-                  <p className="mt-2 text-[var(--muted)]">
+                  <p className="mt-2 text-(--muted)">
                     {kindLabel(row.productKind)}
                   </p>
                 )}
-                <details className="mt-2 text-[var(--muted)]">
-                  <summary className="cursor-pointer focus-visible:outline">
+                <details className="mt-2 text-(--muted)">
+                  <summary className="cursor-pointer focus-visible:outline-solid">
                     {uk ? "Походження даних" : "Data lineage"}
                   </summary>
                   <p className="mt-1 break-all">
@@ -493,7 +493,7 @@ export default function DataQualityCard({
             ))}
           </div>
           {!data.rows.length && (
-            <p className="mt-3 text-sm text-[var(--muted)]">
+            <p className="mt-3 text-sm text-(--muted)">
               {uk
                 ? "Товарів за цією проблемою або пошуком немає. Скиньте фільтри, щоб переглянути каталог."
                 : "No products match this issue or search. Clear filters to review the catalog."}
@@ -507,7 +507,7 @@ export default function DataQualityCard({
             >
               {uk ? "Назад" : "Previous"}
             </button>
-            <span className="text-sm text-[var(--muted)]">
+            <span className="text-sm text-(--muted)">
               {page.toLocaleString(locale)} /{" "}
               {Math.max(
                 1,
@@ -524,10 +524,10 @@ export default function DataQualityCard({
               {uk ? "Далі" : "Next"}
             </button>
           </div>
-          <h3 className="mt-6 font-medium text-[var(--text)]">
+          <h3 className="mt-6 font-medium text-(--text)">
             {uk ? "Аліаси брендів" : "Brand aliases"}
           </h3>
-          <p className="mt-1 text-sm text-[var(--muted)]">
+          <p className="mt-1 text-sm text-(--muted)">
             {uk
               ? "Регістр і зовнішні пробіли нормалізуються автоматично. Додайте інше написання й виберіть бренд; потім оновіть каталог."
               : "Case and outer whitespace normalize automatically. Map another spelling to a brand, then refresh the catalog."}
@@ -535,9 +535,9 @@ export default function DataQualityCard({
           {data.aliases.map((a) => (
             <div
               key={a.value}
-              className="mt-2 flex flex-wrap items-center gap-2 text-sm text-[var(--text)]"
+              className="mt-2 flex flex-wrap items-center gap-2 text-sm text-(--text)"
             >
-              <span translate="no" className="break-words">
+              <span translate="no" className="wrap-break-word">
                 {a.value} → {a.name}
               </span>
               {canManage && (
@@ -562,7 +562,7 @@ export default function DataQualityCard({
                 save({ action: "alias", alias, brandId });
               }}
             >
-              <label className="min-w-0 flex-1 text-sm text-[var(--muted)]">
+              <label className="min-w-0 flex-1 text-sm text-(--muted)">
                 {uk ? "Написання у джерелі" : "Source spelling"}
                 <input
                   name="brand-alias"
@@ -578,7 +578,7 @@ export default function DataQualityCard({
                   className={control + " mt-1 block w-full"}
                 />
               </label>
-              <label className="min-w-0 flex-1 text-sm text-[var(--muted)]">
+              <label className="min-w-0 flex-1 text-sm text-(--muted)">
                 {uk ? "Бренд" : "Brand"}
                 <select
                   disabled={busy || loading}

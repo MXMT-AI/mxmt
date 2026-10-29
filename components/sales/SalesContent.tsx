@@ -67,7 +67,7 @@ function Matrix({
     { key: "total", label: copy.total, type },
   ];
   if (!rows.length && !total)
-    return <p className="p-5 text-sm text-[var(--muted)]">{copy.noRows}</p>;
+    return <p className="p-5 text-sm text-(--muted)">{copy.noRows}</p>;
   const tableRows = [...rows, ...(total ? [total] : [])].map((r) => ({
     id: r.kind + ":" + (r.id ?? "null"),
     name: r.name,
@@ -185,7 +185,7 @@ function CategoryChart({
     baseline = max * scale;
   return (
     <figure className="p-5 space-y-4">
-      <figcaption className="text-xs text-[var(--muted)]">
+      <figcaption className="text-xs text-(--muted)">
         {units ? copy.units : copy.revenue} · {copy.chartScope}
       </figcaption>
       {groups.some((r) => r.cells.some((c) => c.partial)) ? (
@@ -258,7 +258,7 @@ function CategoryChart({
           <li key={r.kind + ":" + r.id} className="flex items-center gap-1.5">
             <span
               aria-hidden="true"
-              className="inline-block h-2 w-2 rounded-sm"
+              className="inline-block h-2 w-2 rounded-xs"
               style={{ background: categoryColors[i] }}
             />
             {r.kind === "OTHERS" ? (
@@ -344,7 +344,7 @@ export default function SalesContent({
     field: string,
   ) => (
     <div className="space-y-1.5">
-      <p className="text-xs text-[var(--muted)]">{label}</p>
+      <p className="text-xs text-(--muted)">{label}</p>
       <div className="flex flex-wrap gap-1" role="group" aria-label={label}>
         {values.map((v) => (
           <Link
@@ -362,7 +362,7 @@ export default function SalesContent({
             className={
               button +
               (value === v.key
-                ? " bg-[var(--accent)] text-[#002a24] font-semibold"
+                ? " bg-(--accent) text-[#002a24] font-semibold"
                 : "")
             }
           >
@@ -377,10 +377,10 @@ export default function SalesContent({
       <header className="flex flex-wrap justify-between gap-4 items-start">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">{copy.title}</h1>
-          <p className="mt-2 text-sm text-[var(--muted)]">
+          <p className="mt-2 text-sm text-(--muted)">
             {copy.scope}: {model.period.from} — {model.period.to}
           </p>
-          <p className="mt-1 text-xs text-[var(--muted)] break-all">
+          <p className="mt-1 text-xs text-(--muted) break-all">
             {copy.snapshot}:{" "}
             {new Intl.DateTimeFormat(locale, {
               dateStyle: "medium",
@@ -428,7 +428,7 @@ export default function SalesContent({
           "measure",
         )}
         <div className="space-y-1.5">
-          <p className="text-xs text-[var(--muted)]">{copy.metric}</p>
+          <p className="text-xs text-(--muted)">{copy.metric}</p>
           <div
             className="flex flex-wrap gap-1"
             role="group"
@@ -455,7 +455,7 @@ export default function SalesContent({
                   className={
                     button +
                     (model.metric === m
-                      ? " bg-[var(--accent)] text-[#002a24] font-semibold"
+                      ? " bg-(--accent) text-[#002a24] font-semibold"
                       : "")
                   }
                 >
@@ -479,7 +479,7 @@ export default function SalesContent({
       {data.dataState === "EMPTY" ? (
         <p
           role="status"
-          className="rounded-lg border border-[var(--border)] p-4 text-sm"
+          className="rounded-lg border border-(--border) p-4 text-sm"
         >
           {copy.empty}
         </p>
@@ -516,14 +516,14 @@ export default function SalesContent({
             aria-label={block.currency ?? copy.unassigned}
             className="space-y-5"
           >
-            <div className="flex flex-wrap justify-between gap-3 items-baseline border-b border-[var(--border)] pb-3">
+            <div className="flex flex-wrap justify-between gap-3 items-baseline border-b border-(--border) pb-3">
               <h2 className="text-lg font-bold">
                 {block.currency ?? copy.unassigned}
               </h2>
               {summary ? (
-                <p className="text-xs text-[var(--muted)]">
+                <p className="text-xs text-(--muted)">
                   {copy.orders}:{" "}
-                  <strong className="text-[var(--text)]">
+                  <strong className="text-(--text)">
                     {formatTableValue(
                       summary.current.orderCount,
                       "number",
@@ -531,7 +531,7 @@ export default function SalesContent({
                     )}
                   </strong>{" "}
                   · {copy.qty}:{" "}
-                  <strong className="text-[var(--text)]">
+                  <strong className="text-(--text)">
                     {formatTableValue(
                       model.history.current ? summary.current.units : null,
                       "quantity",
@@ -542,7 +542,7 @@ export default function SalesContent({
               ) : null}
             </div>
             <section className={panel}>
-              <div className="space-y-2 p-5 border-b border-[var(--border)]">
+              <div className="space-y-2 p-5 border-b border-(--border)">
                 <h3 className="font-semibold">S1 · {copy.monthly}</h3>
                 <Note>
                   {copy.tableScope}: {model.tablePeriod.from} —{" "}
@@ -571,7 +571,7 @@ export default function SalesContent({
                   copy={copy}
                 />
               ) : block.matrix.rows.some((r) => r.kind === "OTHERS") ? (
-                <div className="p-3 border-t border-[var(--border)]">
+                <div className="p-3 border-t border-(--border)">
                   <Link
                     className={button}
                     href={scopedHref({
@@ -586,7 +586,7 @@ export default function SalesContent({
               {group !== "sku" &&
               params.has("others") &&
               block.matrix.rows.some((r) => r.kind === "OTHERS") ? (
-                <div className="border-t border-[var(--border)]">
+                <div className="border-t border-(--border)">
                   <h4 className="p-4 text-sm font-semibold">{copy.others}</h4>
                   <Matrix
                     rows={block.matrix.otherRows}
@@ -658,7 +658,7 @@ export default function SalesContent({
                   }
                 />
                 {!block.channels.rows.length ? (
-                  <p className="p-5 text-sm text-[var(--muted)]">
+                  <p className="p-5 text-sm text-(--muted)">
                     {copy.noRows}
                   </p>
                 ) : null}
@@ -741,7 +741,7 @@ export default function SalesContent({
                             : String(row.name)}
                         </Link>
                         {(row.source as { oneOffLy: boolean }).oneOffLy ? (
-                          <span className="mt-1 block max-w-56 text-xs text-[var(--muted)]">
+                          <span className="mt-1 block max-w-56 text-xs text-(--muted)">
                             {copy.oneOff}
                           </span>
                         ) : null}

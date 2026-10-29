@@ -5,7 +5,7 @@ import type { PublicConnection } from "@/lib/connectors/contract";
 import { useConnectorConnection } from "./useConnectorConnection";
 import ConnectorDiagnostics from "./ConnectorDiagnostics";
 const button =
-  "min-h-11 rounded-lg border border-[var(--border)] px-4 py-2 text-sm text-[var(--text)] hover:bg-[var(--input-hover)] focus-visible:outline focus-visible:outline-2 disabled:opacity-50";
+  "min-h-11 rounded-lg border border-(--border) px-4 py-2 text-sm text-(--text) hover:bg-(--input-hover) focus-visible:outline-solid focus-visible:outline-2 disabled:opacity-50";
 /** Shopify evidence remains an explicit owner decision; saving never selects a reporting source. */
 export default function ShopifyConnectionCard({
   initial,
@@ -59,29 +59,29 @@ export default function ShopifyConnectionCard({
       className="mb-10 scroll-mt-6 space-y-4"
     >
       <div>
-        <h2 id="shopify-heading" className="font-semibold text-[var(--text)]">
+        <h2 id="shopify-heading" className="font-semibold text-(--text)">
           Shopify
         </h2>
-        <p className="mt-1 text-sm text-[var(--muted)]">
+        <p className="mt-1 text-sm text-(--muted)">
           {copy(
             "Лише читання через Shopify Admin API 2026-10. Вкладені сторінки зберігаються до завершення запису.",
             "Read-only Shopify Admin API 2026-10. Nested pages are retained until the record is complete.",
           )}
         </p>
       </div>
-      <div className="space-y-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
-        <p className="break-words text-sm text-[var(--muted)]">
+      <div className="space-y-4 rounded-xl border border-(--border) bg-(--surface) p-4 sm:p-5">
+        <p className="wrap-break-word text-sm text-(--muted)">
           {connection.configured
             ? copy("Налаштовано: ", "Configured: ") + connection.accountHost
             : copy("Не налаштовано", "Not configured")}
         </p>
-        <p className="text-sm text-[var(--muted)]">
+        <p className="text-sm text-(--muted)">
           {copy(
             "Використовуйте постійний домен myshopify.com і окремий токен із правами read_orders, read_products, read_inventory та read_locations. Вартість товарів потребує дозволу перегляду собівартості. Токен шифрується та не повертається у відповідях.",
             "Use the permanent myshopify.com domain and a separate token with read_orders, read_products, read_inventory and read_locations. Product costs require cost-view permission. The token is encrypted and never returned in responses.",
           )}
         </p>
-        <p className="text-xs text-[var(--muted)]">
+        <p className="text-xs text-(--muted)">
           {copy(
             "Типовий доступ до замовлень охоплює 60 днів. Для старішої історії потрібні read_all_orders та погоджений еталон; порожня відповідь не підтверджує повноту. Перевірка читання не доводить відсутність прав запису. Приходи й історична собівартість недоступні; автоматична синхронізація вимкнена.",
             "Default order access covers 60 days. Older history requires read_all_orders and approved evidence; an empty response does not prove coverage. Successful reads do not prove the absence of write permissions. Receipts and historical COGS are unavailable; automatic sync is disabled.",
@@ -201,14 +201,14 @@ export default function ShopifyConnectionCard({
                   className={control}
                 />
               </Field>
-              <label className="flex min-h-11 items-center gap-3 text-sm text-[var(--muted)]">
+              <label className="flex min-h-11 items-center gap-3 text-sm text-(--muted)">
                 <input type="checkbox" name="physicalStock" />
                 {copy(
                   "Підтверджую фізичний on_hand для вказаних локацій; available не замінює фізичні залишки.",
                   "I approve physical on_hand for the listed locations; available is not physical stock.",
                 )}
               </label>
-              <label className="flex min-h-11 items-center gap-3 text-sm text-[var(--muted)]">
+              <label className="flex min-h-11 items-center gap-3 text-sm text-(--muted)">
                 <input type="checkbox" name="financials" />
                 {copy(
                   "Погоджую shopMoney, товарні суми без податків і доставки, розподілені знижки та окремі успішні події оплати/повернення.",
@@ -216,7 +216,7 @@ export default function ShopifyConnectionCard({
                 )}
               </label>
               <details>
-                <summary className="min-h-11 cursor-pointer py-2 text-sm text-[var(--text)] focus-visible:outline">
+                <summary className="min-h-11 cursor-pointer py-2 text-sm text-(--text) focus-visible:outline-solid">
                   {copy(
                     "Підтверджена історія (необов’язково)",
                     "Verified history (optional)",
@@ -255,13 +255,13 @@ export default function ShopifyConnectionCard({
                   </Field>
                 </div>
               </details>
-              <p className="text-xs text-[var(--muted)]">
+              <p className="text-xs text-(--muted)">
                 {copy(
                   "Коди подій: 1 — повна оплата, 2 — повернення, 3 — непідтверджена/часткова оплата, 4 — скасування без оплати. Перевірте загальні правила статусів клієнта перед імпортом.",
                   "Event codes: 1 full payment, 2 refund, 3 unverified/partial payment, 4 unpaid cancellation. Review client-wide status rules before importing.",
                 )}
               </p>
-              <label className="flex min-h-11 items-center gap-3 text-sm text-[var(--muted)]">
+              <label className="flex min-h-11 items-center gap-3 text-sm text-(--muted)">
                 <input type="checkbox" name="mappingApproved" required />
                 {copy(
                   "Погоджую вибрані правила та вказані еталони. Непідтверджені дані залишаються невідомими.",
@@ -291,13 +291,13 @@ export default function ShopifyConnectionCard({
             ref={alert}
             tabIndex={-1}
             role="alert"
-            className="text-sm text-[var(--text)]"
+            className="text-sm text-(--text)"
           >
             {error}
           </p>
         ) : null}
         {status ? (
-          <p role="status" className="text-sm text-[var(--muted)]">
+          <p role="status" className="text-sm text-(--muted)">
             {status}
           </p>
         ) : null}

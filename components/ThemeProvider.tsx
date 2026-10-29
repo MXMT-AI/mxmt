@@ -46,8 +46,8 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
       aria-label={isLight ? "Switch to dark theme" : "Switch to light theme"}
       className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-all text-xs font-mono ${
         isLight
-          ? "bg-[#fbbf24]/10 border-[#fbbf24]/30 text-[#b45309] hover:bg-[#fbbf24]/20"
-          : "bg-[var(--input-bg)] border-[var(--border)] text-[var(--muted)] hover:bg-[var(--input-hover)] hover:text-[var(--text)]"
+          ? "bg-accent-yellow/10 border-accent-yellow/30 text-[#b45309] hover:bg-accent-yellow/20"
+          : "bg-(--input-bg) border-(--border) text-(--muted) hover:bg-(--input-hover) hover:text-(--text)"
       } ${className}`}
       title={isLight ? "Switch to dark" : "Switch to light"}
     >

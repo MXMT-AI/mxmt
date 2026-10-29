@@ -41,34 +41,34 @@ export default async function SettingsPage() {
       <section className="mb-10">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-[var(--text)] font-semibold">
+            <h2 className="text-(--text) font-semibold">
               {lang === "uk" ? "Бриф онбордингу" : "Onboarding brief"}
             </h2>
-            <p className="text-[var(--muted)] text-sm">
+            <p className="text-(--muted) text-sm">
               {lang === "uk" ? "Визначає логіку Агента Аналітика" : "Defines Analyst Agent logic"}
             </p>
           </div>
           {onboarding && (
-            <span className="text-[10px] font-mono bg-[#00e5c4]/10 text-[#00e5c4] border border-[#00e5c4]/20 px-2.5 py-1 rounded-lg">
+            <span className="text-[10px] font-mono bg-accent-cyan/10 text-accent-cyan border border-accent-cyan/20 px-2.5 py-1 rounded-lg">
               ✓ {lang === "uk" ? "Заповнено" : "Completed"}
             </span>
           )}
         </div>
 
         {onboarding && (
-          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5 mb-4">
+          <div className="bg-(--surface) border border-(--border) rounded-xl p-5 mb-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <div className="text-[9px] font-mono uppercase tracking-widest text-[var(--subtle)] mb-1">
+                <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-1">
                   {lang === "uk" ? "Бізнес-модель" : "Business model"}
                 </div>
-                <div className="text-[var(--text)] font-semibold">{onboarding.businessModel}</div>
+                <div className="text-(--text) font-semibold">{onboarding.businessModel}</div>
               </div>
               <div>
-                <div className="text-[9px] font-mono uppercase tracking-widest text-[var(--subtle)] mb-1">
+                <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-1">
                   {lang === "uk" ? "Заповнено" : "Completed"}
                 </div>
-                <div className="text-[var(--muted)] text-sm">
+                <div className="text-(--muted) text-sm">
                   {new Date(onboarding.completedAt).toLocaleDateString(lang === "uk" ? "uk-UA" : "en-GB")}
                 </div>
               </div>
@@ -102,10 +102,10 @@ export default async function SettingsPage() {
 
       <section className="mb-10">
         <div className="mb-4">
-          <h2 className="text-[var(--text)] font-semibold">
+          <h2 className="text-(--text) font-semibold">
             {lang === "uk" ? "Google Drive синхронізація" : "Google Drive sync"}
           </h2>
-          <p className="text-[var(--muted)] text-sm">
+          <p className="text-(--muted) text-sm">
             {lang === "uk" ? "Автоматичний імпорт даних з Excel файлу" : "Auto-import data from Excel file"}
           </p>
         </div>
@@ -115,10 +115,10 @@ export default async function SettingsPage() {
       {/* AI Provider */}
       <section className="mb-10">
         <div className="mb-4">
-          <h2 className="text-[var(--text)] font-semibold">
+          <h2 className="text-(--text) font-semibold">
             {lang === "uk" ? "AI Модель (глобально)" : "AI Model (global)"}
           </h2>
-          <p className="text-[var(--muted)] text-sm">
+          <p className="text-(--muted) text-sm">
             {lang === "uk" ? "Дефолтний провайдер якщо не вказано для агента" : "Default provider if not set per agent"}
           </p>
         </div>
@@ -129,13 +129,13 @@ export default async function SettingsPage() {
 
   return (
     <div className="p-4 sm:p-8 max-w-3xl">
-      <div className="text-[10px] font-mono uppercase tracking-widest text-[var(--subtle)] mb-2">
+      <div className="text-[10px] font-mono uppercase tracking-widest text-(--subtle) mb-2">
         {t.nav_settings}
       </div>
-      <h1 className="text-2xl font-bold text-[var(--text)] mb-1">
+      <h1 className="text-2xl font-bold text-(--text) mb-1">
         {lang === "uk" ? "Налаштування" : "Settings"}
       </h1>
-      <p className="text-[var(--muted)] text-sm mb-8">
+      <p className="text-(--muted) text-sm mb-8">
         {lang === "uk" ? "Онбординг, джерела даних, інтеграції" : "Onboarding, data sources, integrations"}
       </p>
 

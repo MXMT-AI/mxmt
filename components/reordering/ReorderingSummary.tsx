@@ -56,7 +56,7 @@ export default function ReorderingSummary({
           [copy.offSeasonCount, result?.counts.offSeasonSkuCount],
         ].map(([label, value]) => (
           <div key={String(label)}>
-            <dt className="text-xs text-[var(--muted)]">{label}</dt>
+            <dt className="text-xs text-(--muted)">{label}</dt>
             <dd className="mt-1 text-lg font-semibold tabular-nums">
               {format(value, "quantity", locale)}
             </dd>
@@ -66,7 +66,7 @@ export default function ReorderingSummary({
       {result?.currencies.map((currency) => (
         <div
           key={currency.currency ?? "unknown"}
-          className="border-t border-[var(--border)] pt-3"
+          className="border-t border-(--border) pt-3"
         >
           <strong translate="no">{currency.currency ?? copy.unknown}</strong>
           <p className="mt-1 text-sm">
@@ -84,7 +84,7 @@ export default function ReorderingSummary({
         </div>
       ))}
       <Note>{copy.globalBasis}</Note>
-      <p id="reordering-csv-note" className="text-xs text-[var(--muted)]">
+      <p id="reordering-csv-note" className="text-xs text-(--muted)">
         {copy.csvReady}
       </p>
     </section>
@@ -180,7 +180,7 @@ export function SupplierGroups({
       {pages > 1 ? (
         <nav
           aria-label={copy.suppliers + " — " + copy.page}
-          className="flex items-center gap-3 border-t border-[var(--border)] p-3 text-xs"
+          className="flex items-center gap-3 border-t border-(--border) p-3 text-xs"
         >
           <button
             type="button"

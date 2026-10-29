@@ -47,7 +47,7 @@ export default function ReportingSourceStatus({
   return (
     <section
       aria-label={uk ? "Стан джерела звітів" : "Reporting source status"}
-      className="mb-5 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 text-sm space-y-2"
+      className="mb-5 rounded-lg border border-(--border) bg-(--surface) p-4 text-sm space-y-2"
     >
       {error ? (
         <>
@@ -58,7 +58,7 @@ export default function ReportingSourceStatus({
           </p>
           <button
             type="button"
-            className="min-h-11 underline focus-visible:outline focus-visible:outline-2"
+            className="min-h-11 underline focus-visible:outline-solid focus-visible:outline-2"
             onClick={() => setReload((n) => n + 1)}
           >
             {uk ? "Повторити перевірку" : "Retry source check"}
@@ -79,11 +79,11 @@ export default function ReportingSourceStatus({
                 : "not selected"}
           </p>
           {!compact ? (
-            <p className="max-w-prose text-[var(--muted)]">{help.message}</p>
+            <p className="max-w-prose text-(--muted)">{help.message}</p>
           ) : null}
           {!compact ? (
             <Link
-              className="inline-flex min-h-11 items-center underline underline-offset-4 focus-visible:outline focus-visible:outline-2"
+              className="inline-flex min-h-11 items-center underline underline-offset-4 focus-visible:outline-solid focus-visible:outline-2"
               href={help.href}
             >
               {help.action}
@@ -92,7 +92,7 @@ export default function ReportingSourceStatus({
         </>
       )}
       {explainTabs ? (
-        <p className="max-w-prose text-[var(--muted)]">
+        <p className="max-w-prose text-(--muted)">
           {uk
             ? "Вкладки Google Sheets / SalesDrive перемикають перегляд даних. Джерело для п’яти MVP-екранів вибирається окремо в налаштуваннях."
             : "The Google Sheets / SalesDrive tabs switch data views. Select the source for the five MVP screens separately in Settings."}

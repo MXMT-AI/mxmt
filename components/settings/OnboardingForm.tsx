@@ -35,8 +35,8 @@ function Chip({ label, active, onClick }: { label: string; active: boolean; onCl
     <button type="button" onClick={onClick}
       className={`px-3 py-1.5 rounded-lg text-sm border transition-colors ${
         active
-          ? "bg-[#00e5c4]/10 border-[#00e5c4]/40 text-[#00e5c4]"
-          : "bg-white/[0.03] border-[var(--border)] text-[var(--muted)] hover:border-white/[0.15] hover:text-white"
+          ? "bg-accent-cyan/10 border-accent-cyan/40 text-accent-cyan"
+          : "bg-white/3 border-(--border) text-(--muted) hover:border-white/15 hover:text-white"
       }`}>
       {label}
     </button>
@@ -80,12 +80,12 @@ function Question({ num, label, hint, children }: {
   children: React.ReactNode;
 }) {
   return (
-    <div className="py-4 border-b border-white/[0.05] last:border-0">
+    <div className="py-4 border-b border-white/5 last:border-0">
       <div className="flex gap-3">
-        <span className="text-[10px] font-mono text-[var(--subtle)] pt-1 w-6 flex-shrink-0">{num}</span>
+        <span className="text-[10px] font-mono text-(--subtle) pt-1 w-6 shrink-0">{num}</span>
         <div className="flex-1">
           <p className="text-sm text-white font-medium">{label}</p>
-          {hint && <p className="text-[11px] text-[var(--subtle)] font-mono mt-0.5">{hint}</p>}
+          {hint && <p className="text-[11px] text-(--subtle) font-mono mt-0.5">{hint}</p>}
           {children}
         </div>
       </div>
@@ -169,21 +169,21 @@ export default function OnboardingForm({
         {steps.map((s, i) => (
           <div key={i} className="flex items-center gap-2">
             <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold transition-colors ${
-              step > i + 1 ? "bg-[#00e5c4] text-[#0d1117]"
-              : step === i + 1 ? "bg-[#00e5c4]/20 border border-[#00e5c4]/40 text-[#00e5c4]"
-              : "bg-white/[0.05] border border-[var(--border)] text-[var(--subtle)]"
+              step > i + 1 ? "bg-accent-cyan text-[#0d1117]"
+              : step === i + 1 ? "bg-accent-cyan/20 border border-accent-cyan/40 text-accent-cyan"
+              : "bg-white/5 border border-(--border) text-(--subtle)"
             }`}>
               {step > i + 1 ? <CheckCircle2 size={12} /> : i + 1}
             </div>
-            <span className={`text-xs font-medium ${step === i + 1 ? "text-white" : "text-[var(--subtle)]"}`}>{s}</span>
-            {i < steps.length - 1 && <ChevronRight size={14} className="text-[var(--subtle)]" />}
+            <span className={`text-xs font-medium ${step === i + 1 ? "text-white" : "text-(--subtle)"}`}>{s}</span>
+            {i < steps.length - 1 && <ChevronRight size={14} className="text-(--subtle)" />}
           </div>
         ))}
       </div>
 
       {/* Step 1: Business model */}
       {step === 1 && (
-        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-6">
+        <div className="bg-(--surface) border border-(--border) rounded-xl p-6">
           <Question num="01" label={uk ? "Яка модель асортименту у вашому бізнесі?" : "What is your assortment model?"} hint={uk ? "⚡ Це питання визначає всю логіку роботи агента" : "⚡ This defines the entire agent logic"}>
             <div className="flex flex-wrap gap-2 mt-2">
               {([
@@ -238,7 +238,7 @@ export default function OnboardingForm({
 
           <div className="mt-6 flex justify-end">
             <button onClick={() => setStep(2)} disabled={!canProceed1}
-              className="flex items-center gap-2 px-5 py-2.5 bg-[#00e5c4] hover:bg-[#00c9ab] disabled:opacity-40 text-[#0d1117] font-semibold rounded-lg text-sm transition-colors">
+              className="flex items-center gap-2 px-5 py-2.5 bg-accent-cyan hover:bg-[#00c9ab] disabled:opacity-40 text-[#0d1117] font-semibold rounded-lg text-sm transition-colors">
               {uk ? "Далі" : "Next"} <ChevronRight size={16} />
             </button>
           </div>
@@ -247,10 +247,10 @@ export default function OnboardingForm({
 
       {/* Step 2: Model-specific */}
       {step === 2 && (
-        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-6">
+        <div className="bg-(--surface) border border-(--border) rounded-xl p-6">
           {(model === "SEASONAL" || model === "HYBRID") && (
             <>
-              <div className="text-[9px] font-mono uppercase tracking-widest text-[#00e5c4] mb-4">
+              <div className="text-[9px] font-mono uppercase tracking-widest text-accent-cyan mb-4">
                 {uk ? "🌿 Сезонна модель" : "🌿 Seasonal model"}
               </div>
               <Question num="06" label={uk ? "Скільки сезонів на рік?" : "How many seasons per year?"}>
@@ -279,7 +279,7 @@ export default function OnboardingForm({
 
           {(model === "CARRYOVER" || model === "HYBRID") && (
             <>
-              {model === "HYBRID" && <hr className="border-[var(--border)] my-4" />}
+              {model === "HYBRID" && <hr className="border-(--border) my-4" />}
               <div className="text-[9px] font-mono uppercase tracking-widest text-[#93c5fd] mb-4">
                 {uk ? "♻️ Керіовер модель" : "♻️ Carryover model"}
               </div>
@@ -302,11 +302,11 @@ export default function OnboardingForm({
           )}
 
           <div className="mt-6 flex justify-between">
-            <button onClick={() => setStep(1)} className="flex items-center gap-2 px-4 py-2 text-[var(--muted)] hover:text-white text-sm transition-colors">
+            <button onClick={() => setStep(1)} className="flex items-center gap-2 px-4 py-2 text-(--muted) hover:text-white text-sm transition-colors">
               <ChevronLeft size={16} /> {uk ? "Назад" : "Back"}
             </button>
             <button onClick={() => setStep(3)} disabled={!canProceed2}
-              className="flex items-center gap-2 px-5 py-2.5 bg-[#00e5c4] hover:bg-[#00c9ab] disabled:opacity-40 text-[#0d1117] font-semibold rounded-lg text-sm transition-colors">
+              className="flex items-center gap-2 px-5 py-2.5 bg-accent-cyan hover:bg-[#00c9ab] disabled:opacity-40 text-[#0d1117] font-semibold rounded-lg text-sm transition-colors">
               {uk ? "Далі" : "Next"} <ChevronRight size={16} />
             </button>
           </div>
@@ -315,8 +315,8 @@ export default function OnboardingForm({
 
       {/* Step 3: Financial */}
       {step === 3 && (
-        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-6">
-          <div className="text-[9px] font-mono uppercase tracking-widest text-[#fbbf24] mb-4">
+        <div className="bg-(--surface) border border-(--border) rounded-xl p-6">
+          <div className="text-[9px] font-mono uppercase tracking-widest text-accent-yellow mb-4">
             {uk ? "💰 Фінансові параметри" : "💰 Financial parameters"}
           </div>
 
@@ -346,11 +346,11 @@ export default function OnboardingForm({
           {error && <p className="text-red-400 text-sm mt-3">{error}</p>}
 
           <div className="mt-6 flex justify-between">
-            <button onClick={() => setStep(2)} className="flex items-center gap-2 px-4 py-2 text-[var(--muted)] hover:text-white text-sm transition-colors">
+            <button onClick={() => setStep(2)} className="flex items-center gap-2 px-4 py-2 text-(--muted) hover:text-white text-sm transition-colors">
               <ChevronLeft size={16} /> {uk ? "Назад" : "Back"}
             </button>
             <button onClick={save} disabled={!canSave || saving}
-              className="flex items-center gap-2 px-5 py-2.5 bg-[#00e5c4] hover:bg-[#00c9ab] disabled:opacity-40 text-[#0d1117] font-semibold rounded-lg text-sm transition-colors">
+              className="flex items-center gap-2 px-5 py-2.5 bg-accent-cyan hover:bg-[#00c9ab] disabled:opacity-40 text-[#0d1117] font-semibold rounded-lg text-sm transition-colors">
               {saving ? (uk ? "Зберігаємо…" : "Saving…") : (uk ? "✓ Зберегти бриф" : "✓ Save brief")}
             </button>
           </div>

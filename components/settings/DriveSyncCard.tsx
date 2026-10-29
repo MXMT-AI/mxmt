@@ -64,10 +64,10 @@ export default function DriveSyncCard({
         : lastSync?.syncStatus ?? "pending";
 
   const statusIcon = () => {
-    if (visibleStatus === "pending") return <Clock size={14} className="text-[var(--subtle)]" />;
+    if (visibleStatus === "pending") return <Clock size={14} className="text-(--subtle)" />;
     if (visibleStatus === "success") return <CheckCircle2 size={14} className="text-[#86efac]" />;
     if (visibleStatus === "error") return <AlertCircle size={14} className="text-[#fca5a5]" />;
-    return <RefreshCw size={14} className="text-[#fbbf24] animate-spin" />;
+    return <RefreshCw size={14} className="text-accent-yellow animate-spin" />;
   };
 
   return (
@@ -76,17 +76,17 @@ export default function DriveSyncCard({
       {/* Mode indicator */}
       {driveMode === "service_account" && (
         <div className="flex items-start gap-3 bg-[#86efac]/8 border border-[#86efac]/20 rounded-xl p-4">
-          <ShieldCheck size={15} className="text-[#86efac] mt-0.5 flex-shrink-0" />
+          <ShieldCheck size={15} className="text-[#86efac] mt-0.5 shrink-0" />
           <div>
             <p className="text-sm font-medium text-[#86efac]">
               {uk ? "Service Account (рекомендовано)" : "Service Account (recommended)"}
             </p>
-            <p className="text-xs text-[var(--muted)] mt-0.5">
+            <p className="text-xs text-(--muted) mt-0.5">
               {uk
                 ? "Приватний доступ через ключ сервісного акаунту. Файл може залишатись закритим. Доступ лише на читання — файл у Drive не змінюється."
                 : "Private access via service account key. File can stay private. Read-only — the Drive file is never modified."}
             </p>
-            <p className="text-[11px] font-mono text-[var(--subtle)] mt-1">
+            <p className="text-[11px] font-mono text-(--subtle) mt-1">
               GOOGLE_DRIVE_FILE_ID + GOOGLE_SERVICE_ACCOUNT_KEY
             </p>
           </div>
@@ -94,18 +94,18 @@ export default function DriveSyncCard({
       )}
 
       {driveMode === "public_link" && (
-        <div className="flex items-start gap-3 bg-[#fbbf24]/8 border border-[#fbbf24]/30 rounded-xl p-4">
-          <AlertTriangle size={15} className="text-[#fbbf24] mt-0.5 flex-shrink-0" />
+        <div className="flex items-start gap-3 bg-accent-yellow/8 border border-accent-yellow/30 rounded-xl p-4">
+          <AlertTriangle size={15} className="text-accent-yellow mt-0.5 shrink-0" />
           <div>
-            <p className="text-sm font-medium text-[#fbbf24]">
+            <p className="text-sm font-medium text-accent-yellow">
               {uk ? "Публічне посилання (не рекомендується)" : "Public link (not recommended)"}
             </p>
-            <p className="text-xs text-[var(--muted)] mt-0.5">
+            <p className="text-xs text-(--muted) mt-0.5">
               {uk
                 ? "Файл має бути відкритий для всіх за посиланням. Дані доступні будь-кому з посиланням. Доступ лише на читання — файл у Drive не змінюється."
                 : "The file must be shared with anyone who has the link. Data is accessible to anyone with the link. Read-only — the Drive file is never modified."}
             </p>
-            <p className="text-[11px] font-mono text-[var(--subtle)] mt-1">
+            <p className="text-[11px] font-mono text-(--subtle) mt-1">
               {uk ? "Тільки GOOGLE_DRIVE_FILE_ID (без SERVICE_ACCOUNT_KEY)" : "Only GOOGLE_DRIVE_FILE_ID (no SERVICE_ACCOUNT_KEY)"}
             </p>
           </div>
@@ -113,22 +113,22 @@ export default function DriveSyncCard({
       )}
 
       {driveMode === "none" && (
-        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4">
-          <p className="text-sm font-medium text-[var(--muted)] mb-3">
+        <div className="bg-(--surface) border border-(--border) rounded-xl p-4">
+          <p className="text-sm font-medium text-(--muted) mb-3">
             {uk ? "Не налаштовано" : "Not configured"}
           </p>
-          <div className="text-xs bg-[#fbbf24]/5 border border-[#fbbf24]/20 rounded-lg p-3 space-y-2">
-            <p className="font-semibold text-[#fbbf24]">
+          <div className="text-xs bg-accent-yellow/5 border border-accent-yellow/20 rounded-lg p-3 space-y-2">
+            <p className="font-semibold text-accent-yellow">
               {uk ? "Варіант 1 — Service Account (рекомендовано)" : "Option 1 — Service Account (recommended)"}
             </p>
-            <p className="font-mono text-[var(--muted)]">GOOGLE_DRIVE_FILE_ID=&lt;id&gt;</p>
-            <p className="font-mono text-[var(--muted)]">GOOGLE_SERVICE_ACCOUNT_KEY=&lt;base64&gt;</p>
-            <div className="border-t border-[var(--border-faint)] pt-2 mt-2">
-              <p className="font-semibold text-[#fbbf24]">
+            <p className="font-mono text-(--muted)">GOOGLE_DRIVE_FILE_ID=&lt;id&gt;</p>
+            <p className="font-mono text-(--muted)">GOOGLE_SERVICE_ACCOUNT_KEY=&lt;base64&gt;</p>
+            <div className="border-t border-(--border-faint) pt-2 mt-2">
+              <p className="font-semibold text-accent-yellow">
                 {uk ? "Варіант 2 — Публічне посилання (не рекомендується)" : "Option 2 — Public link (not recommended)"}
               </p>
-              <p className="font-mono text-[var(--muted)] mt-1">GOOGLE_DRIVE_FILE_ID=&lt;id&gt;</p>
-              <p className="text-[var(--subtle)] mt-1">
+              <p className="font-mono text-(--muted) mt-1">GOOGLE_DRIVE_FILE_ID=&lt;id&gt;</p>
+              <p className="text-(--subtle) mt-1">
                 {uk
                   ? "Файл: Поділитися → «Всі, хто має посилання — Переглядач»"
                   : "File: Share → \"Anyone with the link — Viewer\""}
@@ -140,12 +140,12 @@ export default function DriveSyncCard({
 
       {/* Sync status + button */}
       {driveMode !== "none" && (
-        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5">
+        <div className="bg-(--surface) border border-(--border) rounded-xl p-5">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
                 {statusIcon()}
-                <span className="text-sm text-[var(--text)] font-medium">
+                <span className="text-sm text-(--text) font-medium">
                   {visibleStatus === "pending"
                     ? (uk ? "Не синхронізовано" : "Not synced")
                     : visibleStatus === "success"
@@ -156,7 +156,7 @@ export default function DriveSyncCard({
                 </span>
               </div>
               {lastSync?.lastSyncAt && (
-                <p className="text-xs text-[var(--muted)]">
+                <p className="text-xs text-(--muted)">
                   {uk ? "Останній синк:" : "Last sync:"}{" "}
                   {new Date(lastSync.lastSyncAt).toLocaleString(uk ? "uk-UA" : "en-GB")}
                 </p>
@@ -169,7 +169,7 @@ export default function DriveSyncCard({
                   <p className="text-[#86efac] font-medium mb-1">
                     ✓ {uk ? "Синхронізовано успішно" : "Sync complete"}
                   </p>
-                  <p className="text-[var(--muted)] font-mono">
+                  <p className="text-(--muted) font-mono">
                     SKU: {importResult.skus} · {uk ? "Залишки" : "Stock"}: {importResult.inventory} · {uk ? "Продажі" : "Sales"}: {importResult.sales}
                   </p>
                   {importResult.sheets.length > 0 && (
@@ -183,13 +183,13 @@ export default function DriveSyncCard({
                       ))}
                     </div>
                   )}
-                  <p className="text-[var(--subtle)] mt-1">{uk ? "Оновіть сторінку щоб побачити дані." : "Refresh the page to see data."}</p>
+                  <p className="text-(--subtle) mt-1">{uk ? "Оновіть сторінку щоб побачити дані." : "Refresh the page to see data."}</p>
                 </div>
               )}
               {result === "warn" && (
                 <div className="mt-2 text-xs">
-                  <p className="text-[#fbbf24] font-medium mb-1">⚠ {uk ? "Імпортовано 0 записів" : "0 records imported"}</p>
-                  <p className="text-[var(--muted)] whitespace-pre-wrap">{errMsg}</p>
+                  <p className="text-accent-yellow font-medium mb-1">⚠ {uk ? "Імпортовано 0 записів" : "0 records imported"}</p>
+                  <p className="text-(--muted) whitespace-pre-wrap">{errMsg}</p>
                 </div>
               )}
               {result === "error" && (
@@ -200,7 +200,7 @@ export default function DriveSyncCard({
             <button
               onClick={triggerSync}
               disabled={syncing}
-              className="flex items-center gap-2 px-4 py-2 bg-[var(--input-bg)] border border-[var(--border)] text-[var(--text)] text-sm rounded-lg hover:bg-[var(--input-hover)] transition-colors disabled:opacity-50 flex-shrink-0"
+              className="flex items-center gap-2 px-4 py-2 bg-(--input-bg) border border-(--border) text-(--text) text-sm rounded-lg hover:bg-(--input-hover) transition-colors disabled:opacity-50 shrink-0"
             >
               <RefreshCw size={13} className={syncing ? "animate-spin" : ""} />
               {syncing ? (uk ? "Синкаємо…" : "Syncing…") : (uk ? "Синхронізувати" : "Sync now")}

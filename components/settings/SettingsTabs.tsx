@@ -62,7 +62,7 @@ export default function SettingsTabs({
   return (
     <div>
       {/* Tab bar */}
-      <div className="flex flex-wrap items-center gap-1 border-b border-[var(--border)] mb-8">
+      <div className="flex flex-wrap items-center gap-1 border-b border-(--border) mb-8">
         {TABS.map((t) => (
           <button
             key={t.id}
@@ -70,13 +70,13 @@ export default function SettingsTabs({
             onClick={() => changeTab(t.id)}
             className={`px-4 py-2.5 text-sm font-medium transition-colors relative ${
               tab === t.id
-                ? "text-[var(--text)]"
-                : "text-[var(--muted)] hover:text-[var(--text)]"
+                ? "text-(--text)"
+                : "text-(--muted) hover:text-(--text)"
             }`}
           >
             {t.label}
             {tab === t.id && (
-              <span className="absolute bottom-0 left-0 right-0 h-px bg-[#00e5c4]" />
+              <span className="absolute bottom-0 left-0 right-0 h-px bg-accent-cyan" />
             )}
           </button>
         ))}
@@ -96,10 +96,10 @@ export default function SettingsTabs({
       {tab === "agents" && (
         <div>
           <div className="mb-6">
-            <h2 className="text-[var(--text)] font-semibold mb-1">
+            <h2 className="text-(--text) font-semibold mb-1">
               {uk ? "Провайдер для кожного агента" : "Provider per agent"}
             </h2>
-            <p className="text-[var(--muted)] text-sm">
+            <p className="text-(--muted) text-sm">
               {uk
                 ? "Виберіть AI провайдера для кожного агента окремо"
                 : "Choose AI provider for each agent individually"}

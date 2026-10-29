@@ -104,7 +104,7 @@ export default function RepricingTable({
                   <input
                     type="checkbox"
                     name={`include-${row.skuId}`}
-                    className="size-5 accent-[var(--text)]"
+                    className="size-5 accent-(--text)"
                     checked={selection.get(row.skuId) ?? row.selectionRequested}
                     disabled={!row.eligible || !canEdit || !settled}
                     onChange={(e) => onSelection(row.skuId, e.target.checked)}
@@ -113,7 +113,7 @@ export default function RepricingTable({
               );
             case "name":
               return (
-                <div className="min-w-52 max-w-72 whitespace-normal break-words">
+                <div className="min-w-52 max-w-72 whitespace-normal wrap-break-word">
                   <strong className="font-semibold">{row.name}</strong>{" "}
                   <span
                     className={
@@ -126,7 +126,7 @@ export default function RepricingTable({
                       ? copy.statuses.RISK
                       : copy.statuses.DEAD}
                   </span>
-                  <div className="mt-1 text-[var(--muted)]">
+                  <div className="mt-1 text-(--muted)">
                     {!monobrand && (
                       <>
                         <span translate="no">
@@ -232,7 +232,7 @@ export default function RepricingTable({
                         ? styles.warning
                         : row.marginTone === "GREEN"
                           ? styles.good
-                          : "text-[var(--muted)]"
+                          : "text-(--muted)"
                   }
                 >
                   {format(row.margin, "percentage", locale)}
@@ -247,7 +247,7 @@ export default function RepricingTable({
       {data.pagination.totalPages > 1 || data.pagination.page > 1 ? (
         <nav
           aria-label={copy.page}
-          className="flex items-center gap-3 border-t border-[var(--border)] p-3 text-xs"
+          className="flex items-center gap-3 border-t border-(--border) p-3 text-xs"
         >
           <button
             className={button}

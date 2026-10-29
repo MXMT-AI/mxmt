@@ -71,27 +71,27 @@ export default function PromoTableModal({
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+      className="fixed inset-0 z-60 flex items-center justify-center p-4"
       style={{ background: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)" }}
       onClick={(e) => e.target === overlayRef.current && onClose()}
     >
       <div
-        className="relative w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl border border-[var(--border)] bg-[var(--surface)]"
+        className="relative w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl border border-(--border) bg-(--surface)"
         style={{ boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}
       >
         {/* Header */}
-        <div className="sticky top-0 bg-[var(--surface)] border-b border-[var(--border)] px-6 py-4 flex items-center justify-between z-10 gap-3">
+        <div className="sticky top-0 bg-(--surface) border-b border-(--border) px-6 py-4 flex items-center justify-between z-10 gap-3">
           <div className="min-w-0">
-            <div className="text-[9px] font-mono uppercase tracking-widest text-[var(--subtle)] mb-0.5">
+            <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-0.5">
               Розрахунок акції · без AI, чиста математика
             </div>
-            <h2 className="text-base font-bold text-[var(--text)] truncate">
-              {params.brandName} · <span className="text-[#a78bfa]">{params.strategyType}</span> {params.label}
+            <h2 className="text-base font-bold text-(--text) truncate">
+              {params.brandName} · <span className="text-accent-purple">{params.strategyType}</span> {params.label}
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-lg border border-[var(--border)] flex items-center justify-center text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)] transition-colors flex-shrink-0"
+            className="w-8 h-8 rounded-lg border border-(--border) flex items-center justify-center text-(--muted) hover:text-(--text) hover:bg-(--input-bg) transition-colors shrink-0"
           >
             <X size={14} />
           </button>
@@ -112,14 +112,14 @@ export default function PromoTableModal({
 
           {/* Loading / error */}
           {!sim && !error && (
-            <div className="flex items-center justify-center gap-2 py-12 text-[var(--muted)] text-sm">
+            <div className="flex items-center justify-center gap-2 py-12 text-(--muted) text-sm">
               <RefreshCw size={14} className="animate-spin" /> Розрахунок…
             </div>
           )}
           {error && (
             <div className="flex items-start gap-2 bg-[#ef4444]/5 border border-[#ef4444]/20 rounded-xl px-4 py-3">
-              <AlertTriangle size={13} className="text-[#ef4444] flex-shrink-0 mt-0.5" />
-              <p className="text-[12px] text-[var(--muted)]">{error}</p>
+              <AlertTriangle size={13} className="text-[#ef4444] shrink-0 mt-0.5" />
+              <p className="text-[12px] text-(--muted)">{error}</p>
             </div>
           )}
 
@@ -139,15 +139,15 @@ export default function PromoTableModal({
                   },
                   { label: "Звільнений капітал", value: `${fmtUah(sim.totals.capitalReleased)} грн`, color: "#00e5c4" },
                 ].map(({ label, value, color }) => (
-                  <div key={label} className="bg-[var(--surface2)] border border-[var(--border)] rounded-xl px-3 py-2.5">
-                    <div className="text-[9px] font-mono uppercase text-[var(--subtle)]">{label}</div>
+                  <div key={label} className="bg-(--surface2) border border-(--border) rounded-xl px-3 py-2.5">
+                    <div className="text-[9px] font-mono uppercase text-(--subtle)">{label}</div>
                     <div className="text-[13px] font-mono font-semibold mt-0.5" style={{ color: color ?? "var(--text)" }}>{value}</div>
                   </div>
                 ))}
               </div>
 
               {/* Model note */}
-              <p className="text-[10px] font-mono text-[var(--subtle)]">
+              <p className="text-[10px] font-mono text-(--subtle)">
                 Параметри сценарію — від AI-агента; розрахунок таблиці — детермінований (PostgreSQL + формули).
                 Прогноз: {sim.forecastModel === "ai_percent"
                   ? `${sim.unitsToSellPercent}% залишку кожного SKU (оцінка AI)`
@@ -158,48 +158,48 @@ export default function PromoTableModal({
 
               {/* Table */}
               {sim.rows.length === 0 ? (
-                <p className="text-sm text-[var(--muted)] py-6 text-center">
+                <p className="text-sm text-(--muted) py-6 text-center">
                   Немає SKU з позитивним залишком для цього бренда.
                 </p>
               ) : (
-                <div className="overflow-x-auto border border-[var(--border)] rounded-xl">
+                <div className="overflow-x-auto border border-(--border) rounded-xl">
                   <table className="w-full text-[11px] font-mono whitespace-nowrap">
                     <thead>
-                      <tr className="bg-[var(--surface2)] text-[var(--subtle)] text-[9px] uppercase tracking-wide">
+                      <tr className="bg-(--surface2) text-(--subtle) text-[9px] uppercase tracking-wide">
                         {["SKU", "Назва", "Залишок", "Ціна", "Зі знижкою", "Маржа до", "Маржа після", "Прогноз, шт", "Виручка", "Маржа, грн", "Капітал", "DOH після"].map((h) => (
                           <th key={h} className="px-3 py-2 text-left font-normal">{h}</th>
                         ))}
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[var(--border)]">
+                    <tbody className="divide-y divide-(--border)">
                       {sim.rows.map((r) => (
-                        <tr key={r.sku} className="text-[var(--muted)] hover:bg-white/[0.02]">
-                          <td className="px-3 py-1.5 text-[var(--text)]">{r.sku}</td>
+                        <tr key={r.sku} className="text-(--muted) hover:bg-white/2">
+                          <td className="px-3 py-1.5 text-(--text)">{r.sku}</td>
                           <td className="px-3 py-1.5 max-w-[180px] truncate" title={r.name}>{r.name}</td>
                           <td className="px-3 py-1.5">{r.stock}</td>
                           <td className="px-3 py-1.5">{fmtUah(r.priceRetail)}</td>
-                          <td className="px-3 py-1.5 text-[#a78bfa]">{fmtUah(r.newPrice)}</td>
+                          <td className="px-3 py-1.5 text-accent-purple">{fmtUah(r.newPrice)}</td>
                           <td className="px-3 py-1.5">{r.marginBeforePct != null ? `${r.marginBeforePct}%` : "—"}</td>
                           <td className="px-3 py-1.5" style={{ color: (r.marginAfterPct ?? 0) < 0 ? "#ef4444" : (r.marginAfterPct ?? 0) < 15 ? "#fbbf24" : "var(--muted)" }}>
                             {r.marginAfterPct != null ? `${r.marginAfterPct}%` : "—"}
                           </td>
-                          <td className="px-3 py-1.5 text-[var(--text)]">{r.promoUnits}</td>
+                          <td className="px-3 py-1.5 text-(--text)">{r.promoUnits}</td>
                           <td className="px-3 py-1.5">{fmtUah(r.promoRevenue)}</td>
                           <td className="px-3 py-1.5" style={{ color: r.promoMarginUah < 0 ? "#ef4444" : "var(--muted)" }}>{fmtUah(r.promoMarginUah)}</td>
-                          <td className="px-3 py-1.5 text-[#00e5c4]">{fmtUah(r.capitalReleased)}</td>
+                          <td className="px-3 py-1.5 text-accent-cyan">{fmtUah(r.capitalReleased)}</td>
                           <td className="px-3 py-1.5">{r.wohAfterDays != null ? `${r.wohAfterDays}д` : "∞"}</td>
                         </tr>
                       ))}
                     </tbody>
                     <tfoot>
-                      <tr className="bg-[var(--surface2)] text-[var(--text)] font-semibold">
+                      <tr className="bg-(--surface2) text-(--text) font-semibold">
                         <td className="px-3 py-2" colSpan={2}>РАЗОМ</td>
                         <td className="px-3 py-2">{fmtUah(sim.totals.stock)}</td>
                         <td className="px-3 py-2" colSpan={4}></td>
                         <td className="px-3 py-2">{fmtUah(sim.totals.promoUnits)}</td>
                         <td className="px-3 py-2">{fmtUah(sim.totals.promoRevenue)}</td>
                         <td className="px-3 py-2">{fmtUah(sim.totals.promoMarginUah)}</td>
-                        <td className="px-3 py-2 text-[#00e5c4]">{fmtUah(sim.totals.capitalReleased)}</td>
+                        <td className="px-3 py-2 text-accent-cyan">{fmtUah(sim.totals.capitalReleased)}</td>
                         <td className="px-3 py-2"></td>
                       </tr>
                     </tfoot>

@@ -127,9 +127,9 @@ export default async function DashboardPage() {
   return (
     <div className="p-8 max-w-5xl">
       <div className="mb-8">
-        <div className="text-[10px] font-mono uppercase tracking-widest text-[var(--subtle)] mb-2">{t.dash_overview}</div>
+        <div className="text-[10px] font-mono uppercase tracking-widest text-(--subtle) mb-2">{t.dash_overview}</div>
         <h1 className="text-2xl font-bold text-white mb-1">{t.dash_title}</h1>
-        <p className="text-[var(--muted)] text-sm">
+        <p className="text-(--muted) text-sm">
           {new Date().toLocaleDateString(uk ? "uk-UA" : "en-GB", {
             weekday: "long", day: "numeric", month: "long", year: "numeric",
           })}
@@ -139,25 +139,25 @@ export default async function DashboardPage() {
       {/* KPI cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {kpis.map(({ label, value, color, sub }) => (
-          <div key={label} className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5">
-            <div className="text-[9px] font-mono uppercase tracking-widest text-[var(--subtle)] mb-3">{label}</div>
+          <div key={label} className="bg-(--surface) border border-(--border) rounded-xl p-5">
+            <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-3">{label}</div>
             <div className="text-2xl font-bold mb-1 font-mono" style={{ color }}>{value}</div>
-            <div className="text-[11px] text-[var(--muted)]">{sub}</div>
+            <div className="text-[11px] text-(--muted)">{sub}</div>
           </div>
         ))}
       </div>
 
       {/* Sales trend chart */}
       {sparkData.length >= 3 && (
-        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5 mb-6">
+        <div className="bg-(--surface) border border-(--border) rounded-xl p-5 mb-6">
           <div className="flex items-start justify-between mb-3">
             <div>
-              <div className="text-[9px] font-mono uppercase tracking-widest text-[var(--subtle)] mb-1">
+              <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-1">
                 {uk ? "Продажі — 30 днів" : "Sales — 30 days"}
               </div>
               <div className="flex items-baseline gap-3">
                 <span className="text-xl font-bold font-mono text-white">{total30}</span>
-                <span className="text-[11px] text-[var(--muted)]">{uk ? "одиниць" : "units"}</span>
+                <span className="text-[11px] text-(--muted)">{uk ? "одиниць" : "units"}</span>
                 {wowPct !== null && (
                   <span className={`text-xs font-mono font-semibold ${wowPct >= 0 ? "text-[#86efac]" : "text-[#fca5a5]"}`}>
                     {wowPct >= 0 ? "+" : ""}{wowPct}% {uk ? "vs минулий тиждень" : "vs last week"}
@@ -165,7 +165,7 @@ export default async function DashboardPage() {
                 )}
               </div>
             </div>
-            <Link href="/analyst" className="text-[11px] text-[var(--muted)] hover:text-[var(--text)] transition-colors font-mono">
+            <Link href="/analyst" className="text-[11px] text-(--muted) hover:text-(--text) transition-colors font-mono">
               {uk ? "Детально →" : "Details →"}
             </Link>
           </div>
@@ -176,37 +176,37 @@ export default async function DashboardPage() {
       <div className="space-y-4">
         {/* Critical stockouts */}
         {stockouts.length > 0 && (
-          <div className="bg-[var(--surface)] border border-[#ff6b35]/20 rounded-xl p-6">
+          <div className="bg-(--surface) border border-accent-orange/20 rounded-xl p-6">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <div className="text-[9px] font-mono uppercase tracking-widest text-[#ff6b35] mb-1">{t.dash_critical_label}</div>
+                <div className="text-[9px] font-mono uppercase tracking-widest text-accent-orange mb-1">{t.dash_critical_label}</div>
                 <p className="text-white font-semibold">{t.dash_top_stockouts}</p>
               </div>
               {totalStockouts > 4 && (
-                <Link href="/analyst" className="text-xs text-[#ff6b35] hover:text-[#ff8855] transition-colors font-mono">
+                <Link href="/analyst" className="text-xs text-accent-orange hover:text-[#ff8855] transition-colors font-mono">
                   {t.dash_all_stockouts}
                 </Link>
               )}
             </div>
             <div className="space-y-2">
               {stockouts.map((s) => (
-                <div key={s.id} className="flex items-center justify-between bg-[var(--row)] rounded-lg px-4 py-2.5">
+                <div key={s.id} className="flex items-center justify-between bg-(--row) rounded-lg px-4 py-2.5">
                   <div className="min-w-0 flex-1">
                     <span className="text-white text-sm font-medium truncate block">{s.name}</span>
-                    <span className="text-[var(--subtle)] text-[11px] font-mono">{s.sku}{s.brand ? ` · ${s.brand}` : ""}</span>
+                    <span className="text-(--subtle) text-[11px] font-mono">{s.sku}{s.brand ? ` · ${s.brand}` : ""}</span>
                   </div>
                   <div className="flex items-center gap-3 ml-4 shrink-0">
                     <div className="text-right">
-                      <div className="text-[#ff6b35] font-mono font-bold text-sm">{s.daysOfStock}</div>
-                      <div className="text-[var(--subtle)] text-[10px]">{t.dash_days_left}</div>
+                      <div className="text-accent-orange font-mono font-bold text-sm">{s.daysOfStock}</div>
+                      <div className="text-(--subtle) text-[10px]">{t.dash_days_left}</div>
                     </div>
                     <div className="text-right">
-                      <div className="text-[var(--muted)] font-mono text-sm">{s.sold7}</div>
-                      <div className="text-[var(--subtle)] text-[10px]">{t.dash_sold_7d}</div>
+                      <div className="text-(--muted) font-mono text-sm">{s.sold7}</div>
+                      <div className="text-(--subtle) text-[10px]">{t.dash_sold_7d}</div>
                     </div>
                     <Link
                       href="/assortment"
-                      className="text-[11px] px-2.5 py-1 bg-[#ff6b35]/10 border border-[#ff6b35]/20 text-[#ff6b35] rounded-lg hover:bg-[#ff6b35]/20 transition-colors whitespace-nowrap"
+                      className="text-[11px] px-2.5 py-1 bg-accent-orange/10 border border-accent-orange/20 text-accent-orange rounded-lg hover:bg-accent-orange/20 transition-colors whitespace-nowrap"
                     >
                       {uk ? "Замовити" : "Order"}
                     </Link>
@@ -214,8 +214,8 @@ export default async function DashboardPage() {
                 </div>
               ))}
             </div>
-            <div className="mt-3 pt-3 border-t border-[var(--border-faint)]">
-              <Link href="/analyst" className="text-[11px] text-[#ff6b35] hover:text-[#ff8855] transition-colors">
+            <div className="mt-3 pt-3 border-t border-(--border-faint)">
+              <Link href="/analyst" className="text-[11px] text-accent-orange hover:text-[#ff8855] transition-colors">
                 {t.dash_view_analyst}
               </Link>
             </div>
@@ -224,37 +224,37 @@ export default async function DashboardPage() {
 
         {/* Top hits */}
         {hits.length > 0 && (
-          <div className="bg-[var(--surface)] border border-[#00e5c4]/20 rounded-xl p-6">
+          <div className="bg-(--surface) border border-accent-cyan/20 rounded-xl p-6">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <div className="text-[9px] font-mono uppercase tracking-widest text-[#00e5c4] mb-1">{t.dash_opportunity_label}</div>
+                <div className="text-[9px] font-mono uppercase tracking-widest text-accent-cyan mb-1">{t.dash_opportunity_label}</div>
                 <p className="text-white font-semibold">{t.dash_top_hits}</p>
               </div>
               {totalHits > 4 && (
-                <Link href="/analyst" className="text-xs text-[#00e5c4] hover:text-[#33eecc] transition-colors font-mono">
+                <Link href="/analyst" className="text-xs text-accent-cyan hover:text-[#33eecc] transition-colors font-mono">
                   {t.dash_all_hits}
                 </Link>
               )}
             </div>
             <div className="space-y-2">
               {hits.map((s) => (
-                <div key={s.id} className="flex items-center justify-between bg-[var(--row)] rounded-lg px-4 py-2.5">
+                <div key={s.id} className="flex items-center justify-between bg-(--row) rounded-lg px-4 py-2.5">
                   <div className="min-w-0 flex-1">
                     <span className="text-white text-sm font-medium truncate block">{s.name}</span>
-                    <span className="text-[var(--subtle)] text-[11px] font-mono">{s.sku}{s.brand ? ` · ${s.brand}` : ""}</span>
+                    <span className="text-(--subtle) text-[11px] font-mono">{s.sku}{s.brand ? ` · ${s.brand}` : ""}</span>
                   </div>
                   <div className="flex items-center gap-3 ml-4 shrink-0">
                     <div className="text-right">
-                      <div className="text-[#00e5c4] font-mono font-bold text-sm">{s.sold7}</div>
-                      <div className="text-[var(--subtle)] text-[10px]">{t.dash_sold_7d}</div>
+                      <div className="text-accent-cyan font-mono font-bold text-sm">{s.sold7}</div>
+                      <div className="text-(--subtle) text-[10px]">{t.dash_sold_7d}</div>
                     </div>
                     <div className="text-right">
-                      <div className="text-[var(--muted)] font-mono text-sm">{s.avgDaily30}</div>
-                      <div className="text-[var(--subtle)] text-[10px]">{t.dash_avg_daily}</div>
+                      <div className="text-(--muted) font-mono text-sm">{s.avgDaily30}</div>
+                      <div className="text-(--subtle) text-[10px]">{t.dash_avg_daily}</div>
                     </div>
                     <Link
                       href="/calendar"
-                      className="text-[11px] px-2.5 py-1 bg-[#00e5c4]/10 border border-[#00e5c4]/20 text-[#00e5c4] rounded-lg hover:bg-[#00e5c4]/20 transition-colors whitespace-nowrap"
+                      className="text-[11px] px-2.5 py-1 bg-accent-cyan/10 border border-accent-cyan/20 text-accent-cyan rounded-lg hover:bg-accent-cyan/20 transition-colors whitespace-nowrap"
                     >
                       {uk ? "Календар" : "Calendar"}
                     </Link>
@@ -262,8 +262,8 @@ export default async function DashboardPage() {
                 </div>
               ))}
             </div>
-            <div className="mt-3 pt-3 border-t border-[var(--border-faint)]">
-              <Link href="/analyst" className="text-[11px] text-[#00e5c4] hover:text-[#33eecc] transition-colors">
+            <div className="mt-3 pt-3 border-t border-(--border-faint)">
+              <Link href="/analyst" className="text-[11px] text-accent-cyan hover:text-[#33eecc] transition-colors">
                 {t.dash_view_analyst}
               </Link>
             </div>
@@ -272,39 +272,39 @@ export default async function DashboardPage() {
 
         {/* Setup prompts */}
         {!onboarding && (
-          <div className="bg-[var(--surface)] border border-[#fbbf24]/20 rounded-xl p-6 flex items-start justify-between gap-4">
+          <div className="bg-(--surface) border border-accent-yellow/20 rounded-xl p-6 flex items-start justify-between gap-4">
             <div>
-              <div className="text-[9px] font-mono uppercase tracking-widest text-[#fbbf24] mb-2">{t.dash_s1_label}</div>
+              <div className="text-[9px] font-mono uppercase tracking-widest text-accent-yellow mb-2">{t.dash_s1_label}</div>
               <p className="text-white font-semibold mb-1">{t.dash_s1_title}</p>
-              <p className="text-[var(--muted)] text-sm">{t.dash_s1_desc}</p>
+              <p className="text-(--muted) text-sm">{t.dash_s1_desc}</p>
             </div>
-            <Link href="/settings" className="flex-shrink-0 px-4 py-2 bg-[#fbbf24]/10 border border-[#fbbf24]/20 text-[#fbbf24] rounded-lg text-sm font-medium hover:bg-[#fbbf24]/20 transition-colors whitespace-nowrap">
+            <Link href="/settings" className="shrink-0 px-4 py-2 bg-accent-yellow/10 border border-accent-yellow/20 text-accent-yellow rounded-lg text-sm font-medium hover:bg-accent-yellow/20 transition-colors whitespace-nowrap">
               {t.dash_s1_btn}
             </Link>
           </div>
         )}
 
         {catalogItemCount === 0 && skus.length === 0 && (
-          <div className="bg-[var(--surface)] border border-[#a78bfa]/20 rounded-xl p-6 flex items-start justify-between gap-4">
+          <div className="bg-(--surface) border border-accent-purple/20 rounded-xl p-6 flex items-start justify-between gap-4">
             <div>
-              <div className="text-[9px] font-mono uppercase tracking-widest text-[#a78bfa] mb-2">{t.dash_s2_label}</div>
+              <div className="text-[9px] font-mono uppercase tracking-widest text-accent-purple mb-2">{t.dash_s2_label}</div>
               <p className="text-white font-semibold mb-1">{t.dash_s2_title}</p>
-              <p className="text-[var(--muted)] text-sm">{t.dash_s2_desc}</p>
+              <p className="text-(--muted) text-sm">{t.dash_s2_desc}</p>
             </div>
-            <Link href="/assortment" className="flex-shrink-0 px-4 py-2 bg-[#a78bfa]/10 border border-[#a78bfa]/20 text-[#a78bfa] rounded-lg text-sm font-medium hover:bg-[#a78bfa]/20 transition-colors whitespace-nowrap">
+            <Link href="/assortment" className="shrink-0 px-4 py-2 bg-accent-purple/10 border border-accent-purple/20 text-accent-purple rounded-lg text-sm font-medium hover:bg-accent-purple/20 transition-colors whitespace-nowrap">
               {t.dash_s2_btn}
             </Link>
           </div>
         )}
 
         {onboarding && totalItems > 0 && alertCount === 0 && sparkData.length < 3 && (
-          <div className="bg-[var(--surface)] border border-[#00e5c4]/20 rounded-xl p-6">
-            <div className="text-[9px] font-mono uppercase tracking-widest text-[#00e5c4] mb-2">{t.dash_ready_label}</div>
+          <div className="bg-(--surface) border border-accent-cyan/20 rounded-xl p-6">
+            <div className="text-[9px] font-mono uppercase tracking-widest text-accent-cyan mb-2">{t.dash_ready_label}</div>
             <p className="text-white font-semibold mb-1">{t.dash_ready_title}</p>
-            <p className="text-[var(--muted)] text-sm mb-4">
+            <p className="text-(--muted) text-sm mb-4">
               {totalItems} {t.dash_ready_loaded} · {onboarding.businessModel} {t.dash_ready_model} {t.dash_ready_active}
             </p>
-            <Link href="/analyst" className="inline-flex px-4 py-2 bg-[#00e5c4]/10 border border-[#00e5c4]/20 text-[#00e5c4] rounded-lg text-sm font-medium hover:bg-[#00e5c4]/20 transition-colors">
+            <Link href="/analyst" className="inline-flex px-4 py-2 bg-accent-cyan/10 border border-accent-cyan/20 text-accent-cyan rounded-lg text-sm font-medium hover:bg-accent-cyan/20 transition-colors">
               {t.dash_ready_btn}
             </Link>
           </div>

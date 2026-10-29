@@ -8,7 +8,7 @@ import StatusMappingFields, {
 } from "./StatusMappingFields";
 import ConnectorDiagnostics from "./ConnectorDiagnostics";
 const button =
-  "min-h-11 rounded-lg border border-[var(--border)] px-4 py-2 text-sm text-[var(--text)] hover:bg-[var(--input-hover)] focus-visible:outline focus-visible:outline-2 disabled:opacity-50";
+  "min-h-11 rounded-lg border border-(--border) px-4 py-2 text-sm text-(--text) hover:bg-(--input-hover) focus-visible:outline-solid focus-visible:outline-2 disabled:opacity-50";
 export default function HoroshopConnectionCard({
   initial,
   lang,
@@ -93,29 +93,29 @@ export default function HoroshopConnectionCard({
       className="mb-10 scroll-mt-6 space-y-4"
     >
       <div>
-        <h2 id="horoshop-heading" className="font-semibold text-[var(--text)]">
+        <h2 id="horoshop-heading" className="font-semibold text-(--text)">
           Horoshop
         </h2>
-        <p className="mt-1 max-w-3xl text-sm text-[var(--muted)]">
+        <p className="mt-1 max-w-3xl text-sm text-(--muted)">
           {copy(
             "Лише читання. Кожне оновлення повторно читає всю доступну історію замовлень.",
             "Read-only. Each refresh rescans the entire accessible order history.",
           )}
         </p>
       </div>
-      <div className="space-y-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
-        <p className="break-words text-sm text-[var(--muted)]">
+      <div className="space-y-4 rounded-xl border border-(--border) bg-(--surface) p-4 sm:p-5">
+        <p className="wrap-break-word text-sm text-(--muted)">
           {connection.configured
             ? copy("Налаштовано: ", "Configured: ") + connection.accountHost
             : copy("Не налаштовано", "Not configured")}
         </p>
-        <p className="text-sm text-[var(--muted)]">
+        <p className="text-sm text-(--muted)">
           {copy(
             "Адміністратор має дозволити точний HTTPS-домен магазину на сервері. Логін і пароль зберігаються зашифрованими та не повертаються у відповідях.",
             "An operator must allow the exact HTTPS shop origin on the server. Login and password are encrypted and never returned in responses.",
           )}
         </p>
-        <p className="text-xs text-[var(--muted)]">
+        <p className="text-xs text-(--muted)">
           {copy(
             "Ознака оплати не підтверджує дату повної оплати. Приходи, повернення, собівартість та історичні залишки недоступні; автоматична синхронізація вимкнена. Успішне читання не доводить відсутність прав запису — видайте окремий обмежений доступ.",
             "A paid flag does not establish a full-payment date. Receipts, refunds, costs and historical stock are unavailable; automatic sync is disabled. Successful reads do not prove the absence of write permissions: issue separate restricted credentials.",
@@ -278,7 +278,7 @@ export default function HoroshopConnectionCard({
                     approved.checked = false;
                 }}
               />
-              <p className="text-xs text-[var(--muted)]">
+              <p className="text-xs text-(--muted)">
                 {copy(
                   "Коди статусів дивіться після перевірки нижче. Не вважайте доставлене замовлення підтвердженим продажем без дати оплати.",
                   "Read status codes in the checks below. A delivered order is not a verified sale without a payment date.",
@@ -324,13 +324,13 @@ export default function HoroshopConnectionCard({
               ).map(([name, label]) => (
                 <label
                   key={name}
-                  className="flex min-h-11 items-center gap-3 text-sm text-[var(--muted)]"
+                  className="flex min-h-11 items-center gap-3 text-sm text-(--muted)"
                 >
                   <input type="checkbox" name={name} />
                   {label}
                 </label>
               ))}
-              <label className="flex min-h-11 items-center gap-3 text-sm text-[var(--muted)]">
+              <label className="flex min-h-11 items-center gap-3 text-sm text-(--muted)">
                 <input type="checkbox" name="mappingApproved" required />
                 {copy(
                   "Погоджую зазначені правила та підтвердження. Неперевірені дані залишаються невідомими.",
@@ -360,13 +360,13 @@ export default function HoroshopConnectionCard({
             ref={alert}
             tabIndex={-1}
             role="alert"
-            className="text-sm text-[var(--text)]"
+            className="text-sm text-(--text)"
           >
             {error}
           </p>
         ) : null}
         {status ? (
-          <p role="status" className="text-sm text-[var(--muted)]">
+          <p role="status" className="text-sm text-(--muted)">
             {status}
           </p>
         ) : null}

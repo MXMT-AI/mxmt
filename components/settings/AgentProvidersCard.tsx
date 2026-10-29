@@ -139,14 +139,14 @@ export default function AgentProvidersCard() {
         return (
           <div key={block}>
             <div className="flex items-center gap-3 mb-3">
-              <div className="h-px flex-1 bg-[var(--border)]" />
+              <div className="h-px flex-1 bg-(--border)" />
               <span
                 className="text-[9px] font-mono uppercase tracking-widest px-3 py-1 rounded-full border"
                 style={{ color, borderColor: color + "40", background: color + "10" }}
               >
                 {block}
               </span>
-              <div className="h-px flex-1 bg-[var(--border)]" />
+              <div className="h-px flex-1 bg-(--border)" />
             </div>
 
             <div className="space-y-2">
@@ -156,34 +156,34 @@ export default function AgentProvidersCard() {
                 return (
                   <div
                     key={agent.id}
-                    className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4 flex items-center gap-4"
+                    className="bg-(--surface) border border-(--border) rounded-xl p-4 flex items-center gap-4"
                     style={{ borderLeft: `3px solid ${agent.color}` }}
                   >
                     {/* Icon + info */}
                     <div
-                      className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                      className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
                       style={{ background: agent.color + "15" }}
                     >
                       <Icon size={15} style={{ color: agent.color }} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-semibold text-[var(--text)]">{agent.label}</div>
-                      <div className="text-[11px] text-[var(--muted)] truncate">{agent.desc}</div>
-                      <div className="text-[10px] font-mono text-[var(--subtle)] mt-0.5">
+                      <div className="text-sm font-semibold text-(--text)">{agent.label}</div>
+                      <div className="text-[11px] text-(--muted) truncate">{agent.desc}</div>
+                      <div className="text-[10px] font-mono text-(--subtle) mt-0.5">
                         {current === "anthropic" ? agent.defaultModel.anthropic : agent.defaultModel.openai}
                       </div>
                     </div>
 
                     {/* Provider toggle */}
-                    <div className="flex items-center gap-1 bg-[var(--row)] border border-[var(--border)] rounded-lg p-1 flex-shrink-0">
+                    <div className="flex items-center gap-1 bg-(--row) border border-(--border) rounded-lg p-1 shrink-0">
                       {(["anthropic", "openai"] as AgentProvider[]).map((p) => (
                         <button
                           key={p}
                           onClick={() => toggle(agent.id, p)}
                           className={`px-3 py-1.5 rounded-md text-[11px] font-mono font-semibold transition-all ${
                             current === p
-                              ? "bg-[var(--surface2)] text-[var(--text)] shadow-sm"
-                              : "text-[var(--subtle)] hover:text-[var(--muted)]"
+                              ? "bg-(--surface2) text-(--text) shadow-xs"
+                              : "text-(--subtle) hover:text-(--muted)"
                           }`}
                         >
                           {p === "anthropic" ? "Anthropic" : "OpenAI"}
@@ -198,9 +198,9 @@ export default function AgentProvidersCard() {
         );
       })}
 
-      <p className="text-[11px] font-mono text-[var(--subtle)] pt-2">
+      <p className="text-[11px] font-mono text-(--subtle) pt-2">
         OpenAI використовується за замовчуванням. Для роботи потрібен{" "}
-        <span className="text-[var(--muted)]">OPENAI_API_KEY</span> у змінних середовища хостингу.
+        <span className="text-(--muted)">OPENAI_API_KEY</span> у змінних середовища хостингу.
       </p>
     </div>
   );

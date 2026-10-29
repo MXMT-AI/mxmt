@@ -55,8 +55,8 @@ export default function RepricingSummary({
       <dl className="grid grid-cols-2 gap-5 md:grid-cols-4">
         {values.map(([label, value, type]) => (
           <div key={label}>
-            <dt className="text-xs text-[var(--muted)]">{label}</dt>
-            <dd className="mt-1 text-lg font-semibold tabular-nums break-words">
+            <dt className="text-xs text-(--muted)">{label}</dt>
+            <dd className="mt-1 text-lg font-semibold tabular-nums wrap-break-word">
               {format(value, type, locale)}
               {value !== undefined && value !== null && type === "money" ? (
                 <small className="ml-1 text-xs">UAH</small>
@@ -66,7 +66,7 @@ export default function RepricingSummary({
         ))}
       </dl>
       <Note>{copy.basis}</Note>
-      <p id="repricing-export-note" className="text-xs text-[var(--muted)]">
+      <p id="repricing-export-note" className="text-xs text-(--muted)">
         {copy.csvReady}
       </p>
     </section>

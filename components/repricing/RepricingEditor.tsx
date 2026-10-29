@@ -108,7 +108,7 @@ export default function RepricingEditor({
       <div
         role="status"
         aria-live="polite"
-        className="text-sm text-[var(--muted)]"
+        className="text-sm text-(--muted)"
       >
         {!inputs.data
           ? copy.loading
@@ -121,7 +121,7 @@ export default function RepricingEditor({
       {error ? (
         <div
           role="alert"
-          className="rounded-lg border border-[var(--border)] p-4 space-y-3"
+          className="rounded-lg border border-(--border) p-4 space-y-3"
         >
           <p>
             {error.code === "REPRICING_SOURCE_CHANGED" ||

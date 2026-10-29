@@ -77,9 +77,9 @@ export default function ReorderingTable({
           switch (column.key) {
             case "name":
               return (
-                <div className="min-w-48 max-w-72 whitespace-normal break-words">
+                <div className="min-w-48 max-w-72 whitespace-normal wrap-break-word">
                   <strong className="font-semibold">{row.name}</strong>
-                  <p className="mt-1 text-[var(--muted)]">
+                  <p className="mt-1 text-(--muted)">
                     {!monobrand && (
                       <>
                         <span translate="no">
@@ -195,7 +195,7 @@ export default function ReorderingTable({
                       : copy.service,
               );
               return (
-                <div className="min-w-48 max-w-80 space-y-1 whitespace-normal break-words">
+                <div className="min-w-48 max-w-80 space-y-1 whitespace-normal wrap-break-word">
                   {row.urgency === "RED" ? (
                     <p className={styles.bad}>{copy.urgent}</p>
                   ) : null}
@@ -231,7 +231,7 @@ export default function ReorderingTable({
       {!data.rows.length ? <p className="p-5 text-sm">{copy.empty}</p> : null}
       {data.pagination.totalPages > 1 || data.pagination.page > 1 ? (
         <nav
-          className="flex items-center gap-3 border-t border-[var(--border)] p-3 text-xs"
+          className="flex items-center gap-3 border-t border-(--border) p-3 text-xs"
           aria-label={copy.page}
         >
           <button

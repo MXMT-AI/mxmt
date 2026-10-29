@@ -32,18 +32,18 @@ export default function MerchandisingDestination({
     merchandisingHref(path, query, detail);
   const group = merchandisingGroup(query, options?.monobrand ?? true);
   const link =
-    "inline-flex min-h-11 items-center rounded-lg border border-[var(--border)] px-4 py-2 text-sm text-[var(--text)] hover:bg-[var(--input-bg)] touch-manipulation";
+    "inline-flex min-h-11 items-center rounded-lg border border-(--border) px-4 py-2 text-sm text-(--text) hover:bg-(--input-bg) touch-manipulation";
   return (
     <section>
       {screen !== "overview" ? (
         <Link
           href={href("/overview")}
-          className="text-sm text-[var(--muted)] hover:text-[var(--text)] underline underline-offset-4"
+          className="text-sm text-(--muted) hover:text-(--text) underline underline-offset-4"
         >
           {copy.back}
         </Link>
       ) : null}
-      <h1 className="mt-3 text-2xl font-bold text-[var(--text)]">
+      <h1 className="mt-3 text-2xl font-bold text-(--text)">
         {copy[screen]}
       </h1>
       {screen === "sales" || screen === "stock" ? (
@@ -58,7 +58,7 @@ export default function MerchandisingDestination({
               aria-current={group === item ? "page" : undefined}
               className={
                 link +
-                " aria-[current=page]:border-[var(--text)] aria-[current=page]:font-semibold"
+                " aria-[current=page]:border-(--text) aria-[current=page]:font-semibold"
               }
             >
               {copy[item]}
@@ -66,8 +66,8 @@ export default function MerchandisingDestination({
           ))}
         </nav>
       ) : null}
-      <div className="mt-6 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 md:p-6">
-        <p className="max-w-2xl text-sm text-[var(--muted)]">
+      <div className="mt-6 rounded-xl border border-(--border) bg-(--surface) p-5 md:p-6">
+        <p className="max-w-2xl text-sm text-(--muted)">
           {copy.screenPending}
         </p>
         <nav aria-label={copy.primary} className="mt-5 flex flex-wrap gap-3">

@@ -26,7 +26,7 @@ export default async function AppLayout({
   if (!tenant) redirect("/login");
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-[var(--bg)]">
+    <div className="flex flex-col md:flex-row min-h-screen bg-(--bg)">
       <AppSkipLink />
       <TokenRefreshProvider />
       <Suspense fallback={<div className="md:w-56" />}>

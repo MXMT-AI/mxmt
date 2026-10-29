@@ -48,7 +48,7 @@ export default function ExportButtons({
         <Download size={11} />
         Завантажити Excel
       </button>
-      <span className="text-[10px] font-mono text-[var(--subtle)]">
+      <span className="text-[10px] font-mono text-(--subtle)">
         Формули живі: зміни параметри в шапці файлу — таблиця перерахується
       </span>
     </div>

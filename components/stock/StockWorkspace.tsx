@@ -41,7 +41,7 @@ export default function StockWorkspace() {
     return (
       <div role="status">
         <h1 className="text-2xl font-bold">{copy.title}</h1>
-        <p className="mt-3 text-sm text-[var(--muted)]">{copy.loading}</p>
+        <p className="mt-3 text-sm text-(--muted)">{copy.loading}</p>
       </div>
     );
   return (

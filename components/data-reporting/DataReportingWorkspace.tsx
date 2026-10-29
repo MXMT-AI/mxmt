@@ -206,7 +206,7 @@ function statusTone(status: string | null | undefined): string {
   if (status === "SUCCESS") return "text-emerald-400 bg-emerald-400/10 border-emerald-400/20";
   if (status === "WARNING") return "text-amber-400 bg-amber-400/10 border-amber-400/20";
   if (status === "RUNNING" || status === "PENDING") return "text-sky-400 bg-sky-400/10 border-sky-400/20";
-  return "text-[var(--muted)] bg-[var(--input-bg)] border-[var(--border)]";
+  return "text-(--muted) bg-(--input-bg) border-(--border)";
 }
 
 export default function DataReportingWorkspace({ userRole, initialPreferences }: Props) {
@@ -443,31 +443,31 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
     <div className="p-5 md:p-8 min-w-0">
       <header className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-5 mb-6">
         <div>
-          <p className="text-[10px] font-mono uppercase tracking-[0.22em] text-[#00e5c4] mb-2">{copy.eyebrow}</p>
-          <h1 className="text-2xl font-semibold text-[var(--text)]">{copy.title}</h1>
-          <p className="text-sm text-[var(--muted)] mt-1 max-w-2xl">{copy.subtitle}</p>
+          <p className="text-[10px] font-mono uppercase tracking-[0.22em] text-accent-cyan mb-2">{copy.eyebrow}</p>
+          <h1 className="text-2xl font-semibold text-(--text)">{copy.title}</h1>
+          <p className="text-sm text-(--muted) mt-1 max-w-2xl">{copy.subtitle}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button type="button" onClick={() => setReloadVersion((value) => value + 1)}
             disabled={loading || statusLoading}
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--input-hover)] disabled:opacity-50 transition-colors">
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-(--border) bg-(--surface) text-sm text-(--muted) hover:text-(--text) hover:bg-(--input-hover) disabled:opacity-50 transition-colors">
             <RefreshCw size={14} className={loading || statusLoading ? "animate-spin" : ""} />
             {copy.refresh}
           </button>
           {canCalculate && (
             <button type="button" onClick={() => void runAction("calculate")} disabled={action !== null || !status?.activeImport}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm text-[var(--text)] hover:bg-[var(--input-hover)] disabled:opacity-50 transition-colors">
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-(--border) bg-(--surface) text-sm text-(--text) hover:bg-(--input-hover) disabled:opacity-50 transition-colors">
               {action === "calculate" ? <LoaderCircle size={14} className="animate-spin" /> : <Calculator size={14} />}
               {action === "calculate" ? copy.calculating : copy.calculate}
             </button>
           )}
           {canImport && <button type="button" onClick={()=>void runAction("projection")} disabled={action!==null||!canRefreshReports}
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-[var(--border)] text-sm text-[var(--text)] disabled:opacity-50 focus-visible:outline focus-visible:outline-2">
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-(--border) text-sm text-(--text) disabled:opacity-50 focus-visible:outline-solid focus-visible:outline-2">
             {action==="projection"?<LoaderCircle size={14} className="animate-spin"/>:<RefreshCw size={14}/>}{lang==="uk"?"Оновити MVP-звіти":"Refresh MVP reports"}
           </button>}
           {canImport && (
             <button type="button" onClick={() => void runAction("import")} disabled={action !== null}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-[#00e5c4] text-[#03110f] text-sm font-semibold hover:bg-[#36ecd2] disabled:opacity-50 transition-colors">
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-accent-cyan text-[#03110f] text-sm font-semibold hover:bg-[#36ecd2] disabled:opacity-50 transition-colors">
               {action === "import" ? <LoaderCircle size={14} className="animate-spin" /> : <UploadCloud size={14} />}
               {action === "import" ? copy.importing : copy.import}
             </button>
@@ -475,36 +475,36 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
         </div>
       </header>
 
-      <section aria-labelledby="report-period-heading" className="mb-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
+      <section aria-labelledby="report-period-heading" className="mb-4 rounded-xl border border-(--border) bg-(--surface) px-4 py-3">
         <div className="flex flex-col xl:flex-row xl:items-end gap-3 xl:gap-5">
           <div className="flex items-start gap-2 xl:min-w-72">
-            <CalendarDays size={16} className="mt-0.5 shrink-0 text-[#00e5c4]" />
+            <CalendarDays size={16} className="mt-0.5 shrink-0 text-accent-cyan" />
             <div>
-              <h2 id="report-period-heading" className="text-sm font-medium text-[var(--text)]">{copy.reportPeriod}</h2>
-              <p className="mt-0.5 text-[11px] text-[var(--muted)]">{copy.periodHelp}</p>
+              <h2 id="report-period-heading" className="text-sm font-medium text-(--text)">{copy.reportPeriod}</h2>
+              <p className="mt-0.5 text-[11px] text-(--muted)">{copy.periodHelp}</p>
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
-            <label className="grid gap-1 text-[11px] text-[var(--muted)]">
+            <label className="grid gap-1 text-[11px] text-(--muted)">
               <span>{copy.dateFrom}</span>
               <input type="date" value={dateFrom} max={dateTo || undefined}
                 aria-invalid={Boolean(periodError)}
                 onChange={(event) => { setDateFrom(event.target.value); setPeriodError(null); }}
-                className="h-9 rounded-lg border border-[var(--border)] bg-[var(--input-bg)] px-3 text-sm text-[var(--text)]" />
+                className="h-9 rounded-lg border border-(--border) bg-(--input-bg) px-3 text-sm text-(--text)" />
             </label>
-            <label className="grid gap-1 text-[11px] text-[var(--muted)]">
+            <label className="grid gap-1 text-[11px] text-(--muted)">
               <span>{copy.dateTo}</span>
               <input type="date" value={dateTo} min={dateFrom || undefined}
                 aria-invalid={Boolean(periodError)}
                 onChange={(event) => { setDateTo(event.target.value); setPeriodError(null); }}
-                className="h-9 rounded-lg border border-[var(--border)] bg-[var(--input-bg)] px-3 text-sm text-[var(--text)]" />
+                className="h-9 rounded-lg border border-(--border) bg-(--input-bg) px-3 text-sm text-(--text)" />
             </label>
           </div>
         </div>
         {periodError && <p role="alert" className="mt-2 text-xs text-red-400">{periodError}</p>}
       </section>
 
-      {reportsReady && <p role="status" className="mb-4 text-sm text-[var(--text)]">{lang==="uk"?"Дані MVP-звітів оновлено. ":"MVP report inputs refreshed. "}<Link className="underline" href="/overview">{lang==="uk"?"Відкрити Огляд":"Open Overview"}</Link></p>}
+      {reportsReady && <p role="status" className="mb-4 text-sm text-(--text)">{lang==="uk"?"Дані MVP-звітів оновлено. ":"MVP report inputs refreshed. "}<Link className="underline" href="/overview">{lang==="uk"?"Відкрити Огляд":"Open Overview"}</Link></p>}
       {actionError && (
         <div role="alert" className="mb-4 flex items-start gap-2 rounded-lg border border-red-400/20 bg-red-400/10 px-3 py-2.5 text-sm text-red-300">
           <AlertTriangle size={15} className="mt-0.5 shrink-0" />
@@ -526,8 +526,8 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
           badgeClass={issueTotal > 0 ? statusTone("WARNING") : statusTone("SUCCESS")} loading={statusLoading} />
       </section>
 
-      <section className="rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden">
-        <div className="overflow-x-auto border-b border-[var(--border)]">
+      <section className="rounded-xl border border-(--border) bg-(--surface) overflow-hidden">
+        <div className="overflow-x-auto border-b border-(--border)">
           <div role="tablist" aria-label={copy.title} className="flex min-w-max px-2 pt-2">
             {TABLES.map((item) => (
               <button key={item.key} id={`tab-${item.key}`} role="tab"
@@ -535,8 +535,8 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
                 type="button" onClick={() => selectTab(item.key)}
                 className={`px-4 py-3 border-b-2 text-xs font-mono font-semibold tracking-wide transition-colors ${
                   activeTab === item.key
-                    ? "border-[#00e5c4] text-[#00e5c4]"
-                    : "border-transparent text-[var(--muted)] hover:text-[var(--text)]"
+                    ? "border-accent-cyan text-accent-cyan"
+                    : "border-transparent text-(--muted) hover:text-(--text)"
                 }`}>
                 {item.label}
               </button>
@@ -544,7 +544,7 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
           </div>
         </div>
 
-        <div className="p-3 md:p-4 flex flex-col lg:flex-row lg:items-center gap-3 border-b border-[var(--border)] bg-[var(--row)]">
+        <div className="p-3 md:p-4 flex flex-col lg:flex-row lg:items-center gap-3 border-b border-(--border) bg-(--row)">
           <form className="flex min-w-0 flex-1 max-w-xl" onSubmit={(event) => {
             event.preventDefault();
             setPage(1);
@@ -552,39 +552,39 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
           }}>
             <label className="sr-only" htmlFor="data-search">{copy.search}</label>
             <div className="relative min-w-0 flex-1">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--subtle)]" />
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-(--subtle)" />
               <input id="data-search" value={searchInput} onChange={(event) => setSearchInput(event.target.value)}
                 placeholder={copy.search}
-                className="w-full h-9 pl-9 pr-3 rounded-l-lg border border-[var(--border)] bg-[var(--input-bg)] text-sm text-[var(--text)] placeholder:text-[var(--subtle)]" />
+                className="w-full h-9 pl-9 pr-3 rounded-l-lg border border-(--border) bg-(--input-bg) text-sm text-(--text) placeholder:text-(--subtle)" />
             </div>
-            <button type="submit" className="h-9 px-3 rounded-r-lg border-y border-r border-[var(--border)] bg-[var(--surface2)] text-xs font-medium text-[var(--text)] hover:bg-[var(--input-hover)]">
+            <button type="submit" className="h-9 px-3 rounded-r-lg border-y border-r border-(--border) bg-(--surface2) text-xs font-medium text-(--text) hover:bg-(--input-hover)">
               {copy.searchButton}
             </button>
           </form>
 
           <div className="flex flex-wrap items-center gap-2">
             <details className="relative group">
-              <summary className="list-none cursor-pointer h-9 inline-flex items-center gap-2 px-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-xs text-[var(--text)] hover:bg-[var(--input-hover)]">
+              <summary className="list-none cursor-pointer h-9 inline-flex items-center gap-2 px-3 rounded-lg border border-(--border) bg-(--surface) text-xs text-(--text) hover:bg-(--input-hover)">
                 <Columns3 size={14} />
                 {copy.columns}: {visibleColumns.length} {copy.visible}
               </summary>
-              <div className="absolute right-0 z-30 mt-2 w-72 max-h-96 overflow-auto rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 shadow-2xl">
-                <div className="flex items-center justify-between gap-2 pb-2 mb-2 border-b border-[var(--border)]">
+              <div className="absolute right-0 z-30 mt-2 w-72 max-h-96 overflow-auto rounded-xl border border-(--border) bg-(--surface) p-3 shadow-2xl">
+                <div className="flex items-center justify-between gap-2 pb-2 mb-2 border-b border-(--border)">
                   <button type="button" onClick={() => table && updatePreference({ ...preference, visibleColumns: table.columns.map((column) => column.key) })}
-                    className="text-xs text-[#00e5c4] hover:underline">{copy.all}</button>
+                    className="text-xs text-accent-cyan hover:underline">{copy.all}</button>
                   <button type="button" onClick={() => table && updatePreference({ ...preference, visibleColumns: resolveVisibleColumns(table.columns, []) })}
-                    className="text-xs text-[var(--muted)] hover:text-[var(--text)]">{copy.defaults}</button>
+                    className="text-xs text-(--muted) hover:text-(--text)">{copy.defaults}</button>
                 </div>
                 <div className="space-y-0.5">
                   {(table?.columns ?? []).map((column) => {
                     const checked = visibleSet.has(column.key);
                     return (
-                      <label key={column.key} className="flex items-start gap-2.5 rounded-md px-2 py-1.5 text-xs text-[var(--text)] hover:bg-[var(--input-bg)] cursor-pointer">
+                      <label key={column.key} className="flex items-start gap-2.5 rounded-md px-2 py-1.5 text-xs text-(--text) hover:bg-(--input-bg) cursor-pointer">
                         <input type="checkbox" checked={checked} disabled={checked && visibleColumns.length === 1}
-                          onChange={() => toggleColumn(column.key)} className="mt-0.5 rounded border-[var(--border)] bg-[var(--input-bg)] text-[#00e5c4] focus:ring-[#00e5c4]" />
+                          onChange={() => toggleColumn(column.key)} className="mt-0.5 rounded-sm border-(--border) bg-(--input-bg) text-accent-cyan focus:ring-accent-cyan" />
                         <span className="min-w-0">
-                          <span className="block break-words">{column.label}</span>
-                          {column.sourceOnly && <span className="block text-[10px] text-[var(--subtle)]">source</span>}
+                          <span className="block wrap-break-word">{column.label}</span>
+                          {column.sourceOnly && <span className="block text-[10px] text-(--subtle)">source</span>}
                         </span>
                       </label>
                     );
@@ -593,47 +593,47 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
               </div>
             </details>
 
-            <label className="h-9 inline-flex items-center gap-2 px-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-xs text-[var(--muted)]">
+            <label className="h-9 inline-flex items-center gap-2 px-3 rounded-lg border border-(--border) bg-(--surface) text-xs text-(--muted)">
               <span className="hidden sm:inline">{copy.rows}</span>
               <select value={preference.pageSize} onChange={(event) => {
                 const pageSize = Number(event.target.value);
                 setPage(1);
                 updatePreference({ ...preference, pageSize });
-              }} className="border-0 bg-transparent py-0 pl-0 pr-6 text-xs text-[var(--text)] focus:ring-0">
+              }} className="border-0 bg-transparent py-0 pl-0 pr-6 text-xs text-(--text) focus:ring-0">
                 {[25, 50, 100, 200].map((size) => <option key={size} value={size}>{size}</option>)}
               </select>
             </label>
 
-            <span aria-live="polite" className={`text-[10px] min-w-24 ${saveState === "error" ? "text-red-400" : "text-[var(--subtle)]"}`}>
+            <span aria-live="polite" className={`text-[10px] min-w-24 ${saveState === "error" ? "text-red-400" : "text-(--subtle)"}`}>
               {saveState === "saving" ? copy.saving : saveState === "saved" ? copy.saved : saveState === "error" ? copy.saveError : ""}
             </span>
           </div>
         </div>
 
         {table?.context.dateFrom && (
-          <div className="px-4 py-2 border-b border-[var(--border)] bg-[#00e5c4]/[0.03] text-[11px] font-mono text-[var(--muted)] flex flex-wrap gap-x-5 gap-y-1">
-            <span>{copy.period}: <strong className="text-[var(--text)] font-medium">{table.context.dateFrom} — {table.context.dateTo}</strong></span>
-            <span>{copy.asOf}: <strong className="text-[var(--text)] font-medium">{table.context.asOfDate}</strong></span>
+          <div className="px-4 py-2 border-b border-(--border) bg-accent-cyan/3 text-[11px] font-mono text-(--muted) flex flex-wrap gap-x-5 gap-y-1">
+            <span>{copy.period}: <strong className="text-(--text) font-medium">{table.context.dateFrom} — {table.context.dateTo}</strong></span>
+            <span>{copy.asOf}: <strong className="text-(--text) font-medium">{table.context.asOfDate}</strong></span>
           </div>
         )}
 
         <div id="data-table-panel" role="tabpanel" aria-labelledby={`tab-${activeTab}`} className="min-h-80">
           {loading ? (
-            <div className="h-80 flex flex-col items-center justify-center gap-3 text-sm text-[var(--muted)]">
-              <LoaderCircle size={22} className="animate-spin text-[#00e5c4]" />
+            <div className="h-80 flex flex-col items-center justify-center gap-3 text-sm text-(--muted)">
+              <LoaderCircle size={22} className="animate-spin text-accent-cyan" />
               {copy.loading}
             </div>
           ) : error ? (
             <div role="alert" className="h-80 flex flex-col items-center justify-center gap-3 px-5 text-center">
               <AlertTriangle size={24} className="text-amber-400" />
-              <p className="text-sm text-[var(--muted)] max-w-xl">{error}</p>
+              <p className="text-sm text-(--muted) max-w-xl">{error}</p>
               <button type="button" onClick={() => setReloadVersion((value) => value + 1)}
-                className="px-3 py-2 rounded-lg border border-[var(--border)] text-xs text-[var(--text)] hover:bg-[var(--input-hover)]">{copy.retry}</button>
+                className="px-3 py-2 rounded-lg border border-(--border) text-xs text-(--text) hover:bg-(--input-hover)">{copy.retry}</button>
             </div>
           ) : table && table.rows.length === 0 ? (
-            <div className="h-80 flex items-center justify-center px-5 text-sm text-[var(--muted)] text-center">{copy.empty}</div>
+            <div className="h-80 flex items-center justify-center px-5 text-sm text-(--muted) text-center">{copy.empty}</div>
           ) : visibleColumns.length === 0 ? (
-            <div className="h-80 flex items-center justify-center px-5 text-sm text-[var(--muted)] text-center">{copy.noColumns}</div>
+            <div className="h-80 flex items-center justify-center px-5 text-sm text-(--muted) text-center">{copy.noColumns}</div>
           ) : (
             <ReportTable columns={visibleColumns} rows={table?.rows??[]} locale={locale} sortColumn={preference.sortColumn} direction={preference.sortDirection} onSort={sortBy} isSortable={column=>activeTab==='product_yml'||activeTab==='zavod_api'?column.key==='rowNumber':!column.sourceOnly}/>
 
@@ -641,19 +641,19 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
         </div>
 
         {table && !loading && !error && (
-          <footer className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-3 border-t border-[var(--border)] text-xs text-[var(--muted)]">
+          <footer className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-3 border-t border-(--border) text-xs text-(--muted)">
             <span>{table.pagination.totalRows.toLocaleString(locale)} {copy.records}</span>
             <div className="flex items-center gap-2">
               <button type="button" aria-label={copy.previous} title={copy.previous} disabled={page <= 1}
                 onClick={() => setPage((value) => Math.max(1, value - 1))}
-                className="w-8 h-8 inline-flex items-center justify-center rounded-lg border border-[var(--border)] hover:bg-[var(--input-hover)] disabled:opacity-35">
+                className="w-8 h-8 inline-flex items-center justify-center rounded-lg border border-(--border) hover:bg-(--input-hover) disabled:opacity-35">
                 <ChevronLeft size={14} />
               </button>
               <span className="min-w-28 text-center">{copy.page} {table.pagination.page} {copy.of} {Math.max(1, table.pagination.totalPages)}</span>
               <button type="button" aria-label={copy.next} title={copy.next}
                 disabled={table.pagination.totalPages === 0 || page >= table.pagination.totalPages}
                 onClick={() => setPage((value) => value + 1)}
-                className="w-8 h-8 inline-flex items-center justify-center rounded-lg border border-[var(--border)] hover:bg-[var(--input-hover)] disabled:opacity-35">
+                className="w-8 h-8 inline-flex items-center justify-center rounded-lg border border-(--border) hover:bg-(--input-hover) disabled:opacity-35">
                 <ChevronRight size={14} />
               </button>
             </div>
@@ -678,14 +678,14 @@ function StatusCard({
   loading: boolean;
 }) {
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 min-w-0">
-      <p className="text-[10px] font-mono uppercase tracking-widest text-[var(--subtle)] mb-2">{label}</p>
+    <div className="rounded-xl border border-(--border) bg-(--surface) p-4 min-w-0">
+      <p className="text-[10px] font-mono uppercase tracking-widest text-(--subtle) mb-2">{label}</p>
       {loading ? (
-        <div className="h-8 flex items-center"><LoaderCircle size={15} className="animate-spin text-[var(--muted)]" /></div>
+        <div className="h-8 flex items-center"><LoaderCircle size={15} className="animate-spin text-(--muted)" /></div>
       ) : (
         <>
-          <p className="text-sm font-medium text-[var(--text)] truncate" title={value}>{value}</p>
-          <span className={`mt-2 inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-mono ${badgeClass ?? "text-[var(--muted)] border-transparent"}`}>
+          <p className="text-sm font-medium text-(--text) truncate" title={value}>{value}</p>
+          <span className={`mt-2 inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-mono ${badgeClass ?? "text-(--muted) border-transparent"}`}>
             {detail === "SUCCESS" && <CheckCircle2 size={10} />}
             {detail}
           </span>

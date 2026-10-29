@@ -497,13 +497,13 @@ export default function MarketingCalendar({ initialEvents }: { initialEvents: Db
       {/* ── Header ── */}
       <div className="flex justify-between items-start mb-5 flex-wrap gap-3">
         <div>
-          <div className="text-[10px] font-mono uppercase tracking-widest text-[var(--subtle)] mb-1">
+          <div className="text-[10px] font-mono uppercase tracking-widest text-(--subtle) mb-1">
             {lang === "uk" ? "Маркетинговий планер" : "Marketing Planner"}
           </div>
           <h1 className="text-xl font-bold text-white">
             {lang === "uk" ? "Календар активностей" : "Activity Calendar"}
           </h1>
-          <p className="text-xs text-[var(--muted)] mt-0.5 font-mono">
+          <p className="text-xs text-(--muted) mt-0.5 font-mono">
             {WEEKS[0] && WEEKS[WEEKS.length - 1]
               ? `${WEEKS[0].d.split("–")[0]} — ${WEEKS[WEEKS.length - 1].d.split("–")[1]}`
               : ""}
@@ -519,8 +519,8 @@ export default function MarketingCalendar({ initialEvents }: { initialEvents: Db
             disabled={aiLoading}
             className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs rounded-lg border transition-colors ${
               aiChips.length > 0
-                ? "bg-[#a78bfa]/10 border-[#a78bfa]/30 text-[#a78bfa]"
-                : "bg-[var(--input-bg)] border-[var(--border)] text-[var(--subtle)] hover:text-[var(--muted)]"
+                ? "bg-accent-purple/10 border-accent-purple/30 text-accent-purple"
+                : "bg-(--input-bg) border-(--border) text-(--subtle) hover:text-(--muted)"
             } disabled:opacity-50`}
             title={lang === "uk" ? "Згенерувати план через AI" : "Generate AI plan"}
           >
@@ -540,8 +540,8 @@ export default function MarketingCalendar({ initialEvents }: { initialEvents: Db
               : (lang === "uk" ? "Показати демо-шаблон" : "Show demo template")}
             className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs rounded-lg border transition-colors ${
               showDemo
-                ? "bg-[#fbbf24]/10 border-[#fbbf24]/30 text-[#fbbf24]"
-                : "bg-[var(--input-bg)] border-[var(--border)] text-[var(--subtle)] hover:text-[var(--muted)]"
+                ? "bg-accent-yellow/10 border-accent-yellow/30 text-accent-yellow"
+                : "bg-(--input-bg) border-(--border) text-(--subtle) hover:text-(--muted)"
             }`}
           >
             {showDemo ? <Eye size={12} /> : <EyeOff size={12} />}
@@ -549,16 +549,16 @@ export default function MarketingCalendar({ initialEvents }: { initialEvents: Db
           </button>
 
           {/* Tabs */}
-          <div className="flex bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden">
+          <div className="flex bg-(--surface) border border-(--border) rounded-lg overflow-hidden">
             {(["plan", "agent", "stock"] as const).map((t) => (
               <button key={t} onClick={() => setTab(t)}
-                className={`px-3 py-1.5 text-xs font-medium transition-colors ${tab === t ? "bg-[#00e5c4]/10 text-[#00e5c4]" : "text-[var(--muted)] hover:text-white"}`}>
+                className={`px-3 py-1.5 text-xs font-medium transition-colors ${tab === t ? "bg-accent-cyan/10 text-accent-cyan" : "text-(--muted) hover:text-white"}`}>
                 {labels[t]}
               </button>
             ))}
           </div>
           <button onClick={() => setAddModal({ row: "accent", week: visibleWeeks[0]?.k ?? WEEKS[0]?.k ?? "w1" })}
-            className="px-3 py-1.5 text-xs font-medium bg-[#00e5c4]/10 text-[#00e5c4] border border-[#00e5c4]/20 rounded-lg hover:bg-[#00e5c4]/20 transition-colors">
+            className="px-3 py-1.5 text-xs font-medium bg-accent-cyan/10 text-accent-cyan border border-accent-cyan/20 rounded-lg hover:bg-accent-cyan/20 transition-colors">
             {labels.addEvent}
           </button>
         </div>
@@ -571,9 +571,9 @@ export default function MarketingCalendar({ initialEvents }: { initialEvents: Db
           { v: String(insights.filter((i) => i.type === "agent").length), l: labels.agent_tips, c: "text-[#86efac]" },
           { v: String(insights.filter((i) => i.type === "warn").length),  l: labels.warnings,   c: "text-[#fca5a5]" },
         ].map((s, i) => (
-          <div key={i} className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-3 text-center">
+          <div key={i} className="bg-(--surface) border border-(--border) rounded-xl p-3 text-center">
             <div className={`text-lg font-bold font-mono ${s.c}`}>{s.v}</div>
-            <div className="text-[10px] text-[var(--muted)] mt-0.5">{s.l}</div>
+            <div className="text-[10px] text-(--muted) mt-0.5">{s.l}</div>
           </div>
         ))}
       </div>
@@ -590,8 +590,8 @@ export default function MarketingCalendar({ initialEvents }: { initialEvents: Db
           { l: lang === "uk" ? "Закупівля"    : "Stock",        t: "stock"   },
         ] as { l: string; t: ChipType }[]).map((lg, i) => (
           <div key={i} className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-sm" style={{ background: CHIP[lg.t].bg, border: "1px solid rgba(255,255,255,0.1)" }} />
-            <span className="text-[10px] text-[var(--muted)]">{lg.l}</span>
+            <div className="w-2.5 h-2.5 rounded-xs" style={{ background: CHIP[lg.t].bg, border: "1px solid rgba(255,255,255,0.1)" }} />
+            <span className="text-[10px] text-(--muted)">{lg.l}</span>
           </div>
         ))}
       </div>
@@ -599,20 +599,20 @@ export default function MarketingCalendar({ initialEvents }: { initialEvents: Db
       {/* ── Week nav ── */}
       <div className="flex items-center justify-between mb-2">
         <button onClick={() => setScrollStart(Math.max(0, scrollStart - 1))} disabled={scrollStart === 0}
-          className="flex items-center gap-1 text-xs text-[var(--muted)] hover:text-white disabled:opacity-30 transition-colors">
+          className="flex items-center gap-1 text-xs text-(--muted) hover:text-white disabled:opacity-30 transition-colors">
           <ChevronLeft size={14} /> {labels.earlier}
         </button>
-        <span className="text-[10px] font-mono text-[var(--subtle)]">
+        <span className="text-[10px] font-mono text-(--subtle)">
           {visibleWeeks[0]?.d} — {visibleWeeks[visibleWeeks.length - 1]?.d}
         </span>
         <button onClick={() => setScrollStart(Math.min(WEEKS.length - 4, scrollStart + 1))} disabled={scrollStart >= WEEKS.length - 4}
-          className="flex items-center gap-1 text-xs text-[var(--muted)] hover:text-white disabled:opacity-30 transition-colors">
+          className="flex items-center gap-1 text-xs text-(--muted) hover:text-white disabled:opacity-30 transition-colors">
           {labels.later} <ChevronRight size={14} />
         </button>
       </div>
 
       {/* ── Calendar grid ── */}
-      <div className="overflow-x-auto rounded-xl border border-[var(--border)] mb-5">
+      <div className="overflow-x-auto rounded-xl border border-(--border) mb-5">
         <table className="w-full text-xs border-collapse" style={{ tableLayout: "fixed" }}>
           <colgroup>
             <col style={{ width: 160 }} />
@@ -620,14 +620,14 @@ export default function MarketingCalendar({ initialEvents }: { initialEvents: Db
           </colgroup>
           <thead>
             <tr>
-              <th className="bg-[var(--surface2)] text-[var(--muted)] font-medium p-3 text-left border-b border-r border-[var(--border)] sticky left-0 z-10 text-sm">
+              <th className="bg-(--surface2) text-(--muted) font-medium p-3 text-left border-b border-r border-(--border) sticky left-0 z-10 text-sm">
                 {labels.channel}
               </th>
               {visibleWeeks.map((w) => (
-                <th key={w.k} className="bg-[var(--surface2)] text-[var(--muted)] font-medium p-2 text-center border-b border-r border-[var(--border)]">
+                <th key={w.k} className="bg-(--surface2) text-(--muted) font-medium p-2 text-center border-b border-r border-(--border)">
                   <div className="font-bold text-sm text-white">{w.m}</div>
-                  <div className="text-xs text-[var(--subtle)] mt-0.5">{w.l}</div>
-                  <div className="text-[11px] text-[var(--subtle)]">{w.d}</div>
+                  <div className="text-xs text-(--subtle) mt-0.5">{w.l}</div>
+                  <div className="text-[11px] text-(--subtle)">{w.d}</div>
                 </th>
               ))}
             </tr>
@@ -638,27 +638,27 @@ export default function MarketingCalendar({ initialEvents }: { initialEvents: Db
                 return (
                   <tr key={ri}>
                     <td colSpan={visibleWeeks.length + 1}
-                      className="bg-[var(--surface)] text-xs font-bold text-[var(--subtle)] uppercase tracking-wider p-2 pl-4 border-b border-[var(--border-faint)]">
+                      className="bg-(--surface) text-xs font-bold text-(--subtle) uppercase tracking-wider p-2 pl-4 border-b border-(--border-faint)">
                       {row.l}
                     </td>
                   </tr>
                 );
               }
               return (
-                <tr key={ri} className="hover:bg-[var(--input-bg)]">
-                  <td className="p-2 pl-4 text-[var(--muted)] font-medium border-b border-r border-[var(--border-faint)] bg-[var(--row)] sticky left-0 z-10 text-xs">
+                <tr key={ri} className="hover:bg-(--input-bg)">
+                  <td className="p-2 pl-4 text-(--muted) font-medium border-b border-r border-(--border-faint) bg-(--row) sticky left-0 z-10 text-xs">
                     {row.l}
                   </td>
                   {visibleWeeks.map((w) => {
                     const chips = getChips(row.k!, w.k);
                     return (
-                      <td key={w.k} className="p-1.5 border-b border-r border-[var(--border-faint)] align-top bg-[var(--bg)]">
+                      <td key={w.k} className="p-1.5 border-b border-r border-(--border-faint) align-top bg-(--bg)">
                         {chips.map((chip, ci) => {
                           const s = CHIP[chip.t] ?? CHIP.promo;
                           const isUser = !!chip.id;
                           return (
                             <div key={ci}
-                              className={`group relative rounded px-2 py-1 mb-1 text-xs font-medium flex items-center justify-between gap-1 ${isUser ? "cursor-pointer" : "cursor-default"}`}
+                              className={`group relative rounded-sm px-2 py-1 mb-1 text-xs font-medium flex items-center justify-between gap-1 ${isUser ? "cursor-pointer" : "cursor-default"}`}
                               style={{ background: s.bg, color: s.c, borderLeft: s.border !== "transparent" ? `2px solid ${s.border}` : "none" }}
                               title={chip.l}>
                               <span
@@ -674,7 +674,7 @@ export default function MarketingCalendar({ initialEvents }: { initialEvents: Db
                                 {chip.l}
                               </span>
                               {isUser && (
-                                <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 flex-shrink-0">
+                                <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 shrink-0">
                                   <button
                                     onClick={() => chip.id && setEditModal({ id: chip.id, type: chip.t, label: chip.l, row: row.k!, week: w.k })}
                                     className="p-0.5 hover:opacity-70"
@@ -690,7 +690,7 @@ export default function MarketingCalendar({ initialEvents }: { initialEvents: Db
                           );
                         })}
                         <button onClick={() => setAddModal({ row: row.k!, week: w.k })}
-                          className="text-xs text-[var(--subtle)] hover:text-[var(--muted)] w-full text-left mt-0.5 transition-colors">
+                          className="text-xs text-(--subtle) hover:text-(--muted) w-full text-left mt-0.5 transition-colors">
                           +
                         </button>
                       </td>
@@ -706,13 +706,13 @@ export default function MarketingCalendar({ initialEvents }: { initialEvents: Db
       {/* ── Bottom panels ── */}
       <div className={`grid gap-4 ${tab === "plan" ? "grid-cols-2" : "grid-cols-1"}`}>
         {(tab === "plan" || tab === "agent") && (
-          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5">
+          <div className="bg-(--surface) border border-(--border) rounded-xl p-5">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-bold text-white">
                 {tab === "agent" ? labels.agent_analysis : labels.agent_insights_h}
               </h3>
               {insights.length > 10 && (
-                <span className="text-[10px] font-mono text-[var(--subtle)]">
+                <span className="text-[10px] font-mono text-(--subtle)">
                   {showAllInsights ? insights.length : Math.min(10, insights.length)}/{insights.length}
                 </span>
               )}
@@ -722,16 +722,16 @@ export default function MarketingCalendar({ initialEvents }: { initialEvents: Db
                 const c = { warn: { bg: "rgba(248,113,113,0.08)", border: "#ef4444", icon: "!", ic: "#fca5a5" }, agent: { bg: "rgba(74,222,128,0.08)", border: "#4ade80", icon: "+", ic: "#86efac" }, stock: { bg: "rgba(96,165,250,0.08)", border: "#60a5fa", icon: "↑", ic: "#93c5fd" } }[ins.type as "warn" | "agent" | "stock"] ?? { bg: "rgba(74,222,128,0.08)", border: "#4ade80", icon: "+", ic: "#86efac" };
                 return (
                   <div key={i} className="rounded-lg p-3 flex gap-3" style={{ background: c.bg, borderLeft: `3px solid ${c.border}` }}>
-                    <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0" style={{ background: `${c.border}22`, color: c.ic }}>
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0" style={{ background: `${c.border}22`, color: c.ic }}>
                       {c.icon}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                        <span className="text-xs font-bold text-[var(--text)]">{ins.brand}</span>
-                        <span className="text-[10px] text-[var(--muted)]">{ins.week}</span>
+                        <span className="text-xs font-bold text-(--text)">{ins.brand}</span>
+                        <span className="text-[10px] text-(--muted)">{ins.week}</span>
                       </div>
-                      <div className="text-[11px] font-medium text-[var(--text)] mb-0.5">{ins.title}</div>
-                      <div className="text-[10px] text-[var(--muted)] mb-0.5">{ins.desc}</div>
+                      <div className="text-[11px] font-medium text-(--text) mb-0.5">{ins.title}</div>
+                      <div className="text-[10px] text-(--muted) mb-0.5">{ins.desc}</div>
                       <div className="text-[10px] font-medium" style={{ color: c.ic }}>{ins.impact}</div>
                     </div>
                   </div>
@@ -741,7 +741,7 @@ export default function MarketingCalendar({ initialEvents }: { initialEvents: Db
             {insights.length > 10 && (
               <button
                 onClick={() => setShowAllInsights((v) => !v)}
-                className="mt-3 w-full text-xs text-[var(--muted)] hover:text-[var(--text)] py-2 border-t border-[var(--border-faint)] transition-colors"
+                className="mt-3 w-full text-xs text-(--muted) hover:text-(--text) py-2 border-t border-(--border-faint) transition-colors"
               >
                 {showAllInsights
                   ? (lang === "uk" ? "Сховати ▲" : "Show less ▲")
@@ -752,11 +752,11 @@ export default function MarketingCalendar({ initialEvents }: { initialEvents: Db
         )}
 
         {(tab === "plan" || tab === "stock") && (
-          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5">
+          <div className="bg-(--surface) border border-(--border) rounded-xl p-5">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-bold text-white">{labels.stock_title}</h3>
               {stockData.length > 10 && (
-                <span className="text-[10px] font-mono text-[var(--subtle)]">
+                <span className="text-[10px] font-mono text-(--subtle)">
                   {showAllStock ? stockData.length : Math.min(10, stockData.length)}/{stockData.length}
                 </span>
               )}
@@ -766,17 +766,17 @@ export default function MarketingCalendar({ initialEvents }: { initialEvents: Db
                 const sc = ST_COLORS[s.status];
                 const barW = Math.min(100, Math.max(4, (s.woh ?? 0) * 0.8));
                 return (
-                  <div key={i} className="flex items-center justify-between py-2.5 border-b border-[var(--border-faint)] last:border-0 gap-3">
+                  <div key={i} className="flex items-center justify-between py-2.5 border-b border-(--border-faint) last:border-0 gap-3">
                     <div className="flex-1 min-w-0">
-                      <div className="text-xs font-bold text-[var(--text)]">{s.brand}</div>
-                      <div className="text-[10px] text-[var(--muted)] font-mono">
+                      <div className="text-xs font-bold text-(--text)">{s.brand}</div>
+                      <div className="text-[10px] text-(--muted) font-mono">
                         WOH {s.woh ?? "—"}д · {s.stock} шт
                       </div>
-                      <div className="h-1 rounded-full mt-1 bg-white/[0.06]">
+                      <div className="h-1 rounded-full mt-1 bg-white/6">
                         <div className="h-full rounded-full transition-all" style={{ width: `${barW}%`, background: sc.c }} />
                       </div>
                     </div>
-                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full shrink-0"
                       style={{ background: sc.bg, color: sc.c }}>
                       {sc.label}
                     </span>
@@ -787,7 +787,7 @@ export default function MarketingCalendar({ initialEvents }: { initialEvents: Db
             {stockData.length > 10 && (
               <button
                 onClick={() => setShowAllStock((v) => !v)}
-                className="mt-2 w-full text-xs text-[var(--muted)] hover:text-[var(--text)] py-2 border-t border-[var(--border-faint)] transition-colors"
+                className="mt-2 w-full text-xs text-(--muted) hover:text-(--text) py-2 border-t border-(--border-faint) transition-colors"
               >
                 {showAllStock
                   ? (lang === "uk" ? "Сховати ▲" : "Show less ▲")
@@ -802,45 +802,45 @@ export default function MarketingCalendar({ initialEvents }: { initialEvents: Db
       {editModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
           onClick={() => setEditModal(null)}>
-          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-7 w-80 shadow-2xl"
+          <div className="bg-(--surface) border border-(--border) rounded-2xl p-7 w-80 shadow-2xl"
             onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-5">
               <h4 className="text-white font-semibold">
                 {lang === "uk" ? "Редагувати подію" : "Edit event"}
               </h4>
-              <button onClick={() => setEditModal(null)} className="text-[var(--muted)] hover:text-white"><X size={16} /></button>
+              <button onClick={() => setEditModal(null)} className="text-(--muted) hover:text-white"><X size={16} /></button>
             </div>
 
             <div className="space-y-3 mb-5">
               <div>
-                <label className="block text-[10px] font-mono uppercase tracking-widest text-[var(--muted)] mb-1.5">{labels.type_label}</label>
+                <label className="block text-[10px] font-mono uppercase tracking-widest text-(--muted) mb-1.5">{labels.type_label}</label>
                 <select
                   value={editModal.type}
                   onChange={(e) => setEditModal({ ...editModal, type: e.target.value as ChipType })}
-                  className="w-full bg-[#161b22] border border-[var(--border)] text-white text-sm rounded-lg px-3 py-2 focus:outline-none"
+                  className="w-full bg-[#161b22] border border-(--border) text-white text-sm rounded-lg px-3 py-2 focus:outline-hidden"
                 >
                   {typeOptions.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-[10px] font-mono uppercase tracking-widest text-[var(--muted)] mb-1.5">{labels.name_label}</label>
+                <label className="block text-[10px] font-mono uppercase tracking-widest text-(--muted) mb-1.5">{labels.name_label}</label>
                 <input
                   type="text"
                   value={editModal.label}
                   onChange={(e) => setEditModal({ ...editModal, label: e.target.value })}
                   onKeyDown={(e) => e.key === "Enter" && saveEdit()}
-                  className="w-full bg-[#161b22] border border-[var(--border)] text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-[#00e5c4]/40"
+                  className="w-full bg-[#161b22] border border-(--border) text-white text-sm rounded-lg px-3 py-2 focus:outline-hidden focus:border-accent-cyan/40"
                 />
               </div>
             </div>
 
             <div className="flex gap-3">
               <button onClick={() => setEditModal(null)}
-                className="flex-1 py-2 text-sm text-[var(--muted)] border border-[var(--border)] rounded-lg hover:bg-white/[0.04] transition-colors">
+                className="flex-1 py-2 text-sm text-(--muted) border border-(--border) rounded-lg hover:bg-white/4 transition-colors">
                 {labels.cancel}
               </button>
               <button onClick={saveEdit} disabled={saving || !editModal.label.trim()}
-                className="flex-1 py-2 text-sm text-[#0d1117] bg-[#00e5c4] hover:bg-[#00c9ab] disabled:opacity-50 rounded-lg font-semibold transition-colors">
+                className="flex-1 py-2 text-sm text-[#0d1117] bg-accent-cyan hover:bg-[#00c9ab] disabled:opacity-50 rounded-lg font-semibold transition-colors">
                 {saving ? "…" : (lang === "uk" ? "Зберегти" : "Save")}
               </button>
             </div>
@@ -852,52 +852,52 @@ export default function MarketingCalendar({ initialEvents }: { initialEvents: Db
       {addModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
           onClick={() => setAddModal(null)}>
-          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-7 w-80 shadow-2xl"
+          <div className="bg-(--surface) border border-(--border) rounded-2xl p-7 w-80 shadow-2xl"
             onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-5">
               <h4 className="text-white font-semibold">{labels.add_event_title}</h4>
-              <button onClick={() => setAddModal(null)} className="text-[var(--muted)] hover:text-white"><X size={16} /></button>
+              <button onClick={() => setAddModal(null)} className="text-(--muted) hover:text-white"><X size={16} /></button>
             </div>
 
             <div className="space-y-3 mb-5">
               <div>
-                <label className="block text-[10px] font-mono uppercase tracking-widest text-[var(--muted)] mb-1.5">{labels.type_label}</label>
+                <label className="block text-[10px] font-mono uppercase tracking-widest text-(--muted) mb-1.5">{labels.type_label}</label>
                 <select value={newEvent.type} onChange={(e) => setNewEvent({ ...newEvent, type: e.target.value as ChipType })}
-                  className="w-full bg-[#161b22] border border-[var(--border)] text-white text-sm rounded-lg px-3 py-2 focus:outline-none">
+                  className="w-full bg-[#161b22] border border-(--border) text-white text-sm rounded-lg px-3 py-2 focus:outline-hidden">
                   {typeOptions.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-[10px] font-mono uppercase tracking-widest text-[var(--muted)] mb-1.5">{labels.channel_label}</label>
+                <label className="block text-[10px] font-mono uppercase tracking-widest text-(--muted) mb-1.5">{labels.channel_label}</label>
                 <select value={addModal.row} onChange={(e) => setAddModal({ ...addModal, row: e.target.value })}
-                  className="w-full bg-[#161b22] border border-[var(--border)] text-white text-sm rounded-lg px-3 py-2 focus:outline-none">
+                  className="w-full bg-[#161b22] border border-(--border) text-white text-sm rounded-lg px-3 py-2 focus:outline-hidden">
                   {ROWS.filter((r) => r.t === "r").map((r) => <option key={r.k} value={r.k}>{r.l}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-[10px] font-mono uppercase tracking-widest text-[var(--muted)] mb-1.5">{labels.week_label}</label>
+                <label className="block text-[10px] font-mono uppercase tracking-widest text-(--muted) mb-1.5">{labels.week_label}</label>
                 <select value={addModal.week} onChange={(e) => setAddModal({ ...addModal, week: e.target.value })}
-                  className="w-full bg-[#161b22] border border-[var(--border)] text-white text-sm rounded-lg px-3 py-2 focus:outline-none">
+                  className="w-full bg-[#161b22] border border-(--border) text-white text-sm rounded-lg px-3 py-2 focus:outline-hidden">
                   {WEEKS.map((w) => <option key={w.k} value={w.k}>{w.l} · {w.d}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-[10px] font-mono uppercase tracking-widest text-[var(--muted)] mb-1.5">{labels.name_label}</label>
+                <label className="block text-[10px] font-mono uppercase tracking-widest text-(--muted) mb-1.5">{labels.name_label}</label>
                 <input type="text" value={newEvent.label}
                   onChange={(e) => setNewEvent({ ...newEvent, label: e.target.value })}
                   onKeyDown={(e) => e.key === "Enter" && addEvent()}
                   placeholder={labels.name_ph}
-                  className="w-full bg-[#161b22] border border-[var(--border)] text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-[#00e5c4]/40 placeholder:text-[#3d444d]" />
+                  className="w-full bg-[#161b22] border border-(--border) text-white text-sm rounded-lg px-3 py-2 focus:outline-hidden focus:border-accent-cyan/40 placeholder:text-[#3d444d]" />
               </div>
             </div>
 
             <div className="flex gap-3">
               <button onClick={() => setAddModal(null)}
-                className="flex-1 py-2 text-sm text-[var(--muted)] border border-[var(--border)] rounded-lg hover:bg-white/[0.04] transition-colors">
+                className="flex-1 py-2 text-sm text-(--muted) border border-(--border) rounded-lg hover:bg-white/4 transition-colors">
                 {labels.cancel}
               </button>
               <button onClick={addEvent} disabled={saving || !newEvent.label.trim()}
-                className="flex-1 py-2 text-sm text-[#0d1117] bg-[#00e5c4] hover:bg-[#00c9ab] disabled:opacity-50 rounded-lg font-semibold transition-colors">
+                className="flex-1 py-2 text-sm text-[#0d1117] bg-accent-cyan hover:bg-[#00c9ab] disabled:opacity-50 rounded-lg font-semibold transition-colors">
                 {saving ? "…" : labels.add_btn}
               </button>
             </div>

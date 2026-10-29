@@ -8,7 +8,7 @@ import ConnectorDiagnostics from "./ConnectorDiagnostics";
 import { isPublicConnection } from "@/lib/connectors/public-connection";
 import type { PublicConnection } from "@/lib/connectors/contract";
 const button =
-  "min-h-11 rounded-lg border border-[var(--border)] px-4 py-2 text-sm text-[var(--text)] hover:bg-[var(--input-hover)] disabled:opacity-50";
+  "min-h-11 rounded-lg border border-(--border) px-4 py-2 text-sm text-(--text) hover:bg-(--input-hover) disabled:opacity-50";
 export default function KeyCrmConnectionCard({
   initial,
   lang,
@@ -192,18 +192,18 @@ export default function KeyCrmConnectionCard({
       aria-labelledby="keycrm-heading"
     >
       <div>
-        <h2 id="keycrm-heading" className="font-semibold text-[var(--text)]">
+        <h2 id="keycrm-heading" className="font-semibold text-(--text)">
           KeyCRM
         </h2>
-        <p className="mt-1 max-w-3xl text-sm text-[var(--muted)]">
+        <p className="mt-1 max-w-3xl text-sm text-(--muted)">
           {copy(
             "Лише читання з фіксованого API KeyCRM. Ключ зберігається зашифрованим і не повертається у відповідях.",
             "Read-only requests to the fixed KeyCRM API. The key is encrypted and never returned in responses.",
           )}
         </p>
       </div>
-      <div className="space-y-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
-        <p className="text-sm text-[var(--muted)]">
+      <div className="space-y-4 rounded-xl border border-(--border) bg-(--surface) p-4 sm:p-5">
+        <p className="text-sm text-(--muted)">
           {connection.configured
             ? copy("Підключено: ", "Configured: ") + connection.accountHost
             : copy("Не налаштовано", "Not configured")}
@@ -213,7 +213,7 @@ export default function KeyCrmConnectionCard({
             "20 requests/minute/key. Supplier receipts and refunds remain unverified; automatic sync is disabled.",
           )}
         </p>
-        <p className="text-xs text-[var(--muted)]">
+        <p className="text-xs text-(--muted)">
           {copy(
             "Успішне читання не доводить, що ключ не має прав запису. Перевірте права виданого ключа в KeyCRM. Власність брендів, комісії й умови постачальників задаються окремо в Settings.",
             "Successful reads do not prove the key has no write permissions. Verify issued-key permissions in KeyCRM. Configure brand ownership, commissions and supplier terms separately in Settings.",
@@ -289,7 +289,7 @@ export default function KeyCrmConnectionCard({
                   />
                 </Field>
               </div>
-              <p className="text-xs text-[var(--muted)]">
+              <p className="text-xs text-(--muted)">
                 {copy(
                   "Використовуйте стабільний ID і часовий пояс для цього акаунту. Для зміни мапінгу підвищуйте версію; після оновлення повторно введіть ключ. Перше збереження може бути без підтвердженої фінансової моделі.",
                   "Keep account ID and timezone stable. Increase the revision when changing mappings and re-enter the key on updates. The first save can omit verified financial mappings.",
@@ -297,7 +297,7 @@ export default function KeyCrmConnectionCard({
               </p>
               <StatusMappingFields rows={statuses} lang={lang} onChange={rows=>{mutate();setStatuses(rows);}} />
               <fieldset className="space-y-3">
-                <legend className="text-sm text-[var(--text)]">
+                <legend className="text-sm text-(--text)">
                   {copy("Канали", "Channels")}
                 </legend>
                 {channels.map((s, i) => (
@@ -405,7 +405,7 @@ export default function KeyCrmConnectionCard({
               ].map(([checked, setter, label], i) => (
                 <label
                   key={i}
-                  className="flex items-start gap-2 text-sm text-[var(--muted)]"
+                  className="flex items-start gap-2 text-sm text-(--muted)"
                 >
                   <input
                     type="checkbox"
@@ -430,7 +430,7 @@ export default function KeyCrmConnectionCard({
                   spellCheck={false}
                 />
               </Field>
-              <details className="space-y-3 text-sm text-[var(--muted)]">
+              <details className="space-y-3 text-sm text-(--muted)">
                 <summary className="cursor-pointer">
                   {copy(
                     "Підтверджений доступний період історії (необов’язково)",
@@ -469,7 +469,7 @@ export default function KeyCrmConnectionCard({
                   />
                 </Field>
               </details>
-              <label className="flex items-start gap-2 text-sm text-[var(--text)]">
+              <label className="flex items-start gap-2 text-sm text-(--text)">
                 <input
                   type="checkbox"
                   name="mappingApproved"
@@ -504,13 +504,13 @@ export default function KeyCrmConnectionCard({
             ref={alert}
             tabIndex={-1}
             role="alert"
-            className="text-sm text-[var(--text)]"
+            className="text-sm text-(--text)"
           >
             {error}
           </p>
         )}
         {status && (
-          <p role="status" className="text-sm text-[var(--muted)]">
+          <p role="status" className="text-sm text-(--muted)">
             {status}
           </p>
         )}

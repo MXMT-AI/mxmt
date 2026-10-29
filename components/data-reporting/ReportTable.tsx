@@ -39,7 +39,7 @@ export default function ReportTable({
       aria-label={locale === "uk-UA" ? "Таблиця звіту" : "Report table"}
     >
       <table className="w-full min-w-max border-collapse text-xs">
-        <thead className="sticky top-0 z-10 bg-[var(--surface2)]">
+        <thead className="sticky top-0 z-10 bg-(--surface2)">
           <tr>
             {columns.map((column) => (
               <th
@@ -52,14 +52,14 @@ export default function ReportTable({
                       : "descending"
                     : undefined
                 }
-                className="border-b border-r last:border-r-0 border-[var(--border)] px-3 py-2.5 text-left font-semibold text-[var(--muted)] whitespace-nowrap"
+                className="border-b border-r last:border-r-0 border-(--border) px-3 py-2.5 text-left font-semibold text-(--muted) whitespace-nowrap"
               >
                 {isSortable(column) ? (
                   <button
                     type="button"
                     disabled={!isSortable(column)}
                     onClick={() => onSort?.(column)}
-                    className="inline-flex items-center gap-1.5 disabled:cursor-default hover:text-[var(--text)] disabled:hover:text-inherit focus-visible:outline focus-visible:outline-2"
+                    className="inline-flex items-center gap-1.5 disabled:cursor-default hover:text-(--text) disabled:hover:text-inherit focus-visible:outline-solid focus-visible:outline-2"
                   >
                     {column.label}
                     {sortColumn === column.key &&
@@ -80,13 +80,13 @@ export default function ReportTable({
           {rows.map((row, index) => (
             <tr
               key={`${String(row.id ?? index)}:${String(row.currency ?? "")}`}
-              className="border-b last:border-b-0 border-[var(--border-faint)] hover:bg-[var(--input-bg)]"
+              className="border-b last:border-b-0 border-(--border-faint) hover:bg-(--input-bg)"
             >
               {columns.map((column) => (
                 <td
                   key={column.key}
                   style={getCellStyle?.(row, column)}
-                  className={`max-w-md border-r last:border-r-0 border-[var(--border-faint)] px-3 py-2 text-[var(--text)] ${column.type === "text" || column.type === "source" ? "text-left" : "text-right tabular-nums"}`}
+                  className={`max-w-md border-r last:border-r-0 border-(--border-faint) px-3 py-2 text-(--text) ${column.type === "text" || column.type === "source" ? "text-left" : "text-right tabular-nums"}`}
                 >
                   {renderCell ? (
                     renderCell(row, column)

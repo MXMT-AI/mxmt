@@ -27,13 +27,13 @@ function Files({
           .map((file) => (
             <li key={file.id} className="min-w-0 text-sm">
               <a
-                className="underline underline-offset-4 break-all focus-visible:outline focus-visible:outline-2"
+                className="underline underline-offset-4 break-all focus-visible:outline-solid focus-visible:outline-2"
                 href={file.url}
                 download={file.name}
               >
                 {copy.download}: {file.name}
               </a>
-              <span className="ml-2 text-xs text-[var(--muted)]">
+              <span className="ml-2 text-xs text-(--muted)">
                 {file.rowCount} {copy.rows} · {file.currency}
               </span>
             </li>
@@ -139,7 +139,7 @@ export default function ScenarioExportPanel({
             {state.history.map((receipt) => (
               <li
                 key={receipt.exportId}
-                className="border-t border-[var(--border)] pt-3 space-y-2"
+                className="border-t border-(--border) pt-3 space-y-2"
               >
                 <p className="text-sm">
                   {exportKindLabel(receipt.kind, lang)} ·{" "}

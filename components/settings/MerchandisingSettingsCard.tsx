@@ -39,9 +39,9 @@ function currentKyivMonth() {
   return `${parts.find((p) => p.type === "year")?.value}-${parts.find((p) => p.type === "month")?.value}`;
 }
 const inputClass =
-  "mt-1 block w-full min-w-0 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--text)]";
+  "mt-1 block w-full min-w-0 rounded-lg border border-(--border) bg-(--surface) px-3 py-2 text-sm text-(--text) focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--text)";
 const buttonClass =
-  "touch-manipulation rounded-lg border border-[var(--border)] px-3 py-2 text-sm text-[var(--text)] hover:bg-[var(--bg)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--text)] disabled:cursor-not-allowed disabled:opacity-50";
+  "touch-manipulation rounded-lg border border-(--border) px-3 py-2 text-sm text-(--text) hover:bg-(--bg) focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--text) disabled:cursor-not-allowed disabled:opacity-50";
 /** Shared labelled control keeps server field errors adjacent to their input. */
 function Field({
   name,
@@ -56,7 +56,7 @@ function Field({
 }) {
   return (
     <div className="min-w-0">
-      <label htmlFor={`merch-${name}`} className="text-sm text-[var(--muted)]">
+      <label htmlFor={`merch-${name}`} className="text-sm text-(--muted)">
         {label}
       </label>
       {children}
@@ -156,15 +156,15 @@ export default function MerchandisingSettingsCard({
   return (
     <section
       aria-labelledby="merchandising-settings-title"
-      className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5"
+      className="rounded-xl border border-(--border) bg-(--surface) p-5"
     >
       <h2
         id="merchandising-settings-title"
-        className="font-semibold text-[var(--text)]"
+        className="font-semibold text-(--text)"
       >
         {uk ? "Правила мерчандайзингу" : "Merchandising rules"}
       </h2>
-      <p className="mt-1 text-sm text-[var(--muted)]">
+      <p className="mt-1 text-sm text-(--muted)">
         {uk
           ? "Налаштування клієнта, власності й постачання. Зміни зберігаються з версією та журналом."
           : "Client, ownership and supply policies. Changes retain revisions and an audit trail."}
@@ -179,7 +179,7 @@ export default function MerchandisingSettingsCard({
             type="button"
             aria-pressed={resource === key}
             className={
-              buttonClass + (resource === key ? " bg-[var(--bg)]" : "")
+              buttonClass + (resource === key ? " bg-(--bg)" : "")
             }
             onClick={() => {
               if (key !== resource && leave()) {
@@ -199,7 +199,7 @@ export default function MerchandisingSettingsCard({
         ))}
       </nav>
       {notice && (
-        <p role="status" className="mt-3 text-sm text-[var(--muted)]">
+        <p role="status" className="mt-3 text-sm text-(--muted)">
           {notice}
         </p>
       )}
@@ -209,7 +209,7 @@ export default function MerchandisingSettingsCard({
         </p>
       )}
       {loading && (
-        <p role="status" className="mt-3 text-sm text-[var(--muted)]">
+        <p role="status" className="mt-3 text-sm text-(--muted)">
           {uk ? "Завантаження…" : "Loading…"}
         </p>
       )}
@@ -226,7 +226,7 @@ export default function MerchandisingSettingsCard({
             }
           }}
         >
-          <label className="min-w-0 flex-1 text-sm text-[var(--muted)]">
+          <label className="min-w-0 flex-1 text-sm text-(--muted)">
             {uk ? "Пошук назви або SKU" : "Search name or SKU"}
             <input
               className={inputClass}
@@ -244,7 +244,7 @@ export default function MerchandisingSettingsCard({
         <>
           {resource !== "client" && (
             <div className="mt-4 flex flex-wrap items-end gap-2">
-              <label className="min-w-0 flex-1 text-sm text-[var(--muted)]">
+              <label className="min-w-0 flex-1 text-sm text-(--muted)">
                 {labels[resource]}
                 <select
                   className={inputClass}
@@ -315,7 +315,7 @@ export default function MerchandisingSettingsCard({
               }}
             />
           ) : (
-            <p className="mt-4 text-sm text-[var(--muted)]">
+            <p className="mt-4 text-sm text-(--muted)">
               {uk
                 ? "Записів ще немає. Імпортуйте каталог, щоб налаштувати бренди, товари й категорії."
                 : "No records yet. Import a catalog to configure brands, products and categories."}
@@ -336,7 +336,7 @@ export default function MerchandisingSettingsCard({
               >
                 {uk ? "Назад" : "Previous"}
               </button>
-              <span className="text-sm text-[var(--muted)]">
+              <span className="text-sm text-(--muted)">
                 {page} /{" "}
                 {Math.max(1, Math.ceil(data.pagination.totalRows / 25))}
               </span>
@@ -357,10 +357,10 @@ export default function MerchandisingSettingsCard({
           )}
         </>
       )}
-      <p className="mt-5 text-sm text-[var(--muted)]">
+      <p className="mt-5 text-sm text-(--muted)">
         <a
           href="/settings?tab=general#data-quality-title"
-          className="underline focus-visible:outline"
+          className="underline focus-visible:outline-solid"
         >
           {uk
             ? "Аліаси брендів і типи товарів — у «Якість даних»."
@@ -609,7 +609,7 @@ function SettingsEditor({
   return (
     <>
       <form ref={formRef} className="mt-5 space-y-5" onSubmit={save} noValidate>
-        <p className="text-sm text-[var(--muted)]">
+        <p className="text-sm text-(--muted)">
           {uk ? "Ревізія" : "Revision"}: {revision}
           {!revision &&
             (uk
@@ -832,7 +832,7 @@ function SettingsEditor({
                   ? "ID статусів-продажів, через кому"
                   : "Sale status IDs, comma separated",
               )}
-              <label className="flex items-center gap-2 self-end py-2 text-sm text-[var(--text)]">
+              <label className="flex items-center gap-2 self-end py-2 text-sm text-(--text)">
                 <input
                   type="checkbox"
                   checked={Boolean(values.saleStatusesVerified)}
@@ -990,14 +990,14 @@ function SettingsEditor({
               }
               className="sm:col-span-2"
             >
-              <legend className="text-sm text-[var(--muted)]">
+              <legend className="text-sm text-(--muted)">
                 {uk ? "Місяці сезону" : "Season months"}
               </legend>
               <div className="mt-2 flex flex-wrap gap-3">
                 {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
                   <label
                     key={month}
-                    className="flex items-center gap-1 text-sm text-[var(--text)]"
+                    className="flex items-center gap-1 text-sm text-(--text)"
                   >
                     <input
                       type="checkbox"
@@ -1125,18 +1125,18 @@ function PolicyPreview({
   const policy = result?.policy as Record<string, unknown> | undefined,
     preview = result?.preview as Record<string, unknown> | undefined;
   return (
-    <form className="mt-6 border-t border-[var(--border)] pt-4" onSubmit={run}>
-      <h3 className="font-medium text-[var(--text)]">
+    <form className="mt-6 border-t border-(--border) pt-4" onSubmit={run}>
+      <h3 className="font-medium text-(--text)">
         {uk ? "Перевірка збережених правил SKU" : "Check saved SKU policy"}
       </h3>
-      <p className="mt-1 text-sm text-[var(--muted)]">
+      <p className="mt-1 text-sm text-(--muted)">
         {uk
           ? "Тестовий розрахунок на введених числах. Не змінює звітів."
           : "Test calculation using entered numbers. Does not change reports."}
       </p>
       <div className="mt-3 grid grid-cols-2 gap-3">
         {Object.entries(values).map(([field, value]) => (
-          <label key={field} className="text-sm text-[var(--muted)]">
+          <label key={field} className="text-sm text-(--muted)">
             {
               (
                 {
@@ -1177,7 +1177,7 @@ function PolicyPreview({
       {preview && policy && (
         <div
           role="status"
-          className="mt-3 space-y-1 text-sm text-[var(--text)]"
+          className="mt-3 space-y-1 text-sm text-(--text)"
         >
           <p>
             {uk ? "Власність" : "Ownership"}:{" "}
