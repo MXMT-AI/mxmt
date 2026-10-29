@@ -283,3 +283,10 @@ TypeScript 6.0.3 validation: tsc passed without suppressions or application chan
 ## Block 12 — TypeScript 7
 
 Reviewed https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/ before mutation. Native compiler retains tsc CLI but removes deprecated configuration/API assumptions; strict bundler project already compiles on 6 with no ignoreDeprecations. No compiler API imports exist in application source. Preserve explicit target/types/rootDir and verify Next's own type-check integration, not just standalone tsc. Install only stable 7.0.2, not 7.1 beta.
+
+
+TypeScript 7.0.2 validation complete: tsc, 166 files / 1,647 passed / one optional workbook skip, MVP 80 files / 965 passed, independent npm ci and both Next 16 builds. No application/type assertion changes or strictness suppressions required.
+
+## Block 13 — Vitest 5
+
+Before mutation reviewed https://vitest.dev/guide/migration/. Verified stable Vitest 5.0.5, Vite 8.3.5 peer and Node requirements. Relevant changes: Vite becomes peer, clearMocks defaults true, hoisted mocking calls must be top-level. No projects/browser custom runner configuration is used. Preserve prior explicit mock-history behavior with clearMocks:false rather than silently changing the meaning of cross-test call assertions; existing tests continue clearing mocks where intended. Rename config to .mts for native ESM loading, resolving the previous Vite warning without converting the entire package. No skips or timeouts will be added to bypass regressions.
