@@ -1,5 +1,5 @@
 import { it, expect, vi } from "vitest";
-import { refreshSelectedSheetsReports } from "@/lib/client/sheets-reporting";
+import { selectedSheetsProjectionIntent, refreshSelectedSheetsReports } from "@/lib/client/sheets-reporting";
 const response = (value: unknown, status = 200) =>
   new Response(JSON.stringify(value), { status });
 it("keeps source selection explicit and does not project when SalesDrive is selected", async () => {
@@ -70,4 +70,17 @@ it("does not project an unrelated import or bypass a missing mapping", async () 
     refreshSelectedSheetsReports(undefined, missing),
   ).rejects.toMatchObject({ code: "SHEETS_MAPPING_REQUIRED" });
   expect(missing).toHaveBeenCalledTimes(2);
+});
+
+it("reads refresh readiness from the selected source even when a different latest Sheets source has no import", async () => {
+  const fetcher = vi.fn()
+    .mockResolvedValueOnce(response({ sourceId: "saved", connections: [
+      { sourceId: "latest-empty", provider: "sheets" },
+      { sourceId: "saved", provider: "sheets" },
+    ] }))
+    .mockResolvedValueOnce(response({ importRunId: "saved-run", mappingId: "approved", selectionRevision: 4 }));
+  const selected = await selectedSheetsProjectionIntent(fetcher);
+  expect(selected?.intent.importRunId).toBe("saved-run");
+  expect(fetcher.mock.calls[1][0]).toBe("/api/connectors/sheets/projection/saved");
+  expect(fetcher).toHaveBeenCalledTimes(2);
 });

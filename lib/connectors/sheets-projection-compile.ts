@@ -29,6 +29,9 @@ const bounded = (v: unknown, max: number) => {
   const s = scalar(v);
   return s && s.length <= max && !/[\p{Cc}\p{Cf}\p{Cs}]/u.test(s) ? s : null;
 };
+export function isCompilableSheetsProduct(id: unknown, name: unknown) {
+  return Boolean(bounded(id, 200) && bounded(name, 1000));
+}
 import { sheetsOrderPolicy } from "./sheets-order-policy";
 export { sheetsOrderPolicy } from "./sheets-order-policy";
 /** Compile selected immutable columns only. No status, date, history or ownership inference. */
@@ -182,7 +185,10 @@ export function compileSheetsProjection(
       const quantity = read(row, "orders", "quantity"),
         amount = read(row, "orders", "salesAmount"),
         cost = read(row, "orders", "costAmount");
-      const kind = policy.statuses?.[orderValue("statusId") ?? ""] ?? "UNKNOWN";
+      const status = orderValue("statusId") ?? "";
+      const kind = policy.statuses && Object.hasOwn(policy.statuses, status)
+        ? policy.statuses[status]
+        : "UNKNOWN";
       const q = exact(quantity),
         a = exact(amount);
       if (

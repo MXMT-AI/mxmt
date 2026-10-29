@@ -5,6 +5,7 @@ import {
 } from "./connectors/sheets-mapping-validation";
 import {
   compileSheetsProjection,
+  isCompilableSheetsProduct,
   sheetsOrderPolicy,
 } from "./connectors/sheets-projection-compile";
 import { normalizeOrder } from "./connectors/order-normalization";
@@ -92,6 +93,10 @@ export function inspectSheetsOffline(buffer: Buffer, observedAt: string) {
       findings.add(`ORDER_COLUMN_REQUIRED:${field}`);
   if (!diagnostic.orders.productId && !diagnostic.orders.sku)
     findings.add("ORDER_PRODUCT_IDENTITY_REQUIRED");
+  if (!products.some((row) => isCompilableSheetsProduct(
+    field(row, "products", "productId"),
+    field(row, "products", "name"),
+  ))) findings.add("EMPTY_PRODUCT_SNAPSHOT");
   let structural: {
     products: number;
     orders: number;
@@ -138,7 +143,17 @@ export function inspectSheetsOffline(buffer: Buffer, observedAt: string) {
       products: suggestion.products,
       orders: suggestion.orders,
     },
-    issues: { ...summary, problems: undefined }, // Reports contain aggregate counts, never product/order values or raw rows.
+    issues: {
+      counts: summary.counts,
+      invalidRows: summary.invalidRows,
+      unmappedStatuses: summary.unmappedStatuses,
+      unverifiedProductKinds: summary.unverifiedProductKinds,
+      duplicateProductIds: summary.duplicateProductIds,
+      duplicateOrderLines: summary.duplicateOrderLines,
+      problemCount: summary.problemCount,
+      blockingErrors: summary.blockingErrors,
+      warnings: summary.warnings,
+    }, // Reports contain aggregate counts, never product/order values or raw rows.
     findings: [...findings],
     identity,
     structural,

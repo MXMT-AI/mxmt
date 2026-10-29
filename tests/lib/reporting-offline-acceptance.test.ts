@@ -15,13 +15,13 @@ import type { SheetsMappingInput } from "@/lib/sheets-mapping-contract";
 import { inspectSheetsOffline } from "@/lib/sheets-offline-acceptance";
 import { savePrivate } from "@/lib/reconciliation-files.mjs";
 const instant = "2026-10-29T12:00:00.000Z";
-function fixture() {
+function fixture(name = "Private fixture name") {
   const book = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(
     book,
     XLSX.utils.aoa_to_sheet([
-      ["ID", "Name", "Price", "Vendor Price", "Stock Qty", "Article"],
-      ["p", "Private fixture name", 10, 4, 3, "sku"],
+      ["ID", "Name", "Price", "Vendor Price", "Stock Qty", "Article", "Category"],
+      ["p", name, 10, 4, 3, "sku", "Private fixture category"],
     ]),
     "Product YML 2.0",
   );
@@ -56,7 +56,7 @@ it("diagnoses a real workbook shape without approving statuses, currency or fina
   });
   expect(result.issues.unmappedStatuses).toBe(1);
   expect(JSON.stringify(result)).not.toMatch(
-    /Private fixture name|private-order/,
+    /Private fixture name|private-order|Private fixture category/,
   );
   expect(result.unapproved).toContain("STATUS_MEANINGS");
 });
@@ -170,4 +170,20 @@ it("normalizes equivalent synthetic Sheets line totals and SalesDrive unit amoun
     cost: "6",
   });
   expect(transport).toHaveBeenCalledTimes(1);
+});
+
+it("returns a diagnostic finding instead of throwing when all product names are blank", () => {
+  const result = inspectSheetsOffline(fixture("   "), instant);
+  expect(result.findings).toContain("EMPTY_PRODUCT_SNAPSHOT");
+  expect(result.structural).toBeNull();
+  expect(result.financialRows).toBe(0);
+  expect(result.activated).toBe(false);
+});
+it("saves only allowlisted aggregates without source-keyed dictionaries", () => {
+  const result = inspectSheetsOffline(fixture(), instant);
+  expect(result.issues).not.toHaveProperty("categoryCounts");
+  expect(result.issues).not.toHaveProperty("statusCounts");
+  expect(result.issues).not.toHaveProperty("channelCounts");
+  expect(result.issues).not.toHaveProperty("problems");
+  expect(JSON.stringify(result)).not.toContain("Private fixture category");
 });

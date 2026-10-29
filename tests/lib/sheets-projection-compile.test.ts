@@ -155,3 +155,28 @@ it("keeps missing and future stock timestamps unavailable", () => {
   expect(compiled.stockProductIds).toEqual([]);
   expect(compiled.issues).toContain("STOCK_OBSERVATION_UNVERIFIED");
 });
+
+it.each(["constructor", "toString", "__proto__"])("treats inherited status/channel %s as unverified throughout compilation and normalization", (key) => {
+  const m = mapping();
+  const compiled = compileSheetsProjection(input, m, {
+    products: [product()], orders: [order({ statusId: key, channelId: key })],
+  });
+  const result = normalizeOrder(compiled.orders[0], input.timezone, sheetsOrderPolicy(m));
+  expect(result.lines[0].kind).toBe("UNKNOWN");
+  expect(result.lines[0].signedRevenue).toBeNull();
+  expect(result.issues).toContain("STATUS_MAPPING_UNVERIFIED");
+  expect(result.issues).toContain("CHANNEL_MAPPING_UNVERIFIED");
+  expect(JSON.parse(JSON.stringify(result.lines[0])).kind).toBe("UNKNOWN");
+});
+it("accepts explicitly owned prototype-named status and channel mappings", () => {
+  const m = mapping();
+  m.policy.statuses = { constructor: "SALE" as const };
+  m.policy.channels = { constructor: "Explicit channel" };
+  const compiled = compileSheetsProjection(input, m, {
+    products: [product()], orders: [order({ statusId: "constructor", channelId: "constructor" })],
+  });
+  const result = normalizeOrder(compiled.orders[0], input.timezone, sheetsOrderPolicy(m));
+  expect(result.lines[0].kind).toBe("SALE");
+  expect(result.lines[0].signedRevenue?.toString()).toBe("10.0001");
+  expect(result.issues).not.toContain("CHANNEL_MAPPING_UNVERIFIED");
+});

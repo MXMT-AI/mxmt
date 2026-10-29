@@ -35,9 +35,10 @@ export function normalizeOrder(order: OrderDto, timezone: string, policy: OrderP
   const ordered = sourceDate(order.orderedAt, timezone), paid = sourceDate(order.paidAt, timezone);
   if (order.orderedAt && !ordered.date || order.paidAt && !paid.date) issues.add("INVALID_SOURCE_DATE");
   if (paid.precision === "date") issues.add("PAYMENT_DATE_PRECISION");
-  const kind = policy.statuses?.[order.statusId ?? ""] ?? "UNKNOWN";
+  const statusKey = order.statusId ?? "";
+  const kind = policy.statuses && Object.hasOwn(policy.statuses, statusKey) ? policy.statuses[statusKey] : "UNKNOWN";
   if (kind === "UNKNOWN") issues.add("STATUS_MAPPING_UNVERIFIED");
-  if (!policy.channels?.[order.channelId ?? ""]) issues.add("CHANNEL_MAPPING_UNVERIFIED");
+  if (!policy.channels || !Object.hasOwn(policy.channels, order.channelId ?? "") || !policy.channels[order.channelId ?? ""]) issues.add("CHANNEL_MAPPING_UNVERIFIED");
   const returned = sourceDate(order.returnedAt ?? (policy.dates?.returnDateField && typeof order.raw?.[policy.dates.returnDateField]==='string' ? order.raw[policy.dates.returnDateField] as string : null), timezone);
   const dateInferred=kind==='SALE' && !paid.date && Boolean(policy.dates?.saleOrderTimeFallback && ordered.date);
   const effectivePaid=dateInferred?ordered:paid;

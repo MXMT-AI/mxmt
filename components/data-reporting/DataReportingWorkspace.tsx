@@ -14,7 +14,13 @@ import {
   Search,
   UploadCloud,
 } from "lucide-react";
-import {refreshSelectedSheetsReports,SheetsReportingRefreshError,sheetsRefreshMessage} from "@/lib/client/sheets-reporting";
+import {
+  selectedSheetsProjectionIntent,
+  refreshSelectedSheetsReports,
+  SheetsReportingRefreshError,
+  sheetsRefreshMessage,
+} from "@/lib/client/sheets-reporting";
+import { apiFetch } from "@/lib/fetch";
 import Link from "next/link";
 import ReportTable from "./ReportTable";
 import { useLang } from "@/components/LanguageProvider";
@@ -220,6 +226,7 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
   const [action, setAction] = useState<"import" | "calculate" | "projection" | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [reportsReady,setReportsReady]=useState(false);
+  const [canRefreshReports, setCanRefreshReports] = useState(false);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [periodError, setPeriodError] = useState<string | null>(null);
@@ -252,6 +259,22 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
     void loadStatus(controller.signal);
     return () => controller.abort();
   }, [loadStatus, reloadVersion]);
+
+  useEffect(() => {
+    if (!canImport) return;
+    const controller = new AbortController();
+    setCanRefreshReports(false);
+    void selectedSheetsProjectionIntent((path, init) =>
+      apiFetch(path, { ...init, cache: "no-store", signal: controller.signal }),
+    )
+      .then((intent) => {
+        if (!controller.signal.aborted) setCanRefreshReports(intent !== null);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setCanRefreshReports(false);
+      });
+    return () => controller.abort();
+  }, [canImport, reloadVersion]);
 
   useEffect(() => {
     if (statusLoading || periodInitialized.current) return;
@@ -438,7 +461,7 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
               {action === "calculate" ? copy.calculating : copy.calculate}
             </button>
           )}
-          {canImport && <button type="button" onClick={()=>void runAction("projection")} disabled={action!==null||!status?.activeImport}
+          {canImport && <button type="button" onClick={()=>void runAction("projection")} disabled={action!==null||!canRefreshReports}
             className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-[var(--border)] text-sm text-[var(--text)] disabled:opacity-50 focus-visible:outline focus-visible:outline-2">
             {action==="projection"?<LoaderCircle size={14} className="animate-spin"/>:<RefreshCw size={14}/>}{lang==="uk"?"Оновити MVP-звіти":"Refresh MVP reports"}
           </button>}

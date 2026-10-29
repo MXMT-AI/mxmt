@@ -6,32 +6,44 @@ export class SheetsReportingRefreshError extends Error {
     super(code);
   }
 }
+async function sheetsJson(
+  fetcher: typeof apiFetch,
+  path: string,
+  init?: RequestInit,
+) {
+  const r = await fetcher(path, init), body = await readApiJson(r);
+  if (!r.ok)
+    throw new SheetsReportingRefreshError(
+      typeof body.code === "string" ? body.code : "SHEETS_REFRESH_FAILED",
+    );
+  return body;
+}
+/** Read readiness from the selected source, independently of the legacy Sheets tab. */
+export async function selectedSheetsProjectionIntent(
+  fetcher: typeof apiFetch = apiFetch,
+) {
+  const sources = (await sheetsJson(
+    fetcher, "/api/connectors/source",
+  )) as unknown as ReportingSources;
+  const chosen = sources.connections.find(
+    (c) => c.sourceId === sources.sourceId,
+  );
+  if (chosen?.provider !== "sheets") return null;
+  const path = `/api/connectors/sheets/projection/${encodeURIComponent(chosen.sourceId)}`;
+  const intent = await sheetsJson(fetcher, path);
+  return { path, intent };
+}
 /** Separate requests preserve the bounded projection budget after the raw import finishes. */
 export async function refreshSelectedSheetsReports(
   expectedImportRunId?: string,
   fetcher: typeof apiFetch = apiFetch,
 ) {
-  const json = async (path: string, init?: RequestInit) => {
-    const r = await fetcher(path, init),
-      body = await readApiJson(r);
-    if (!r.ok)
-      throw new SheetsReportingRefreshError(
-        typeof body.code === "string" ? body.code : "SHEETS_REFRESH_FAILED",
-      );
-    return body;
-  };
-  const sources = (await json(
-    "/api/connectors/source",
-  )) as unknown as ReportingSources;
-  const chosen = sources.connections.find(
-    (c) => c.sourceId === sources.sourceId,
-  );
-  if (chosen?.provider !== "sheets") return { state: "NOT_SELECTED" as const };
-  const path = `/api/connectors/sheets/projection/${encodeURIComponent(chosen.sourceId)}`;
-  const intent = await json(path);
+  const selected = await selectedSheetsProjectionIntent(fetcher);
+  if (!selected) return { state: "NOT_SELECTED" as const };
+  const { path, intent } = selected;
   if (expectedImportRunId && intent.importRunId !== expectedImportRunId)
     throw new SheetsReportingRefreshError("SHEETS_PROJECTION_CHANGED");
-  await json(path, {
+  await sheetsJson(fetcher, path, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
