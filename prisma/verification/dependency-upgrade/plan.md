@@ -1,6 +1,6 @@
 # mxmt-analytics dependency upgrade plan
 
-Planning snapshot: 2026-10-29, Europe/Kyiv. This is a proposal and inventory, not an executed upgrade. No package, lockfile, application setting or hosting runtime was changed.
+Historical planning snapshot: 2026-10-29, Europe/Kyiv. The inventory below describes the pre-upgrade lock. See progress.md for implemented blocks and validation; hosting runtime settings have not been changed.
 
 ## Owner decisions
 
