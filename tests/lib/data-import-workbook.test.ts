@@ -69,7 +69,8 @@ function validWorkbookBuffer(options?: {
   for (const [name, ws] of sheets) {
     if (name !== options?.omit) XLSX.utils.book_append_sheet(wb, ws, name);
   }
-  return XLSX.write(wb, { type: "buffer", bookType: "xlsx" }) as Buffer;
+  // Keep the date fixture explicit: SheetJS 0.20 changed numeric Date export semantics.
+  return XLSX.write(wb, { type: "buffer", bookType: "xlsx", cellDates: true }) as Buffer;
 }
 
 describe("raw workbook parser", () => {

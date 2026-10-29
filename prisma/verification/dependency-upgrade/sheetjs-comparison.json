@@ -1,0 +1,13 @@
+{
+  "workbookSha256": "bca7b9a9aeb9c6e3d6cfa299ab35a64329ab3499a0d49795ae1febec01b24fa1",
+  "beforeVersion": "0.18.5",
+  "afterVersion": "0.20.3",
+  "license": "Apache-2.0",
+  "source": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
+  "integrity": "sha512-oLDq3jw7AcLqKWH2AhCpVTZl8mf6X2YReP+Neh0SJUzV/BdZYjth94tG5toiMB1PPrYtxOCfaoUCkvtuH+3AJA==",
+  "realWorkbookAudit": "identical",
+  "offlineReporting": "identical except report observedAt",
+  "sheetChecksums": "identical",
+  "identityAndProjectionDiagnostics": "identical",
+  "completeBusinessReconciliation": "still blocked by missing approved reference inputs; not claimed"
+}
