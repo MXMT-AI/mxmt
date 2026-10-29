@@ -1,4 +1,5 @@
 import "server-only";
+import {reserveExternalActionAttempt,settleExternalActionAttempt,withExternalActionTimeout} from "./external-action-attempt";
 import {randomUUID} from "node:crypto";
 import {Prisma} from "@prisma/client";
 import {prisma} from "./prisma";
@@ -45,15 +46,10 @@ async function assertReconciliationIdentity(p:AiPrincipal,op:PriceOperation,r:Re
 /** Reserve every external read/write before network access; shared account windows count failures and unknown outcomes too. */
 async function reserveCall(p:AiPrincipal,kind:"READ"|"WRITE",r:ReturnType<typeof runtime>,operationId:string|null,tx:SqlClient){
  validatePriceAccess(r.access,r.clock());
- const [used]=await tx.$queryRaw<Array<{n:number}>>(Prisma.sql`SELECT count(*)::int n FROM "MerchandisingAction" WHERE "tenantId"=${p.tenantId} AND "entityType"='PRICE_TRANSPORT_ATTEMPT' AND context->>'quotaKey'=${r.access.quotaKey} AND context->>'from'=${r.access.from} AND context->>'to'=${r.access.to} AND action=${kind}`);
- if(used.n>=(kind==="READ"?r.access.maxReads:r.access.maxWrites))throw new E("PRICE_ACCOUNT_QUOTA_EXCEEDED",429);
- const id=randomUUID();await tx.$executeRaw(Prisma.sql`INSERT INTO "MerchandisingAction" (id,"tenantId","actorId",action,"entityType","entityId","idempotencyKey",context,"createdAt") VALUES (${id},${p.tenantId},${p.userId},${kind},'PRICE_TRANSPORT_ATTEMPT',${operationId},${`price-attempt:${id}`},${JSON.stringify({kind:"PRICE_TRANSPORT_ATTEMPT_V1",quotaKey:r.access.quotaKey,from:r.access.from,to:r.access.to,state:"RESERVED",policyHash:payloadHash(r.access),accessPolicy:r.access})}::jsonb,${r.clock()})`);return id;
+ return reserveExternalActionAttempt(p,tx,{entityType:"PRICE_TRANSPORT_ATTEMPT",prefix:"price-attempt",kind,operationId,quotaKey:r.access.quotaKey,from:r.access.from,to:r.access.to,limit:kind==="READ"?r.access.maxReads:r.access.maxWrites,policy:r.access,now:r.clock(),quotaError:()=>new E("PRICE_ACCOUNT_QUOTA_EXCEEDED",429)});
 }
-async function timed<T>(o:Options,fn:(signal:AbortSignal)=>Promise<T>){
- const c=new AbortController();let timer:ReturnType<typeof setTimeout>|undefined;
- try{return await Promise.race([fn(c.signal),new Promise<never>((_,reject)=>{timer=setTimeout(()=>{c.abort();reject(new E("PRICE_TRANSPORT_TIMEOUT",502));},Math.max(1,Math.min(o.timeoutMs??8000,8000)));})]);}finally{if(timer)clearTimeout(timer);}
-}
-async function settleCall(p:AiPrincipal,id:string,state:string,r:ReturnType<typeof runtime>){await aiTransaction(p,r.db,tx=>tx.$executeRaw(Prisma.sql`UPDATE "MerchandisingAction" SET context=context||jsonb_build_object('state',${state}::text) WHERE "tenantId"=${p.tenantId} AND id=${id} AND "entityType"='PRICE_TRANSPORT_ATTEMPT'`),true);}
+async function timed<T>(o:Options,fn:(signal:AbortSignal)=>Promise<T>){return withExternalActionTimeout(o.timeoutMs,()=>new E("PRICE_TRANSPORT_TIMEOUT",502),fn);}
+async function settleCall(p:AiPrincipal,id:string,state:string,r:ReturnType<typeof runtime>){return settleExternalActionAttempt(p,r.db,id,"PRICE_TRANSPORT_ATTEMPT",state);}
 async function readRemote(p:AiPrincipal,ids:string[],attempts:string[],r:ReturnType<typeof runtime>,o:Options,opId:string|null){
  const attempt=await aiTransaction(p,r.db,tx=>reserveCall(p,"READ",r,opId,tx),true);
  try{const result=await timed(o,signal=>r.transport.read({productIds:ids,attemptIds:attempts,signal}));const products=parseRemotePrices(result.products,ids,r.clock());if(attempts.some(id=>!result.attempts||!["APPLIED","NOT_APPLIED","UNKNOWN"].includes(result.attempts[id])))throw new E("PRICE_ATTEMPT_EVIDENCE_MISSING",502);await settleCall(p,attempt,"DONE",r);return {products,attempts:result.attempts??{}};}
