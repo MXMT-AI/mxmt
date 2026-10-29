@@ -1,4 +1,5 @@
 import "server-only";
+import {readStockHistory} from "./stock-history-store";
 import { Prisma } from "@prisma/client";
 import type { SqlClient } from "./connectors/database";
 import type { ScreenSnapshot } from "./merchandising-snapshot";
@@ -119,12 +120,13 @@ export async function readStockWorkspace(
   db: SqlClient,
 ) {
   const base = { ...q, classification: undefined };
-  const [statuses, categories, brands] = await Promise.all([
+  const [statuses, categories, brands, history] = await Promise.all([
     readStockStatusGroups(tenantId, snapshot, base, db),
     groupPages(tenantId, snapshot, q, db, "category"),
     snapshot.sales.context.settings.profileMode === "MONOBRAND"
       ? Promise.resolve([])
       : groupPages(tenantId, snapshot, q, db, "brand"),
+    readStockHistory(tenantId,snapshot,q,db),
   ]);
   const norm = snapshot.sales.context.settings.turnoverMonths,
     policy = resolveMerchandisingPolicy({}, snapshot.sales.context.settings);
@@ -201,7 +203,7 @@ export async function readStockWorkspace(
     categorySort: q.categorySort ?? q.classification ?? "stockCost",
     categoryDirection: q.categoryDirection ?? "desc",
     showSkus: q.groupBy === "sku",
-    history: { state: "MVP_PLACEHOLDER" },
+    history,
     byCurrency: currencies.map((currency) => {
       const rows = statuses.filter((r) => r.currency === currency),
         structure = stockStructure(rows),

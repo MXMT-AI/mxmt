@@ -85,7 +85,7 @@ it("reconciles K1 ring amounts, gray remainder, category totals and O4 with expl
   expect(
     block.statuses.filter((s) => s.inRing).some((s) => s.status === "OOS"),
   ).toBe(false);
-  expect(stock.history.state).toBe("MVP_PLACEHOLDER");
+  expect(stock.history.scope).toBe("CURRENT_SNAPSHOT_COHORT");
 });
 it("verifies synthetic CITIZEN/CASIO/CHPO signals using the same daily rule and first receipt", async () => {
   const data = await read({ currency: "UAH" }),
@@ -197,7 +197,7 @@ it.each(
     (["SHEETS_IMPORT", "ORDER_WATERMARK"] as const).map((basis) => ({ lang, basis })),
   ),
 )(
-  "renders K1–K4 and provider-neutral history copy ($lang, $basis)",
+  "renders K1–K4, observed provider-neutral history and pinned action links ($lang, $basis)",
   async ({ lang, basis }) => {
     const data = await read({
         currency: "UAH",
@@ -216,16 +216,16 @@ it.each(
       expect(html).toContain(key + " ·");
     expect(html).toContain(
       lang === "uk"
-        ? "Історичний графік поки недоступний"
-        : "Historical chart is not available yet",
+        ? "Ті самі SKU, що у вибраному знімку та фільтрах."
+        : "The same SKUs as the selected snapshot and filters.",
     );
     const history = html.split("K2 ·")[1].split("K3 ·")[0];
     expect(history).not.toContain("SalesDrive");
     expect(history).not.toMatch(/через місяць|after one month|from connection day/);
     expect(history).toContain(lang === "uk"
-      ? "Для історії потрібні підтверджені спостереження з датою"
-      : "History requires verified dated observations");
-    expect(history).not.toContain("<svg");
+      ? "Точні значення та повнота історії"
+      : "Exact values and history coverage");
+    expect(history).toContain("<svg");
     expect(html).toContain("snapshotId=" + id);
     expect(html).toContain("channelId=1");
     expect(html).toContain("skuId=sku-a");
@@ -259,14 +259,15 @@ it("preserves unknown cost and refuses a fabricated complete ring or zero-valued
     );
   }
 });
-it("never draws a fabricated history curve even when many daily observations exist", async () => {
+it("shows observed history without fabricating missing LY or interpolated month-end values", async () => {
   const data = await read(),
     html = renderToStaticMarkup(
       createElement(StockContent, { data, lang: "en", query: "" }),
     );
   const k2 = html.split("K2 ·")[1].split("K3 ·")[0];
-  expect(k2).not.toContain("<svg");
-  expect(data.stockWorkspace!.history).toEqual({ state: "MVP_PLACEHOLDER" });
+  expect(k2).toContain("<svg");
+  expect(k2).not.toContain("<polyline");
+  expect(data.stockWorkspace!.history.byCurrency.every(b=>b.points.every(p=>p.priorYear.stockCost===null))).toBe(true);
 });
 it("reads a published Stock workspace immutably after live metadata/settings changes", async () => {
   const before = await read({ currency: "UAH" });

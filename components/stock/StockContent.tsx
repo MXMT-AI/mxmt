@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import StockHistory from "./StockHistory";
 import { useId } from "react";
 import ReportTable from "@/components/data-reporting/ReportTable";
 import {
@@ -441,14 +442,9 @@ export default function StockContent({
                   <p className="p-5">{copy.legacy}</p>
                 )}
               </section>
-              <section className={panel + " p-5 flex flex-col self-start"}>
+              <section className={panel + " p-5 flex flex-col self-start min-w-0"}>
                 <h3 className="font-semibold">K2 · {copy.history}</h3>
-                <div className="my-5 min-h-64 border border-dashed border-[var(--border)] rounded-lg flex flex-col justify-center text-center px-6 space-y-3">
-                  <h4 className="font-semibold">{copy.historyTitle}</h4>
-                  <p className="text-sm leading-relaxed text-[var(--muted)]">
-                    {copy.historyBody}
-                  </p>
-                </div>
+                <StockHistory history={model.history} currency={block.currency} lang={lang}/>
               </section>
             </div>
             <section className={panel}>
