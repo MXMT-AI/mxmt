@@ -171,8 +171,65 @@ with SUCCEEDED/PARTIAL state are eligible; ambiguous reconciled/unknown operatio
 require separate manual review/new evidence. The new preview reverses original
 approved prices, requires the current remote version to equal the original write's
 verified applied/read-back version and then needs **its own** approval/execute.
+A changed canonical-to-source product mapping is rejected before any compensation
+remote read, even if the replacement product has the same price/version token.
 A later merchant edit or same-price new revision is a conflict. There is no
 automatic rollback, reverse-write retry, deletion or compensation of compensation.
+
+## Privileged recovery when the original actor is unavailable (proposed; not activated)
+
+Actor-only operation access is deliberate. Another tenant ADMIN must not read,
+reconcile, approve or execute the record through the existing routes by pretending
+to be its original actor. Losing the original actor can therefore strand an UNKNOWN
+or DISPATCHING product exclusion. The following out-of-band incident procedure is
+**a reviewable proposal requiring explicit owner approval before any live transport
+is enabled**. Approval has not been obtained for privileged recovery by this PR;
+production remains disabled and this is an additional activation blocker.
+
+1. The project owner names a recovery ADMIN, a privileged database/operator identity
+   and a reviewer, and approves the exact tenant, operation and attempt IDs in an
+   incident reference. Record why the original actor cannot act. Tenant ADMIN status
+   alone does not grant database access or authorize this procedure. Reject any
+   tenant/account/product mismatch before inspecting or changing an operation.
+2. Disable new price dispatch for that account and quiesce the original worker.
+   Preserve a private incident evidence copy of the original actor, complete
+   operation/approval hashes, original account/product IDs, attempt reservations,
+   current item states and access-policy references. Do not restore or impersonate
+   the user's session, change `actorId`, reassign the operation, alter approved
+   prices/versions or delete reservations. Never copy credentials into incident data.
+3. Through the separately authorized operator, request read-only authoritative
+   native prices and terminal proof for each frozen attempt against the original
+   account. Apply the existing reconciliation identity, quota and terminal-fencing
+   requirements. A missing receipt, equal/current old price, revoked credential or
+   presumed worker death does not prove NOT_APPLIED. If a delayed call can still
+   apply, retain UNKNOWN/DISPATCHING and its product exclusion; escalate to provider
+   support without sending a replacement write.
+4. Before any state update, the reviewer checks a dry-run plan mapping every
+   original attempt to its terminal proof, observed product/version and proposed
+   reconciled state. Obtain owner approval of that concrete plan. No automatic
+   rollback, re-execute, compensation or blanket unlock is part of recovery.
+5. In one tenant-locked transaction, the privileged operator rechecks the exact
+   pre-state hash and records a separate `PRICE_PRIVILEGED_RECOVERY_V1` incident
+   audit action. Its `actorId` is the **actual recovery ADMIN**, with original actor
+   ID, operator identity, reviewer, incident/owner-approval references, affected
+   operation/attempt IDs, before/after hashes, terminal proof references and current
+   access-policy/observation references. Preserve the original operation's root
+   `actorId`, original approval and immutable prices. Any reconciliation metadata
+   must identify the actual recovery actor; it must not claim the unavailable user
+   performed recovery. Reject a changed pre-state and review it again.
+6. Only terminal proved outcomes may move to the existing reconciled states.
+   Undispatched rows may close only after worker quiescence/fencing is established.
+   Commit audit and the approved state changes together; on failure keep the product
+   excluded. Read back and have the reviewer verify both audit attribution and
+   product exclusions before permitting new separately approved operations.
+
+No privileged SQL updater, actor-transfer endpoint, public ADMIN bypass or elevated
+execution path is shipped here. Before activation, approve and implement an
+operator-only dry-run/apply tool enforcing this procedure, test it against an
+unavailable original actor and unresolved late attempt, and rehearse it in the
+approved canary environment. Until that work and its approval exist, leave the
+write transport disabled. A human editing `after` or releasing a product lock
+ad hoc is not an approved recovery procedure.
 
 ## Activation prerequisites (deferred)
 
@@ -187,6 +244,8 @@ automatic rollback, reverse-write retry, deletion or compensation of compensatio
   is insufficient; unsupported semantics must keep execution disabled.
 - Approve account-specific call/cost limits, reset policy, approved deployment
   identity and observability/recovery runbook. Test partial and unknown outcomes.
+- Approve and implement the operator-only privileged recovery procedure above,
+  including unavailable-original-actor audit attribution and terminal fencing.
 - Explicitly approve a tiny real-account canary, chosen SKUs/values/expiry, operator
   and compensating procedure before a live adapter is registered. This task and
   the parent's implementation request do not authorize that canary.
@@ -214,3 +273,9 @@ Validation on 2026-10-29:
   no production `.env`, provider key or database connection was used.
 - `git diff --check` — exit 0.
 - Backend-only work; no UI/browser or real-account/canary verification was performed.
+
+PR #112 CodeRabbit follow-up (2026-10-29): 32 targeted price-contract/lifecycle/API
+tests, TypeScript and whitespace checks passed. Regression fixtures cover remapped
+product IDs with colliding price/version and unavailable original actors. The
+privileged procedure remains proposed, with approval/tooling required before live
+activation; this follow-up does not authorize or execute privileged recovery.

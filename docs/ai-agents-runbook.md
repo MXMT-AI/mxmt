@@ -109,6 +109,10 @@ cannot activate or prove a mutation. Unknown attempts retain product exclusion
 until terminal attempt proof; restoration is a new explicitly approved action.
 Account permissions/cost limits, atomic existing-only updates, native read-back,
 terminal fencing and a separately approved real canary remain activation gates.
+The #109 guide also specifies proposed out-of-band recovery for an unavailable
+original actor. Its owner approval, operator-only tooling and rehearsal are required
+before live activation; existing actor-only API access is unchanged. Preserve the
+actual recovery actor separately in audit and never reassign the original actor.
 
 ## Runtime Behavior
 

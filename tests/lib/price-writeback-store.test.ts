@@ -94,3 +94,20 @@ it("uses a fresh same-account snapshot for separately approved restoration after
  await expect(previewPriceWriteback(p,{exportId,skuIds:[ids[0]],compensatesId:op.id},options())).rejects.toMatchObject({code:"AI_CONTEXT_STALE"});
  const restore=await previewPriceWriteback(p,{exportId,skuIds:[ids[0]],compensatesId:op.id,currentSnapshotId:fresh.snapshotId},options());expect(restore.binding.snapshotId).toBe(fresh.snapshotId);const a=await approvePriceWriteback(p,{operationId:restore.id,previewHash:restore.previewHash,reference:"new snapshot restore approval"},options());expect((await executePriceWriteback(p,{operationId:a.id,previewHash:a.previewHash},options())).state).toBe("SUCCEEDED");
 });
+
+it("rejects compensation remapped to another product even with a colliding price and version",async()=>{
+ const op=await approved([ids[0]]),done=await executePriceWriteback(p,{operationId:op.id,previewHash:op.previewHash},options()),item=done.items[0],beforeReads=read.mock.calls.length;
+ products.set("remapped-product109",{price:item.newPrice,version:item.observedVersion!});
+ await f.pg.query(`UPDATE "SkuAlias" SET value='remapped-product109' WHERE "tenantId"='a' AND "sourceId"='source' AND "skuId"=$1 AND type='SOURCE_PRODUCT_ID'`,[item.skuId]);
+ try{await expect(previewPriceWriteback(p,{exportId,skuIds:[item.skuId],compensatesId:op.id},options())).rejects.toMatchObject({code:"PRICE_COMPENSATION_PRODUCT_CHANGED"});expect(read).toHaveBeenCalledTimes(beforeReads);expect(cas).toHaveBeenCalledTimes(1);expect(products.get("remapped-product109")).toEqual({price:item.newPrice,version:item.observedVersion});}
+ finally{await f.pg.query(`UPDATE "SkuAlias" SET value=$2 WHERE "tenantId"='a' AND "sourceId"='source' AND "skuId"=$1 AND type='SOURCE_PRODUCT_ID'`,[item.skuId,item.productId]);}
+});
+it("keeps unresolved operations actor-owned when the original actor loses access; recovery cannot impersonate them",async()=>{
+ const op=await approved([ids[0]]);cas.mockImplementationOnce(async input=>{attempts.set(input.attemptId,"UNKNOWN");return {state:"UNKNOWN"};});await executePriceWriteback(p,{operationId:op.id,previewHash:op.previewHash},options());time=new Date(time.getTime()+31000);
+ await f.pg.exec(`INSERT INTO "User" (id,email,"passwordHash",name,role,"tenantId","updatedAt") VALUES ('recovery-admin109','recovery-admin109@test.invalid','test','Recovery admin','ADMIN','a',now());UPDATE "User" SET role='VIEWER' WHERE id='owner';`);
+ try{
+  await expect(readPriceWriteback(p,op.id,f.db)).rejects.toMatchObject({code:"AI_FORBIDDEN"});
+  const recovery={tenantId:"a",userId:"recovery-admin109"};await expect(readPriceWriteback(recovery,op.id,f.db)).rejects.toMatchObject({code:"PRICE_OPERATION_NOT_FOUND"});await expect(reconcilePriceWriteback(recovery,{operationId:op.id},options())).rejects.toMatchObject({code:"PRICE_OPERATION_NOT_FOUND"});
+  const row=(await f.pg.query<{actorId:string;after:{state:string;actorId:string;items:Array<{state:string}>}}>(`SELECT "actorId",after FROM "MerchandisingAction" WHERE id=$1`,[op.id])).rows[0];expect(row).toMatchObject({actorId:"owner",after:{actorId:"owner",state:"UNKNOWN",items:[{state:"UNKNOWN"}]}});expect(cas).toHaveBeenCalledTimes(1);
+ }finally{await f.pg.exec(`UPDATE "User" SET role='ADMIN' WHERE id='owner';`);}
+});

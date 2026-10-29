@@ -74,6 +74,7 @@ export async function previewPriceWriteback(p:AiPrincipal,value:unknown,o:Option
   const parent=compensatesId?await operationInTx(p,compensatesId,tx):null;
   if(parent&&(parent.exportId!==exportId||!["SUCCEEDED","PARTIAL"].includes(parent.state)||parent.direction!=="APPLY"||skuIds.some(id=>!parent.items.some(i=>i.skuId===id&&i.state==="SUCCEEDED"))))throw new E("PRICE_COMPENSATION_NOT_ELIGIBLE",409);
   if(parent&&(parent.binding.sourceId!==binding.sourceId||parent.binding.accountHost!==binding.accountHost))throw new E("PRICE_COMPENSATION_ACCOUNT_CHANGED",409);
+  if(parent&&skuIds.some(id=>parent.items.find(i=>i.skuId===id)!.productId!==aliases.find(a=>a.skuId===id)!.productId))throw new E("PRICE_COMPENSATION_PRODUCT_CHANGED",409);
   if(parent){const current=await tx.$queryRaw<Array<{skuId:string;ownership:string;currency:string;productKind:string;unitCost:string|null}>>(Prisma.sql`SELECT s."skuId",d.metrics->>'ownership' ownership,d.currency,d.metrics->>'productKind' "productKind",s.details->>'unitCost' "unitCost" FROM "MerchandisingScreenSku" s JOIN "SkuDaily" d ON d.id=s."dailyId" AND d."tenantId"=s."tenantId" AND d."skuId"=s."skuId" WHERE s."tenantId"=${p.tenantId} AND s."snapshotId"=${binding.snapshotId} AND s."skuId" IN (${Prisma.join(skuIds)})`);
    if(current.length!==skuIds.length||current.some(i=>i.ownership!=="OWN"||i.currency!=="UAH"||i.productKind!=="MERCHANDISE"||i.unitCost===null||!D(i.unitCost).gt(0)||D(a.rows.find(r=>r.skuId===i.skuId)!.oldPrice).lt(i.unitCost)))throw new E("PRICE_COMPENSATION_CURRENT_POLICY_UNVERIFIED",409);
   }
