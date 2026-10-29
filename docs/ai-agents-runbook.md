@@ -88,6 +88,17 @@ remain deferred. All outputs stay drafts, uncertainty is unevaluated, and a pass
 draft score never approves release. No LLM call, scheduled forecast or procurement
 conversion is enabled; existing reordering calculations and exports are unchanged.
 
+## Confirmed scenario retrospectives (#108)
+
+See [`108-retrospective-evidence-gmroi.md`](../prisma/verification/108-retrospective-evidence-gmroi.md)
+for the owner-approved `retrospective-v1` contract (2026-10-29), actual execution
+confirmation and read-only before/after reports. ADMIN confirmations pin an exact
+export subset and evidence reference; order sending, acceptance and verified
+receipt are distinct. GMROI uses complete saved gross profit and mean observed
+daily own-stock cost, with its sampling approximation disclosed and no annualization.
+Missing evidence/zero denominator stays unavailable. No legacy Campaign Tracking
+output, external action, causal uplift model or procurement export is activated.
+
 ## Runtime Behavior
 
 - Agent output JSON is parsed through `parseAgentJson`.
