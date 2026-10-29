@@ -235,3 +235,12 @@ Before mutation, froze the existing private workbook bytes and captured per-shee
 Attempted installation completed with official 0.20.3 tarball; TypeScript/build/build:vercel passed, but full tests failed (2 workbook audit tests; 1,639 passed / 1 skipped). The same real workbook produced different typed dates, decoded XML text, period aggregates and offline projection diagnostics; reference-only reconciliation was identical. Offline test assertions alone passed but semantic comparison did not, so this block was NOT accepted.
 
 Rolled package.json and lockfile back to the previously committed 0.18.5 and restored dependencies with npm ci. No failing upgrade was committed. Owner decision requested for a separately scoped import compatibility adapter versus deferral. The customer workbook and comparison outputs remain private temporary evidence. Other independent blocks may proceed from the restored accepted lock.
+
+
+## Block 8 — Prisma 5 to 6
+
+Before installation reviewed https://www.prisma.io/docs/guides/upgrade-prisma-orm/v6. Selected matching stable client/CLI 6.19.3 after individual registry version/engine checks. Node 24 / TypeScript 5.9 meet requirements. Schema has no Bytes fields, fullTextSearch preview feature or implicit many-to-many relation tables; existing explicit relations avoid the v6 implicit-join primary-key change. No NotFoundError usage found.
+
+Prisma 5 migrate diff against the fully migrated disposable native PostgreSQL database is empty. Never ran schema push/reset or production migrations. After upgrade require the same empty diff and native SQL/transaction/JSON/Decimal/BigInt checks in addition to the existing PGlite suites.
+
+Validated matching Prisma 6.19.3: TypeScript; 165 files / 1,641 passed / one optional workbook skip; MVP 80 files / 965 passed; build and build:vercel; native CRUD, parameterized SQL, JSON/Decimal/BigInt and serializable rollback; empty migrate diff. No schema changes or application adaptations were required. Ready for committed checkpoint before Prisma 7.
