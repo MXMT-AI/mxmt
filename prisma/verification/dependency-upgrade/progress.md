@@ -121,4 +121,38 @@ Validation completed on Node 24.22.2:
 | Direct PGlite lifecycle/UTC/rollback probe | Passed |
 | git diff --check | Passed |
 
-No application changes or schema migrations were needed. Ready for owner review; not committed or pushed.
+No application changes or schema migrations were needed. Owner approved the block; committed as `698e8f7` (`chore: update pinned PGlite dependency`). No push has been made.
+
+
+## Block 4 — bcryptjs and jose major compatibility
+
+Pre-change review (before installing):
+- bcryptjs 2.4.3 → 3.0.3: package now exports ESM with a UMD fallback and built-in types; remove @types/bcryptjs. New hashes default to $2b$ instead of $2a$; verify existing stored password/refresh hashes instead of comparing newly generated hash strings.
+- jose 5.10.0 → 6.2.14: ESM/WebCrypto and ES2022 target; Node 18 support removed, CommonJS requires a runtime with require(esm). Approved Node 24 supplies WebCrypto. Existing HS256 Uint8Array keys, SignJWT, jwtVerify and errors.JWTExpired remain applicable. The project does not use removed remote-JWKS agent options, KeyObject, PEMImportOptions or removed algorithms; no whole-project ESM conversion is planned.
+- Named imports already match supported APIs; preserve JWT claims, algorithms, expirations, cookie/session and redirect behavior.
+- Synthetic fixed compatibility fixtures were generated with the old installed bcryptjs 2.4.3 and jose 5.10.0 before changing dependencies. They contain no customer credentials or production signing keys. Verify old hashes and JWTs under the new libraries and exercise middleware's expiry/redirect branch.
+
+Official references:
+- https://github.com/dcodeIO/bcrypt.js/releases/tag/v3.0.0
+- https://github.com/dcodeIO/bcrypt.js/releases/tag/v3.0.3
+- https://github.com/panva/jose/releases/tag/v6.0.0
+- https://github.com/panva/jose/blob/main/README.md
+
+Implemented bcryptjs 3.0.3 and jose 6.2.14; removed @types/bcryptjs because bcryptjs supplies types. Added 11 cross-version regression checks with fixed synthetic pre-upgrade fixtures. Application imports, algorithms, claims, expiry, session storage and business logic did not need changes.
+
+| Check | Result |
+| --- | --- |
+| Focused auth and migration compatibility | 2 files; 38 passed |
+| tsc --noEmit --incremental false | Passed |
+| Full tests | 164 files; 1,633 passed, one optional private-workbook test skipped |
+| test:mvp | 80 files; 965 passed |
+| npm run build | Passed with synthetic JWT secrets |
+| npm run build:vercel | Passed against disposable native local PostgreSQL |
+| Real local production auth HTTP flow | Legacy bcrypt 2 password accepted; wrong password rejected; refresh and logout passed; replay after revocation rejected with SESSION_REVOKED |
+| Compiled middleware HTTP smoke | jose 5 valid JWT passed through to expected missing probe route (404); missing/expired API JWT returned 401; expired page JWT with refresh cookie redirected to silent refresh (307) |
+| npm audit | Unchanged: 6 total; 0 critical, 4 high, 2 moderate |
+| git diff --check | Passed |
+
+HTTP auth checks used one synthetic user/tenant in the disposable native PostgreSQL database; the tenant was removed afterward and local smoke servers stopped. No customer account, production secrets, production database or paid API was used. These checks do not replace customer-data five-screen acceptance.
+
+The current auth block is ready for owner review; not committed or pushed. Lucide remains a separate following API/render compatibility block.

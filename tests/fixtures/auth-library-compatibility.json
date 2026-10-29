@@ -1,0 +1,19 @@
+{
+  "description": "Synthetic compatibility evidence generated with bcryptjs 2.4.3 and jose 5.10.0. Not an application credential.",
+  "bcryptVersion": "2.4.3",
+  "joseVersion": "5.10.0",
+  "password": "synthetic migration password",
+  "passwordHash": "$2a$04$6mWhr2xVNxBXDYT1ykZ2F.7ahA28dA4IJasUtv/qX2kruoFPsUEga",
+  "unicodePassword": "Синтетичний пароль 🔐",
+  "unicodeHash": "$2a$04$vOHcR1ae9IBUc/aKqfWre.U.i/LVeuzDUsRX226gBwLRz5PCMNnKO",
+  "secret": "synthetic-jose-v5-compatibility-fixture-key",
+  "identity": {
+    "sub": "synthetic-migration-user",
+    "tenantId": "synthetic-migration-tenant",
+    "role": "ANALYST",
+    "type": "access"
+  },
+  "validToken": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJzeW50aGV0aWMtbWlncmF0aW9uLXVzZXIiLCJ0ZW5hbnRJZCI6InN5bnRoZXRpYy1taWdyYXRpb24tdGVuYW50Iiwicm9sZSI6IkFOQUxZU1QiLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzkzMjIxMjAwLCJleHAiOjI1MjQ2MDgwMDB9.Z6ptUQMVwFa889QYUzJMa0TV9U522FLIzxwE_-yhuqY",
+  "expiredToken": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJzeW50aGV0aWMtbWlncmF0aW9uLXVzZXIiLCJ0ZW5hbnRJZCI6InN5bnRoZXRpYy1taWdyYXRpb24tdGVuYW50Iiwicm9sZSI6IkFOQUxZU1QiLCJ0eXBlIjoiYWNjZXNzIiwiZXhwIjowfQ.c-NoTc_SaBc8o5L9x-7vPGHvP4IDcJcBZicnR82WSz8",
+  "refreshHash": "$2a$04$sPometmQRDLB9aIkP02BbeyghnE.g8/.sLV27b3gk/vHWaV5qQn3u"
+}
