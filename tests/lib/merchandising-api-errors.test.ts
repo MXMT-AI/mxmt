@@ -36,3 +36,16 @@ it("keeps expected source-readiness failures distinct and does not log them as c
   expect(response.headers.get("x-request-id")).toBe("local-repricing-probe");
   expect(errorLog).not.toHaveBeenCalled();
 });
+
+it.each(["", "   "])("generates one correlated ID for an empty request header (%j)", async (header) => {
+  const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
+  mocks.read.mockRejectedValueOnce(new Error("Private storage error"));
+  const response = await GET(new NextRequest("https://app.test/api/merchandising/repricing?snapshotId=s", {
+    headers: { "x-request-id": header },
+  }), { params: Promise.resolve({ screen: "repricing" }) });
+  const body = await response.json();
+  expect(response.status).toBe(503);
+  expect(body.requestId).toMatch(/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/);
+  expect(response.headers.get("x-request-id")).toBe(body.requestId);
+  expect(JSON.parse(errorLog.mock.calls[0][0]).requestId).toBe(body.requestId);
+});

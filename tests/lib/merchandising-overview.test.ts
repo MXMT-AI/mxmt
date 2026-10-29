@@ -503,3 +503,20 @@ it("keeps known positive findings visible with an explicit partial assessment wa
   expect(html).toContain("/reordering?");
   expect(html).not.toContain("No shortage");
 });
+
+it.each(["DEAD", "HEALTHY", "OOS"])("does not turn a %s-filtered Overview into full-population absence claims", async (classification) => {
+  const data = await read({ currency: "UAH", classification });
+  expect(data.overview!.byCurrency.length).toBeGreaterThan(0);
+  for (const block of data.overview!.byCurrency) {
+    expect(block.classificationCoverage).toMatchObject({ state: "UNAVAILABLE" });
+    expect(block.deadShare).toBeNull();
+    expect(block.bottleneck).toBeNull();
+    expect(block.statuses.every((s) => s.status === classification)).toBe(true);
+  }
+  for (const lang of ["uk", "en"] as const) {
+    const html = renderToStaticMarkup(createElement(OverviewContent, { data, lang, query: "currency=UAH&classification=" + classification, monobrand: false }));
+    expect(html).not.toMatch(/Неліквіду немає|Ризикових SKU немає|Дефіциту немає|Пробок неліквіду немає|No dead stock|No at-risk SKUs|No shortage|No dead-stock bottlenecks/);
+    expect(html).toContain(lang === "uk" ? "Недостатньо даних для висновку" : "Insufficient data for a conclusion");
+    expect(html).not.toContain(lang === "uk" ? "— неліквід" : "is dead stock");
+  }
+});

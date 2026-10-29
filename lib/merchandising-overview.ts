@@ -256,7 +256,9 @@ export async function readOverview(
       const statuses = stock.statuses.filter((s) => s.currency === currency);
       const dead = statuses.find((s) => s.status === "DEAD");
       const structure = stockStructure(statuses);
-      const classificationCoverage = overviewClassificationCoverage(statuses);
+      const classificationCoverage = q.classification == null
+        ? overviewClassificationCoverage(statuses)
+        : { state: "UNAVAILABLE" as const, evaluatedSkuCount: 0, reviewSkuCount: 0 };
       const bottleneck =
         classificationCoverage.state === "COMPLETE" && (dead?.missingCostSkuCount ?? 0) === 0
           ? (stock.bottlenecks.find((s) => s.currency === currency) ?? null)

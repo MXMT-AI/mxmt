@@ -47,7 +47,7 @@ function writeLog(level: LogLevel, message: string, context: LogContext = {}) {
 }
 
 export function createRequestContext(request: NextRequest, route: string): RequestContext {
-  const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
+  const requestId = request.headers.get("x-request-id")?.trim() || crypto.randomUUID();
 
   return {
     requestId,
