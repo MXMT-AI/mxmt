@@ -1,5 +1,5 @@
 import { readOrderHistory } from "./connectors/order-history";
-import { readSelectedSource, mappingKey } from "./connectors/source";
+import { readSelectedSource, mappingKey, assertReportingSourceReady } from "./connectors/source";
 import "server-only";
 import { classifyDailySku, summarizeSkuClassification } from "./classify";
 import { summarizeDailyBrands } from "./brand-metrics";
@@ -95,6 +95,7 @@ export async function calculateSkuDailyInSnapshot(
 ): Promise<DailySkuCalculation> {
   const source = await readSelectedSource(tenantId, tx);
   if (!source) throw new DailySkuError("SALESDRIVE_NOT_CONFIGURED");
+  await assertReportingSourceReady(tenantId,source,tx);
   const period = resolveDailySkuPeriod(input.asOf, input.now, source.timezone),
     client = await readClientSettings(tenantId, tx);
   const configs = await tx.$queryRaw<

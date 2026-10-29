@@ -19,7 +19,8 @@
     "predev": "npm run db:check",
     "prestart": "NODE_ENV=production npm run db:check",
     "db:check": "node scripts/database-lifecycle.mjs check",
-    "build:vercel": "node scripts/database-lifecycle.mjs vercel"
+    "build:vercel": "node scripts/database-lifecycle.mjs vercel",
+    "verify:reporting:offline": "node scripts/verify-reporting-offline.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",

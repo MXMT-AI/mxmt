@@ -1,4 +1,5 @@
 "use client";
+import ReportingError from "@/components/merchandising/ReportingError";
 import { useSearchParams } from "next/navigation";
 import { useLang } from "@/components/LanguageProvider";
 import {
@@ -31,20 +32,7 @@ export default function SalesWorkspace() {
       controls,
     ),
     copy = salesCopy[lang];
-  if (error)
-    return (
-      <div role="alert" className="space-y-4">
-        <h1 className="text-2xl font-bold">{copy.title}</h1>
-        <p>{copy.error}</p>
-        <button
-          type="button"
-          className="min-h-11 border rounded-lg px-4"
-          onClick={refresh}
-        >
-          {copy.refresh}
-        </button>
-      </div>
-    );
+  if (error) return <ReportingError code={error} lang={lang} title={copy.title} onRetry={refresh}/>;
   if (busy || !data)
     return (
       <div role="status">

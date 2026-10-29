@@ -8,7 +8,7 @@ export interface OrderPolicy {
   settings?: {configId:string;revision:number;filterFingerprint:string;excludedChannels:string[];excludedProjects:string[];projectField:string|null};
   dates?: { saleOrderTimeFallback?: boolean; returnDateField?: string };
   /** Enable only after customer evidence verifies API price and discount semantics. */
-  amounts?: { price: "gross_unit" | "net_unit"; absoluteDiscount: "line" | "unit"; currency: string; cost?: "unit" };
+  amounts?: { price: "gross_unit" | "net_unit" | "net_line"; absoluteDiscount: "line" | "unit"; currency: string; cost?: "unit" | "line" };
 }
 /** Parse source-local dates with explicit precision and reject ambiguous or invalid times. */
 export function sourceDate(value: string | null, timezone: string): { date: Date | null; precision: "instant" | "date" | "unknown" } {
@@ -35,9 +35,10 @@ export function normalizeOrder(order: OrderDto, timezone: string, policy: OrderP
   const ordered = sourceDate(order.orderedAt, timezone), paid = sourceDate(order.paidAt, timezone);
   if (order.orderedAt && !ordered.date || order.paidAt && !paid.date) issues.add("INVALID_SOURCE_DATE");
   if (paid.precision === "date") issues.add("PAYMENT_DATE_PRECISION");
-  const kind = policy.statuses?.[order.statusId ?? ""] ?? "UNKNOWN";
+  const statusKey = order.statusId ?? "";
+  const kind = policy.statuses && Object.hasOwn(policy.statuses, statusKey) ? policy.statuses[statusKey] : "UNKNOWN";
   if (kind === "UNKNOWN") issues.add("STATUS_MAPPING_UNVERIFIED");
-  if (!policy.channels?.[order.channelId ?? ""]) issues.add("CHANNEL_MAPPING_UNVERIFIED");
+  if (!policy.channels || !Object.hasOwn(policy.channels, order.channelId ?? "") || !policy.channels[order.channelId ?? ""]) issues.add("CHANNEL_MAPPING_UNVERIFIED");
   const returned = sourceDate(order.returnedAt ?? (policy.dates?.returnDateField && typeof order.raw?.[policy.dates.returnDateField]==='string' ? order.raw[policy.dates.returnDateField] as string : null), timezone);
   const dateInferred=kind==='SALE' && !paid.date && Boolean(policy.dates?.saleOrderTimeFallback && ordered.date);
   const effectivePaid=dateInferred?ordered:paid;
@@ -72,8 +73,16 @@ export function normalizeOrder(order: OrderDto, timezone: string, policy: OrderP
         if (!discount || discount.isNegative() || line.discountUnit === "unknown" || (line.discountUnit === "percentage" && discount.gt(100))) netAmount = null;
         else netAmount = netAmount.sub(line.discountUnit === "percentage" ? netAmount.mul(discount).div(100) : discount.mul(policy.amounts.absoluteDiscount === "unit" ? amountQuantity.abs() : 1).mul(netAmount.isNegative()?-1:1));
       }
-      if (policy.amounts.cost === "unit" && cost && !cost.isNegative()) costAmount = cost.mul(amountQuantity);
-      if (costAmount?.isZero()) costAmount=null;
+    }
+    // A line total is a source fact: do not divide by quantity and round it back.
+    if (policy.amounts && quantity) {
+      if (policy.amounts.price === "net_line") netAmount = exact(line.netLineAmount ?? null);
+      if (policy.amounts.cost === "unit" && cost && !cost.isNegative()) costAmount = cost.mul(kind === "RETURN" ? quantity.abs() : quantity);
+      if (policy.amounts.cost === "line") {
+        costAmount = exact(line.costLineAmount ?? null);
+        if (costAmount?.isNegative() && !["RETURN", "CORRECTION"].includes(kind)) costAmount = null;
+      }
+      if (costAmount?.isZero()) costAmount = null;
     }
     for (const amount of [netAmount, costAmount]) if (amount && amount.abs().gte("100000000000000")) { valid = false; issues.add("AMOUNT_OVERFLOW"); }
     if (netAmount === null) issues.add("REVENUE_MAPPING_UNVERIFIED");
@@ -89,7 +98,7 @@ export function normalizeOrder(order: OrderDto, timezone: string, policy: OrderP
       quantity, netAmount, costAmount,
       signedQuantity:exclusionReason||projectMappingUnavailable?null:signed(quantity), signedRevenue:financial?signed(netAmount):null,signedCost:financial?signed(costAmount):null,
       normalization:{filterFingerprint:settings?.filterFingerprint??null,settingsConfigId:settings?.configId??null,settingsRevision:settings?.revision??null,excluded:Boolean(exclusionReason),exclusionReason,projectMappingUnavailable,version:2,movement:correction?'CORRECTION':kind,dateInferred,dateAvailable:financial,missingCost:costAmount===null}, currency: policy.amounts?.currency ?? null,
-      sourceAmounts: { unitPrice: line.unitPrice, unitCost: line.costPrice, discount: line.discount, discountUnit: line.discountUnit,
+      sourceAmounts: { ...(line.netLineAmount !== undefined ? {netLineAmount:line.netLineAmount} : {}), ...(line.costLineAmount !== undefined ? {costLineAmount:line.costLineAmount} : {}), unitPrice: line.unitPrice, unitCost: line.costPrice, discount: line.discount, discountUnit: line.discountUnit,
         commission: line.commission, commissionUnit: line.commissionUnit } };
   });
   return { valid, lines, issues: [...issues], updatedAt: sourceDate(order.updatedAt, timezone).date };

@@ -10,8 +10,17 @@ import { normalizeCatalog } from "./inventory-normalization";
 import { retainRecord, refreshFirstReceipt } from "./receipt-storage";
 import { payloadHash } from "./order-storage";
 
+export interface CatalogEvidence {
+  /** Explicit source mapping evidence; absent for existing remote catalog paths. */
+  exportedCost?: {mappingId:string;reference:string};
+  productKinds?:Record<string,string>;
+  stockObserved?:boolean;
+  stockProductIds?:string[];
+  inTransitVerified?:boolean;
+}
+
 /** Activate a fully validated observation in one transaction using set-based catalogue writes. */
-export async function storeCatalog(tx: SqlClient, scope: OrderScope, snapshot: CatalogSnapshot) {
+export async function storeCatalog(tx: SqlClient, scope: OrderScope, snapshot: CatalogSnapshot, evidence:CatalogEvidence = {}) {
   const { tenantId, sourceId, importRunId, timezone } = scope;
   const normalized=normalizeCatalog(snapshot, sourceId, scope.provider),issues=normalized.issues;
   const rows=normalized.rows.map(row=>({...row,attributeHash:payloadHash(row.attributeEvidence)}));
@@ -23,7 +32,7 @@ export async function storeCatalog(tx: SqlClient, scope: OrderScope, snapshot: C
   // Transaction-local staging never becomes an active catalogue or stock observation.
   await tx.$executeRaw(Prisma.sql`CREATE TEMP TABLE mxmt_catalog_stage ON COMMIT DROP AS
     SELECT x.*, NULL::text AS "skuId", NULL::text AS "canonicalCategoryId", NULL::text AS "brandId", NULL::numeric AS "costPrice", '{}'::jsonb AS "costProvenance"
-    FROM jsonb_to_recordset(${JSON.stringify(rows)}::jsonb) AS x("observedAt" timestamptz,"priceObservedAt" timestamptz,"proposedId" text,"externalId" text,article text,"canonicalSku" text,name text,"categoryId" text,"categoryName" text,vendor text,barcode text,"retailPrice" numeric,"oldPrice" numeric,quantity numeric,currency text,attributes jsonb,"attributeEvidence" jsonb,"attributeHash" text)`);
+    FROM jsonb_to_recordset(${JSON.stringify(rows)}::jsonb) AS x("observedAt" timestamptz,"priceObservedAt" timestamptz,"proposedId" text,"externalId" text,article text,"canonicalSku" text,name text,"categoryId" text,"categoryName" text,vendor text,barcode text,"retailPrice" numeric,"oldPrice" numeric,"exportedCost" numeric,"inTransit" numeric,quantity numeric,currency text,attributes jsonb,"attributeEvidence" jsonb,"attributeHash" text)`);
   await tx.$executeRaw(Prisma.sql`INSERT INTO "DataSourceRecord" (id,"tenantId","sourceId","importRunId",resource,"externalId",payload,"payloadHash","observedAt")
     SELECT ${randomUUID()}||':'||t."externalId",${tenantId},${sourceId},${importRunId},'product-attributes',t."externalId"||':'||t."attributeHash",t."attributeEvidence",t."attributeHash",t."priceObservedAt" FROM mxmt_catalog_stage t
     ON CONFLICT ("importRunId",resource,"externalId") DO NOTHING`);
@@ -87,6 +96,7 @@ export async function storeCatalog(tx: SqlClient, scope: OrderScope, snapshot: C
     GROUP BY l."skuId" HAVING bool_and(l."costAmount" IS NOT NULL AND l.currency IS NOT NULL AND l.currency=t2.currency AND
       CASE WHEN (l."sourceAmounts"->>'unitCost') ~ '^[0-9]{1,14}([.][0-9]{1,4})?$' THEN (l."sourceAmounts"->>'unitCost')::numeric>0 ELSE false END)
       AND count(DISTINCT l."sourceAmounts"->>'unitCost')=1) s WHERE t."skuId"=s."skuId" AND t."costPrice" IS NULL`);
+  if (evidence.exportedCost) await tx.$executeRaw(Prisma.sql`UPDATE mxmt_catalog_stage SET "costPrice"="exportedCost","costProvenance"=jsonb_build_object('type','mapped_catalog','mappingId',${evidence.exportedCost.mappingId}::text,'reference',${evidence.exportedCost.reference}::text,'importRunId',${importRunId}::text,'sourceRecordKey',${rawKey}::text) WHERE "exportedCost">0 AND currency IS NOT NULL`);
   const missing = await tx.$queryRaw<Array<{ n: number }>>(Prisma.sql`SELECT count(*)::int n FROM mxmt_catalog_stage WHERE "costPrice" IS NULL`);
   if (missing[0].n) issues.add("COST_UNVERIFIED");
   await tx.$executeRaw(Prisma.sql`UPDATE "Sku" s SET "pricePurchase"=t."costPrice"::double precision FROM mxmt_catalog_stage t WHERE s."tenantId"=${tenantId} AND s.id=t."skuId"`);
@@ -96,13 +106,15 @@ export async function storeCatalog(tx: SqlClient, scope: OrderScope, snapshot: C
     WHERE (old.id IS NULL AND (t."retailPrice" IS NOT NULL OR t."costPrice" IS NOT NULL OR t."oldPrice" IS NOT NULL)) OR (old.id IS NOT NULL AND t."priceObservedAt">=old."observedAt" AND
       (old."retailPrice" IS DISTINCT FROM t."retailPrice" OR old."costPrice" IS DISTINCT FROM t."costPrice" OR old."oldPrice" IS DISTINCT FROM t."oldPrice" OR old.currency IS DISTINCT FROM t.currency))
     ON CONFLICT ("tenantId","sourceId","skuId","sourceRecordKey") DO NOTHING`);
-  const snapshots = await tx.$executeRaw(Prisma.sql`INSERT INTO "InventorySnapshot" (id,"tenantId","skuId","qtyOnHand",quantity,"snapshotDate","observedAt",timezone,"costPrice","retailPrice","costValue","retailValue",currency,"sourceId","importRunId","sourceRecordKey","costProvenance",diagnostics)
+  const snapshots = evidence.stockObserved === false ? 0 : await tx.$executeRaw(Prisma.sql`INSERT INTO "InventorySnapshot" (id,"tenantId","skuId","qtyOnHand",quantity,"snapshotDate","observedAt",timezone,"costPrice","retailPrice","costValue","retailValue",currency,"sourceId","importRunId","sourceRecordKey","costProvenance",diagnostics,"qtyInTransit","inTransitVerifiedAt")
     SELECT ${randomUUID()} || ':' || t."skuId",${tenantId},t."skuId",CASE WHEN t.quantity=trunc(t.quantity) AND t.quantity BETWEEN -2147483648 AND 2147483647 THEN t.quantity::int ELSE NULL END,t.quantity,(t."observedAt" AT TIME ZONE ${timezone})::date,t."observedAt",${timezone},t."costPrice",t."retailPrice",
       CASE WHEN t.quantity>=0 AND t.quantity*t."costPrice"<100000000000000 THEN t.quantity*t."costPrice" ELSE NULL END,CASE WHEN t.quantity>=0 AND t.quantity*t."retailPrice"<100000000000000 THEN t.quantity*t."retailPrice" ELSE NULL END,t.currency,${sourceId},${importRunId},${rawKey},t."costProvenance",
-      jsonb_build_object('historicalStockAvailable',false,'quantityMissing',t.quantity IS NULL,'negativeStock',t.quantity<0,'costMissing',t."costPrice" IS NULL,'retailMissing',t."retailPrice" IS NULL,'valueOverflow',COALESCE(t.quantity*t."costPrice">=100000000000000 OR t.quantity*t."retailPrice">=100000000000000,false)) FROM mxmt_catalog_stage t
+      jsonb_build_object('historicalStockAvailable',false,'quantityMissing',t.quantity IS NULL,'negativeStock',t.quantity<0,'costMissing',t."costPrice" IS NULL,'retailMissing',t."retailPrice" IS NULL,'valueOverflow',COALESCE(t.quantity*t."costPrice">=100000000000000 OR t.quantity*t."retailPrice">=100000000000000,false)),0,NULL FROM mxmt_catalog_stage t WHERE (${JSON.stringify(evidence.stockProductIds??null)}::jsonb='null'::jsonb OR t."externalId" IN (SELECT jsonb_array_elements_text(CASE WHEN ${JSON.stringify(evidence.stockProductIds??null)}::jsonb='null'::jsonb THEN '[]'::jsonb ELSE ${JSON.stringify(evidence.stockProductIds??null)}::jsonb END)))
     ON CONFLICT ("tenantId","sourceId","skuId","snapshotDate") DO UPDATE SET "qtyOnHand"=EXCLUDED."qtyOnHand",quantity=EXCLUDED.quantity,"observedAt"=EXCLUDED."observedAt",timezone=EXCLUDED.timezone,
-      "costPrice"=EXCLUDED."costPrice","retailPrice"=EXCLUDED."retailPrice","costValue"=EXCLUDED."costValue","retailValue"=EXCLUDED."retailValue",currency=EXCLUDED.currency,"sourceId"=EXCLUDED."sourceId","importRunId"=EXCLUDED."importRunId","sourceRecordKey"=EXCLUDED."sourceRecordKey","costProvenance"=EXCLUDED."costProvenance",diagnostics=EXCLUDED.diagnostics
+      "costPrice"=EXCLUDED."costPrice","retailPrice"=EXCLUDED."retailPrice","costValue"=EXCLUDED."costValue","retailValue"=EXCLUDED."retailValue",currency=EXCLUDED.currency,"sourceId"=EXCLUDED."sourceId","importRunId"=EXCLUDED."importRunId","sourceRecordKey"=EXCLUDED."sourceRecordKey","costProvenance"=EXCLUDED."costProvenance",diagnostics=EXCLUDED.diagnostics,"qtyInTransit"=EXCLUDED."qtyInTransit","inTransitVerifiedAt"=EXCLUDED."inTransitVerifiedAt"
     WHERE "InventorySnapshot"."observedAt" IS NULL OR "InventorySnapshot"."observedAt"<=EXCLUDED."observedAt"`);
+  if (evidence.stockObserved !== false && evidence.inTransitVerified) await tx.$executeRaw(Prisma.sql`UPDATE "InventorySnapshot" s SET "qtyInTransit"=CASE WHEN t."inTransit"=trunc(t."inTransit") AND t."inTransit" BETWEEN 0 AND 2147483647 THEN t."inTransit"::int ELSE 0 END,"inTransitVerifiedAt"=CASE WHEN t."inTransit"=trunc(t."inTransit") AND t."inTransit" BETWEEN 0 AND 2147483647 THEN s."observedAt" ELSE NULL END FROM mxmt_catalog_stage t WHERE s."tenantId"=${tenantId} AND s."sourceId"=${sourceId} AND s."importRunId"=${importRunId} AND s."skuId"=t."skuId" AND s."observedAt"=t."observedAt"`);
+  if(evidence.productKinds) await tx.$executeRaw(Prisma.sql`UPDATE "Sku" s SET "productKind"=x.kind::"MerchandiseProductKind" FROM jsonb_to_recordset(${JSON.stringify(Object.entries(evidence.productKinds).map(([id,kind])=>({id,kind})))}::jsonb) x(id text,kind text),mxmt_catalog_stage t WHERE t."externalId"=x.id AND s.id=t."skuId" AND s."tenantId"=${tenantId}`);
   await recordCatalogQuality(tx, scope, rawKey);
   return { products: rows.length, snapshots, prices: priceChanges, issues: [...issues], observedAt: snapshot.observedAt, businessDate };
 }

@@ -21,13 +21,13 @@ export async function recordCatalogQuality(tx: SqlClient, scope: OrderScope, raw
 }
 
 /** Preserve row-level signed movement exceptions with raw-to-normalized identities. */
-export async function recordOrderQuality(tx:SqlClient,scope:OrderScope,orderId:string) {
+export async function recordOrderQuality(tx:SqlClient,scope:OrderScope,orderId?:string) {
  await tx.$executeRaw(Prisma.sql`INSERT INTO "ImportIssue" (id,"tenantId","importRunId","entityKey",code,severity,message,context)
   SELECT ${randomUUID()}||':'||l.id||':'||q.code,${scope.tenantId},${scope.importRunId},'order:'||l."externalOrderId"||':'||l."externalLineId",q.code,'WARNING',q.code,
     jsonb_build_object('skuId',l."skuId",'sourceSku',l."sourceSku",'orderId',l."externalOrderId",'lineId',l."externalLineId",'sourceRecordKey',l."sourceRecordKey")
   FROM "OrderLine" l CROSS JOIN LATERAL (VALUES
     ('PROJECT_MAPPING_UNVERIFIED',COALESCE((l.normalization->>'projectMappingUnavailable')::boolean,false)),('EXCLUDED_CHANNEL',l.normalization->>'exclusionReason'='EXCLUDED_CHANNEL'),('EXCLUDED_PROJECT',l.normalization->>'exclusionReason'='EXCLUDED_PROJECT'),('SIGNED_CORRECTION',l.normalization->>'movement'='CORRECTION'),('RETURN_DATE_UNAVAILABLE',l.kind='RETURN' AND l."returnedAt" IS NULL),
     ('MISSING_COST',l."costAmount" IS NULL),('SKU_ALIAS_UNRESOLVED',l."skuId" IS NULL),('INFERRED_PAYMENT_DATE',l."dateInferred")
-  ) q(code,applies) WHERE l."tenantId"=${scope.tenantId} AND l."sourceId"=${scope.sourceId} AND l."externalOrderId"=${orderId} AND l."eventKey"='current' AND q.applies
+  ) q(code,applies) WHERE l."tenantId"=${scope.tenantId} AND l."sourceId"=${scope.sourceId} AND (${orderId??null}::text IS NULL OR l."externalOrderId"=${orderId??null}) AND l."eventKey"='current' AND q.applies
   ON CONFLICT ("importRunId",code,"entityKey") DO UPDATE SET context=EXCLUDED.context`);
 }

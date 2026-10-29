@@ -54,11 +54,11 @@ export function parseOrderPolicy(value: unknown): OrderPolicy {
     const a = value.amounts;
     if (
       !isRecord(a) ||
-      !["gross_unit", "net_unit"].includes(String(a.price)) ||
+      !["gross_unit", "net_unit", "net_line"].includes(String(a.price)) ||
       !["line", "unit"].includes(String(a.absoluteDiscount)) ||
       typeof a.currency !== "string" ||
       !/^[A-Z]{3}$/.test(a.currency) ||
-      (a.cost !== undefined && a.cost !== "unit")
+      (a.cost !== undefined && !["unit", "line"].includes(String(a.cost)))
     )
       throw new Error("INVALID_SOURCE_MAPPING");
     policy.amounts = a as unknown as OrderPolicy["amounts"];

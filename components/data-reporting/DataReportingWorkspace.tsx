@@ -14,6 +14,14 @@ import {
   Search,
   UploadCloud,
 } from "lucide-react";
+import {
+  selectedSheetsProjectionIntent,
+  refreshSelectedSheetsReports,
+  SheetsReportingRefreshError,
+  sheetsRefreshMessage,
+} from "@/lib/client/sheets-reporting";
+import { apiFetch } from "@/lib/fetch";
+import Link from "next/link";
 import ReportTable from "./ReportTable";
 import { useLang } from "@/components/LanguageProvider";
 import type {
@@ -215,8 +223,10 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
   const [loading, setLoading] = useState(true);
   const [statusLoading, setStatusLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [action, setAction] = useState<"import" | "calculate" | null>(null);
+  const [action, setAction] = useState<"import" | "calculate" | "projection" | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [reportsReady,setReportsReady]=useState(false);
+  const [canRefreshReports, setCanRefreshReports] = useState(false);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [periodError, setPeriodError] = useState<string | null>(null);
@@ -249,6 +259,22 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
     void loadStatus(controller.signal);
     return () => controller.abort();
   }, [loadStatus, reloadVersion]);
+
+  useEffect(() => {
+    if (!canImport) return;
+    const controller = new AbortController();
+    setCanRefreshReports(false);
+    void selectedSheetsProjectionIntent((path, init) =>
+      apiFetch(path, { ...init, cache: "no-store", signal: controller.signal }),
+    )
+      .then((intent) => {
+        if (!controller.signal.aborted) setCanRefreshReports(intent !== null);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setCanRefreshReports(false);
+      });
+    return () => controller.abort();
+  }, [canImport, reloadVersion]);
 
   useEffect(() => {
     if (statusLoading || periodInitialized.current) return;
@@ -362,27 +388,46 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
     updatePreference({ ...preference, sortColumn: column.key, sortDirection: direction });
   }
 
-  async function runAction(kind: "import" | "calculate") {
+  async function runAction(kind: "import" | "calculate" | "projection") {
     const issue = validateReportPeriod(dateFrom, dateTo);
-    if (issue) {
+    if (issue && kind !== "projection") {
       setPeriodError(issue === "required" ? copy.periodRequired : copy.periodReversed);
       return;
     }
     setAction(kind);
     setActionError(null);
+    setReportsReady(false);
     setPeriodError(null);
     try {
-      const response = await fetch(kind === "import" ? "/api/data/import" : "/api/data/calculate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dateFrom, dateTo }),
-      });
-      if (!response.ok) throw new Error(await responseMessage(response));
+      const post = async (path:string,body:Record<string,unknown>) => {
+        const response=await fetch(path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+        if(!response.ok)throw new Error(await responseMessage(response));
+        return response.json();
+      };
+      let importedRunId:string|undefined;
+      // Preserve the raw import even if either independent reporting engine fails.
+      if(kind==="import"){
+        const body=await post("/api/data/import",{dateFrom,dateTo,calculate:false});
+        importedRunId=body.import?.importRunId;
+      }
+      const messages:string[]=[];
+      if(canImport){
+        try {
+          const projected=await refreshSelectedSheetsReports(importedRunId);
+          if(projected.state==="READY"){setReportsReady(true);window.dispatchEvent(new Event("connector-connection-changed"));}
+          if(projected.state==="NOT_SELECTED"&&kind==="projection")messages.push(lang==="uk"?"Виберіть погоджене джерело Google Sheets у налаштуваннях.":"Select an approved Google Sheets reporting source in Settings.");
+        }catch(error){messages.push(sheetsRefreshMessage(error instanceof SheetsReportingRefreshError?error.code:"SHEETS_REFRESH_FAILED",lang));}
+      }
+      if(kind!=="projection"){
+        try {await post("/api/data/calculate",{dateFrom,dateTo,...(importedRunId?{importRunId:importedRunId}:{})});}
+        catch(error){messages.push((lang==="uk"?"Розрахунок вкладок «Дані та звіти»: ":"Data & Reports tab calculation: ")+(error instanceof Error?error.message:"Calculation failed"));}
+      }
+      setActionError(messages.length?messages.join(" "):null);
       setPage(1);
-      setReloadVersion((value) => value + 1);
     } catch (runError) {
       setActionError(runError instanceof Error ? runError.message : "Action failed");
     } finally {
+      setReloadVersion((value)=>value+1);
       setAction(null);
     }
   }
@@ -416,6 +461,10 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
               {action === "calculate" ? copy.calculating : copy.calculate}
             </button>
           )}
+          {canImport && <button type="button" onClick={()=>void runAction("projection")} disabled={action!==null||!canRefreshReports}
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-[var(--border)] text-sm text-[var(--text)] disabled:opacity-50 focus-visible:outline focus-visible:outline-2">
+            {action==="projection"?<LoaderCircle size={14} className="animate-spin"/>:<RefreshCw size={14}/>}{lang==="uk"?"Оновити MVP-звіти":"Refresh MVP reports"}
+          </button>}
           {canImport && (
             <button type="button" onClick={() => void runAction("import")} disabled={action !== null}
               className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-[#00e5c4] text-[#03110f] text-sm font-semibold hover:bg-[#36ecd2] disabled:opacity-50 transition-colors">
@@ -455,6 +504,7 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
         {periodError && <p role="alert" className="mt-2 text-xs text-red-400">{periodError}</p>}
       </section>
 
+      {reportsReady && <p role="status" className="mb-4 text-sm text-[var(--text)]">{lang==="uk"?"Дані MVP-звітів оновлено. ":"MVP report inputs refreshed. "}<Link className="underline" href="/overview">{lang==="uk"?"Відкрити Огляд":"Open Overview"}</Link></p>}
       {actionError && (
         <div role="alert" className="mb-4 flex items-start gap-2 rounded-lg border border-red-400/20 bg-red-400/10 px-3 py-2.5 text-sm text-red-300">
           <AlertTriangle size={15} className="mt-0.5 shrink-0" />

@@ -43,6 +43,9 @@ export interface OrderDto extends SourceContext {
     productId: string | null;
     sku: string | null;
     quantity: DecimalValue | null;
+    /** Exact net line totals require an explicitly approved net_line policy. */
+    netLineAmount?: DecimalValue | null;
+    costLineAmount?: DecimalValue | null;
     unitPrice: DecimalValue | null;
     discount: DecimalValue | null;
     discountUnit: "percentage" | "amount" | "unknown";

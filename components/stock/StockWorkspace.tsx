@@ -1,12 +1,10 @@
 "use client";
-import Link from "next/link";
+import ReportingError from "@/components/merchandising/ReportingError";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLang } from "@/components/LanguageProvider";
 import { useMerchandisingFilters } from "@/components/merchandising/MerchandisingShell";
 import { useMerchandisingScreen } from "@/components/merchandising/useMerchandisingScreen";
-import { button } from "@/components/merchandising/ReportPrimitives";
 import { stockCopy } from "@/lib/stock-copy";
-import { merchandisingHref } from "@/lib/merchandising-navigation";
 import StockContent from "./StockContent";
 /** Load frozen stock independently of the shared sales-channel selection. */
 export default function StockWorkspace() {
@@ -38,24 +36,7 @@ export default function StockWorkspace() {
       controls,
     ),
     copy = stockCopy[lang];
-  if (error)
-    return (
-      <div role="alert" className="space-y-4">
-        <h1 className="text-2xl font-bold">{copy.title}</h1>
-        <p>{copy.error}</p>
-        <div className="flex gap-3">
-          <button type="button" className={button} onClick={refresh}>
-            {copy.refresh}
-          </button>
-          <Link
-            className={button}
-            href={merchandisingHref("/settings", new URLSearchParams(params))}
-          >
-            {copy.settings}
-          </Link>
-        </div>
-      </div>
-    );
+  if (error) return <ReportingError code={error} lang={lang} title={copy.title} onRetry={refresh}/>;
   if (busy || !data)
     return (
       <div role="status">

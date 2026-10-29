@@ -4,16 +4,7 @@ import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/fetch";
 import { readApiJson } from "@/lib/api-response";
 import { Field, control } from "@/components/merchandising/FormControls";
-type Sources = {
-  sourceId: string | null;
-  revision: number;
-  connections: Array<{
-    sourceId: string;
-    provider: string;
-    accountHost: string;
-    lastCheck: { ok?: boolean } | null;
-  }>;
-};
+import type {ReportingSources as Sources} from "@/lib/reporting-source-contract";
 export default function ConnectorSourceCard({
   lang,
   canManage,
@@ -145,15 +136,17 @@ export default function ConnectorSourceCard({
                 key={c.sourceId}
                 value={c.sourceId}
                 disabled={
-                  c.lastCheck?.ok !== true && c.sourceId !== data.sourceId
+                  !c.selectable && c.sourceId !== data.sourceId
                 }
               >
-                {c.provider} · {c.accountHost}
-                {c.lastCheck?.ok !== true
-                  ? uk
-                    ? " — перевірте доступ"
-                    : " — check access"
-                  : ""}
+                {c.provider==="sheets"?"Google Sheets":c.provider} · {c.accountHost}
+                {c.readiness==="MAPPING_REQUIRED"
+                  ?uk?" — погодьте зіставлення":" — approve mapping"
+                  :c.readiness==="IMPORT_REQUIRED"
+                    ?uk?" — потрібен імпорт":" — import required"
+                    :c.readiness==="CONNECTION_CHECK_REQUIRED"
+                      ?uk?" — перевірте доступ":" — check access":""
+                }
               </option>
             ))}
           </select>

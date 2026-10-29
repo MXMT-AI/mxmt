@@ -1,4 +1,6 @@
 import "server-only";
+import {readSheetsSources} from "./sheets-source";
+import type {ReportingSourceProvider,ReportingSources} from "../reporting-source-contract";
 import { Prisma } from "@prisma/client";
 import { randomUUID } from "node:crypto";
 import { prisma } from "@/lib/prisma";
@@ -37,21 +39,25 @@ export async function readSelectedSource(tenantId: string, tx: SqlClient) {
     Array<{
       id: string;
       timezone: string;
-      provider: SourceProvider;
+      provider: ReportingSourceProvider;
       revision: number;
     }>
   >(Prisma.sql`
-    SELECT s.id,s.timezone,c.provider,COALESCE(x.revision,0)::int revision FROM "DataSource" s
-    JOIN "ConnectorConnection" c ON c."sourceId"=s.id AND c."tenantId"=s."tenantId"
+    SELECT s.id,s.timezone,
+      CASE WHEN s.kind='GOOGLE_SHEETS' THEN 'sheets' ELSE c.provider END provider,
+      COALESCE(x.revision,0)::int revision FROM "DataSource" s
+    LEFT JOIN "ConnectorConnection" c ON c."sourceId"=s.id AND c."tenantId"=s."tenantId"
     LEFT JOIN "ConnectorSelection" x ON x."tenantId"=s."tenantId"
-    WHERE s."tenantId"=${tenantId} AND ${selectedConnection()} AND s.kind::text=upper(c.provider)`);
-  return source ?? null;
+    WHERE s."tenantId"=${tenantId} AND (
+      (s.kind='GOOGLE_SHEETS' AND x."sourceId"=s.id)
+      OR (s.kind<>'GOOGLE_SHEETS' AND ${selectedConnection()} AND s.kind::text=upper(c.provider)))`);
+  return source??null;
 }
 export async function listConnectorSources(
   tenantId: string,
   db: SqlClient = prisma,
-) {
-  const [selection, connections] = await Promise.all([
+):Promise<ReportingSources> {
+  const [selection, connections, sheets] = await Promise.all([
     readSelectedSource(tenantId, db),
     db.$queryRaw<
       Array<{
@@ -60,11 +66,17 @@ export async function listConnectorSources(
         accountHost: string;
         revision: number;
         lastCheck: unknown;
+        importReady:boolean;
       }>
     >(Prisma.sql`
-      SELECT c."sourceId",c.provider,c."accountHost",c.revision,c."lastCheck" FROM "ConnectorConnection" c
+      SELECT c."sourceId",c.provider,c."accountHost",c.revision,c."lastCheck",
+        EXISTS(SELECT 1 FROM "ConnectorSyncJob" j JOIN "DataImportRun" r ON r.id=j."importRunId" AND r."tenantId"=j."tenantId" AND r."sourceId"=j."sourceId"
+          WHERE j."tenantId"=c."tenantId" AND j."sourceId"=c."sourceId" AND j.state='COMPLETE'
+            AND j.resource IN ('orders','csv') AND r.status IN ('SUCCESS','WARNING')) "importReady"
+        FROM "ConnectorConnection" c
       JOIN "DataSource" s ON s.id=c."sourceId" AND s."tenantId"=c."tenantId"
       WHERE c."tenantId"=${tenantId} AND s.kind::text=upper(c.provider) ORDER BY c.provider`),
+    readSheetsSources(tenantId,db),
   ]);
   const [saved] = await db.$queryRaw<
     Array<{ sourceId: string; revision: number }>
@@ -74,7 +86,14 @@ export async function listConnectorSources(
   return {
     sourceId: saved?.sourceId ?? selection?.id ?? null,
     revision: saved?.revision ?? selection?.revision ?? 0,
-    connections,
+    connections:[
+      ...connections.filter(c=>isSourceProvider(c.provider)).map(({importReady,...c})=>{
+        const checked=!!c.lastCheck&&typeof c.lastCheck==="object"&&(c.lastCheck as {ok?:boolean}).ok===true;
+        return {...c,provider:c.provider as SourceProvider,selectable:checked,
+          readiness:!checked?"CONNECTION_CHECK_REQUIRED" as const:importReady?"READY" as const:"IMPORT_REQUIRED" as const};
+      }),
+      ...sheets,
+    ],
   };
 }
 /** Only an explicit administrator action changes financial source selection; saving credentials never calls this. */
@@ -96,6 +115,10 @@ export async function selectConnectorSource(
     await tx.$queryRaw(
       Prisma.sql`SELECT id FROM "Tenant" WHERE id=${tenantId} FOR UPDATE`,
     );
+    const [actor]=await tx.$queryRaw<Array<{role:string}>>(Prisma.sql`
+      SELECT role FROM "User" WHERE id=${actorId} AND "tenantId"=${tenantId}`);
+    if(!actor||!["ADMIN","SUPER_ADMIN"].includes(actor.role))
+      throw new ConnectorSourceError("SOURCE_SELECTION_FORBIDDEN",403);
     const current = await readSelectedSource(tenantId, tx);
     const [saved] = await tx.$queryRaw<
       Array<{ sourceId: string; revision: number }>
@@ -114,9 +137,12 @@ export async function selectConnectorSource(
     >(Prisma.sql`
       SELECT c."sourceId",c.provider,c."lastCheck" FROM "ConnectorConnection" c JOIN "DataSource" s ON s.id=c."sourceId" AND s."tenantId"=c."tenantId"
       WHERE c."tenantId"=${tenantId} AND c."sourceId"=${sourceId} AND s.kind::text=upper(c.provider) FOR UPDATE OF c`);
-    if (!target || !isSourceProvider(target.provider))
-      throw new ConnectorSourceError("CONNECTOR_SOURCE_NOT_FOUND", 404);
-    if (target.lastCheck?.ok !== true)
+    const [sheet]=target?[]:await readSheetsSources(tenantId,tx,sourceId);
+    if(!target&&!sheet)
+      throw new ConnectorSourceError("CONNECTOR_SOURCE_NOT_FOUND",404);
+    if(sheet&&!sheet.selectable)
+      throw new ConnectorSourceError("SHEETS_MAPPING_REQUIRED");
+    if(target&&(!isSourceProvider(target.provider)||target.lastCheck?.ok!==true))
       throw new ConnectorSourceError("CONNECTOR_CHECK_REQUIRED");
     if (current?.id === sourceId)
       return { sourceId, revision: current.revision };
@@ -145,4 +171,14 @@ export async function assertSelectedSource(
     selected.revision !== (revision ?? 0)
   )
     throw new ConnectorSourceError("CONNECTOR_SOURCE_CHANGED");
+}
+
+
+/** Raw Sheets data/reporting is independent; new metrics require approved projected facts. */
+export async function assertReportingSourceReady(tenantId:string,source:{id:string;provider:ReportingSourceProvider},tx:SqlClient){
+  if(source.provider!=="sheets")return;
+  const [sheet]=await readSheetsSources(tenantId,tx,source.id);
+  if(!sheet)throw new ConnectorSourceError("CONNECTOR_SOURCE_NOT_FOUND",404);
+  if(sheet.readiness!=="READY")throw new ConnectorSourceError(
+    sheet.readiness==="MAPPING_REQUIRED"?"SHEETS_MAPPING_REQUIRED":"SHEETS_IMPORT_REQUIRED");
 }

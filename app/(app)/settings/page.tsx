@@ -3,6 +3,7 @@ import ShopifyConnectionCard from "@/components/settings/ShopifyConnectionCard";
 import HoroshopConnectionCard from "@/components/settings/HoroshopConnectionCard";
 import KeyCrmConnectionCard from "@/components/settings/KeyCrmConnectionCard";
 import CsvImportCard from "@/components/settings/CsvImportCard";
+import SheetsMappingCard from "@/components/settings/SheetsMappingCard";
 import ConnectorSourceCard from "@/components/settings/ConnectorSourceCard";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
@@ -86,6 +87,7 @@ export default async function SettingsPage() {
 
       {/* Google Drive sync */}
       <ConnectorSourceCard lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
+      <SheetsMappingCard lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
       <SalesDriveConnectionCard initial={salesDrive} lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
 
       <KeyCrmConnectionCard initial={keyCrm} lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
