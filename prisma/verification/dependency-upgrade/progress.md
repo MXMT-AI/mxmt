@@ -80,7 +80,7 @@ Validation completed on Node 24.22.2:
 
 The first build attempt omitted the synthetic JWT secrets required by the existing production guard and failed during page-data collection. Correcting the isolated test environment made both builds pass; no auth guard or application code changed. HTTP smoke is not authenticated five-screen/customer-data acceptance.
 
-This block is ready for owner review and has not been committed or pushed.
+The owner approved this block; committed as `62ea159` (`chore: update compatible dependencies`). No push has been made.
 
 Release references:
 - https://github.com/vercel/next.js/releases/tag/v15.5.28
@@ -92,3 +92,33 @@ Release references:
 - `@electric-sql/pglite` was added at 0.5.11 in b2adaff for tenant-model SQL tests. No permanent freeze rationale was found in that package change; planned patch upgrade remains a separate SQL-validation block.
 - `fast-xml-parser` and `server-only` were added in 00c5c69 for connector parsing and server boundaries. Both are already at the verified stable target; preserve exact pins.
 - `@js-temporal/polyfill` and `lossless-json` were added in e9affb8 for date/time handling and lossless external data parsing. Both are already at the verified stable target; preserve exact pins and behavior.
+
+
+## Block 3 — pinned PGlite patch
+
+Updated only `@electric-sql/pglite` 0.5.11 → **0.5.13**, retaining an exact package.json pin and the registry tarball integrity in the lock. The package was introduced in b2adaff for isolated SQL tests; no documented requirement to remain on 0.5.11 was found. No other pinned packages changed.
+
+Official changelog reviewed: https://raw.githubusercontent.com/electric-sql/pglite/main/packages/pglite/CHANGELOG.md
+
+Relevant patch behavior:
+- 0.5.12 initializes new databases in UTC consistently instead of inheriting a host fixed-offset timezone. Tests using offsetless timestamptz literals may therefore expose previous host-dependent assumptions.
+- 0.5.13 waits for previously issued queries/transactions before close completes, avoiding teardown failures.
+- Filesystem and Emscripten fixes do not require an application API change here. The existing `new PGlite()`, query/exec/transaction and migration-test bridge remain unchanged.
+
+Additional direct runtime probe under `TZ=Europe/Kyiv` passed: database timezone UTC, offsetless `2026-10-29 12:00:00` parsed as epoch 1793275200, failed transaction rolled back, and a pending query completed before close. Probe uses synthetic in-memory data only. This does not prove equivalence to the production PostgreSQL engine or resolve the earlier real-Zavod projection timeout.
+
+Audit is unchanged: 6 total, zero critical, four high, two moderate.
+
+Validation completed on Node 24.22.2:
+
+| Check | Result |
+| --- | --- |
+| tsc --noEmit --incremental false | Passed |
+| Full tests | 163 files; 1,622 passed, one optional private-workbook test skipped |
+| test:mvp | 80 files; 965 passed |
+| npm run build | Passed in isolated copy with synthetic JWT secrets |
+| npm run build:vercel | Passed against disposable native local PostgreSQL |
+| Direct PGlite lifecycle/UTC/rollback probe | Passed |
+| git diff --check | Passed |
+
+No application changes or schema migrations were needed. Ready for owner review; not committed or pushed.
