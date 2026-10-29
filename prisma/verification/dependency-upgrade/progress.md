@@ -189,4 +189,38 @@ A separate existing issue was noticed while reviewing the full logs: clean Next 
 | npm audit | Unchanged: 6 total; 0 critical, 4 high, 2 moderate |
 | git diff --check | Passed |
 
-Ready for owner review; Lucide block has not been committed or pushed. Next is the external AI SDK compatibility block.
+Owner approved the Lucide block; committed as `b7f8739` (`chore: upgrade Lucide icons`). No push has been made. Next is the external AI SDK compatibility block.
+
+
+## Block 6 — external AI SDK compatibility
+
+Pre-change review:
+- OpenAI 4.104.0 → stable 7.45.1; reviewed v5 migration guide, v6 and v7 breaking releases. v5 switches node-fetch to native fetch, Web Headers/errors and updated request overloads/path parameters; the app only uses chat.completions.create with an explicit body. v6 widens Responses tool-output types, which this Chat Completions integration does not use. v7 requires Node >=22; owner-approved Node 24 satisfies this. No production migration through unused intermediate SDK APIs is needed; validate the final supported endpoint with the actual new SDK.
+- Anthropic 0.39.0 → stable 1.3.0; reviewed the SDK's linked 2026-10-21 API migration. New API version removes sampling parameters and rejects some document/citation placements. The application sends text-only messages and no sampling/tool/document parameters. Verify actual SDK serialization, headers, response usage and errors with intercepted fetch before accepting the upgrade.
+- Preserve gpt-4o and claude-sonnet-4-6 identifiers. Official model documentation can establish published availability, not account-specific access. No model change or paid live call is part of this dependency block.
+- Preserve chat.completions/messages endpoints, output limits, 5–55s timeout clamp, legacy retry=1, durable retry=0, separate cached/uncached input/output accounting and all execution budgets. Existing mocked-client tests alone are insufficient; add tests using the actual new SDK with synthetic intercepted HTTP responses.
+
+Sources reviewed:
+- https://github.com/openai/openai-node/blob/master/MIGRATION.md
+- https://github.com/openai/openai-node/releases/tag/v6.0.0
+- https://github.com/openai/openai-node/releases/tag/v7.0.0
+- https://developers.openai.com/api/reference/typescript/resources/chat/subresources/completions/methods/create
+- https://developers.openai.com/api/docs/models/gpt-4o
+- https://github.com/anthropics/anthropic-sdk-typescript/blob/main/MIGRATION.md
+- https://platform.claude.com/docs/en/api/migration-2026-10-21
+
+Installed OpenAI 7.45.1 and Anthropic 1.3.0. No application adapter change was required by TypeScript. Added eight tests exercising actual SDK clients with intercepted fetch: request endpoint/body/auth/API-version headers, typed responses, missing/null usage, cache categories, truncation, error classes, one-attempt metered calls and one-retry legacy calls. Every request is intercepted and keys are synthetic; no paid calls or real keys are used.
+
+Anthropic 1.3.0 sends API version 2026-10-21 and Bearer authorization. Its usage fields remain separate input/output/cache-read/cache-write values; null cache categories normalize to zero as before. Existing text requests contain none of the removed sampling parameters. OpenAI continues to call Chat Completions with the existing model and output cap.
+
+Focused tests: 4 files, 46 passed. A first new assertion incorrectly expected the OpenAI SDK to emit the old x-stainless-timeout header. Replaced that assertion with an AbortSignal check; a separate intercepted-fetch probe confirmed both actual SDK clients abort on their configured timeout and dispatch only once when maxRetries=0. No timeout behavior was weakened in application code.
+
+Published model lifecycle review: GPT-4o is deprecated in the official OpenAI model catalogue; Claude Sonnet 4.6 remains active in Anthropic's table. IDs remain unchanged in this dependency-only scope. Real account access and model-output quality remain unverified; changing models would require a separate approved behavior/budget evaluation.
+
+Additional references:
+- https://developers.openai.com/api/docs/models/gpt-4o
+- https://platform.claude.com/docs/en/about-claude/model-deprecations
+
+Audit after installation: 5 total, zero critical, three high, two moderate (form-data advisory path removed). Final validation passed: TypeScript; 165 test files / 1,641 passed / one optional private-workbook test skipped; 80 MVP files / 965 passed; both build and build:vercel against disposable native PostgreSQL; git diff --check. Existing jose Edge and Vitest config advisory warnings remain documented above. No application code or business logic changed.
+
+Owner authorized each validated remaining block to be committed without individual approval on 2026-10-30. No push or PR creation was requested in that authorization.
