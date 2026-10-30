@@ -1,4 +1,4 @@
-import { DataRunStatus } from "@prisma/client";
+import { DataRunStatus, Prisma } from "@prisma/client";
 import { describe, expect, it, vi } from "vitest";
 import * as XLSX from "xlsx";
 import {
@@ -82,6 +82,7 @@ function fakeDatabase(options?: {
     },
     dataImportRun: {
       create: vi.fn(async () => ({ id: "run-1" })),
+      updateMany: vi.fn(async (_args: Prisma.DataImportRunUpdateManyArgs) => ({ count: 0 })),
       update: dataImportRunUpdate,
       deleteMany: dataImportRunDeleteMany,
     },
@@ -117,6 +118,36 @@ function fakeDatabase(options?: {
 }
 
 describe("atomic raw import", () => {
+  it("expires only overdue same-source claims and fences final activation to its own running claim", async () => {
+    const db = fakeDatabase();
+    const now = new Date('2026-10-30T10:00:00Z');
+    await importRawWorkbookBuffer({tenantId:'tenant-1',fileId:'file-1',buffer:importBuffer(),now}, db as never);
+    expect(db.dataImportRun.updateMany).toHaveBeenCalledWith({where:{tenantId:'tenant-1',sourceId:'source-1',status:'RUNNING',createdAt:{lt:expect.any(Date)}},data:{status:'FAILED',errorMessage:'RAW_IMPORT_EXECUTION_EXPIRED',completedAt:expect.any(Date)}});
+    const cutoff = (db.dataImportRun.updateMany.mock.calls[0][0].where!.createdAt as {lt:Date}).lt;
+    expect(cutoff.getTime()).toBeGreaterThanOrEqual(now.getTime()-600000);
+    expect(cutoff.getTime()).toBeLessThan(now.getTime()-590000);
+    expect(db.spies.dataImportRunUpdate).toHaveBeenCalledWith(expect.objectContaining({where:{id:'run-1',tenantId:'tenant-1',sourceId:'source-1',status:'RUNNING'}}));
+  });
+
+  it("does not activate a worker that outlives its execution window", async () => {
+    const clock = vi.spyOn(Date,'now').mockReturnValue(0);
+    const db = fakeDatabase();
+    db.sourceProduct.createMany.mockImplementation(async ({data}) => {clock.mockReturnValue(660000);return {count:data.length};});
+    try {
+      await expect(importRawWorkbookBuffer({tenantId:'tenant-1',fileId:'file-1',buffer:importBuffer()}, db as never)).rejects.toMatchObject({name:'RawImportExpiredError'});
+      expect(db.spies.dataSourceUpdate).not.toHaveBeenCalled();
+      expect(db.spies.dataImportRunUpdate).toHaveBeenCalledWith(expect.objectContaining({data:expect.objectContaining({status:'FAILED'})}));
+    } finally {clock.mockRestore();}
+  });
+
+  it("distinguishes a running-claim collision from a later data-integrity error", async () => {
+    const unique = () => new Prisma.PrismaClientKnownRequestError('synthetic unique collision',{code:'P2002',clientVersion:'7.10.1'});
+    const claiming = fakeDatabase();claiming.dataImportRun.create.mockRejectedValueOnce(unique());
+    await expect(importRawWorkbookBuffer({tenantId:'tenant-1',fileId:'file-1',buffer:importBuffer()},claiming as never)).rejects.toMatchObject({name:'RawImportInProgressError'});
+    const writing = fakeDatabase();writing.sourceProduct.createMany.mockRejectedValueOnce(unique());
+    await expect(importRawWorkbookBuffer({tenantId:'tenant-1',fileId:'file-1',buffer:importBuffer()},writing as never)).rejects.toMatchObject({code:'P2002'});
+    expect(writing.spies.dataSourceUpdate).not.toHaveBeenCalled();
+  });
   it("stages all allowed sheets before atomically activating the run", async () => {
     const buffer = importBuffer();
     const db = fakeDatabase();

@@ -21,6 +21,8 @@ import {
   sheetsRefreshMessage,
 } from "@/lib/client/sheets-reporting";
 import { apiFetch } from "@/lib/fetch";
+import { rawImportIsLive } from "@/lib/data-import-policy";
+import { scheduleRawImportStatusCheck } from "@/lib/client/raw-import-status";
 import Link from "next/link";
 import ReportTable from "./ReportTable";
 import { useLang } from "@/components/LanguageProvider";
@@ -51,7 +53,7 @@ interface Props {
 interface DataStatus {
   configured: boolean;
   source: { name: string; timezone: string; updatedAt: string } | null;
-  activeImport: { status: string; activatedAt?: string | null; finishedAt?: string | null } | null;
+  activeImport: { status: string; createdAt?: string; completedAt?: string | null; activatedAt?: string | null; finishedAt?: string | null } | null;
   latestImport: { status: string; createdAt: string; finishedAt?: string | null } | null;
   calculation: {
     status: string;
@@ -59,6 +61,7 @@ interface DataStatus {
     dateTo: string;
     asOfDate: string;
     finishedAt?: string | null;
+    completedAt?: string | null;
     createdAt: string;
   } | null;
   issueCounts: Record<string, number>;
@@ -182,11 +185,17 @@ function normalizePreferences(
   ) as Record<DataTableKey, InitialTablePreference>;
 }
 
-async function responseMessage(response: Response): Promise<string> {
+async function responseMessage(response: Response, lang: "uk" | "en" = "en"): Promise<string> {
   const fallback = `${response.status} ${response.statusText}`.trim();
   const payload = await response.json().catch(() => null) as
-    | { error?: string | { message?: string }; message?: string }
+    | { error?: string | { message?: string }; message?: string; code?: string }
     | null;
+  if (payload?.code === "RAW_IMPORT_IN_PROGRESS") return lang === "uk"
+    ? "Імпорт ще виконується. Стан оновлюється автоматично. Якщо запуск перервався, через 10 хвилин від його початку можна повторити імпорт."
+    : "Import is running. Status updates automatically. An interrupted run can be retried 10 minutes after it started.";
+  if (payload?.code === "RAW_IMPORT_EXPIRED") return lang === "uk"
+    ? "Час імпорту вичерпано. Попередні дані збережені. Запустіть імпорт знову."
+    : "The import expired. Previous data is retained. Start the import again.";
   if (typeof payload?.error === "string") return payload.error;
   if (payload?.error && typeof payload.error === "object" && payload.error.message) {
     return payload.error.message;
@@ -232,6 +241,7 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
   const [periodError, setPeriodError] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [reloadVersion, setReloadVersion] = useState(0);
+  const [refreshMessage, setRefreshMessage] = useState(false);
   const saveControllers = useRef<Partial<Record<DataTableKey, AbortController>>>({});
   const periodInitialized = useRef(false);
 
@@ -239,18 +249,20 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
   const canImport = ["ADMIN", "SUPER_ADMIN"].includes(userRole.toUpperCase());
   const canCalculate = ["ANALYST", "ADMIN", "SUPER_ADMIN"].includes(userRole.toUpperCase());
 
-  const loadStatus = useCallback(async (signal?: AbortSignal) => {
-    setStatusLoading(true);
+  const loadStatus = useCallback(async (signal?: AbortSignal, quiet = false) => {
+    if (!quiet) setStatusLoading(true);
     try {
       const response = await fetch("/api/data/status", { cache: "no-store", signal });
       if (!response.ok) throw new Error(await responseMessage(response));
-      setStatus(await response.json() as DataStatus);
+      const nextStatus = await response.json() as DataStatus;
+      if (!signal?.aborted) setStatus(nextStatus);
     } catch (loadError) {
-      if (!(loadError instanceof DOMException && loadError.name === "AbortError")) {
+      if (!signal?.aborted && !(loadError instanceof DOMException && loadError.name === "AbortError")) {
         setActionError(loadError instanceof Error ? loadError.message : "Could not load status");
+        if (quiet) setStatus(current => current ? { ...current } : current);
       }
     } finally {
-      if (!signal?.aborted) setStatusLoading(false);
+      if (!quiet && !signal?.aborted) setStatusLoading(false);
     }
   }, []);
 
@@ -259,6 +271,20 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
     void loadStatus(controller.signal);
     return () => controller.abort();
   }, [loadStatus, reloadVersion]);
+
+  useEffect(() => {
+    if (action !== null) return;
+    const controller = new AbortController();
+    const cancel = scheduleRawImportStatusCheck(
+      status?.latestImport ?? null,
+      () => { void loadStatus(controller.signal, true); },
+      () => setStatus(current => current ? { ...current } : current),
+    );
+    return () => {
+      cancel();
+      controller.abort();
+    };
+  }, [status, action, loadStatus]);
 
   useEffect(() => {
     if (!canImport) return;
@@ -403,7 +429,7 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
         const response=await fetch(path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
         if(!response.ok){
           if(response.status===504||response.status===408)throw new Error(lang==="uk"?"Сервер перевищив час очікування. Перевірте стан операції перед повтором (HTTP "+response.status+").":"The server timed out. Check the operation status before retrying (HTTP "+response.status+").");
-          throw new Error(await responseMessage(response));
+          throw new Error(await responseMessage(response, lang));
         }
         return response.json();
       };
@@ -438,11 +464,12 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
     }
   }
 
-  const lastImportDate = status?.activeImport?.finishedAt
+  const lastImportDate = status?.activeImport?.completedAt
+    ?? status?.activeImport?.finishedAt
     ?? status?.activeImport?.activatedAt
     ?? status?.latestImport?.finishedAt
     ?? status?.latestImport?.createdAt;
-  const calculationDate = status?.calculation?.finishedAt ?? status?.calculation?.createdAt;
+  const calculationDate = status?.calculation?.completedAt ?? status?.calculation?.finishedAt ?? status?.calculation?.createdAt;
   const issueTotal = Object.values(status?.issueCounts ?? {}).reduce((sum, count) => sum + count, 0);
 
   return (
@@ -454,11 +481,11 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
           <p className="text-sm text-(--muted) mt-1 max-w-2xl">{copy.subtitle}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button type="button" onClick={() => setReloadVersion((value) => value + 1)}
+          <button type="button" onClick={() => {setActionError(null);setRefreshMessage(true);setReloadVersion((value) => value + 1);}}
             disabled={loading || statusLoading}
             className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-(--border) bg-(--surface) text-sm text-(--muted) hover:text-(--text) hover:bg-(--input-hover) disabled:opacity-50 transition-colors">
             <RefreshCw size={14} className={loading || statusLoading ? "animate-spin" : ""} />
-            {copy.refresh}
+            {lang === "uk" ? "Оновити перегляд" : "Refresh view"}
           </button>
           {canCalculate && (
             <button type="button" onClick={() => void runAction("calculate")} disabled={action !== null || !status?.activeImport}
@@ -472,7 +499,7 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
             {action==="projection"?<LoaderCircle size={14} className="animate-spin"/>:<RefreshCw size={14}/>}{lang==="uk"?"Оновити MVP-звіти":"Refresh MVP reports"}
           </button>}
           {canImport && (
-            <button type="button" onClick={() => void runAction("import")} disabled={action !== null}
+            <button type="button" onClick={() => void runAction("import")} disabled={action !== null || rawImportIsLive(status?.latestImport ?? null)}
               className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-accent-cyan text-[#03110f] text-sm font-semibold hover:bg-[#36ecd2] disabled:opacity-50 transition-colors">
               {action === "import" ? <LoaderCircle size={14} className="animate-spin" /> : <UploadCloud size={14} />}
               {action === "import" ? copy.importing : copy.import}
@@ -480,6 +507,16 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
           )}
         </div>
       </header>
+
+      <p className="mb-4 text-xs text-(--muted)">
+        {lang === "uk"
+          ? "Оновити перегляд — перечитати збережені дані. Імпортувати — завантажити таблицю з Google. Оновити MVP-звіти — перенести збережений імпорт у п’ять основних екранів."
+          : "Refresh view reloads saved data. Import downloads the workbook from Google. Refresh MVP reports projects the saved import into the five main screens."}
+      </p>
+      {refreshMessage && !loading && !statusLoading && !error && !actionError && <p role="status" className="mb-4 text-sm">{lang === "uk" ? "Перегляд збережених даних оновлено." : "Saved-data view refreshed."}</p>}
+      {status?.latestImport?.status === "RUNNING" && <p role="status" className="mb-4 text-sm">{rawImportIsLive(status.latestImport)
+        ? (lang === "uk" ? "Імпорт виконується; показано попередні дані. Стан перевіряється кожні 10 секунд." : "Import is running; previous data is shown. Status is checked every 10 seconds.")
+        : (lang === "uk" ? "Попередній імпорт перевищив час виконання. Натисніть «Імпортувати» для відновлення; старі дані збережені." : "The previous import exceeded its execution window. Click Import to recover; previous data is retained.")}</p>}
 
       <section aria-labelledby="report-period-heading" className="mb-4 rounded-xl border border-(--border) bg-(--surface) px-4 py-3">
         <div className="flex flex-col xl:flex-row xl:items-end gap-3 xl:gap-5">
