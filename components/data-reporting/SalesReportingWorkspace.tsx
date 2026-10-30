@@ -21,7 +21,7 @@ type ResponseData = Omit<
   oneOffOrderCount: number;
 };
 const control =
-  "rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50 touch-manipulation aria-pressed:border-[var(--text)] aria-pressed:font-semibold";
+  "rounded-lg border border-(--border) bg-(--surface) px-3 py-2 text-sm text-(--text) focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50 touch-manipulation aria-pressed:border-(--text) aria-pressed:font-semibold";
 const field = "mt-1 block w-full " + control;
 const ukColumns: Record<string, string> = {
   name: "Назва",
@@ -218,17 +218,17 @@ export default function SalesReportingWorkspace() {
   return (
     <div className="p-5 md:p-8 min-w-0 space-y-5">
       <header>
-        <h1 className="text-2xl font-semibold text-[var(--text)]">
+        <h1 className="text-2xl font-semibold text-(--text)">
           {uk ? "Продажі та маржа SalesDrive" : "SalesDrive sales and margin"}
         </h1>
-        <p className="mt-1 text-sm text-[var(--muted)]">
+        <p className="mt-1 text-sm text-(--muted)">
           {uk
             ? "Продажі за датою оплати, повернення за підтвердженою датою. Валюти показано окремо."
             : "Sales by payment date and returns by verified return date. Currencies remain separate."}
         </p>
       </header>
       <form onSubmit={apply} className="flex flex-wrap items-end gap-3">
-        <label className="text-sm text-[var(--muted)]">
+        <label className="text-sm text-(--muted)">
           {uk ? "Дата від" : "Date from"}
           <input
             name="sales-from"
@@ -238,7 +238,7 @@ export default function SalesReportingWorkspace() {
             onChange={(e) => setPeriod((p) => ({ ...p, from: e.target.value }))}
           />
         </label>
-        <label className="text-sm text-[var(--muted)]">
+        <label className="text-sm text-(--muted)">
           {uk ? "Дата до" : "Date to"}
           <input
             name="sales-to"
@@ -270,7 +270,7 @@ export default function SalesReportingWorkspace() {
         </button>
       </form>
       {busy && (
-        <p role="status" className="text-sm text-[var(--muted)]">
+        <p role="status" className="text-sm text-(--muted)">
           {uk ? "Завантаження…" : "Loading…"}
         </p>
       )}
@@ -303,11 +303,11 @@ export default function SalesReportingWorkspace() {
       )}
       {data && !busy && !error && (
         <>
-          <p className="text-sm text-[var(--muted)]">
+          <p className="text-sm text-(--muted)">
             {data.period.from} — {data.period.to} · LY {data.period.lyFrom} —{" "}
             {data.period.lyTo}
             {(!data.history.current || !data.history.ly) && (
-              <span className="block text-[var(--text)] font-medium">
+              <span className="block text-(--text) font-medium">
                 {uk
                   ? "Історія неповна або вхідні дані потребують перевірки. Порівняння LY недоступне."
                   : "History is incomplete or inputs require review. LY comparison is unavailable."}
@@ -318,12 +318,12 @@ export default function SalesReportingWorkspace() {
             {data.summary.map((row) => (
               <section
                 key={row.currency ?? "unknown"}
-                className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4"
+                className="rounded-xl border border-(--border) bg-(--surface) p-4"
                 aria-label={
                   row.currency ?? (uk ? "Невідома валюта" : "Unknown currency")
                 }
               >
-                <h2 className="font-semibold text-[var(--text)]">
+                <h2 className="font-semibold text-(--text)">
                   {row.currency ??
                     (uk ? "Невідома валюта" : "Unknown currency")}
                 </h2>
@@ -373,15 +373,15 @@ export default function SalesReportingWorkspace() {
                     ],
                   ].map(([label, value]) => (
                     <div key={label}>
-                      <dt className="text-[var(--muted)]">{label}</dt>
-                      <dd className="mt-1 font-semibold tabular-nums text-[var(--text)]">
+                      <dt className="text-(--muted)">{label}</dt>
+                      <dd className="mt-1 font-semibold tabular-nums text-(--text)">
                         {value}
                       </dd>
                     </div>
                   ))}
                 </dl>
                 {row.coveredMarginBelowTarget !== null && (
-                  <p className="mt-3 text-sm text-[var(--text)]">
+                  <p className="mt-3 text-sm text-(--text)">
                     {uk ? "Маржа покритих рядків" : "Covered margin"}:{" "}
                     {row.coveredMarginBelowTarget
                       ? uk
@@ -397,14 +397,14 @@ export default function SalesReportingWorkspace() {
                   row.plan.reason ?? "",
                 ) && (
                   <a
-                    className="mt-3 block text-sm text-[var(--text)] underline focus-visible:outline"
+                    className="mt-3 block text-sm text-(--text) underline focus-visible:outline-solid"
                     href="/settings?tab=merchandising"
                   >
                     {uk ? "Задати план і валюту" : "Set plan and currency"}
                   </a>
                 )}
                 {row.current.coverage !== "COMPLETE" && (
-                  <p className="mt-3 text-sm text-[var(--text)] font-medium">
+                  <p className="mt-3 text-sm text-(--text) font-medium">
                     {uk
                       ? "Часткові дані. Рядків без відомого прибутку:"
                       : "Partial data. Lines without known profit:"}{" "}
@@ -443,7 +443,7 @@ export default function SalesReportingWorkspace() {
             }}
             className="flex flex-wrap items-end gap-2"
           >
-            <label className="min-w-0 flex-1 text-sm text-[var(--muted)]">
+            <label className="min-w-0 flex-1 text-sm text-(--muted)">
               {uk ? "Пошук у зрізі" : "Search this view"}
               <input
                 name="sales-search"
@@ -478,13 +478,13 @@ export default function SalesReportingWorkspace() {
               }}
             />
           ) : (
-            <p className="text-sm text-[var(--muted)]">
+            <p className="text-sm text-(--muted)">
               {uk
                 ? "Немає рядків за цими фільтрами."
                 : "No rows match these filters."}
             </p>
           )}
-          <div className="flex flex-wrap items-center gap-3 text-sm text-[var(--muted)]">
+          <div className="flex flex-wrap items-center gap-3 text-sm text-(--muted)">
             <button
               type="button"
               className={control}
@@ -506,8 +506,8 @@ export default function SalesReportingWorkspace() {
               {uk ? "Далі" : "Next"}
             </button>
           </div>
-          <details className="rounded-xl border border-[var(--border)] p-4 text-sm text-[var(--muted)]">
-            <summary className="cursor-pointer focus-visible:outline">
+          <details className="rounded-xl border border-(--border) p-4 text-sm text-(--muted)">
+            <summary className="cursor-pointer focus-visible:outline-solid">
               {uk
                 ? "Компоненти, передзамовлення й винятки"
                 : "Components, preorders and exceptions"}
@@ -569,7 +569,7 @@ export default function SalesReportingWorkspace() {
               ))}
             </div>
           </details>
-          <p className="break-all text-xs text-[var(--muted)]">
+          <p className="break-all text-xs text-(--muted)">
             {uk ? "Розрахунок" : "Calculation"}: {data.calculationRunId} ·{" "}
             {uk ? "Версія формул" : "Formula version"} {data.calculationVersion}
             .{" "}

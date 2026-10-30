@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import * as XLSX from "xlsx";
+import { readWorkbook, sheetToJson } from "./workbook-compat.mjs";
 import { assertDriveRowLimit } from "@/lib/drive-limits";
 
 export const DATA_SOURCE_TIMEZONE = "Europe/Kyiv";
@@ -150,7 +151,7 @@ function parseSheet(
   ws: XLSX.WorkSheet,
   config: (typeof RAW_SHEET_CONFIGS)[number]
 ): ParsedRawSheet {
-  const matrix = XLSX.utils.sheet_to_json(ws, {
+  const matrix = sheetToJson(ws, {
     header: 1,
     defval: "",
     raw: true,
@@ -249,7 +250,7 @@ function missingOptionalSheet(config: (typeof RAW_SHEET_CONFIGS)[number]): Parse
 }
 
 export function parseRawWorkbook(buffer: Buffer): ParsedRawWorkbook {
-  const workbook = XLSX.read(buffer, { type: "buffer", cellDates: true });
+  const workbook = readWorkbook(buffer, { type: "buffer", cellDates: true });
   const sheets: ParsedRawSheet[] = [];
   const warnings: string[] = [];
   let totalRows = 0;

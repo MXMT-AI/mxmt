@@ -9,7 +9,7 @@ export default function MerchandisingError({ reset }: { reset: () => void }) {
       <p>{copy.error}</p>
       <button
         type="button"
-        className="min-h-11 rounded-lg border border-[var(--border)] px-4 py-2 hover:bg-[var(--input-bg)]"
+        className="min-h-11 rounded-lg border border-(--border) px-4 py-2 hover:bg-(--input-bg)"
         onClick={reset}
       >
         {copy.retry}

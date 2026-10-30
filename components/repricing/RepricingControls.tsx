@@ -55,7 +55,7 @@ export default function RepricingControls({
     maxKey: "priceMax" | "stockMax",
   ) => (
     <fieldset className="min-w-0">
-      <legend className="mb-1.5 text-xs text-[var(--muted)]">{label}</legend>
+      <legend className="mb-1.5 text-xs text-(--muted)">{label}</legend>
       <div className="flex items-center gap-2">
         {([minKey, maxKey] as const).map((key, i) => (
           <input
@@ -87,7 +87,7 @@ export default function RepricingControls({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 id="repricing-filters" className="font-semibold">
             {copy.filters}{" "}
-            <span className="ml-2 text-xs font-normal text-[var(--muted)]">
+            <span className="ml-2 text-xs font-normal text-(--muted)">
               {copy.active}: {activeRepricingFilters(f)}
             </span>
           </h2>
@@ -223,7 +223,7 @@ export default function RepricingControls({
               <button
                 className={
                   button +
-                  " aria-pressed:bg-[var(--input-bg)] aria-pressed:font-semibold"
+                  " aria-pressed:bg-(--input-bg) aria-pressed:font-semibold"
                 }
                 type="button"
                 key={name}
@@ -274,7 +274,7 @@ export default function RepricingControls({
               </span>
               <input
                 type="range"
-                className="block w-full min-h-11 accent-[var(--text)] touch-pan-y"
+                className="block w-full min-h-11 accent-(--text) touch-pan-y"
                 name={slider.key}
                 min={slider.min}
                 max={slider.max}
@@ -288,7 +288,7 @@ export default function RepricingControls({
                   setParameter(slider.key, Number(e.target.value))
                 }
               />
-              <span className="flex justify-between text-xs text-[var(--muted)]">
+              <span className="flex justify-between text-xs text-(--muted)">
                 <span>{slider.min}%</span>
                 <span>{slider.max}%</span>
               </span>
@@ -328,7 +328,7 @@ export default function RepricingControls({
           </Field>
           <label className="flex min-h-11 items-center gap-2 text-sm">
             <input
-              className="size-5 accent-[var(--text)]"
+              className="size-5 accent-(--text)"
               type="checkbox"
               name="costProtection"
               checked={p.costProtection}
@@ -349,11 +349,11 @@ export default function RepricingControls({
           </label>
         </div>
         {!p.costProtection ? (
-          <div className="space-y-3 border-t border-[var(--border)] pt-4">
+          <div className="space-y-3 border-t border-(--border) pt-4">
             <label className="flex min-h-11 items-center gap-2 text-sm">
               <input
                 type="checkbox"
-                className="size-5 accent-[var(--text)]"
+                className="size-5 accent-(--text)"
                 name="liquidation"
                 checked={p.liquidation}
                 onChange={(e) =>
@@ -396,7 +396,7 @@ export default function RepricingControls({
             {copy.parameterError}
           </p>
         ) : null}
-        <p className="rounded-lg border border-[var(--border)] bg-[var(--input-bg)] p-3 text-xs leading-relaxed">
+        <p className="rounded-lg border border-(--border) bg-(--input-bg) p-3 text-xs leading-relaxed">
           {copy.rankingNote}
         </p>
         <Note>{copy.resetNote}</Note>

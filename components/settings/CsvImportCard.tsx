@@ -82,7 +82,7 @@ const names = {
   },
 };
 const button =
-  "touch-manipulation hover:border-[var(--muted)] min-h-11 rounded-lg border border-[var(--border)] px-4 py-2 text-sm text-[var(--text)] disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2";
+  "touch-manipulation hover:border-(--muted) min-h-11 rounded-lg border border-(--border) px-4 py-2 text-sm text-(--text) disabled:opacity-50 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2";
 function base64(bytes: Uint8Array) {
   let s = "";
   for (let i = 0; i < bytes.length; i += 8192)
@@ -464,10 +464,10 @@ export default function CsvImportCard({
   return (
     <section className="mb-10 space-y-4" aria-labelledby="csv-import-title">
       <div>
-        <h2 id="csv-import-title" className="font-semibold text-[var(--text)]">
+        <h2 id="csv-import-title" className="font-semibold text-(--text)">
           {copy("Імпорт CSV", "CSV import")}
         </h2>
-        <p className="mt-1 max-w-3xl text-sm text-[var(--muted)]">
+        <p className="mt-1 max-w-3xl text-sm text-(--muted)">
           {copy(
             "Завантажте окремі файли, зіставте колонки та перевірте пакет перед активацією. Дані не зміняться до активації.",
             "Upload separate files, map columns and preview the packet before activation. Data changes only on activation.",
@@ -475,7 +475,7 @@ export default function CsvImportCard({
         </p>
       </div>
       {!canManage ? (
-        <p className="text-sm text-[var(--muted)]">
+        <p className="text-sm text-(--muted)">
           {copy(
             "CSV-файли завантажує й активує адміністратор.",
             "An administrator uploads and activates CSV files.",
@@ -487,7 +487,7 @@ export default function CsvImportCard({
             autoComplete="off"
             spellCheck={false}
             onSubmit={submit}
-            className="space-y-5 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5"
+            className="space-y-5 rounded-xl border border-(--border) bg-(--surface) p-4 sm:p-5"
           >
             <fieldset disabled={busy} className="space-y-5">
               <legend className="sr-only">
@@ -547,7 +547,7 @@ export default function CsvImportCard({
                   />
                 </Field>
               </div>
-              <p className="text-xs text-[var(--muted)]">
+              <p className="text-xs text-(--muted)">
                 {copy(
                   "UTF-8, до 256 КіБ на файл, 1 МіБ і 500 рядків на пакет. Числа: крапка, до 4 знаків після неї. Дати: YYYY-MM-DD; час зміни та спостереження: ISO UTC із Z. Порожня клітинка означає «невідомо», а не нуль.",
                   "UTF-8, up to 256 KiB per file, 1 MiB and 500 rows per packet. Decimals use a dot and up to 4 fractional digits. Dates: YYYY-MM-DD; update/observation timestamps: ISO UTC with Z. Empty means unknown, not zero.",
@@ -557,9 +557,9 @@ export default function CsvImportCard({
                 <details
                   id={`csv-file-${resource}`}
                   key={resource}
-                  className="rounded-lg border border-[var(--border)] p-3"
+                  className="rounded-lg border border-(--border) p-3"
                 >
-                  <summary className="cursor-pointer break-words text-sm text-[var(--text)]">
+                  <summary className="cursor-pointer wrap-break-word text-sm text-(--text)">
                     {names[lang][resource]}
                     {files[resource] ? ` — ${files[resource]!.name}` : ""}
                   </summary>
@@ -595,7 +595,7 @@ export default function CsvImportCard({
                       />
                     </Field>
                     <a
-                      className="inline-block text-sm text-[var(--accent)] underline"
+                      className="inline-block text-sm text-(--accent) underline"
                       download={`${resource}-v1.csv`}
                       href={`data:text/csv;charset=utf-8,${encodeURIComponent(CSV_FIELDS[resource].join(",") + "\n")}`}
                     >
@@ -686,14 +686,14 @@ export default function CsvImportCard({
                   </Field>
                 ))}
               </div>
-              <p className="text-xs text-[var(--muted)]">
+              <p className="text-xs text-(--muted)">
                 {copy(
                   "Товари й залишки завантажуються разом. Пропущені товари не обнуляються. Власність брендів і умови постачальників налаштовуються окремо в Settings.",
                   "Upload products and stock together. Omitted products are not zeroed. Configure brand ownership and supplier terms separately in Settings.",
                 )}
               </p>
               <fieldset className="space-y-3">
-                <legend className="text-sm text-[var(--text)]">
+                <legend className="text-sm text-(--text)">
                   {copy("Значення статусів", "Status meanings")}
                 </legend>
                 {statusRows.map((r, i) => (
@@ -752,7 +752,7 @@ export default function CsvImportCard({
                 </button>
               </fieldset>
               <fieldset className="space-y-3">
-                <legend className="text-sm text-[var(--text)]">
+                <legend className="text-sm text-(--text)">
                   {copy("Канали продажів", "Sales channels")}
                 </legend>
                 {channelRows.map((r, i) => (
@@ -881,7 +881,7 @@ export default function CsvImportCard({
               </div>
               {files.receipts && (
                 <fieldset className="grid gap-4 sm:grid-cols-3">
-                  <legend className="mb-3 text-sm text-[var(--text)]">
+                  <legend className="mb-3 text-sm text-(--text)">
                     {copy("Підтверджені приходи", "Verified receipts")}
                   </legend>
                   <Field
@@ -933,7 +933,7 @@ export default function CsvImportCard({
                       ))}
                     </select>
                   </Field>
-                  <label className="flex items-start gap-2 text-sm text-[var(--muted)] sm:col-span-3">
+                  <label className="flex items-start gap-2 text-sm text-(--muted) sm:col-span-3">
                     <input
                       type="checkbox"
                       checked={costVerified}
@@ -950,13 +950,13 @@ export default function CsvImportCard({
                 </fieldset>
               )}
               <fieldset className="space-y-3">
-                <legend className="text-sm text-[var(--text)]">
+                <legend className="text-sm text-(--text)">
                   {copy(
                     "Підтверджене покриття історії",
                     "Verified history coverage",
                   )}
                 </legend>
-                <label className="flex gap-2 text-sm text-[var(--muted)]">
+                <label className="flex gap-2 text-sm text-(--muted)">
                   <input
                     type="checkbox"
                     checked={orderHistory}
@@ -970,7 +970,7 @@ export default function CsvImportCard({
                     "The file contains complete order history for the interval",
                   )}
                 </label>
-                <label className="flex gap-2 text-sm text-[var(--muted)]">
+                <label className="flex gap-2 text-sm text-(--muted)">
                   <input
                     type="checkbox"
                     checked={receiptHistory}
@@ -985,7 +985,7 @@ export default function CsvImportCard({
                   )}
                 </label>
                 {receiptHistory && (
-                  <label className="flex gap-2 text-sm text-[var(--muted)]">
+                  <label className="flex gap-2 text-sm text-(--muted)">
                     <input
                       type="checkbox"
                       checked={options.receiptBaseline ?? false}
@@ -1032,7 +1032,7 @@ export default function CsvImportCard({
                   </div>
                 )}
               </fieldset>
-              <label className="flex items-start gap-2 text-sm text-[var(--text)]">
+              <label className="flex items-start gap-2 text-sm text-(--text)">
                 <input
                   type="checkbox"
                   required
@@ -1064,28 +1064,28 @@ export default function CsvImportCard({
               ref={messageRef}
               tabIndex={-1}
               role="alert"
-              className="break-words text-sm text-[var(--text)]"
+              className="wrap-break-word text-sm text-(--text)"
             >
               {message}
             </p>
           )}
           {preview && (
             <div
-              className="space-y-4 rounded-xl border border-[var(--border)] p-4"
+              className="space-y-4 rounded-xl border border-(--border) p-4"
               ref={previewRef}
               tabIndex={-1}
               aria-live="polite"
             >
-              <h3 className="font-medium text-[var(--text)]">
+              <h3 className="font-medium text-(--text)">
                 {copy("Результат перевірки", "Preview result")} —{" "}
                 {preview.state}
               </h3>
-              <p className="text-sm text-[var(--muted)]">
+              <p className="text-sm text-(--muted)">
                 {Object.entries(preview.preview.counts)
                   .map(([r, n]) => `${names[lang][r as CsvResource]}: ${n}`)
                   .join("; ")}
               </p>
-              <p className="text-xs text-[var(--muted)]">
+              <p className="text-xs text-(--muted)">
                 {copy(
                   "Термін зберігання неактивованого пакета:",
                   "Unactivated packet retention:",
@@ -1099,18 +1099,18 @@ export default function CsvImportCard({
                   "Activated files are retained for audit.",
                 )}
               </p>
-              <p className="break-all text-xs text-[var(--muted)]">
+              <p className="break-all text-xs text-(--muted)">
                 SHA-256: {preview.contentHash}
               </p>
               {preview.options && (
-                <details className="text-sm text-[var(--muted)]">
+                <details className="text-sm text-(--muted)">
                   <summary className="cursor-pointer">
                     {copy(
                       "Зафіксовані правила та колонки",
                       "Frozen rules and column mappings",
                     )}
                   </summary>
-                  <div className="mt-3 space-y-3 break-words">
+                  <div className="mt-3 space-y-3 wrap-break-word">
                     <p>
                       {preview.options.timezone} ·{" "}
                       {preview.options.policy.amounts.currency} ·{" "}
@@ -1201,7 +1201,7 @@ export default function CsvImportCard({
                 </details>
               )}
               {preview.preview.errors.length > 0 && (
-                <ul className="list-inside list-disc space-y-1 text-sm text-[var(--text)]">
+                <ul className="list-inside list-disc space-y-1 text-sm text-(--text)">
                   {preview.preview.errors.map((e, i) => (
                     <li key={i}>
                       <a
@@ -1229,7 +1229,7 @@ export default function CsvImportCard({
                 </ul>
               )}
               {preview.preview.warnings.length > 0 && (
-                <details className="text-sm text-[var(--muted)]">
+                <details className="text-sm text-(--muted)">
                   <summary className="cursor-pointer">
                     {copy(
                       "Обмеження та попередження",
@@ -1244,7 +1244,7 @@ export default function CsvImportCard({
                 </details>
               )}
               {preview.job?.errorCode && (
-                <p role="alert" className="text-sm text-[var(--text)]">
+                <p role="alert" className="text-sm text-(--text)">
                   {copy("Імпорт зупинено:", "Import paused:")}{" "}
                   {preview.job.errorCode}
                 </p>
@@ -1295,7 +1295,7 @@ export default function CsvImportCard({
                   {copy("Скасувати пакет", "Cancel packet")}
                 </button>
               </div>
-              <p className="text-xs text-[var(--muted)]">
+              <p className="text-xs text-(--muted)">
                 {copy(
                   "Для активації виберіть CSV у «Джерелі звітів» вище. Перевірка та активація — окремі дії.",
                   "To activate, choose CSV in Reporting source above. Preview and activation are separate actions.",
@@ -1304,7 +1304,7 @@ export default function CsvImportCard({
             </div>
           )}
           {uploads.length > 0 && (
-            <details className="text-sm text-[var(--muted)]">
+            <details className="text-sm text-(--muted)">
               <summary className="cursor-pointer">
                 {copy("Останні пакети", "Recent packets")}
               </summary>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import * as XLSX from "xlsx";
+import { readWorkbook, sheetToJson } from "@/lib/workbook-compat.mjs";
 import { requireApiUser } from "@/lib/server-auth";
 import { apiError, serverError } from "@/lib/api-contracts";
 
@@ -118,14 +118,14 @@ export async function POST(request: NextRequest) {
 
     // Parse Excel / CSV
     const buffer = await file.arrayBuffer();
-    const wb = XLSX.read(buffer, { type: "buffer" });
+    const wb = readWorkbook(buffer, { type: "buffer" });
     const firstSheetName = wb.SheetNames[0];
     if (!firstSheetName) {
       return apiError("Workbook has no sheets", 400, "VALIDATION_ERROR");
     }
 
     const ws = wb.Sheets[firstSheetName];
-    const rows = XLSX.utils.sheet_to_json<CatalogRow>(ws, { defval: "" });
+    const rows = sheetToJson<CatalogRow>(ws, { defval: "" });
 
     if (rows.length === 0) {
       return apiError("File is empty", 400, "VALIDATION_ERROR");

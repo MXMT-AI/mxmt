@@ -8,7 +8,7 @@ const ACCESS_SECRET = new TextEncoder().encode(
 // Cron routes authenticate with their own Bearer secret, not a browser JWT.
 const PUBLIC_PATHS = ["/login", "/register", "/api/auth", "/api/health", "/api/cron"];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // This single receiver authenticates a per-source relay token in its Node route.

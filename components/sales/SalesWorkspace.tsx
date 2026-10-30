@@ -37,7 +37,7 @@ export default function SalesWorkspace() {
     return (
       <div role="status">
         <h1 className="text-2xl font-bold">{copy.title}</h1>
-        <p className="mt-4 text-[var(--muted)]">{copy.loading}</p>
+        <p className="mt-4 text-(--muted)">{copy.loading}</p>
       </div>
     );
   return (

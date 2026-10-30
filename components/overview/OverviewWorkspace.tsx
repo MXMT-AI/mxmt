@@ -27,7 +27,7 @@ export default function OverviewWorkspace() {
     return (
       <div role="status" aria-live="polite" className="py-6">
         <h1 className="text-2xl font-bold">{copy.title}</h1>
-        <p className="mt-3 text-sm text-[var(--muted)]">{copy.loading}</p>
+        <p className="mt-3 text-sm text-(--muted)">{copy.loading}</p>
       </div>
     );
   const chatFilters:NonNullable<MerchandisingChatRequest["filters"]>={};
@@ -46,7 +46,7 @@ export default function OverviewWorkspace() {
       const open=event.currentTarget.open;if(open)setChatLoaded(true);
       if(open!==(params.get("chat")==="1")){const next=new URLSearchParams(params);if(open)next.set("chat","1");else next.delete("chat");router.replace(`/overview?${next}`,{scroll:false});}
     }}>
-      <summary className="min-h-11 cursor-pointer rounded-xl px-5 py-4 text-base font-semibold focus-visible:outline focus-visible:outline-2"><h2 className="inline">{chatCopy[lang].title}</h2></summary>
+      <summary className="min-h-11 cursor-pointer rounded-xl px-5 py-4 text-base font-semibold focus-visible:outline-solid focus-visible:outline-2"><h2 className="inline">{chatCopy[lang].title}</h2></summary>
       {chatLoaded?<Chat key={chatScope} snapshotId={data.context.snapshotId} filters={chatFilters} lang={lang} allowed={allowed} initialTopic={initialTopic} scenarioExportId={params.get("chatExportId")??undefined}/>:null}
     </details>
   </div>;

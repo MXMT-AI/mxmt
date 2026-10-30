@@ -35,10 +35,10 @@ export default function AIProviderCard({ lang }: { lang: "uk" | "en" }) {
   }
 
   return (
-    <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5">
+    <div className="bg-(--surface) border border-(--border) rounded-xl p-5">
       <div className="flex items-center gap-2 mb-4">
-        <Zap size={14} className="text-[#fbbf24]" />
-        <span className="text-xs font-mono text-[var(--subtle)] uppercase tracking-widest">
+        <Zap size={14} className="text-accent-yellow" />
+        <span className="text-xs font-mono text-(--subtle) uppercase tracking-widest">
           {uk ? "Активна модель" : "Active model"}
         </span>
       </div>
@@ -50,25 +50,25 @@ export default function AIProviderCard({ lang }: { lang: "uk" | "en" }) {
             onClick={() => pick(p.id)}
             className={`text-left p-4 rounded-xl border transition-all ${
               active === p.id
-                ? "border-[#00e5c4]/40 bg-[#00e5c4]/8"
-                : "border-[var(--border)] bg-[var(--row)] hover:border-[var(--border-faint)]"
+                ? "border-accent-cyan/40 bg-accent-cyan/8"
+                : "border-(--border) bg-(--row) hover:border-(--border-faint)"
             }`}
           >
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-sm font-semibold text-[var(--text)]">{p.name}</span>
+              <span className="text-sm font-semibold text-(--text)">{p.name}</span>
               {active === p.id && (
-                <span className="text-[9px] font-mono bg-[#00e5c4]/15 text-[#00e5c4] border border-[#00e5c4]/30 px-1.5 py-0.5 rounded">
+                <span className="text-[9px] font-mono bg-accent-cyan/15 text-accent-cyan border border-accent-cyan/30 px-1.5 py-0.5 rounded-sm">
                   {uk ? "АКТИВНО" : "ACTIVE"}
                 </span>
               )}
             </div>
-            <div className="text-[11px] font-mono text-[#00e5c4] mb-1">{p.model}</div>
-            <div className="text-[11px] text-[var(--muted)] leading-snug">{p.desc}</div>
+            <div className="text-[11px] font-mono text-accent-cyan mb-1">{p.model}</div>
+            <div className="text-[11px] text-(--muted) leading-snug">{p.desc}</div>
           </button>
         ))}
       </div>
 
-      <p className="text-[11px] text-[var(--subtle)] mt-3 font-mono">
+      <p className="text-[11px] text-(--subtle) mt-3 font-mono">
         {uk
           ? "Вибір зберігається в браузері. API ключі налаштовуються у змінних середовища хостингу."
           : "Choice is saved in the browser. API keys are configured in hosting environment variables."}

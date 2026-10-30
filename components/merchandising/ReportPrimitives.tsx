@@ -3,13 +3,13 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 type Href = (values: Record<string, string | null>) => string;
 export const panel =
-  "min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface)]";
+  "min-w-0 rounded-xl border border-(--border) bg-(--surface)";
 export const button =
-  "inline-flex min-h-11 touch-manipulation items-center justify-center rounded-lg border border-[var(--border)] px-4 py-2 text-sm hover:bg-[var(--input-bg)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2";
+  "inline-flex min-h-11 touch-manipulation items-center justify-center rounded-lg border border-(--border) px-4 py-2 text-sm hover:bg-(--input-bg) focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2";
 /** Render supporting context consistently across merchandising reports. */
 export function Note({ children }: { children: ReactNode }) {
   return (
-    <p className="text-xs leading-relaxed text-[var(--muted)]">{children}</p>
+    <p className="text-xs leading-relaxed text-(--muted)">{children}</p>
   );
 }
 /** Keep the visible marker decorative and expose its localized meaning as text. */
@@ -42,7 +42,7 @@ export function Pager({
   return (
     <nav
       aria-label={copy.page}
-      className="flex flex-wrap items-center gap-3 border-t border-[var(--border)] p-3 text-xs"
+      className="flex flex-wrap items-center gap-3 border-t border-(--border) p-3 text-xs"
     >
       {pagination.page > 1 ? (
         <Link

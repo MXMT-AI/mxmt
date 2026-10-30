@@ -12,7 +12,7 @@ export default function SalesSparkline({
   height?: number;
 }) {
   if (data.length < 2) return (
-    <div className="h-14 flex items-center justify-center text-xs text-[var(--subtle)]">
+    <div className="h-14 flex items-center justify-center text-xs text-(--subtle)">
       Недостатньо даних
     </div>
   );

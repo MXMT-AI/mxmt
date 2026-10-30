@@ -1,0 +1,41 @@
+{
+  "baselineCommit": "5dc9405222b90ae8273ccf66d8a18f2c03adffec",
+  "date": "2026-10-29",
+  "node": "20.19.6",
+  "npm": "11.12.1",
+  "lockSha256": "122b411a7bf1f1144e6ac98e40d0051526987a5e0b536fe3dcb6a59d57228d69",
+  "audit": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 0,
+      "moderate": 4,
+      "high": 8,
+      "critical": 1,
+      "total": 13
+    },
+    "dependencies": {
+      "prod": 160,
+      "dev": 79,
+      "optional": 67,
+      "peer": 0,
+      "peerOptional": 0,
+      "total": 275
+    }
+  },
+  "ownerRuntimeDecision": "Node 24 LTS replaces initial Node 26 target",
+  "hostingRuntimeChanged": false,
+  "baselineChecks": {
+    "fullTests": {
+      "files": 163,
+      "passed": 1622,
+      "skipped": 1
+    },
+    "mvpTests": {
+      "files": 80,
+      "passed": 965
+    },
+    "typecheck": "passed",
+    "build": "passed",
+    "vercelBuild": "passed-on-isolated-native-postgresql"
+  }
+}

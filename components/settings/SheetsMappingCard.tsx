@@ -254,13 +254,13 @@ export default function SheetsMappingCard({
     orderColumns =
       meta?.input.sheets.find((s) => s.sheetKey === "zavod_api")?.columns ?? [];
   return (
-    <section className="mb-10 min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5">
-      <h2 className="font-semibold text-[var(--text)]">
+    <section className="mb-10 min-w-0 rounded-xl border border-(--border) bg-(--surface) p-5">
+      <h2 className="font-semibold text-(--text)">
         {uk
           ? "Google Sheets · зіставлення даних"
           : "Google Sheets · data mapping"}
       </h2>
-      <p className="mt-1 mb-4 text-sm text-[var(--muted)]">
+      <p className="mt-1 mb-4 text-sm text-(--muted)">
         {uk
           ? "Перевірте поля й бізнес-правила на збереженому імпорті. Попередній перегляд і погодження не змінюють джерело звітів та не запускають розрахунки."
           : "Review fields and business rules against a saved import. Preview and approval do not switch reporting source or calculate reports."}
@@ -299,7 +299,7 @@ export default function SheetsMappingCard({
           {uk ? "Завантажуємо таблиці…" : "Loading spreadsheets…"}
         </p>
       ) : !sources.length && !error ? (
-        <p className="mt-3 text-sm text-[var(--muted)]">
+        <p className="mt-3 text-sm text-(--muted)">
           {uk
             ? "Збережених таблиць ще немає. Спочатку імпортуйте Google Sheets у "
             : "No saved spreadsheets yet. Import Google Sheets in "}
@@ -316,7 +316,7 @@ export default function SheetsMappingCard({
       ) : null}
       {meta && draft ? (
         <fieldset disabled={busy || loading} className="mt-5 min-w-0 space-y-5">
-          <legend className="text-sm text-[var(--muted)]">
+          <legend className="text-sm text-(--muted)">
             {uk ? "Імпорт" : "Import"}:{" "}
             {new Date(meta.input.importedAt).toLocaleString(
               uk ? "uk-UA" : "en-GB",
@@ -328,7 +328,7 @@ export default function SheetsMappingCard({
             <details
               key={resource}
               open
-              className="rounded-lg border border-[var(--border)] p-3"
+              className="rounded-lg border border-(--border) p-3"
             >
               <summary className="cursor-pointer font-medium">
                 {resource === "products" ? "Product YML 2.0" : "ZAVOD_API"}
@@ -557,7 +557,7 @@ export default function SheetsMappingCard({
                   </Field>
                 ))}
             </div>
-            <p className="text-sm text-[var(--muted)]">
+            <p className="text-sm text-(--muted)">
               {uk
                 ? "Непідтверджені статуси виключаються з фінансових показників. Дата зміни рядка не є підтвердженою датою повернення."
                 : "Unverified statuses are excluded from financial metrics. A row update timestamp does not prove a return date."}
@@ -593,7 +593,7 @@ export default function SheetsMappingCard({
             </fieldset>
           ) : null}
           {meta.observed.categories.length ? (
-            <details className="rounded-lg border border-[var(--border)] p-3">
+            <details className="rounded-lg border border-(--border) p-3">
               <summary className="cursor-pointer font-medium">
                 {uk
                   ? "Типи позицій за категоріями"
@@ -660,7 +660,7 @@ export default function SheetsMappingCard({
       ) : null}
       {preview ? (
         <section
-          className="mt-5 space-y-3 rounded-lg border border-[var(--border)] p-4"
+          className="mt-5 space-y-3 rounded-lg border border-(--border) p-4"
           aria-label={uk ? "Результат перевірки" : "Preview results"}
         >
           <h3 className="font-medium">
@@ -676,7 +676,7 @@ export default function SheetsMappingCard({
             {preview.summary.invalidRows.products} /{" "}
             {preview.summary.invalidRows.orders}
           </p>
-          <p className="text-sm text-[var(--muted)]">
+          <p className="text-sm text-(--muted)">
             {uk
               ? "Немає підтвердження повноти історії, типу власності та умов постачальників. Невідомі показники не замінюються нулями."
               : "History completeness, ownership and supplier terms require separate evidence. Unknown metrics are not replaced with zero."}
@@ -688,7 +688,7 @@ export default function SheetsMappingCard({
               ))}
             </ul>
           ) : null}
-          <ul className="space-y-1 text-sm text-[var(--muted)]">
+          <ul className="space-y-1 text-sm text-(--muted)">
             {preview.summary.warnings.map((code) => (
               <li key={code}>{sheetsMappingMessage(code, lang)}</li>
             ))}
@@ -720,7 +720,7 @@ export default function SheetsMappingCard({
                 </li>
               ))}
             </ul>
-            <p className="mt-2 text-sm text-[var(--muted)]">
+            <p className="mt-2 text-sm text-(--muted)">
               {uk
                 ? "Показано до 100 прикладів; кількість вище — за всіма перевіреними рядками."
                 : "Up to 100 examples are shown; totals cover every inspected row."}
@@ -769,7 +769,7 @@ export default function SheetsMappingCard({
           {error}
         </p>
       ) : null}
-      <p role="status" className="mt-3 text-sm text-[var(--muted)]">
+      <p role="status" className="mt-3 text-sm text-(--muted)">
         {message}
       </p>
     </section>

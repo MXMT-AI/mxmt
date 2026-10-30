@@ -18,7 +18,7 @@ export default function DataHealthSection({
   return (
     <>
       <DataQualityCard lang={lang} canManage={canManage} revision={revision} />
-      {manualUpload ? <p className="mb-10 text-sm text-[var(--muted)]">{lang === "uk" ? "CSV оновлюється через перевірку та активацію нового пакета вище." : "Refresh CSV data by previewing and activating a new packet above."}</p> : (["sync", "inventory", "orders"] as const).map((resource) => (
+      {manualUpload ? <p className="mb-10 text-sm text-(--muted)">{lang === "uk" ? "CSV оновлюється через перевірку та активацію нового пакета вище." : "Refresh CSV data by previewing and activating a new packet above."}</p> : (["sync", "inventory", "orders"] as const).map((resource) => (
         <SalesDriveImportCard
           key={resource}
           generic

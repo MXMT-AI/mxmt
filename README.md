@@ -1,580 +1,271 @@
 # MXMT Analytics
 
-AI-платформа для управління асортиментом, запасами, продажами та маркетингом у fashion retail.
+Мультитенантний застосунок для мерчандайзингу: продажі, маржа, запаси, переоцінка та дозамовлення. Дані з Google Sheets і CRM/commerce-конекторів проходять нормалізацію та спільні серверні розрахунки; AI пояснює збережені факти, а не обчислює фінансові показники.
 
-Проєкт працює як мультитенантний Next.js застосунок:
+Оновлено **30 жовтня 2026 року** за кодом цієї гілки. Наявність реалізації не означає активацію конкретного клієнта або завершене production-приймання.
 
-- застосунок і API розгортаються на **Vercel**;
-- основна PostgreSQL база працює в **Neon**;
-- доступ до БД виконується через Prisma ORM;
-- операційні дані імпортуються з Google Sheets;
-- управлінські звіти розраховуються всередині MXMT і зберігаються в Neon;
-- AI-агенти підтримують Anthropic і OpenAI.
+- [Інструкція користувача](INSTRUCTIONS.md) — підключення, п’ять екранів і щоденні дії.
+- [Операційний runbook](RUNBOOK.md) — деплой, міграції, worker, інциденти та відновлення.
+- [Звіт оновлення залежностей](prisma/verification/dependency-upgrade/report.md) — версії, сумісність, перевірки й обмеження.
 
-## Зміст
+## Поточний продукт
 
-- [MXMT Analytics](#mxmt-analytics)
-  - [Зміст](#зміст)
-  - [Можливості](#можливості)
-  - [Архітектура](#архітектура)
-    - [Ключові принципи](#ключові-принципи)
-  - [Технологічний стек](#технологічний-стек)
-  - [Структура репозиторію](#структура-репозиторію)
-  - [Локальний запуск](#локальний-запуск)
-    - [Вимоги](#вимоги)
-    - [Встановлення](#встановлення)
-    - [Команди](#команди)
-  - [Змінні середовища](#змінні-середовища)
-    - [Обов'язкові](#обовязкові)
-    - [AI](#ai)
-    - [Google](#google)
-    - [Правила безпеки](#правила-безпеки)
-  - [Neon PostgreSQL і Prisma](#neon-postgresql-і-prisma)
-    - [Підключення](#підключення)
-    - [Міграції](#міграції)
-    - [Поточні production migrations](#поточні-production-migrations)
-  - [Деплой на Vercel](#деплой-на-vercel)
-    - [Git deployment](#git-deployment)
-    - [CLI deployment](#cli-deployment)
-    - [Health check](#health-check)
-  - [Щоденний імпорт Google Sheets](#щоденний-імпорт-google-sheets)
-    - [Перший запуск](#перший-запуск)
-    - [Ручна перевірка cron](#ручна-перевірка-cron)
-  - [Дані та звіти](#дані-та-звіти)
-    - [Pipeline](#pipeline)
-    - [Основні endpoints](#основні-endpoints)
-  - [AI-агенти](#ai-агенти)
-  - [Автентифікація та ролі](#автентифікація-та-ролі)
-  - [Тестування](#тестування)
-  - [Production release checklist](#production-release-checklist)
-  - [Діагностика](#діагностика)
-    - [Prisma не підключається у Vercel](#prisma-не-підключається-у-vercel)
-    - [Міграція не застосовується](#міграція-не-застосовується)
-    - [Cron не запускається](#cron-не-запускається)
-    - [Імпорт повернув `WARNING`](#імпорт-повернув-warning)
-    - [AI-агент завис у `running`](#ai-агент-завис-у-running)
-  - [Додаткова документація](#додаткова-документація)
-  - [Ліцензія та доступ](#ліцензія-та-доступ)
+### П’ять основних екранів MVP
 
-## Можливості
+| Розділ | URL | Призначення |
+| --- | --- | --- |
+| Огляд | `/overview` | KPI, підсумки та переходи до дій O1–O8 |
+| Продажі | `/sales` | Продажі, покрита маржа, канали, категорії й порівняння з минулим роком S1–S4 |
+| Склад | `/stock` | Структура запасу, категорії, бренди, класифікація та фактична історія K1–K4 |
+| Переоцінка | `/repricing` | Серверні сценарії R1–R4, фільтри, параметри та ручні ціни |
+| Дозамовлення | `/reordering` | Рекомендовані кількості, умови постачання та групи постачальник/валюта |
 
-| Модуль                 | URL               | Призначення                                            |
-| ---------------------- | ----------------- | ------------------------------------------------------ |
-| Дашборд                | `/dashboard`      | KPI, продажі, стокаути та стан синхронізації           |
-| AI-агенти              | `/agents`         | Pipeline з 9 агентів, симуляції, трасування та експорт |
-| Маркетинговий календар | `/calendar`       | Події, кампанії, залишки й AI-планування               |
-| Агент-аналітик         | `/analyst`        | Класифікація SKU, фільтри та AI-аналіз                 |
-| Асортимент             | `/assortment`     | Каталоги, бренди, бюджет, кошик і замовлення           |
-| Дані та звіти          | `/data-reporting` | 5 вкладок даних, імпорт, перерахунок, пошук і колонки  |
-| Налаштування           | `/settings`       | Онбординг, Google Drive та AI-провайдери               |
+Спільні фільтри зберігаються в URL. Drill-down переносить період, джерело контексту та потрібний піднабір SKU. Продажі фільтруються за каналом; спільні залишки залишаються за всіма каналами. Звіти використовують версійований snapshot із фіксованими розрахунками та налаштуваннями, щоб KPI і деталізація були узгоджені.
 
-Інтерфейс підтримує українську й англійську мови, світлу та темну теми.
+`/settings` містить вкладки **Загальне**, **Мерчандайзинг**, **Агенти**. Тут налаштовуються підключення, вибір джерела MVP, мапінг Sheets, Data Quality, клієнтські правила, бренди, постачальники й категорії.
 
-## Архітектура
+### Збережені додаткові модулі
+
+У меню **Інші інструменти** залишаються `/dashboard`, `/agents`, `/calendar`, `/analyst`, `/assortment`, `/data-reporting`. Кореневий маршрут і поточний login/register усе ще ведуть на `/dashboard`; основний MVP відкривається через меню **Огляд**. Старі калькулятори та дев’ять агентів не були автоматично переведені на новий контракт.
+
+`/data-reporting` показує вихідні дані та попередні розрахункові вкладки. Його перемикач **Google Sheets / SalesDrive** змінює представлення сторінки, а не обране джерело п’яти MVP-екранів.
+
+## Джерела і готовність даних
+
+| Джерело | Реалізація | Що потрібно перед використанням |
+| --- | --- | --- |
+| Google Sheets | Raw snapshot → погоджений мапінг → явна проєкція в спільні факти | Доступ до файлу, реальні правила ідентичності/статусів/сум/дат, approval, вибір джерела, MVP refresh |
+| SalesDrive | Замовлення та incremental changes, YML-каталог, дані про надходження, спостереження цін/залишків | Read-доступи, перевірка підключення, мапінг, імпорт, external worker для автоматики; тип руху, supplier/posting semantics і costs підтверджуються окремо перед використанням як receipt evidence |
+| CSV | Версійований ручний пакет, preview, activation, durable jobs | UTF-8 файли, явні колонки/політики та перевірена історична повнота; автоматичного polling немає |
+| KeyCRM | Read-конектор та Settings onboarding | Погоджені поля, account permissions, статуси, ціни/оплати/склад і перевірка реального акаунта |
+| Horoshop | Read-конектор із full-rescan та захистом HTTPS origin/DNS | Точний дозволений origin, account evidence, мапінг і canary |
+| Shopify | Read GraphQL-конектор, durable cursors і query-cost budget | Погоджена версія/scopes, оплати/повернення, валюта, склад і перевірка реального магазину |
+
+Збереження credentials не вибирає нове джерело звітів. Вибір виконує ADMIN у Settings і створює нову revision. Сумування різних провайдерів, об’єднання дубльованих замовлень між CRM і магазином та FX-конвертація не виконуються. Для сумісності кабінет без явного вибору може зберігати попереднє SalesDrive-джерело; його фактичну готовність все одно треба перевірити.
+
+Можливі стани джерела: `CONNECTION_CHECK_REQUIRED`, `MAPPING_REQUIRED`, `IMPORT_REQUIRED`, `READY`. `READY` підтверджує готовність входів, а не повну історію, наявність собівартості чи право виконати будь-яку рекомендацію.
+
+### Спільний pipeline
 
 ```mermaid
 flowchart LR
-    U["Користувач"] --> V["Vercel / Next.js 15"]
-    V --> API["Route Handlers і Server Components"]
-    API --> P["Prisma ORM"]
-    P --> N["Neon PostgreSQL"]
-    API --> G["Google Drive / Google Sheets"]
-    API --> A["Anthropic або OpenAI"]
-    C["Vercel Cron"] --> API
+    S[Google Sheets / CRM / CSV] --> R[Raw imports і provenance]
+    R --> N[Мапінг і нормалізовані факти]
+    N --> C[Серверні sales / daily / classification engines]
+    P[Версійовані клієнтські правила] --> C
+    C --> V[Незмінний snapshot п’яти екранів]
+    V --> A[Серверні сценарії]
+    A --> E[CSV та журнал дій]
+    V --> AI[AI із доказами та бюджетом]
 ```
 
-### Ключові принципи
-
-- **Один Next.js застосунок:** frontend, server rendering та API routes розгортаються разом на Vercel.
-- **Мультитенантність:** бізнес-дані ізольовані через `tenantId` у БД та серверних API.
-- **Server-only secrets:** ключі БД, JWT, Google і AI ніколи не передаються клієнту.
-- **Математика поза AI:** WOH, STR, GM, продажі та агрегати розраховує код і PostgreSQL; AI інтерпретує готові метрики.
-- **Ідемпотентний pipeline:** однаковий файл не створює повторні snapshots і повторні розрахунки.
-- **Історичність:** імпорти та розрахунки не перезаписуються; активний запуск обирається через `DataSource.activeImportRunId`.
+- Tenant і роль беруться з підписаної сесії; бізнес-зв’язки також обмежені tenant/source у БД.
+- Нові грошові факти використовують Decimal. Валюти відображаються окремо; невідоме значення не підміняється нулем.
+- Виручка, покритий GP, LY, швидкість, WOH, STR, availability та SKU-класифікація рахуються на сервері з версіями входів і налаштувань.
+- Час завантаження не доводить історичний залишок або дату повернення. Історія складу містить лише реальні датовані спостереження.
+- Незавершена класифікація має стан partial/unavailable, а не неправдивий нуль неліквіду чи відсутність дефіциту.
+- Успішний експорт зберігає точні байти файлу, параметри, автора, snapshot і hash. Він не змінює ціни в CRM і не надсилає замовлення постачальнику.
 
 ## Технологічний стек
 
-| Компонент      | Технологія                                 |
-| -------------- | ------------------------------------------ |
-| Web framework  | Next.js 15, App Router, React 19           |
-| Мова           | TypeScript                                 |
-| Hosting        | Vercel                                     |
-| Database       | Neon PostgreSQL                            |
-| ORM            | Prisma 5                                   |
-| Styling        | Tailwind CSS                               |
-| Auth           | JWT у httpOnly cookies, `jose`, `bcryptjs` |
-| AI             | Anthropic SDK, OpenAI SDK                  |
-| Табличні файли | SheetJS (`xlsx`)                           |
-| Тести          | Vitest                                     |
+Версії нижче — прийнятий lockfile на дату оновлення, а не обіцянка незмінного `latest`.
+
+| Компонент | Версія / реалізація |
+| --- | --- |
+| Runtime | Node 24 LTS; `.nvmrc` — 24.22.2; npm 11.19.1 |
+| Framework | Next.js 16.4.3, App Router, React / React DOM 19.3.1, Turbopack |
+| Мова | TypeScript 7.0.2, strict |
+| Database | PostgreSQL; production topology — Neon |
+| ORM | Prisma CLI / Client / `@prisma/adapter-pg` 7.10.1 |
+| PostgreSQL driver | pg 8.23.1; окремі physical connect / pool checkout deadlines |
+| CSS | Tailwind 4.3.3, `@tailwindcss/postcss`, tailwind-merge 3.7.0 |
+| Auth | `proxy.ts`, JWT у httpOnly cookies, jose 6.2.14, bcryptjs 3.0.3 |
+| AI SDK | Anthropic 1.3.0, OpenAI 7.45.1 |
+| Таблиці | SheetJS 0.20.3 з офіційного tarball + спільний compatibility reader |
+| Тести | Vitest 5.0.5 / Vite 8.3.5; PGlite 0.5.13 для ізольованих SQL-fixtures |
+| Іконки | Lucide React 1.64.0 |
+
+Tailwind theme міститься в `app/globals.css`, PostCSS integration — у `postcss.config.mjs`; `tailwind.config.ts` більше немає. Мінімальні браузери: Safari 16.4, Chrome 111, Firefox 128 ([офіційний upgrade guide](https://tailwindcss.com/docs/upgrade-guide)).
 
 ## Структура репозиторію
 
 ```text
-app/
-  (app)/                 захищені сторінки застосунку
-  (auth)/                login і register
-  api/                   Next.js Route Handlers
-components/              UI та клієнтська orchestration
-lib/                     бізнес-логіка, auth, AI, імпорт і звіти
-prisma/
-  schema.prisma          схема Neon PostgreSQL
-  migrations/            versioned production migrations
-tests/                   unit та contract tests
-docs/                    технічні контракти й runbooks
-middleware.ts            перевірка сесії для захищених маршрутів
-vercel.json              Vercel Cron configuration
-.env.example             шаблон змінних середовища
+app/(app)/                 захищені MVP та додаткові сторінки
+app/(auth)/                login / register
+app/api/                   auth, connectors, merchandising, legacy API
+components/                повторно використовуваний UI
+lib/connectors/            onboarding, source selection, jobs, adapters, Sheets projection
+lib/ai-execution/          версійований AI context та usage ledger
+lib/                       розрахунки, snapshots, сценарії, exports, audit
+prisma/schema.prisma       моделі PostgreSQL
+prisma/migrations/         незмінна історія застосованих міграцій
+prisma/verification/       tracked контракти, перевірки й activation boundaries
+prisma.config.ts           Prisma CLI config; direct datasource і env loading
+proxy.ts                   Next.js 16 auth/redirect proxy
+scripts/                   DB lifecycle, external worker, offline verification
+tests/                     unit, API та SQL integration fixtures
 ```
 
 ## Локальний запуск
 
-### Вимоги
+Потрібні Node з `.nvmrc`, npm із `packageManager`, PostgreSQL із відомим target і унікальні JWT secrets. Google/CRM/AI доступи потрібні лише для відповідних функцій; звичайні synthetic-тести їх не потребують.
 
-- Node.js 20 LTS або новіший сумісний runtime;
-- npm;
-- Neon PostgreSQL database або локальний PostgreSQL;
-- доступ до Google-файлу для перевірки імпорту;
-- ключ Anthropic або OpenAI для AI-функцій.
-
-### Встановлення
-
-```bash
+```sh
 git clone <repository-url>
 cd mxmt
-npm install
-cp .env.example .env
+nvm install
+nvm use
+node --version
+npm --version
+npm ci
+cp .env.example .env.local
 ```
 
-Заповніть `.env`, після чого застосуйте міграції та запустіть застосунок:
+У `.env.local` задайте `DATABASE_URL`, `DIRECT_URL`, JWT secrets та потрібні інтеграції. Приберіть шаблонний `NODE_ENV="production"` із локальної копії: `next dev` сам встановлює development. Не залишайте placeholder Google/AI keys як нібито чинні credentials.
 
-```bash
+Обидва DB URL мають вказувати на **одну й ту саму** БД/schema; для локального PostgreSQL вони можуть збігатися. Перед наступною командою перевірте, що це ваша локальна/ізольована development-БД: `db:migrate:deploy` змінює її схему.
+
+```sh
 npm run db:migrate:deploy
+npm run db:check
 npm run dev
 ```
 
-Локальна адреса за замовчуванням: `http://localhost:3000`.
+Адреса: `http://localhost:3000`. Створіть окремий тестовий кабінет через `/register`. Не додавайте спільний пароль або реальні credentials до документації/fixtures.
 
 ### Команди
 
-| Команда                     | Призначення                                                                        |
-| --------------------------- | ---------------------------------------------------------------------------------- |
-| `npm run dev`               | Next.js development server                                                         |
-| `npm run build`             | Prisma Client generation і production build                                        |
-| `npm run start`             | Запуск зібраного Next.js застосунку                                                |
-| `npm test`                  | Всі Vitest тести                                                                   |
-| `npm run test:watch`        | Тести в watch mode                                                                 |
-| `npm run db:migrate`        | Створення/застосування міграції у development                                      |
-| `npm run db:migrate:deploy` | Застосування готових міграцій у staging/production                                 |
-| `npm run db:push`           | Синхронізація schema без migration history; лише для тимчасової локальної розробки |
+| Команда | Поведінка |
+| --- | --- |
+| `npm ci` | Встановлює прийнятий lockfile; postinstall генерує Prisma Client |
+| `npm run dev` | Спочатку `predev` перевіряє migration history, потім запускає Next |
+| `npm run build` | Генерація Client і Next production build; не перевіряє/не застосовує міграції |
+| `npm run build:vercel` | Перевірка DB target і migration status → Client → Next build |
+| `npm start` | `prestart` перевіряє БД у production env, потім запускає зібраний застосунок |
+| `npm run db:check` | Перевіряє однаковий DB target і migration history; нічого не застосовує |
+| `npm run db:migrate -- --name describe_change` | Створює/застосовує development migration на відповідній development-БД |
+| `npm run db:migrate:deploy` | Застосовує готові pending migrations до явно обраної БД |
+| `npm run db:push` | Лише disposable development; не release workflow |
+| `npm run db:studio` | Prisma Studio для налаштованого direct target |
+| `npm test -- --maxWorkers=2` | Повний synthetic regression suite |
+| `npm run test:mvp` | MVP ingestion / calculations / screens / scenarios / isolation |
+| `npm run test:watch` | Watch mode |
+| `npm run audit:zavod -- <workbook> --out <private-report>` | Офлайн-аудит файлу; точні параметри — [контракт звірки](prisma/verification/38-zavod-reconciliation.md) |
+| `npm run reconcile:zavod -- <manifest> --out <private-report>` | Звірка замороженого пакета та approvals |
+| `npm run verify:reporting:offline -- <workbook.xlsx> <private-report.json>` | Private-workbook і synthetic Sheets/SalesDrive parity без live-активації |
 
-## Змінні середовища
+## Конфігурація і секрети
 
-Актуальний шаблон знаходиться у [`.env.example`](./.env.example).
+Повний шаблон — [`.env.example`](.env.example). `.env.local` та environment-specific файли завантажуються за правилами Next; Prisma CLI повторює їхню precedence через `@next/env` у `prisma.config.ts`.
 
-### Обов'язкові
+| Змінна | Коли потрібна / призначення |
+| --- | --- |
+| `DATABASE_URL` | Runtime PostgreSQL; для Neon/public — pooled endpoint з `-pooler`, для custom schema — явний direct URL |
+| `DIRECT_URL` | Direct endpoint тієї самої БД для Prisma CLI/migrations |
+| `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET` | Незалежні server-only секрети; обов’язкові для production |
+| `CONNECTOR_ENCRYPTION_KEY` | 32 випадкових байти в base64; потрібен для збереження/читання encrypted connector config, включно з CSV metadata |
+| `GOOGLE_DRIVE_FILE_ID` | Файл для Sheets/legacy Drive paths, а не універсальна вимога для всіх провайдерів |
+| `GOOGLE_SERVICE_ACCOUNT_KEY` | Base64 JSON Service Account для приватного файлу; без нього використовується public-read path |
+| `GOOGLE_DRIVE_EXPORT_FOLDER_ID` | Необов’язкова папка legacy exports; не вибирає джерело MVP |
+| `CRON_SECRET` | Bearer-авторизація daily cron і external worker; щонайменше 16 символів, генеруйте випадковий secret |
+| `SALESDRIVE_WEBHOOK_SECRET` | Окремий server-only secret для trusted relay та source-scoped bearer tokens |
+| `HOROSHOP_ALLOWED_ORIGINS` | Точні перевірені HTTPS origins; без wildcard/path |
+| `AI_PROVIDER`, `AI_TIMEOUT_MS` | Глобальний legacy provider і timeout |
+| `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` | Для обраного AI provider; v2 також потребує окремого схваленого бюджету |
+| `MVP_NAVIGATION_ENABLED`, `LEGACY_NAVIGATION_ENABLED` | Лише видимість меню; не контроль доступу |
+| `NEXT_PUBLIC_APP_URL` | Публічний URL застосунку; жодних server secrets із `NEXT_PUBLIC_` |
 
-| Змінна                 | Призначення                                                        |
-| ---------------------- | ------------------------------------------------------------------ |
-| `DATABASE_URL`         | Pooled Neon connection string для Prisma Client у Vercel Functions |
-| `DIRECT_URL`           | Direct Neon connection string для Prisma Migrate та admin tooling  |
-| `JWT_ACCESS_SECRET`    | Підпис короткоживучого access token                                |
-| `JWT_REFRESH_SECRET`   | Підпис refresh token                                               |
-| `CRON_SECRET`          | Авторизація Vercel Cron; щонайменше 16 випадкових символів         |
-| `GOOGLE_DRIVE_FILE_ID` | ID основного Google Sheets/Drive файлу                             |
-| `NEXT_PUBLIC_APP_URL`  | Production URL застосунку                                          |
+`SALESDRIVE_SYNC_ORIGIN` і `CRON_SECRET` задаються також у secret environment **зовнішнього worker host**, якщо він використовується. CRM credentials вводить ADMIN у Settings; вони шифруються з прив’язкою до tenant/provider і не повертаються браузеру як відкритий config. Втрата encryption key робить збережений config нечитабельним; rotation потребує окремого плану.
 
-### AI
+## Prisma 7, БД і deployment
 
-| Змінна              | Призначення                      |
-| ------------------- | -------------------------------- |
-| `AI_PROVIDER`       | `anthropic` або `openai`         |
-| `AI_TIMEOUT_MS`     | Timeout AI-запиту в мілісекундах |
-| `ANTHROPIC_API_KEY` | Ключ Anthropic                   |
-| `OPENAI_API_KEY`    | Ключ OpenAI                      |
+`prisma/schema.prisma` описує provider/models; URL для CLI задає `prisma.config.ts` через `DIRECT_URL`. Runtime створює `PrismaPg` у `lib/prisma.ts` із `DATABASE_URL`; `lib/prisma-pool.ts` переносить pool-параметри. `schema` задає ORM qualification; quoted session search_path для raw SQL використовується лише на direct-з’єднанні. Для Neon `-pooler` або `pgbouncer=true` session SET не виконується, а custom schema відхиляється до підключення й до migration-status check. Підтриманий pooled deployment використовує `public` зі стандартним public role search_path. Для custom schema задайте явний direct runtime URL з обмеженим pool size; автоматичного перемикання на `DIRECT_URL` немає. Інші transaction poolers позначайте `pgbouncer=true`. `connect_timeout` (default 5s) обмежує physical connection; `pool_timeout` (default 10s) — checkout, включно з новим connection. Нуль вимикає тільки відповідний deadline. Не повертайте Prisma 5 `url/directUrl` у schema і не створюйте Client без adapter.
 
-Потрібен щонайменше один ключ для обраного провайдера. Користувацькі налаштування можуть перевизначати провайдера для окремого агента.
+Для Neon використовуйте TLS і відповідні pooled/direct endpoints тієї самої branch/database/schema. Не вимикайте перевірку сертифікатів для усунення connection error. `db:check` перевіряє migration history, але не доводить відсутність ручного schema drift. P2022 / відсутня `Sku.catalogAttributes` потребує перевірки повної історії на точному target, а не лише `prisma generate`.
 
-### Google
+Deployment topology: Vercel application/API, Neon PostgreSQL, окремий external sync worker на погодженому Hobby-плані. Repository build command у `vercel.json` — **`npm run build:vercel`**. Pending migrations застосовуються окремим release-кроком після rehearsal на копії; build/startup не мігрують production автоматично.
 
-| Змінна                          | Призначення                                                     |
-| ------------------------------- | --------------------------------------------------------------- |
-| `GOOGLE_SERVICE_ACCOUNT_KEY`    | Необов'язковий base64 JSON Service Account для приватних файлів |
-| `GOOGLE_DRIVE_EXPORT_FOLDER_ID` | Необов'язкова папка для server-side Google Sheets exports       |
+Node engines обмежено `24.x`. Vercel підтримує Node 24, але exact patch у hosting може відрізнятися від `.nvmrc`; перевірте фактичні build/runtime logs ([правила Vercel](https://vercel.com/docs/functions/runtimes/node-js/node-js-versions)). Merge у `main` може запустити production Git deployment, якщо integration активна. Порядок release, workers і rollback — у [RUNBOOK](RUNBOOK.md).
 
-Якщо Service Account не налаштовано, вихідний файл має бути доступний за посиланням для читання.
+## Планування синхронізації
 
-### Правила безпеки
+- `vercel.json` має два daily Sheets slots: `/api/cron/data-import/utc-04` о `0 4 * * *` та `/utc-05` о `0 5 * * *`. Local-time gate залишає вікно 07:00–07:59 `Europe/Kyiv`; інший DST slot пропускається. Це заплановане вікно, не гарантія успішного імпорту.
+- Daily Sheets import не позичає ADMIN identity для автоматичного погодження мапінгу чи MVP-проєкції. Після нових raw даних потрібен явний **Refresh MVP reports**.
+- Trusted external scheduler викликає `GET /api/cron/salesdrive-sync` щохвилини з Bearer `CRON_SECRET`. Назва route історична; runtime обслуговує підтримані вибрані remote connectors і recalculation queue. CSV не опитується автоматично.
+- Планувальник створює order intents за двогодинними UTC slots і stock intent після 03:00 за Києвом; один tick виконує обмежений крок. Черга, baseline/backfill, retry і фактична свіжість контролюються окремо.
+- Native SalesDrive webhook без перевіреного relay не підключається напряму. Доставка через relay — сигнал до refetch, а не довірене джерело фінансових сум.
 
-- Не комітьте `.env`, connection strings, JWT secrets або API keys.
-- Не додавайте секрети з префіксом `NEXT_PUBLIC_`.
-- Після зміни environment variables у Vercel створіть новий deployment: зміни не застосовуються до вже розгорнутих версій.
+Деталі й recovery — [automatic sync](prisma/verification/32-automatic-sync.md), [provider runtime](prisma/verification/81-connector-foundation.md).
 
-## Neon PostgreSQL і Prisma
+## Основні API boundaries
 
-`prisma/schema.prisma` використовує два підключення:
+| Endpoint | Призначення / мінімальна роль |
+| --- | --- |
+| `GET/POST /api/connectors/source` | Читання вибору / ADMIN selection із revision |
+| `GET/POST /api/connectors/<provider>` | Безпечні connection metadata / ADMIN save/check |
+| `/api/connectors/sheets/mapping/<sourceId>` | ADMIN mapping metadata, окремі `/preview` та `/approve` |
+| `GET/POST /api/connectors/sheets/projection/<sourceId>` | ADMIN fenced intent / явна publication |
+| `POST /api/merchandising/snapshots` | VIEWER+ створення/повторне використання derived snapshot, без source activation |
+| `GET /api/merchandising/<screen>` | VIEWER+ frozen report; потрібен `snapshotId` |
+| `POST /api/merchandising/repricing/inputs` | VIEWER+ frozen inputs для preview |
+| `POST /api/merchandising/repricing/preview`, `/reordering/preview` | VIEWER+ серверні сценарії |
+| `GET/POST /api/merchandising/exports` | VIEWER+ receipt history / ANALYST+ generation; download окремим authorized route |
+| `GET /api/data/quality` | Поточні tenant/source diagnostics; мутації мають окремий ADMIN gate |
 
-```prisma
-datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
-}
-```
+Точні параметри й помилки визначають Route Handlers та [screen contract](prisma/verification/39-screen-apis.md). Не пересилайте всі UI query params до strict API. `tenantId`, роль, authoritative metrics, provider transport і secrets не є довіреними полями браузерного запиту. Бізнес-правила затверджені в [D01–D22 register](docs/mvp-business-decisions.md); це не approval конкретного customer mapping або live-активації.
 
-### Підключення
+## AI, v2 та зовнішні дії
 
-- `DATABASE_URL` повинен містити pooled hostname Neon з суфіксом `-pooler`.
-- `DIRECT_URL` використовує direct hostname без `-pooler`.
-- Обидва URL повинні використовувати TLS, наприклад `sslmode=require`.
+| Можливість | Поточна межа |
+| --- | --- |
+| Evidence-backed chat | П’ять MVP topics, серверні fact cards і citations; ANALYST+, versioned context та окремо активований AI budget |
+| Marketing briefs v2 | API/service для paid social, SMM і website; не новий workspace і не автоматична публікація |
+| Meta/Google custom labels | Версійований preview/export/history; явні слоти й правила, ручний імпорт після перевірки provider contract |
+| Product attributes | Словник і аналіз реальних source attributes; реальні samples/approval та активація відкладені |
+| Market trends | Evidence/quota/retention mechanism; реальний постачальник, ліцензія, бюджет і активація не обрані |
+| New-product forecast | Draft policy, approved-analog mechanism і backtest; правила/активація відкладені, автозамовлень немає |
+| Retrospectives / GMROI | Evidence APIs, однакові повні before/after дні без дня запуску; observed own-stock approximation, без causal uplift |
+| SalesDrive price write-back | Preview → approve → execute contract і fake transport; production transport відсутній, live-запис вимкнений |
+| Supplier delivery | Preview → approve → send/cancellation contract і audit; live-канал/transport не підключено |
 
-Pooled URL потрібен serverless runtime Vercel, де може одночасно працювати багато короткоживучих functions. Direct URL залишений для migration та адміністративних операцій.
+Новий AI budget не обмежує автоматично старі дев’ять AgentRun workflows. Missing/disabled v2 policy блокує provider call; API key сам по собі не активує платну capability. Зміна SDK не змінює погоджену модель; lifecycle/access моделей перевіряється перед live-використанням.
 
-Офіційна документація: [Neon connection pooling](https://neon.com/docs/connect/connection-pooling).
+## Перевірки та статус приймання
 
-### Міграції
-
-Історія міграцій зберігається в `prisma/migrations` і не повинна редагуватися після застосування до production.
-
-Development:
-
-```bash
-npm run db:migrate -- --name describe_change
-```
-
-Production або staging:
-
-```bash
-npm run db:migrate:deploy
-```
-
-`prisma migrate deploy` застосовує лише pending migrations. Не використовуйте `prisma migrate reset` або `db push` для production Neon.
-
-Офіційна документація: [Prisma migrate deploy](https://www.prisma.io/docs/cli/migrate/deploy).
-
-### Історія міграцій репозиторію
-
-```text
-20260715000000_baseline
-20260717000000_data_reliability_constraints
-20260719000000_agent_run_lock
-20260827000000_data_import_reporting_schema
-20260902000000_marketing_recommendation_approval
-20261023000000_merchandising_data_model
-20261023010000_connector_connections
-20261024000000_salesdrive_order_import
-20261024010000_catalog_receipts_history
-20261024020000_automatic_connector_sync
-20261024030000_product_normalization
-20261025000000_sales_financial_results
-20261025010000_daily_sku_metrics
-20261025020000_sku_classification
-20261025030000_merchandising_screen_models
-20261025040000_overview_supporting_facts
-```
-
-Це список у репозиторії, а не підтвердження production-схеми. Перед релізом
-перевірте фактичну історію цільової БД через `npx prisma migrate status`.
-
-## Деплой на Vercel
-
-### Git deployment
-
-Рекомендований production flow:
-
-1. Підключити GitHub repository до Vercel.
-2. Обрати `main` як Production Branch.
-3. Framework Preset: `Next.js`.
-4. Додати змінні середовища для Production; за потреби окремі значення для Preview.
-5. До deployment застосувати pending Prisma migrations до Neon.
-6. Merge перевіреної feature branch у `main` запускає production deployment.
-
-Vercel автоматично визначає команди з `package.json`. Production build у цьому проєкті:
-
-```bash
+```sh
+npm ci
+npx prisma validate
+npx tsc --noEmit --incremental false
+npm test -- --maxWorkers=2
+npm run test:mvp
 npm run build
+npm audit
 ```
 
-Він виконує `prisma generate`, а потім `next build`. Міграції не запускаються всередині кожного Vercel Function startup.
-
-Environment variables діють лише для нових deployments. Див. [Vercel Environment Variables](https://vercel.com/docs/environment-variables).
-
-### CLI deployment
-
-Для ручного preview або production deployment:
-
-```bash
-npx vercel
-npx vercel --prod
-```
-
-Git-based deployment залишається основним production workflow.
-
-### Health check
-
-Після deployment перевірте:
-
-```text
-GET /api/health
-```
-
-Також перевірте Vercel Runtime Logs на помилки Prisma, auth, AI та scheduled import.
-
-## Щоденний імпорт Google Sheets
-
-Production pipeline запускається щодня у часовому вікні `07:00–07:59 Europe/Kyiv`.
-
-Vercel Cron використовує UTC, а Київ переходить між UTC+2 та UTC+3. Тому `vercel.json` містить два щоденні slots:
-
-```json
-{
-  "crons": [
-    { "path": "/api/cron/data-import/utc-04", "schedule": "0 4 * * *" },
-    { "path": "/api/cron/data-import/utc-05", "schedule": "0 5 * * *" }
-  ]
-}
-```
-
-Обидва endpoints перевіряють локальну київську годину. Невідповідний DST slot повертає успішну відповідь зі `skipped: true`, тому pipeline виконується один раз.
-
-`CRON_SECRET` передається Vercel як Bearer token. Endpoint відхиляє запити з відсутнім або неправильним секретом. Cron jobs активуються лише після production deployment.
-
-Офіційна документація: [Vercel Cron Jobs](https://vercel.com/docs/cron-jobs) і [Managing Cron Jobs](https://vercel.com/docs/cron-jobs/manage-cron-jobs).
-
-### Перший запуск
-
-До активації cron адміністратор повинен виконати перший імпорт на сторінці `/data-reporting`. Він створить tenant-specific `DataSource`, який надалі знайде scheduler.
-
-### Ручна перевірка cron
-
-```bash
-curl --fail --request POST \
-  --header "Authorization: Bearer $CRON_SECRET" \
-  "https://your-production-domain.example/api/cron/data-import?force=1"
-```
-
-`force=1` обходить лише перевірку локальної години, але не авторизацію.
-
-## Дані та звіти
-
-Сторінка `/data-reporting` містить п'ять вкладок:
-
-| Вкладка           | Тип                                      |
-| ----------------- | ---------------------------------------- |
-| `Product YML 2.0` | Raw source snapshot і typed products     |
-| `ZAVOD_API`       | Raw transactions і normalized sale lines |
-| `ARTICLE REPORT`  | Розрахунок на рівні товару               |
-| `BY BRAND`        | Агрегація ARTICLE REPORT за брендом      |
-| `BY CATEGORY`     | Агрегація ARTICLE REPORT за категорією   |
-
-Для кожної вкладки доступні pagination, search, sorting і вибір видимих колонок. Налаштування колонок зберігаються окремо для користувача та вкладки.
-
-### Pipeline
-
-1. Завантажує XLSX export Google Sheets.
-2. Перевіряє allowlist вкладок, headers, розмір і рядки.
-3. Зберігає raw snapshots для аудиту.
-4. Нормалізує products і transaction lines.
-5. Активує новий import atomically, якщо немає blocking errors.
-6. Розраховує `ARTICLE REPORT` для обраного `Date From` / `Date To`.
-7. Агрегує результати в `BY BRAND` і `BY CATEGORY`.
-8. Зберігає issues, warnings, статистику й immutable calculation results у Neon.
-
-Однаковий вміст workbook дає `importOutcome: "unchanged"`; розрахунок з тим самим cache identity дає `calculationOutcome: "cached"`.
-
-### Основні endpoints
-
-| Endpoint                                   | Мінімальна роль | Призначення                                     |
-| ------------------------------------------ | --------------- | ----------------------------------------------- |
-| `POST /api/data/import`                    | `ADMIN`         | Імпорт і автоматичний розрахунок                |
-| `POST /api/data/calculate`                 | `ANALYST`       | Перерахунок активного або історичного імпорту   |
-| `GET /api/data/status`                     | authenticated   | Джерело, активний імпорт, calculation та issues |
-| `GET /api/data/issues`                     | authenticated   | Diagnostics з pagination і filters              |
-| `GET /api/data/tables/{sheetKey}`          | authenticated   | Дані конкретної вкладки                         |
-| `GET/PUT /api/data/preferences/{sheetKey}` | authenticated   | Налаштування таблиці користувача                |
-
-Детальні контракти: [`docs/data-import-contract.md`](./docs/data-import-contract.md) і [`docs/data-reporting-api.md`](./docs/data-reporting-api.md).
-
-## AI-агенти
-
-Pipeline містить 9 агентів:
-
-1. Inventory Analyst
-2. Channel Analytics
-3. Product Attributes
-4. Repricing Strategy
-5. Reordering Strategy
-6. Commercial Marketer
-7. Calendar Agent
-8. Campaign Analysis
-9. Weekly Report
-
-Кожен запуск зберігається в `AgentRun`. Для одного `tenantId + agentType` дозволений лише один активний `running` запуск. Результат містить structured output і debug metadata для трасування.
-
-Provider resolution:
-
-```text
-налаштування конкретного агента → AI_PROVIDER → anthropic fallback
-```
-
-AI routes виконуються тільки на сервері. Клієнт отримує результат, але не API key.
-
-Детальніше: [`docs/ai-agents-runbook.md`](./docs/ai-agents-runbook.md).
-
-## Автентифікація та ролі
-
-Система використовує короткоживучий access token і refresh token у httpOnly cookies. `middleware.ts` захищає application routes, а API повторно перевіряють користувача та роль.
-
-| Роль          | Загальне призначення                      |
-| ------------- | ----------------------------------------- |
-| `VIEWER`      | Перегляд дозволених даних                 |
-| `ANALYST`     | Аналітика та перерахунок звітів           |
-| `ADMIN`       | Імпорт, налаштування та tenant operations |
-| `SUPER_ADMIN` | Повний адміністративний доступ            |
-
-API не приймає `tenantId` від клієнта для data-reporting operations — tenant визначається з authenticated session.
-
-## Тестування
-
-Перед merge або production deployment виконайте:
-
-```bash
-npm test
-npm run build
-```
-
-Тести знаходяться у `tests/**/*.test.ts` і перевіряють:
-
-- auth та API contracts;
-- AI provider/output handling;
-- import parsing, normalization та idempotency;
-- ARTICLE REPORT formulas;
-- BY BRAND / BY CATEGORY aggregation;
-- scheduler, timezone та cron authorization;
-- data table API й UI helpers.
-
-Unit tests не повинні звертатися до real AI providers або змінювати production database.
-
-Детальніше: [`docs/testing.md`](./docs/testing.md).
-
-## Production release checklist
-
-Перед merge у `main`:
-
-- [ ] `npm test` проходить;
-- [ ] `npm run build` проходить;
-- [ ] migration files закомічені;
-- [ ] `prisma migrate deploy` застосовано до потрібної Neon branch/database;
-- [ ] Vercel Production variables налаштовані;
-- [ ] Preview не використовує production secrets без необхідності;
-- [ ] `CRON_SECRET` має щонайменше 16 випадкових символів;
-- [ ] Google source доступний production runtime;
-- [ ] формули або data contract зміни мають нову `calculationVersion`;
-- [ ] release не містить `.env`, credentials або exported customer data.
-
-Після deployment:
-
-- [ ] `/api/health` повертає успішний status;
-- [ ] login і refresh session працюють;
-- [ ] `/data-reporting` показує всі 5 вкладок;
-- [ ] Vercel Cron Jobs відображають обидва UTC slots;
-- [ ] перший scheduled run перевірений у Vercel Runtime Logs;
-- [ ] active import і report calculation не мають статусу `FAILED`.
-
-## Діагностика
-
-### Prisma не підключається у Vercel
-
-1. Перевірте, що `DATABASE_URL` — pooled Neon URL з `-pooler`.
-2. Перевірте `sslmode=require`.
-3. Переконайтеся, що змінна додана саме до потрібного Vercel Environment.
-4. Redeploy після зміни variables.
-
-### Міграція не застосовується
-
-1. Перевірте direct `DIRECT_URL`.
-2. Запустіть `npx prisma migrate status`.
-3. Перевірте migration history; не редагуйте вже застосовані migration files.
-4. Застосуйте `npm run db:migrate:deploy`.
-
-### Cron не запускається
-
-1. Перевірте `CRON_SECRET` у Production.
-2. Перевірте `vercel.json` і redeploy.
-3. Відкрийте **Vercel → Project → Settings → Cron Jobs**.
-4. Перевірте Runtime Logs обох DST slots.
-5. Пам'ятайте, що один із двох slots повинен повертати `skipped: true`.
-
-### Імпорт повернув `WARNING`
-
-`WARNING` не означає rollback. Перевірте `/api/data/issues` або картку issues у `/data-reporting`. Unmatched transactions, пропущені optional fields і negative metrics зберігаються як diagnostics.
-
-### AI-агент завис у `running`
-
-Перевірте `/api/health`, Vercel logs і останній `AgentRun`. Recovery procedure описана в [`docs/ai-agents-runbook.md`](./docs/ai-agents-runbook.md).
-
-## Додаткова документація
-
-| Документ                                                                               | Призначення                                                                     |
-| -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| [`docs/data-import-contract.md`](./docs/data-import-contract.md)                       | Джерела, identity, formulas і acceptance criteria                               |
-| [`docs/data-reporting-api.md`](./docs/data-reporting-api.md)                           | Data/reporting API contract                                                     |
-| [`docs/scheduled-data-import.md`](./docs/scheduled-data-import.md)                     | Vercel Cron і Kyiv DST                                                          |
-| [`docs/data-reliability-runbook.md`](./docs/data-reliability-runbook.md)               | Імпорт, rollback і recovery                                                     |
-| [`docs/data-release-verification.md`](./docs/data-release-verification.md)             | Перевірка Neon migration, pipeline та UI                                        |
-| [`docs/ai-agents-runbook.md`](./docs/ai-agents-runbook.md)                             | AI runtime і recovery                                                           |
-| [`docs/api-contracts.md`](./docs/api-contracts.md)                                     | Загальні API conventions                                                        |
-| [`docs/frontend-architecture.md`](./docs/frontend-architecture.md)                     | Frontend boundaries і performance rules                                         |
-| [`docs/testing.md`](./docs/testing.md)                                                 | Testing workflow                                                                |
-| [SalesDrive order ingestion](./prisma/verification/30-salesdrive-order-import.md)      | Queue, recovery, source mapping, webhook relay and activation checks            |
-| [SalesDrive catalogue and stock](./prisma/verification/31-catalog-receipts-history.md) | YML, verified receipt costs, observed snapshots, price changes and history gaps |
+`build:vercel` перевіряйте окремо з обома URL **ізольованої migrated БД**. Звичайні тести використовують synthetic дані та PGlite; вони не доводять Neon/Vercel latency. Private-workbook test пропускається без явного офлайн-запуску. Не послаблюйте assertions/таймаути заради зеленого прогону.
+
+На 30.10.2026 оновлений lockfile пройшов 1 651 тест (один існуючий optional skip), 965 MVP-тестів, обидві збірки та 84 окремі офлайн-перевірки Zavod; audit — 0 findings. MVP-набір перетинається з повним. [Validation evidence](prisma/verification/dependency-upgrade/final-validation.json) містить також початкові environmental timeouts і межі browser review.
+
+**Повне customer acceptance не підтверджене.** Звірка Zavod, owner-approved джерела/правила, UAT, реальні account canaries, Bimba activation і production operational evidence залишаються окремими gates. Поточна динамічна таблиця не замінює заморожений dated benchmark. Попередня real-data five-screen PGlite-проєкція не завершилася в transaction budget; з цього не можна робити висновок про production PostgreSQL performance.
+
+## Контракти і подальше читання
+
+| Тема | Документ |
+| --- | --- |
+| Модель, provenance та isolation | [Data model](prisma/verification/README.md) |
+| Підключення та додаткові providers | [Onboarding](prisma/verification/29-connector-onboarding.md), [CSV](prisma/verification/82-csv-connector.md), [KeyCRM](prisma/verification/83-keycrm-connector.md), [Horoshop](prisma/verification/84-horoshop-connector.md), [Shopify](prisma/verification/85-shopify-connector.md) |
+| Нормалізація й налаштування | [Products](prisma/verification/33-product-normalization.md), [Settings](prisma/verification/34-merchandising-settings.md) |
+| Серверні метрики | [Sales](prisma/verification/35-sales-financial-metrics.md), [Daily SKU](prisma/verification/36-daily-sku-metrics.md), [Classification](prisma/verification/37-sku-classification.md) |
+| П’ять екранів і CSV | [Screen API](prisma/verification/39-screen-apis.md), [Repricing](prisma/verification/44-repricing-calculator.md), [Reordering](prisma/verification/46-reordering-calculator.md), [Exports](prisma/verification/48-scenario-csv-exports.md) |
+| Sheets → MVP | [Mapping](prisma/verification/google-sheets-reporting-step-2.md), [Projection](prisma/verification/google-sheets-reporting-step-3.md), [Application flow](prisma/verification/google-sheets-reporting-step-4.md), [Offline acceptance](prisma/verification/google-sheets-reporting-step-6.md) |
+| Якість і другий клієнт | [Data Quality](prisma/verification/49-settings-data-quality.md), [Bimba](prisma/verification/50-monobrand-onboarding.md) |
+| AI та маркетинг | [Budgets](prisma/verification/93-ai-execution-context-budgets.md), [Chat](prisma/verification/94-evidence-backed-merchandising-chat.md), [Briefs](prisma/verification/95-versioned-marketing-briefs.md), [Labels](prisma/verification/96-custom-label-exports.md) |
+| Evidence/forecast | [Attributes](prisma/verification/97-product-attribute-analysis.md), [Market evidence](prisma/verification/98-external-market-evidence.md), [Analogs](prisma/verification/99-new-product-analog-forecast.md) |
+| Дії та ретроспективи | [GMROI](prisma/verification/108-retrospective-evidence-gmroi.md), [Price write-back](prisma/verification/109-salesdrive-price-writeback.md), [Supplier delivery](prisma/verification/110-supplier-order-delivery.md) |
+| Release gates | [Zavod reconciliation](prisma/verification/38-zavod-reconciliation.md), [MVP acceptance](prisma/verification/51-mvp-acceptance-rollout.md), [DB readiness](prisma/verification/database-schema-startup.md) |
+
+Ці tracked документи містять історичні validation snapshots своїх задач; для поточного toolchain використовуйте `package-lock.json`, цю інструкцію та фінальний dependency report. Старі посилання на Prisma 5 не означають дозвіл запускати старий CLI на новій схемі.
 
 ## Ліцензія та доступ
 
-Проєкт приватний. Код, credentials, production data та customer exports не повинні поширюватися поза авторизованою командою.
-
-## MVP acceptance and rollout
-
-Run `npm run test:mvp` for the focused synthetic acceptance/contract suites and
-`npm test -- --maxWorkers=2` for the full regression suite. The new integration
-journey connects the adapter check, incremental sync, frozen five-screen context,
-KPI/detail equality and both audited CSV exports. It does not contact a live CRM.
-
-Follow the [MVP acceptance and release checklist](prisma/verification/51-mvp-acceptance-rollout.md)
-for staging migrations, Hobby's external SalesDrive worker, monitoring, recovery
-and UAT. Follow the [configuration-only monobrand onboarding checklist](prisma/verification/50-monobrand-onboarding.md)
-for Bimba; credentials belong in Settings, and source mappings/commercial terms
-require independent owner approval. Its live connection remains deferred.
-
-Passing tests or merging a PR does not establish customer acceptance. Zavod's
-[September reconciliation and threshold approvals](prisma/verification/38-zavod-reconciliation.md),
-Sasha/Olia UAT and operational release evidence remain required before closing #51.
-
-
-### Database readiness before local startup and Vercel deployment
-
-`npm run dev` and `npm start` now check migration history before starting Next.js.
-Vercel uses `npm run build:vercel`, which checks migration readiness before generating
-Prisma Client and building the app. These checks do **not** apply migrations.
-The ordinary `npm run build` remains available for an offline build/test.
-
-If Prisma reports `Sku.catalogAttributes does not exist` (P2022), generating the
-client or redeploying alone cannot update the database. Check the configured
-database using `npm run db:check`. Verify that pooled `DATABASE_URL` and direct
-`DIRECT_URL` refer to the same database/schema and intended Neon branch. The
-startup check rejects mismatched endpoints without logging connection credentials.
-
-Before applying an accumulated migration backlog:
-1. Create a Neon staging branch from that exact database; retain a restore point.
-2. Run `npm run db:migrate:deploy` against the staging branch using its direct URL.
-   Inspect failures, legacy counts/totals and application reads before continuing.
-3. Apply the reviewed migrations to the intended release database with
-   `npm run db:migrate:deploy`, then run `npm run db:check`.
-4. Restart local Next.js or redeploy Vercel with that same database target.
-
-Preview builds check readiness too; they never migrate a shared production database.
-Use a separate migrated Neon branch for previews. Ensure the Vercel project's Build
-Command uses the repository's `npm run build:vercel` and that both database variables
-are present in the relevant environment. Do not reset the database, use `db push`,
-or add only the missing column by hand: later features require the full migration
-history. A successful status check verifies migration history, not arbitrary manual
-schema drift; investigate P2022 even when history claims all migrations are applied.
+Приватний проєкт. Не публікуйте credentials, database dumps, реальні workbook/CSV exports, customer rows або AI prompts поза авторизованим контекстом.

@@ -9,7 +9,7 @@ import { GET, POST } from "@/app/api/connectors/salesdrive/import/route";
 import { GET as CRON } from "@/app/api/cron/salesdrive-orders/route";
 import { POST as WEBHOOK } from "@/app/api/webhooks/salesdrive/[sourceId]/route";
 import { salesDriveWebhookToken, parseOrderWebhook } from "@/lib/connectors/order-webhook";
-import { middleware } from "@/middleware";
+import { proxy as middleware } from "@/proxy";
 import { signAccessToken } from "@/lib/auth";
 function req(method = "GET", body?: unknown, headers: Record<string, string> = {}) {
   return new NextRequest("https://app.example/api/connectors/salesdrive/import?tenantId=b", { method, headers: { "Content-Type": "application/json", "x-tenant-id": "b", "x-user-role": "ADMIN", ...headers }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });

@@ -27,11 +27,11 @@ export default function ConnectorDiagnostics({
   return (
     <div
       aria-live="polite"
-      className="space-y-2 break-words text-sm text-[var(--muted)]"
+      className="space-y-2 wrap-break-word text-sm text-(--muted)"
     >
       {check.metadata ? (
         <details>
-          <summary className="cursor-pointer focus-visible:outline">
+          <summary className="cursor-pointer focus-visible:outline-solid">
             {uk
               ? "Магазин, версія API та дозволи"
               : "Shop, API version and permissions"}
@@ -40,7 +40,7 @@ export default function ConnectorDiagnostics({
             {check.metadata.shopId} · {check.metadata.apiVersion} ·{" "}
             {check.metadata.timezone}
           </p>
-          <p className="break-words">{check.metadata.scopes.join(", ")}</p>
+          <p className="wrap-break-word">{check.metadata.scopes.join(", ")}</p>
         </details>
       ) : null}
       <ul>
@@ -52,7 +52,7 @@ export default function ConnectorDiagnostics({
       </ul>
       {(["statuses", "channels"] as const).map((k) => (
         <details key={k}>
-          <summary className="cursor-pointer focus-visible:outline">
+          <summary className="cursor-pointer focus-visible:outline-solid">
             {labels[k]}
           </summary>
           {!check[k].complete ? (

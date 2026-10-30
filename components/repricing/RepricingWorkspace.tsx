@@ -23,13 +23,13 @@ export default function RepricingWorkspace() {
       <header className="flex flex-wrap justify-between items-start gap-4">
         <div>
           <Link
-            className="text-sm text-[var(--muted)] underline underline-offset-4"
+            className="text-sm text-(--muted) underline underline-offset-4"
             href={merchandisingHref("/overview", new URLSearchParams(params))}
           >
             {copy.back}
           </Link>
           <h1 className="mt-3 text-2xl font-bold">{copy.title}</h1>
-          <p className="mt-2 text-sm text-[var(--muted)]">{copy.intro}</p>
+          <p className="mt-2 text-sm text-(--muted)">{copy.intro}</p>
         </div>
         <button
           className={button}

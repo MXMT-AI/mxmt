@@ -25,10 +25,10 @@ import {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function agentStatusIcon(s: AgentStatus) {
-  if (s === "running") return <RefreshCw size={12} className="animate-spin text-[#fbbf24]" aria-hidden="true" />;
-  if (s === "done") return <CheckCircle2 size={12} className="text-[#00e5c4]" aria-hidden="true" />;
+  if (s === "running") return <RefreshCw size={12} className="animate-spin text-accent-yellow" aria-hidden="true" />;
+  if (s === "done") return <CheckCircle2 size={12} className="text-accent-cyan" aria-hidden="true" />;
   if (s === "error") return <AlertTriangle size={12} className="text-[#ef4444]" aria-hidden="true" />;
-  return <Clock size={12} className="text-[var(--subtle)]" aria-hidden="true" />;
+  return <Clock size={12} className="text-(--subtle)" aria-hidden="true" />;
 }
 
 function campaignHealthLabel(status: string) {
@@ -40,10 +40,10 @@ function campaignHealthLabel(status: string) {
 }
 
 function campaignHealthClasses(status: string) {
-  if (status === "on_track") return "bg-[#00e5c4]/5 border-[#00e5c4]/20 text-[#00e5c4]";
+  if (status === "on_track") return "bg-accent-cyan/5 border-accent-cyan/20 text-accent-cyan";
   if (status === "critical") return "bg-[#ef4444]/5 border-[#ef4444]/20 text-[#ef4444]";
-  if (status === "not_started") return "bg-[var(--input-bg)] border-[var(--border)] text-[var(--muted)]";
-  return "bg-[#fbbf24]/5 border-[#fbbf24]/20 text-[#fbbf24]";
+  if (status === "not_started") return "bg-(--input-bg) border-(--border) text-(--muted)";
+  return "bg-accent-yellow/5 border-accent-yellow/20 text-accent-yellow";
 }
 
 function campaignStatusColor(status: string) {
@@ -86,7 +86,7 @@ function AnalysisModal({
     const color = map[status] ?? "#6b7a8d";
     return (
       <span
-        className="text-[9px] font-mono px-1.5 py-0.5 rounded ml-2 flex-shrink-0"
+        className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm ml-2 shrink-0"
         style={{ background: color + "20", color, border: `1px solid ${color}30` }}
       >
         {status?.toUpperCase()}
@@ -116,22 +116,22 @@ function AnalysisModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="analysis-modal-title"
-        className="relative w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-2xl border border-[var(--border)] bg-[var(--surface)]"
+        className="relative w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-2xl border border-(--border) bg-(--surface)"
         style={{ boxShadow: "0 24px 64px rgba(0,0,0,0.5)" }}
       >
         {/* Header */}
-        <div className="sticky top-0 bg-[var(--surface)] border-b border-[var(--border)] px-6 py-4 flex items-center justify-between z-10">
+        <div className="sticky top-0 bg-(--surface) border-b border-(--border) px-6 py-4 flex items-center justify-between z-10">
           <div>
-            <div className="text-[9px] font-mono uppercase tracking-widest text-[var(--subtle)] mb-0.5">
+            <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-0.5">
               Повний аналіз
             </div>
-            <h2 id="analysis-modal-title" className="text-base font-bold text-[var(--text)]">{agentLabel}</h2>
+            <h2 id="analysis-modal-title" className="text-base font-bold text-(--text)">{agentLabel}</h2>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Закрити повний аналіз"
-            className="w-8 h-8 rounded-lg border border-[var(--border)] flex items-center justify-center text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)] transition-colors"
+            className="w-8 h-8 rounded-lg border border-(--border) flex items-center justify-center text-(--muted) hover:text-(--text) hover:bg-(--input-bg) transition-colors"
           >
             <X size={14} aria-hidden="true" />
           </button>
@@ -140,44 +140,44 @@ function AnalysisModal({
         <div className="px-6 py-5 space-y-5">
           {/* Summary */}
           {output.summary && (
-            <div className="bg-[var(--surface2)] border border-[var(--border)] rounded-xl p-4">
-              <div className="text-[9px] font-mono uppercase tracking-widest text-[var(--subtle)] mb-2">
+            <div className="bg-(--surface2) border border-(--border) rounded-xl p-4">
+              <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-2">
                 Загальний висновок
               </div>
-              <p className="text-sm text-[var(--text)] leading-relaxed">{output.summary}</p>
+              <p className="text-sm text-(--text) leading-relaxed">{output.summary}</p>
             </div>
           )}
 
           {/* Action */}
           {output.action && (
-            <div className="bg-[#00e5c4]/5 border border-[#00e5c4]/20 rounded-xl p-4">
-              <div className="text-[9px] font-mono uppercase tracking-widest text-[#00e5c4]/70 mb-2">
+            <div className="bg-accent-cyan/5 border border-accent-cyan/20 rounded-xl p-4">
+              <div className="text-[9px] font-mono uppercase tracking-widest text-accent-cyan/70 mb-2">
                 Головна дія
               </div>
-              <p className="text-sm text-[#00e5c4] font-medium leading-relaxed">{output.action}</p>
+              <p className="text-sm text-accent-cyan font-medium leading-relaxed">{output.action}</p>
             </div>
           )}
 
           {/* Inventory Analyst — brands */}
           {agentId === "inventory_analyst" && Array.isArray(output.brands) && output.brands.length > 0 && (
             <div>
-              <div className="text-[9px] font-mono uppercase tracking-widest text-[var(--subtle)] mb-3">
+              <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-3">
                 Аналіз по брендах ({output.brands.length})
               </div>
               <div className="space-y-3">
                 {output.brands.map((b: any) => (
-                  <div key={b.brand_id ?? b.brand_name} className="border border-[var(--border)] rounded-xl p-4">
+                  <div key={b.brand_id ?? b.brand_name} className="border border-(--border) rounded-xl p-4">
                     <div className="flex items-center mb-2">
-                      <span className="font-semibold text-sm text-[var(--text)]">{b.brand_name}</span>
+                      <span className="font-semibold text-sm text-(--text)">{b.brand_name}</span>
                       {statusBadge(b.status, brandColors)}
                     </div>
                     {b.analysis && (
-                      <p className="text-[12px] text-[var(--muted)] leading-relaxed mb-2">{b.analysis}</p>
+                      <p className="text-[12px] text-(--muted) leading-relaxed mb-2">{b.analysis}</p>
                     )}
                     {Array.isArray(b.suggested_actions) && b.suggested_actions.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 mt-2">
                         {b.suggested_actions.map((a: string) => (
-                          <span key={a} className="text-[10px] font-mono px-2 py-0.5 bg-[var(--row)] border border-[var(--border)] rounded text-[var(--muted)]">
+                          <span key={a} className="text-[10px] font-mono px-2 py-0.5 bg-(--row) border border-(--border) rounded-sm text-(--muted)">
                             {a}
                           </span>
                         ))}
@@ -192,21 +192,21 @@ function AnalysisModal({
           {/* Channel Analytics — channels */}
           {agentId === "channel_analytics" && Array.isArray(output.channels) && output.channels.length > 0 && (
             <div>
-              <div className="text-[9px] font-mono uppercase tracking-widest text-[var(--subtle)] mb-3">
+              <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-3">
                 Аналіз по каналах ({output.channels.length})
               </div>
               <div className="space-y-3">
                 {output.channels.map((c: any, i: number) => (
-                  <div key={i} className="border border-[var(--border)] rounded-xl p-4">
+                  <div key={i} className="border border-(--border) rounded-xl p-4">
                     <div className="flex items-center mb-2">
-                      <span className="font-semibold text-sm text-[var(--text)] capitalize">{c.channel}</span>
+                      <span className="font-semibold text-sm text-(--text) capitalize">{c.channel}</span>
                       {statusBadge(c.status, channelColors)}
                     </div>
                     {c.insight && (
-                      <p className="text-[12px] text-[var(--muted)] leading-relaxed mb-2">{c.insight}</p>
+                      <p className="text-[12px] text-(--muted) leading-relaxed mb-2">{c.insight}</p>
                     )}
                     {c.recommendation && (
-                      <p className="text-[12px] text-[#00e5c4]">→ {c.recommendation}</p>
+                      <p className="text-[12px] text-accent-cyan">→ {c.recommendation}</p>
                     )}
                   </div>
                 ))}
@@ -217,21 +217,21 @@ function AnalysisModal({
           {/* Product Attributes — categories */}
           {agentId === "product_attributes" && Array.isArray(output.by_category) && output.by_category.length > 0 && (
             <div>
-              <div className="text-[9px] font-mono uppercase tracking-widest text-[var(--subtle)] mb-3">
+              <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-3">
                 Аналіз по категоріях ({output.by_category.length})
               </div>
               <div className="space-y-3">
                 {output.by_category.map((c: any, i: number) => (
-                  <div key={i} className="border border-[var(--border)] rounded-xl p-4">
+                  <div key={i} className="border border-(--border) rounded-xl p-4">
                     <div className="flex items-center mb-2">
-                      <span className="font-semibold text-sm text-[var(--text)]">{c.category || c.attribute}</span>
+                      <span className="font-semibold text-sm text-(--text)">{c.category || c.attribute}</span>
                       {statusBadge(c.status, catColors)}
                     </div>
                     {c.insight && (
-                      <p className="text-[12px] text-[var(--muted)] leading-relaxed mb-2">{c.insight}</p>
+                      <p className="text-[12px] text-(--muted) leading-relaxed mb-2">{c.insight}</p>
                     )}
                     {c.recommendation && (
-                      <p className="text-[12px] text-[#00e5c4]">→ {c.recommendation}</p>
+                      <p className="text-[12px] text-accent-cyan">→ {c.recommendation}</p>
                     )}
                   </div>
                 ))}
@@ -244,20 +244,20 @@ function AnalysisModal({
             <div className="flex gap-4 flex-wrap">
               {Array.isArray(output.bestsellers) && output.bestsellers.length > 0 && (
                 <div>
-                  <div className="text-[9px] font-mono uppercase tracking-widest text-[var(--subtle)] mb-2">Бестселери</div>
+                  <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-2">Бестселери</div>
                   <div className="flex flex-wrap gap-1.5">
                     {output.bestsellers.map((b: string) => (
-                      <span key={b} className="text-[10px] font-mono px-2 py-0.5 bg-[#00e5c4]/10 border border-[#00e5c4]/20 rounded text-[#00e5c4]">{b}</span>
+                      <span key={b} className="text-[10px] font-mono px-2 py-0.5 bg-accent-cyan/10 border border-accent-cyan/20 rounded-sm text-accent-cyan">{b}</span>
                     ))}
                   </div>
                 </div>
               )}
               {Array.isArray(output.dead_stock) && output.dead_stock.length > 0 && (
                 <div>
-                  <div className="text-[9px] font-mono uppercase tracking-widest text-[var(--subtle)] mb-2">Dead Stock</div>
+                  <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-2">Dead Stock</div>
                   <div className="flex flex-wrap gap-1.5">
                     {output.dead_stock.map((d: string) => (
-                      <span key={d} className="text-[10px] font-mono px-2 py-0.5 bg-[#ef4444]/10 border border-[#ef4444]/20 rounded text-[#ef4444]">{d}</span>
+                      <span key={d} className="text-[10px] font-mono px-2 py-0.5 bg-[#ef4444]/10 border border-[#ef4444]/20 rounded-sm text-[#ef4444]">{d}</span>
                     ))}
                   </div>
                 </div>
@@ -267,40 +267,40 @@ function AnalysisModal({
           {/* Repricing — options per brand */}
           {agentId === "repricing" && Array.isArray(output.brands) && output.brands.length > 0 && (
             <div className="space-y-5">
-              <div className="text-[9px] font-mono uppercase tracking-widest text-[var(--subtle)]">
+              <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle)">
                 Стратегії уцінки ({output.brands.length} брендів)
               </div>
               {output.brands.map((brand: any) => (
-                <div key={brand.brand_id} className="border border-[var(--border)] rounded-xl overflow-hidden">
-                  <div className="px-4 py-3 bg-[#a78bfa]/5 border-b border-[var(--border)]">
-                    <span className="font-semibold text-sm text-[var(--text)]">{brand.brand_name}</span>
+                <div key={brand.brand_id} className="border border-(--border) rounded-xl overflow-hidden">
+                  <div className="px-4 py-3 bg-accent-purple/5 border-b border-(--border)">
+                    <span className="font-semibold text-sm text-(--text)">{brand.brand_name}</span>
                     {brand.current_situation && (
-                      <p className="text-[11px] text-[var(--muted)] mt-0.5">{brand.current_situation}</p>
+                      <p className="text-[11px] text-(--muted) mt-0.5">{brand.current_situation}</p>
                     )}
                   </div>
-                  <div className="divide-y divide-[var(--border)]">
+                  <div className="divide-y divide-(--border)">
                     {(brand.options ?? []).map((opt: any) => (
                       <div key={opt.option_id} className="px-4 py-4" style={{ background: opt.evaluation?.recommended ? "#00e5c4" + "07" : undefined }}>
                         <div className="flex items-center gap-2 mb-2 flex-wrap">
-                          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#a78bfa]/15 text-[#a78bfa]">{opt.strategy_type}</span>
-                          <span className="font-semibold text-sm text-[var(--text)]">{opt.label}</span>
+                          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm bg-accent-purple/15 text-accent-purple">{opt.strategy_type}</span>
+                          <span className="font-semibold text-sm text-(--text)">{opt.label}</span>
                           {opt.evaluation?.recommended && (
-                            <span className="text-[9px] font-mono text-[#00e5c4] ml-auto">★ РЕКОМЕНДОВАНО · {opt.evaluation.score}/10</span>
+                            <span className="text-[9px] font-mono text-accent-cyan ml-auto">★ РЕКОМЕНДОВАНО · {opt.evaluation.score}/10</span>
                           )}
                           {!opt.evaluation?.recommended && opt.evaluation?.score && (
-                            <span className="text-[9px] font-mono text-[var(--subtle)] ml-auto">{opt.evaluation.score}/10</span>
+                            <span className="text-[9px] font-mono text-(--subtle) ml-auto">{opt.evaluation.score}/10</span>
                           )}
                         </div>
-                        <div className="flex gap-4 text-[10px] font-mono text-[var(--muted)] mb-3 flex-wrap">
-                          {opt.discount_percent > 0 && <span>Знижка <span className="text-[var(--text)]">-{opt.discount_percent}%</span></span>}
-                          {opt.duration_days && <span>Строк <span className="text-[var(--text)]">{opt.duration_days}д</span></span>}
+                        <div className="flex gap-4 text-[10px] font-mono text-(--muted) mb-3 flex-wrap">
+                          {opt.discount_percent > 0 && <span>Знижка <span className="text-(--text)">-{opt.discount_percent}%</span></span>}
+                          {opt.duration_days && <span>Строк <span className="text-(--text)">{opt.duration_days}д</span></span>}
                           {opt.forecast && (
-                            <span>Днів запасу після (DOH) <span className="text-[var(--text)]">
+                            <span>Днів запасу після (DOH) <span className="text-(--text)">
                               {opt.forecast.woh_after == null ? "недостатньо даних" : formatWohDays(opt.forecast.woh_after)}
                             </span></span>
                           )}
                           {opt.forecast?.margin_after_percent != null && (
-                            <span>Маржа після <span className={opt.forecast.margin_after_percent < 10 ? "text-[#ef4444]" : "text-[#00e5c4]"}>
+                            <span>Маржа після <span className={opt.forecast.margin_after_percent < 10 ? "text-[#ef4444]" : "text-accent-cyan"}>
                               {opt.forecast.margin_after_percent}%
                             </span></span>
                           )}
@@ -315,14 +315,14 @@ function AnalysisModal({
                         {opt.evaluation?.cons?.length > 0 && (
                           <ul className="space-y-0.5 mb-2">
                             {opt.evaluation.cons.map((c: string, i: number) => (
-                              <li key={i} className="text-[11px] text-[var(--muted)]">− {c}</li>
+                              <li key={i} className="text-[11px] text-(--muted)">− {c}</li>
                             ))}
                           </ul>
                         )}
                         {opt.evaluation?.risks?.length > 0 && (
                           <ul className="space-y-0.5">
                             {opt.evaluation.risks.map((r: string, i: number) => (
-                              <li key={i} className="text-[11px] text-[#fbbf24]">⚠ {r}</li>
+                              <li key={i} className="text-[11px] text-accent-yellow">⚠ {r}</li>
                             ))}
                           </ul>
                         )}
@@ -348,39 +348,39 @@ function AnalysisModal({
           {/* Reordering — scenarios per brand */}
           {agentId === "reordering" && Array.isArray(output.brands) && output.brands.length > 0 && (
             <div className="space-y-5">
-              <div className="text-[9px] font-mono uppercase tracking-widest text-[var(--subtle)]">
+              <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle)">
                 Сценарії дозамовлення ({output.brands.length} брендів)
               </div>
               {output.brands.map((brand: any) => (
-                <div key={brand.brand_id} className="border border-[var(--border)] rounded-xl overflow-hidden">
-                  <div className="px-4 py-3 bg-[#a78bfa]/5 border-b border-[var(--border)]">
-                    <span className="font-semibold text-sm text-[var(--text)]">{brand.brand_name}</span>
+                <div key={brand.brand_id} className="border border-(--border) rounded-xl overflow-hidden">
+                  <div className="px-4 py-3 bg-accent-purple/5 border-b border-(--border)">
+                    <span className="font-semibold text-sm text-(--text)">{brand.brand_name}</span>
                     {brand.current_situation && (
-                      <p className="text-[11px] text-[var(--muted)] mt-0.5">{brand.current_situation}</p>
+                      <p className="text-[11px] text-(--muted) mt-0.5">{brand.current_situation}</p>
                     )}
                   </div>
-                  <div className="divide-y divide-[var(--border)]">
+                  <div className="divide-y divide-(--border)">
                     {(brand.scenarios ?? []).map((sc: any) => {
                       const riskColor = sc.evaluation?.risk_level === "HIGH" ? "#ef4444" : sc.evaluation?.risk_level === "LOW" ? "#00e5c4" : "#fbbf24";
                       return (
                         <div key={sc.scenario_id} className="px-4 py-4" style={{ background: sc.evaluation?.recommended ? "#00e5c4" + "07" : undefined }}>
                           <div className="flex items-center gap-2 mb-2 flex-wrap">
-                            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#a78bfa]/15 text-[#a78bfa]">{sc.type}</span>
-                            <span className="font-semibold text-sm text-[var(--text)]">{sc.label}</span>
-                            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded ml-1" style={{ background: riskColor + "20", color: riskColor }}>
+                            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm bg-accent-purple/15 text-accent-purple">{sc.type}</span>
+                            <span className="font-semibold text-sm text-(--text)">{sc.label}</span>
+                            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm ml-1" style={{ background: riskColor + "20", color: riskColor }}>
                               {sc.evaluation?.risk_level} RISK
                             </span>
                             {sc.evaluation?.recommended && (
-                              <span className="text-[9px] font-mono text-[#00e5c4] ml-auto">★ РЕКОМЕНДОВАНО · {sc.evaluation.score}/10</span>
+                              <span className="text-[9px] font-mono text-accent-cyan ml-auto">★ РЕКОМЕНДОВАНО · {sc.evaluation.score}/10</span>
                             )}
                             {!sc.evaluation?.recommended && sc.evaluation?.score && (
-                              <span className="text-[9px] font-mono text-[var(--subtle)] ml-auto">{sc.evaluation.score}/10</span>
+                              <span className="text-[9px] font-mono text-(--subtle) ml-auto">{sc.evaluation.score}/10</span>
                             )}
                           </div>
-                          <div className="flex gap-4 text-[10px] font-mono text-[var(--muted)] mb-3 flex-wrap">
-                            {sc.qty_multiplier != null && <span>Обʼєм <span className="text-[var(--text)]">×{sc.qty_multiplier}</span></span>}
-                            {sc.woh_after != null && <span>Днів запасу після (DOH) <span className="text-[var(--text)]">{formatWohDays(sc.woh_after)}</span></span>}
-                            {sc.logic && <span className="text-[var(--subtle)]">{sc.logic}</span>}
+                          <div className="flex gap-4 text-[10px] font-mono text-(--muted) mb-3 flex-wrap">
+                            {sc.qty_multiplier != null && <span>Обʼєм <span className="text-(--text)">×{sc.qty_multiplier}</span></span>}
+                            {sc.woh_after != null && <span>Днів запасу після (DOH) <span className="text-(--text)">{formatWohDays(sc.woh_after)}</span></span>}
+                            {sc.logic && <span className="text-(--subtle)">{sc.logic}</span>}
                           </div>
                           {sc.evaluation?.pros?.length > 0 && (
                             <ul className="space-y-0.5 mb-2">
@@ -392,7 +392,7 @@ function AnalysisModal({
                           {sc.evaluation?.risks?.length > 0 && (
                             <ul className="space-y-0.5">
                               {sc.evaluation.risks.map((r: string, i: number) => (
-                                <li key={i} className="text-[11px] text-[#fbbf24]">⚠ {r}</li>
+                                <li key={i} className="text-[11px] text-accent-yellow">⚠ {r}</li>
                               ))}
                             </ul>
                           )}
@@ -418,35 +418,35 @@ function AnalysisModal({
           {/* Commercial Marketer — channel briefs */}
           {agentId === "commercial_marketer" && Array.isArray(output.brands) && output.brands.length > 0 && (
             <div className="space-y-5">
-              <div className="text-[9px] font-mono uppercase tracking-widest text-[var(--subtle)]">
+              <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle)">
                 Маркетингові брифи ({output.brands.length} брендів)
               </div>
               {output.brands.map((brand: any) => (
-                <div key={brand.brand_id} className="border border-[var(--border)] rounded-xl overflow-hidden">
-                  <div className="px-4 py-3 bg-[#fbbf24]/5 border-b border-[var(--border)]">
+                <div key={brand.brand_id} className="border border-(--border) rounded-xl overflow-hidden">
+                  <div className="px-4 py-3 bg-accent-yellow/5 border-b border-(--border)">
                     <div className="flex items-center gap-2">
-                      <span className="font-semibold text-sm text-[var(--text)]">{brand.brand_name}</span>
-                      <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${brand.urgency === "critical" ? "bg-[#ef4444]/10 text-[#ef4444]" : "bg-[#fbbf24]/10 text-[#fbbf24]"}`}>
+                      <span className="font-semibold text-sm text-(--text)">{brand.brand_name}</span>
+                      <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded-sm ${brand.urgency === "critical" ? "bg-[#ef4444]/10 text-[#ef4444]" : "bg-accent-yellow/10 text-accent-yellow"}`}>
                         {(brand.urgency ?? "").toUpperCase()}
                       </span>
                     </div>
-                    {brand.decision_summary && <p className="text-[11px] text-[var(--muted)] mt-0.5">{brand.decision_summary}</p>}
-                    {brand.key_message && <p className="text-[12px] text-[var(--text)] mt-1 italic">"{brand.key_message}"</p>}
+                    {brand.decision_summary && <p className="text-[11px] text-(--muted) mt-0.5">{brand.decision_summary}</p>}
+                    {brand.key_message && <p className="text-[12px] text-(--text) mt-1 italic">"{brand.key_message}"</p>}
                   </div>
-                  <div className="divide-y divide-[var(--border)]">
+                  <div className="divide-y divide-(--border)">
                     {Object.entries(brand.channels ?? {}).map(([ch, v]: [string, any]) => (
                       <div key={ch} className="px-4 py-3">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#fbbf24]/15 text-[#fbbf24] uppercase">{ch}</span>
-                          {!v?.action_needed && <span className="text-[9px] font-mono text-[var(--subtle)]">не потрібно</span>}
-                          {v?.priority && <span className="text-[9px] font-mono text-[var(--subtle)] ml-auto">пріоритет {v.priority}</span>}
+                          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm bg-accent-yellow/15 text-accent-yellow uppercase">{ch}</span>
+                          {!v?.action_needed && <span className="text-[9px] font-mono text-(--subtle)">не потрібно</span>}
+                          {v?.priority && <span className="text-[9px] font-mono text-(--subtle) ml-auto">пріоритет {v.priority}</span>}
                         </div>
-                        {v?.brief && <p className="text-[12px] text-[var(--muted)] leading-relaxed">{v.brief}</p>}
-                        {v?.frequency && <p className="text-[11px] text-[var(--text)] mt-1">📅 {v.frequency}</p>}
-                        {v?.send_timing && <p className="text-[11px] text-[var(--text)] mt-1">📤 Відправити: {v.send_timing}</p>}
-                        {v?.cta && <p className="text-[11px] text-[#00e5c4] mt-1">CTA: {v.cta}</p>}
-                        {v?.budget_recommendation && <p className="text-[11px] text-[#00e5c4] mt-1">💰 {v.budget_recommendation}</p>}
-                        {v?.staff_talking_points && <p className="text-[11px] text-[var(--muted)] mt-1 italic">"{v.staff_talking_points}"</p>}
+                        {v?.brief && <p className="text-[12px] text-(--muted) leading-relaxed">{v.brief}</p>}
+                        {v?.frequency && <p className="text-[11px] text-(--text) mt-1">📅 {v.frequency}</p>}
+                        {v?.send_timing && <p className="text-[11px] text-(--text) mt-1">📤 Відправити: {v.send_timing}</p>}
+                        {v?.cta && <p className="text-[11px] text-accent-cyan mt-1">CTA: {v.cta}</p>}
+                        {v?.budget_recommendation && <p className="text-[11px] text-accent-cyan mt-1">💰 {v.budget_recommendation}</p>}
+                        {v?.staff_talking_points && <p className="text-[11px] text-(--muted) mt-1 italic">"{v.staff_talking_points}"</p>}
                       </div>
                     ))}
                   </div>
@@ -463,28 +463,28 @@ function AnalysisModal({
                   <div className="text-[9px] font-mono uppercase tracking-widest mb-1">
                     Загальний стан кампаній
                   </div>
-                  <p className="text-sm font-semibold text-[var(--text)]">
+                  <p className="text-sm font-semibold text-(--text)">
                     {campaignHealthLabel(output.overall_health)}
                   </p>
-                  {output.summary && <p className="text-[12px] text-[var(--muted)] mt-1">{output.summary}</p>}
+                  {output.summary && <p className="text-[12px] text-(--muted) mt-1">{output.summary}</p>}
                 </div>
               )}
               {Array.isArray(output.campaigns) && output.campaigns.length > 0 && (
                 <div>
-                  <div className="text-[9px] font-mono uppercase tracking-widest text-[var(--subtle)] mb-3">Кампанії ({output.campaigns.length})</div>
+                  <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-3">Кампанії ({output.campaigns.length})</div>
                   <div className="space-y-3">
                     {output.campaigns.map((camp: any, i: number) => {
                       const sc = campaignStatusColor(camp.status);
                       return (
-                        <div key={camp.campaign_id ?? i} className="border border-[var(--border)] rounded-xl p-4">
+                        <div key={camp.campaign_id ?? i} className="border border-(--border) rounded-xl p-4">
                           <div className="flex items-center gap-2 mb-2 flex-wrap">
-                            <span className="font-semibold text-sm text-[var(--text)]">{camp.brand_name}</span>
-                            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded" style={{ background: sc + "20", color: sc, border: `1px solid ${sc}30` }}>{camp.status?.toUpperCase()}</span>
-                            <span className="text-[9px] font-mono text-[var(--subtle)] ml-auto">{campaignMetricLabel(camp)}</span>
+                            <span className="font-semibold text-sm text-(--text)">{camp.brand_name}</span>
+                            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm" style={{ background: sc + "20", color: sc, border: `1px solid ${sc}30` }}>{camp.status?.toUpperCase()}</span>
+                            <span className="text-[9px] font-mono text-(--subtle) ml-auto">{campaignMetricLabel(camp)}</span>
                           </div>
-                          {camp.planned_action && <p className="text-[11px] text-[var(--subtle)] mb-1">📋 {camp.planned_action}</p>}
-                          {camp.actual_observation && <p className="text-[12px] text-[var(--muted)] mb-2">{camp.actual_observation}</p>}
-                          {camp.next_action && <p className="text-[11px] text-[#00e5c4]">→ {camp.next_action}</p>}
+                          {camp.planned_action && <p className="text-[11px] text-(--subtle) mb-1">📋 {camp.planned_action}</p>}
+                          {camp.actual_observation && <p className="text-[12px] text-(--muted) mb-2">{camp.actual_observation}</p>}
+                          {camp.next_action && <p className="text-[11px] text-accent-cyan">→ {camp.next_action}</p>}
                         </div>
                       );
                     })}
@@ -498,32 +498,32 @@ function AnalysisModal({
           {agentId === "weekly_report" && (
             <div className="space-y-4">
               {output.pm_brief && (
-                <div className="bg-[var(--surface2)] border border-[var(--border)] rounded-xl p-4">
-                  <div className="text-[9px] font-mono uppercase tracking-widest text-[var(--subtle)] mb-2">PM Brief</div>
-                  <p className="text-sm text-[var(--text)] leading-relaxed">{output.pm_brief}</p>
+                <div className="bg-(--surface2) border border-(--border) rounded-xl p-4">
+                  <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-2">PM Brief</div>
+                  <p className="text-sm text-(--text) leading-relaxed">{output.pm_brief}</p>
                 </div>
               )}
               {output.marketing_brief && (
-                <div className="bg-[var(--surface2)] border border-[var(--border)] rounded-xl p-4">
-                  <div className="text-[9px] font-mono uppercase tracking-widest text-[var(--subtle)] mb-2">Marketing Brief</div>
-                  <p className="text-sm text-[var(--text)] leading-relaxed">{output.marketing_brief}</p>
+                <div className="bg-(--surface2) border border-(--border) rounded-xl p-4">
+                  <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-2">Marketing Brief</div>
+                  <p className="text-sm text-(--text) leading-relaxed">{output.marketing_brief}</p>
                 </div>
               )}
               {Array.isArray(output.top_priorities) && output.top_priorities.length > 0 && (
                 <div>
-                  <div className="text-[9px] font-mono uppercase tracking-widest text-[var(--subtle)] mb-3">Топ пріоритети</div>
+                  <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-3">Топ пріоритети</div>
                   <div className="space-y-2">
                     {output.top_priorities.map((p: any) => (
-                      <div key={p.rank} className="flex items-start gap-3 border border-[var(--border)] rounded-xl p-3">
-                        <span className="text-base font-bold text-[#fb923c] w-6 flex-shrink-0">#{p.rank}</span>
+                      <div key={p.rank} className="flex items-start gap-3 border border-(--border) rounded-xl p-3">
+                        <span className="text-base font-bold text-[#fb923c] w-6 shrink-0">#{p.rank}</span>
                         <div className="min-w-0">
-                          <p className="text-[12px] text-[var(--text)]">{p.action}</p>
+                          <p className="text-[12px] text-(--text)">{p.action}</p>
                           <div className="flex items-center gap-2 mt-1 flex-wrap">
-                            {p.brand && p.brand !== "все" && <span className="text-[10px] font-mono text-[var(--subtle)]">{p.brand}</span>}
-                            <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${p.deadline === "today" ? "bg-[#ef4444]/10 text-[#ef4444]" : p.deadline === "tomorrow" ? "bg-[#fbbf24]/10 text-[#fbbf24]" : "bg-[var(--input-bg)] text-[var(--muted)]"}`}>
+                            {p.brand && p.brand !== "все" && <span className="text-[10px] font-mono text-(--subtle)">{p.brand}</span>}
+                            <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded-sm ${p.deadline === "today" ? "bg-[#ef4444]/10 text-[#ef4444]" : p.deadline === "tomorrow" ? "bg-accent-yellow/10 text-accent-yellow" : "bg-(--input-bg) text-(--muted)"}`}>
                               {p.deadline}
                             </span>
-                            {p.type && <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#fb923c]/10 text-[#fb923c]">{p.type}</span>}
+                            {p.type && <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm bg-[#fb923c]/10 text-[#fb923c]">{p.type}</span>}
                           </div>
                         </div>
                       </div>
@@ -532,29 +532,29 @@ function AnalysisModal({
                 </div>
               )}
               {Array.isArray(output.decisions_needed) && output.decisions_needed.length > 0 && (
-                <div className="bg-[#fbbf24]/5 border border-[#fbbf24]/20 rounded-xl p-4">
-                  <div className="text-[9px] font-mono uppercase tracking-widest text-[#fbbf24]/70 mb-2">Рішення PM</div>
+                <div className="bg-accent-yellow/5 border border-accent-yellow/20 rounded-xl p-4">
+                  <div className="text-[9px] font-mono uppercase tracking-widest text-accent-yellow/70 mb-2">Рішення PM</div>
                   <ul className="space-y-1.5">
                     {output.decisions_needed.map((d: string, i: number) => (
-                      <li key={i} className="text-[12px] text-[var(--text)]">· {d}</li>
+                      <li key={i} className="text-[12px] text-(--text)">· {d}</li>
                     ))}
                   </ul>
                 </div>
               )}
               {Array.isArray(output.wins) && output.wins.length > 0 && (
-                <div className="bg-[#00e5c4]/5 border border-[#00e5c4]/20 rounded-xl p-4">
-                  <div className="text-[9px] font-mono uppercase tracking-widest text-[#00e5c4]/70 mb-2">Перемоги тижня</div>
+                <div className="bg-accent-cyan/5 border border-accent-cyan/20 rounded-xl p-4">
+                  <div className="text-[9px] font-mono uppercase tracking-widest text-accent-cyan/70 mb-2">Перемоги тижня</div>
                   <ul className="space-y-1.5">
                     {output.wins.map((w: string, i: number) => (
-                      <li key={i} className="text-[12px] text-[var(--text)]">✓ {w}</li>
+                      <li key={i} className="text-[12px] text-(--text)">✓ {w}</li>
                     ))}
                   </ul>
                 </div>
               )}
               {output.next_week_focus && (
-                <div className="border border-[var(--border)] rounded-xl p-3">
-                  <span className="text-[9px] font-mono text-[var(--subtle)] uppercase tracking-wide">Фокус наст. тижня: </span>
-                  <span className="text-[12px] text-[var(--text)]">{output.next_week_focus}</span>
+                <div className="border border-(--border) rounded-xl p-3">
+                  <span className="text-[9px] font-mono text-(--subtle) uppercase tracking-wide">Фокус наст. тижня: </span>
+                  <span className="text-[12px] text-(--text)">{output.next_week_focus}</span>
                 </div>
               )}
             </div>
@@ -564,37 +564,37 @@ function AnalysisModal({
           {agentId === "calendar_agent" && (
             <div className="space-y-3">
               {output.health_score && (
-                <div className="bg-[var(--surface2)] border border-[var(--border)] rounded-xl p-4">
-                  <div className="text-[9px] font-mono uppercase tracking-widest text-[var(--subtle)] mb-2">Готовність плану</div>
+                <div className="bg-(--surface2) border border-(--border) rounded-xl p-4">
+                  <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-2">Готовність плану</div>
                   <div className="flex items-center gap-4 text-[12px] font-mono flex-wrap">
-                    <span>Покриття: <span className={output.health_score.coverage_percent >= 70 ? "text-[#00e5c4]" : "text-[#fbbf24]"}>{output.health_score.coverage_percent}%</span></span>
+                    <span>Покриття: <span className={output.health_score.coverage_percent >= 70 ? "text-accent-cyan" : "text-accent-yellow"}>{output.health_score.coverage_percent}%</span></span>
                     {output.health_score.recommendation_count != null && (
-                      <span>Заплановано: <span className="text-[var(--text)]">{output.health_score.scheduled_recommendations ?? 0}/{output.health_score.recommendation_count}</span></span>
+                      <span>Заплановано: <span className="text-(--text)">{output.health_score.scheduled_recommendations ?? 0}/{output.health_score.recommendation_count}</span></span>
                     )}
                     {output.health_score.critical_gaps > 0 && <span>Критичних: <span className="text-[#ef4444]">{output.health_score.critical_gaps}</span></span>}
-                    {output.health_score.high_gaps > 0 && <span>Важливих: <span className="text-[#fbbf24]">{output.health_score.high_gaps}</span></span>}
+                    {output.health_score.high_gaps > 0 && <span>Важливих: <span className="text-accent-yellow">{output.health_score.high_gaps}</span></span>}
                   </div>
-                  {output.health_score.summary && <p className="text-[12px] text-[var(--muted)] mt-2">{output.health_score.summary}</p>}
+                  {output.health_score.summary && <p className="text-[12px] text-(--muted) mt-2">{output.health_score.summary}</p>}
                 </div>
               )}
               {Array.isArray(output.annotations) && output.annotations.length > 0 && (
                 <div>
-                  <div className="text-[9px] font-mono uppercase tracking-widest text-[var(--subtle)] mb-3">
+                  <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-3">
                     Анотації ({output.annotations.length})
                   </div>
                   <div className="space-y-2">
                     {output.annotations.map((ann: any, i: number) => {
                       const prioColor = ann.priority === "critical" ? "#ef4444" : ann.priority === "high" ? "#fbbf24" : ann.priority === "medium" ? "#a78bfa" : "#6b7a8d";
                       return (
-                        <div key={ann.id ?? i} className="border border-[var(--border)] rounded-xl p-3" style={{ borderLeftColor: prioColor, borderLeftWidth: 3 }}>
+                        <div key={ann.id ?? i} className="border border-(--border) rounded-xl p-3" style={{ borderLeftColor: prioColor, borderLeftWidth: 3 }}>
                           <div className="flex items-center gap-2 mb-1 flex-wrap">
                             <span className="text-[9px] font-mono uppercase font-bold" style={{ color: prioColor }}>{ann.type}</span>
-                            {ann.channel && <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#fbbf24]/15 text-[#fbbf24]">{ann.channel}</span>}
-                            {ann.brand && <span className="text-[9px] font-mono text-[var(--subtle)]">{ann.brand}</span>}
+                            {ann.channel && <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm bg-accent-yellow/15 text-accent-yellow">{ann.channel}</span>}
+                            {ann.brand && <span className="text-[9px] font-mono text-(--subtle)">{ann.brand}</span>}
                             <span className="text-[9px] font-mono ml-auto" style={{ color: prioColor }}>{ann.priority?.toUpperCase()}</span>
                           </div>
-                          <p className="text-[12px] text-[var(--text)] leading-relaxed">{ann.message}</p>
-                          {ann.suggested_action && <p className="text-[11px] text-[#00e5c4] mt-1">→ {ann.suggested_action}</p>}
+                          <p className="text-[12px] text-(--text) leading-relaxed">{ann.message}</p>
+                          {ann.suggested_action && <p className="text-[11px] text-accent-cyan mt-1">→ {ann.suggested_action}</p>}
                         </div>
                       );
                     })}
@@ -641,51 +641,51 @@ function InfoModal({ onClose }: { onClose: () => void }) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="info-modal-title"
-        className="relative w-full max-w-2xl max-h-[88vh] overflow-y-auto rounded-2xl border border-[var(--border)] bg-[var(--surface)]"
+        className="relative w-full max-w-2xl max-h-[88vh] overflow-y-auto rounded-2xl border border-(--border) bg-(--surface)"
         style={{ boxShadow: "0 24px 64px rgba(0,0,0,0.5)" }}
       >
         {/* Header */}
-        <div className="sticky top-0 bg-[var(--surface)] border-b border-[var(--border)] px-6 py-4 flex items-center justify-between z-10">
+        <div className="sticky top-0 bg-(--surface) border-b border-(--border) px-6 py-4 flex items-center justify-between z-10">
           <div className="flex items-center gap-3">
-            <div className="w-7 h-7 rounded-lg bg-[#00e5c4]/10 flex items-center justify-center">
-              <Info size={14} className="text-[#00e5c4]" aria-hidden="true" />
+            <div className="w-7 h-7 rounded-lg bg-accent-cyan/10 flex items-center justify-center">
+              <Info size={14} className="text-accent-cyan" aria-hidden="true" />
             </div>
-            <h2 id="info-modal-title" className="text-base font-bold text-[var(--text)]">Як працює аналіз даних</h2>
+            <h2 id="info-modal-title" className="text-base font-bold text-(--text)">Як працює аналіз даних</h2>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Закрити інформацію"
-            className="w-8 h-8 rounded-lg border border-[var(--border)] flex items-center justify-center text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)] transition-colors"
+            className="w-8 h-8 rounded-lg border border-(--border) flex items-center justify-center text-(--muted) hover:text-(--text) hover:bg-(--input-bg) transition-colors"
           >
             <X size={14} aria-hidden="true" />
           </button>
         </div>
 
-        <div className="px-6 py-5 space-y-5 text-[12px] text-[var(--muted)] leading-relaxed">
+        <div className="px-6 py-5 space-y-5 text-[12px] text-(--muted) leading-relaxed">
 
           {/* Section 1 — 30-day window */}
-          <div className="bg-[#00e5c4]/5 border border-[#00e5c4]/20 rounded-xl p-4">
-            <div className="text-[9px] font-mono uppercase tracking-widest text-[#00e5c4]/80 mb-2">Захист від старих даних</div>
-            <p className="text-[var(--text)] mb-2">
+          <div className="bg-accent-cyan/5 border border-accent-cyan/20 rounded-xl p-4">
+            <div className="text-[9px] font-mono uppercase tracking-widest text-accent-cyan/80 mb-2">Захист від старих даних</div>
+            <p className="text-(--text) mb-2">
               Агенти <strong>автоматично ігнорують старі дані</strong> — наприклад, дані минулого року або минулого сезону.
             </p>
             <p>
               Кожен агент при запуску обраховує вікна відносно поточного дня:
             </p>
             <div className="mt-2 space-y-1 font-mono text-[11px]">
-              <div className="flex gap-3"><span className="text-[#00e5c4]">d7</span><span>= сьогодні − 7 днів → продажі за тиждень</span></div>
-              <div className="flex gap-3"><span className="text-[#00e5c4]">d14</span><span>= сьогодні − 14 днів → попередній тиждень (для тренду)</span></div>
-              <div className="flex gap-3"><span className="text-[#00e5c4]">d30</span><span>= сьогодні − 30 днів → місячна швидкість продажів</span></div>
+              <div className="flex gap-3"><span className="text-accent-cyan">d7</span><span>= сьогодні − 7 днів → продажі за тиждень</span></div>
+              <div className="flex gap-3"><span className="text-accent-cyan">d14</span><span>= сьогодні − 14 днів → попередній тиждень (для тренду)</span></div>
+              <div className="flex gap-3"><span className="text-accent-cyan">d30</span><span>= сьогодні − 30 днів → місячна швидкість продажів</span></div>
             </div>
             <p className="mt-2">
-              Навіть якщо в базі є записи за попередні роки — агент їх <strong>не бачить</strong>, бо фільтр <span className="font-mono bg-[var(--input-bg)] px-1 rounded">date ≥ d30</span> відсікає все старіше 30 днів. Це стандартна поведінка, коли поле «від» не заповнене.
+              Навіть якщо в базі є записи за попередні роки — агент їх <strong>не бачить</strong>, бо фільтр <span className="font-mono bg-(--input-bg) px-1 rounded-sm">date ≥ d30</span> відсікає все старіше 30 днів. Це стандартна поведінка, коли поле «від» не заповнене.
             </p>
           </div>
 
           {/* Section 2 — період даних (від/до) */}
-          <div className="bg-[var(--surface2)] border border-[var(--border)] rounded-xl p-4">
-            <div className="text-[9px] font-mono uppercase tracking-widest text-[var(--subtle)] mb-2">Період даних «від — до» (поля вище)</div>
+          <div className="bg-(--surface2) border border-(--border) rounded-xl p-4">
+            <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-2">Період даних «від — до» (поля вище)</div>
             <p className="mb-2">
               <strong>«До» (дата аналізу)</strong> — агент запускається <strong>ніби зараз — ця дата</strong>. Наприклад, якщо обрати 1 травня — агент вважатиме що "сьогодні" 1 травня і порахує всі вікна відносно неї.
             </p>
@@ -693,43 +693,43 @@ function InfoModal({ onClose }: { onClose: () => void }) {
               <strong>«Від» (початок вікна)</strong> — необовʼязкове. Якщо заповнене, агенти беруть дані <strong>тільки в межах періоду «від — до»</strong>, і розрахунок змінюється:
             </p>
             <div className="mb-2 space-y-1 font-mono text-[11px]">
-              <div className="flex gap-3"><span className="text-[#a78bfa]">Швидкість</span><span>= продажі за період ÷ днів у періоді (замість ÷30)</span></div>
-              <div className="flex gap-3"><span className="text-[#a78bfa]">WOH</span><span>= залишок ÷ швидкість за період</span></div>
-              <div className="flex gap-3"><span className="text-[#a78bfa]">Тренд</span><span>= друга половина періоду vs перша половина</span></div>
-              <div className="flex gap-3"><span className="text-[#a78bfa]">STR</span><span>= продажі за останні 7 днів періоду ÷ залишок</span></div>
+              <div className="flex gap-3"><span className="text-accent-purple">Швидкість</span><span>= продажі за період ÷ днів у періоді (замість ÷30)</span></div>
+              <div className="flex gap-3"><span className="text-accent-purple">WOH</span><span>= залишок ÷ швидкість за період</span></div>
+              <div className="flex gap-3"><span className="text-accent-purple">Тренд</span><span>= друга половина періоду vs перша половина</span></div>
+              <div className="flex gap-3"><span className="text-accent-purple">STR</span><span>= продажі за останні 7 днів періоду ÷ залишок</span></div>
             </div>
             <p>Корисно для:</p>
             <ul className="mt-1 space-y-1 list-none pl-0">
-              <li className="flex gap-2"><span className="text-[#00e5c4]">→</span>Аналізу конкретного сезону: "тільки дані з 1 вересня" (старий сезон не змішується)</li>
-              <li className="flex gap-2"><span className="text-[#00e5c4]">→</span>Ретроспективи: "який стан був 2 тижні тому?"</li>
-              <li className="flex gap-2"><span className="text-[#00e5c4]">→</span>Перевірки: "чи правильно агент оцінив би ситуацію тоді?"</li>
+              <li className="flex gap-2"><span className="text-accent-cyan">→</span>Аналізу конкретного сезону: "тільки дані з 1 вересня" (старий сезон не змішується)</li>
+              <li className="flex gap-2"><span className="text-accent-cyan">→</span>Ретроспективи: "який стан був 2 тижні тому?"</li>
+              <li className="flex gap-2"><span className="text-accent-cyan">→</span>Перевірки: "чи правильно агент оцінив би ситуацію тоді?"</li>
             </ul>
           </div>
 
           {/* Section 3 — Caveats per block */}
-          <div className="border border-[var(--border)] rounded-xl overflow-hidden">
-            <div className="px-4 py-3 bg-[var(--surface2)] border-b border-[var(--border)]">
-              <div className="text-[9px] font-mono uppercase tracking-widest text-[var(--subtle)]">Застереження при аналізі минулих дат</div>
+          <div className="border border-(--border) rounded-xl overflow-hidden">
+            <div className="px-4 py-3 bg-(--surface2) border-b border-(--border)">
+              <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle)">Застереження при аналізі минулих дат</div>
             </div>
-            <div className="divide-y divide-[var(--border)]">
+            <div className="divide-y divide-(--border)">
               <div className="px-4 py-3">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#00e5c4]/10 text-[#00e5c4]">БЛОК 1–2</span>
-                  <span className="text-[var(--text)] font-semibold">Inventory, Channel, Attributes, Repricing, Reordering</span>
+                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm bg-accent-cyan/10 text-accent-cyan">БЛОК 1–2</span>
+                  <span className="text-(--text) font-semibold">Inventory, Channel, Attributes, Repricing, Reordering</span>
                 </div>
                 <p>Продажі — точні (беруться з реальних записів). Залишки на складі — <strong>ближній знімок до обраної дати</strong>. Якщо щоденні знімки не зберігались — будуть використані поточні залишки.</p>
               </div>
               <div className="px-4 py-3">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#fbbf24]/10 text-[#fbbf24]">БЛОК 3</span>
-                  <span className="text-[var(--text)] font-semibold">Commercial Marketer, Calendar Agent</span>
+                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm bg-accent-yellow/10 text-accent-yellow">БЛОК 3</span>
+                  <span className="text-(--text) font-semibold">Commercial Marketer, Calendar Agent</span>
                 </div>
                 <p>Ці агенти генерують рекомендації <strong>на майбутнє</strong>: "запусти email сьогодні", "заплануй на наступний тиждень". При аналізі минулої дати рекомендації будуть датовані тим часом — <strong>не actionable</strong>, але корисні для ретроспективи.</p>
               </div>
               <div className="px-4 py-3">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#fb923c]/10 text-[#fb923c]">БЛОК 4</span>
-                  <span className="text-[var(--text)] font-semibold">Campaign Analysis, Weekly Report</span>
+                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm bg-[#fb923c]/10 text-[#fb923c]">БЛОК 4</span>
+                  <span className="text-(--text) font-semibold">Campaign Analysis, Weekly Report</span>
                 </div>
                 <p>Читають збережені результати попередніх агентів з бази. Обрана дата <strong>майже не впливає</strong> на їх вивід — вони завжди аналізують останні збережені дані.</p>
               </div>
@@ -737,13 +737,13 @@ function InfoModal({ onClose }: { onClose: () => void }) {
           </div>
 
           {/* Section 4 — нюанси власного періоду */}
-          <div className="bg-[#a78bfa]/5 border border-[#a78bfa]/20 rounded-xl p-4">
-            <div className="text-[9px] font-mono uppercase tracking-widest text-[#a78bfa]/80 mb-2">Нюанси власного періоду «від»</div>
+          <div className="bg-accent-purple/5 border border-accent-purple/20 rounded-xl p-4">
+            <div className="text-[9px] font-mono uppercase tracking-widest text-accent-purple/80 mb-2">Нюанси власного періоду «від»</div>
             <ul className="space-y-1.5 list-none pl-0">
-              <li className="flex gap-2"><span className="text-[#a78bfa]">·</span>Залишки на складі завжди беруться на дату <strong>«до»</strong> (найближчий знімок) — поле «від» на них не впливає.</li>
-              <li className="flex gap-2"><span className="text-[#a78bfa]">·</span>Дуже короткий період (менше 7 днів) робить тренд і STR нестабільними — половини періоду занадто малі.</li>
-              <li className="flex gap-2"><span className="text-[#a78bfa]">·</span>Дуже довгий період (90+ днів) усереднює швидкість продажів — WOH може виглядати краще/гірше за реальний поточний темп.</li>
-              <li className="flex gap-2"><span className="text-[#a78bfa]">·</span>Обраний період зберігається в кожному запуску агента — його видно у вікні «Трасування» (поля asOf і dateFrom).</li>
+              <li className="flex gap-2"><span className="text-accent-purple">·</span>Залишки на складі завжди беруться на дату <strong>«до»</strong> (найближчий знімок) — поле «від» на них не впливає.</li>
+              <li className="flex gap-2"><span className="text-accent-purple">·</span>Дуже короткий період (менше 7 днів) робить тренд і STR нестабільними — половини періоду занадто малі.</li>
+              <li className="flex gap-2"><span className="text-accent-purple">·</span>Дуже довгий період (90+ днів) усереднює швидкість продажів — WOH може виглядати краще/гірше за реальний поточний темп.</li>
+              <li className="flex gap-2"><span className="text-accent-purple">·</span>Обраний період зберігається в кожному запуску агента — його видно у вікні «Трасування» (поля asOf і dateFrom).</li>
             </ul>
           </div>
 
@@ -790,22 +790,22 @@ function DebugModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="debug-modal-title"
-        className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-[var(--border)] bg-[var(--surface)]"
+        className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-(--border) bg-(--surface)"
         style={{ boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}
       >
         {/* Header */}
-        <div className="sticky top-0 bg-[var(--surface)] border-b border-[var(--border)] px-6 py-4 flex items-center justify-between z-10">
+        <div className="sticky top-0 bg-(--surface) border-b border-(--border) px-6 py-4 flex items-center justify-between z-10">
           <div>
-            <div className="text-[9px] font-mono uppercase tracking-widest text-[var(--subtle)] mb-0.5">
+            <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-0.5">
               Трасування агента
             </div>
-            <h2 id="debug-modal-title" className="text-base font-bold text-[var(--text)]">{agentLabel}</h2>
+            <h2 id="debug-modal-title" className="text-base font-bold text-(--text)">{agentLabel}</h2>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Закрити трасування агента"
-            className="w-8 h-8 rounded-lg border border-[var(--border)] flex items-center justify-center text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)] transition-colors"
+            className="w-8 h-8 rounded-lg border border-(--border) flex items-center justify-center text-(--muted) hover:text-(--text) hover:bg-(--input-bg) transition-colors"
           >
             <X size={14} aria-hidden="true" />
           </button>
@@ -813,8 +813,8 @@ function DebugModal({
 
         <div className="px-6 py-5 space-y-4">
           {/* Metadata */}
-          <div className="bg-[var(--surface2)] border border-[var(--border)] rounded-xl p-4">
-            <div className="text-[9px] font-mono uppercase tracking-widest text-[var(--subtle)] mb-3">Метадані запуску</div>
+          <div className="bg-(--surface2) border border-(--border) rounded-xl p-4">
+            <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-3">Метадані запуску</div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {[
                 { label: "Провайдер", value: providerLabel },
@@ -834,8 +834,8 @@ function DebugModal({
                 ...(debug.dateFrom ? [{ label: "Дані від", value: debug.dateFrom, color: "#a78bfa" }] : []),
                 ...(debug.analyzedAt ? [{ label: "Час аналізу", value: new Date(debug.analyzedAt).toLocaleTimeString("uk-UA") }] : []),
               ].map(({ label, value, color }) => (
-                <div key={label} className="bg-[var(--row)] rounded-lg px-3 py-2">
-                  <div className="text-[9px] font-mono uppercase text-[var(--subtle)]">{label}</div>
+                <div key={label} className="bg-(--row) rounded-lg px-3 py-2">
+                  <div className="text-[9px] font-mono uppercase text-(--subtle)">{label}</div>
                   <div className="text-[11px] font-mono font-semibold mt-0.5" style={{ color: color ?? "var(--text)" }}>{value}</div>
                 </div>
               ))}
@@ -845,9 +845,9 @@ function DebugModal({
           {/* Weeks analyzed (Calendar Agent) */}
           {Array.isArray(debug.weeksAnalyzed) && debug.weeksAnalyzed.length > 0 && (
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[9px] font-mono text-[var(--subtle)] uppercase tracking-wide">Тижні:</span>
+              <span className="text-[9px] font-mono text-(--subtle) uppercase tracking-wide">Тижні:</span>
               {debug.weeksAnalyzed.map((w: string) => (
-                <span key={w} className="text-[9px] font-mono px-2 py-0.5 rounded bg-[#fbbf24]/10 border border-[#fbbf24]/20 text-[#fbbf24]">{w}</span>
+                <span key={w} className="text-[9px] font-mono px-2 py-0.5 rounded-sm bg-accent-yellow/10 border border-accent-yellow/20 text-accent-yellow">{w}</span>
               ))}
             </div>
           )}
@@ -880,9 +880,9 @@ function DebugModal({
           )}
 
           {!parsedOk && (
-            <div className="bg-[#fbbf24]/5 border border-[#fbbf24]/20 rounded-xl p-4">
-              <div className="text-[9px] font-mono uppercase tracking-widest text-[#fbbf24]/70 mb-1">Парсинг не вдався</div>
-              <p className="text-[12px] text-[var(--muted)]">
+            <div className="bg-accent-yellow/5 border border-accent-yellow/20 rounded-xl p-4">
+              <div className="text-[9px] font-mono uppercase tracking-widest text-accent-yellow/70 mb-1">Парсинг не вдався</div>
+              <p className="text-[12px] text-(--muted)">
                 AI повернув відповідь, але JSON не вдалося розпарсити. Використано fallback-вивід.
                 Перевірте сирий відповідь вище.
               </p>
@@ -906,13 +906,13 @@ function BrandCard({ b }: { b: BrandResult }) {
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/[0.02] transition-colors text-left"
+        className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/2 transition-colors text-left"
       >
         <div className="flex items-center gap-3">
-          <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />
-          <span className="font-semibold text-[var(--text)] text-sm">{b.brand_name}</span>
+          <div className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
+          <span className="font-semibold text-(--text) text-sm">{b.brand_name}</span>
           <span
-            className="text-[10px] font-mono px-1.5 py-0.5 rounded"
+            className="text-[10px] font-mono px-1.5 py-0.5 rounded-sm"
             style={{ background: color + "18", color }}
           >
             {statusLabel(b.status)}
@@ -923,28 +923,28 @@ function BrandCard({ b }: { b: BrandResult }) {
         </div>
         <div className="flex items-center gap-4">
           {b.metrics && (
-            <div className="hidden sm:flex items-center gap-4 text-[11px] font-mono text-[var(--muted)]">
-              <span>WOH <span className="text-[var(--text)]">{formatWohDays(b.metrics.wohDays)}</span></span>
-              <span>STR <span className="text-[var(--text)]">{b.metrics.strPercent}%</span></span>
+            <div className="hidden sm:flex items-center gap-4 text-[11px] font-mono text-(--muted)">
+              <span>WOH <span className="text-(--text)">{formatWohDays(b.metrics.wohDays)}</span></span>
+              <span>STR <span className="text-(--text)">{b.metrics.strPercent}%</span></span>
               <span>
                 {b.metrics.trend7dPct > 0 ? (
                   <TrendingUp size={11} className="inline text-[#86efac]" aria-hidden="true" />
                 ) : b.metrics.trend7dPct < 0 ? (
                   <TrendingDown size={11} className="inline text-[#fca5a5]" aria-hidden="true" />
                 ) : (
-                  <Minus size={11} className="inline text-[var(--subtle)]" aria-hidden="true" />
+                  <Minus size={11} className="inline text-(--subtle)" aria-hidden="true" />
                 )}
                 {" "}{b.metrics.trend7dPct > 0 ? "+" : ""}{b.metrics.trend7dPct}%
               </span>
             </div>
           )}
-          {open ? <ChevronUp size={14} className="text-[var(--subtle)]" aria-hidden="true" /> : <ChevronDown size={14} className="text-[var(--subtle)]" aria-hidden="true" />}
+          {open ? <ChevronUp size={14} className="text-(--subtle)" aria-hidden="true" /> : <ChevronDown size={14} className="text-(--subtle)" aria-hidden="true" />}
         </div>
       </button>
 
       {open && (
-        <div className="px-4 pb-4 space-y-3 border-t border-[var(--border-faint)]">
-          <p className="text-sm text-[var(--muted)] mt-3">{b.analysis}</p>
+        <div className="px-4 pb-4 space-y-3 border-t border-(--border-faint)">
+          <p className="text-sm text-(--muted) mt-3">{b.analysis}</p>
           {b.metrics && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
               {[
@@ -953,18 +953,18 @@ function BrandCard({ b }: { b: BrandResult }) {
                 { label: "Продаж 30д", value: b.metrics.salesLast30d + " шт" },
                 { label: "GM", value: b.metrics.gmPercent + "%" },
               ].map((item) => (
-                <div key={item.label} className="bg-[var(--row)] rounded-lg px-3 py-2">
-                  <div className="text-[9px] font-mono uppercase text-[var(--subtle)]">{item.label}</div>
-                  <div className="text-sm font-mono font-semibold text-[var(--text)] mt-0.5">{item.value}</div>
+                <div key={item.label} className="bg-(--row) rounded-lg px-3 py-2">
+                  <div className="text-[9px] font-mono uppercase text-(--subtle)">{item.label}</div>
+                  <div className="text-sm font-mono font-semibold text-(--text) mt-0.5">{item.value}</div>
                 </div>
               ))}
             </div>
           )}
           {b.suggested_actions?.length > 0 && (
             <div className="flex items-center gap-2 flex-wrap mt-1">
-              <span className="text-[10px] text-[var(--subtle)]">Дії:</span>
+              <span className="text-[10px] text-(--subtle)">Дії:</span>
               {b.suggested_actions.map((a) => (
-                <span key={a} className="text-[10px] font-mono px-2 py-0.5 bg-[var(--input-bg)] border border-[var(--border)] rounded text-[var(--muted)]">
+                <span key={a} className="text-[10px] font-mono px-2 py-0.5 bg-(--input-bg) border border-(--border) rounded-sm text-(--muted)">
                   {a}
                 </span>
               ))}
@@ -1061,38 +1061,38 @@ function AgentCard({
 
   return (
     <div
-      className="bg-[var(--surface2)] border border-[var(--border)] rounded-xl overflow-hidden"
+      className="bg-(--surface2) border border-(--border) rounded-xl overflow-hidden"
       style={{ borderLeft: `3px solid ${agent.color}` }}
     >
       <div className="p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-start gap-3 min-w-0">
             <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
+              className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
               style={{ background: agent.color + "15" }}
             >
               <Icon size={15} style={{ color: agent.color }} aria-hidden="true" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-semibold text-sm text-[var(--text)]">{agent.label}</span>
-                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[var(--input-bg)] text-[var(--subtle)]">
+                <span className="font-semibold text-sm text-(--text)">{agent.label}</span>
+                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm bg-(--input-bg) text-(--subtle)">
                   {agent.model}
                 </span>
                 {agent.model !== "Rules v1" && (
-                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[var(--input-bg)] text-[var(--subtle)]">
+                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm bg-(--input-bg) text-(--subtle)">
                     {provider === "openai" ? "OpenAI" : "Anthropic"}
                   </span>
                 )}
                 {!AGENT_ROUTES[agent.id] && (
-                  <span className="text-[9px] font-mono text-[var(--subtle)]">• скоро</span>
+                  <span className="text-[9px] font-mono text-(--subtle)">• скоро</span>
                 )}
               </div>
-              <p className="text-[11px] text-[var(--muted)] mt-0.5">{agent.desc}</p>
+              <p className="text-[11px] text-(--muted) mt-0.5">{agent.desc}</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             {agentStatusIcon(s)}
             <button
               type="button"
@@ -1118,28 +1118,28 @@ function AgentCard({
         </div>
 
         {/* Status row */}
-        <div className="flex items-center gap-3 mt-3 text-[10px] font-mono text-[var(--subtle)]">
+        <div className="flex items-center gap-3 mt-3 text-[10px] font-mono text-(--subtle)">
           <span>
             Статус:{" "}
             <span
               className={
                 s === "done"
-                  ? "text-[#00e5c4]"
+                  ? "text-accent-cyan"
                   : s === "running"
-                    ? "text-[#fbbf24]"
+                    ? "text-accent-yellow"
                     : s === "error"
                       ? "text-[#ef4444]"
-                      : "text-[var(--subtle)]"
+                      : "text-(--subtle)"
               }
             >
               {isStale ? "застаріло" : s === "idle" ? "очікування" : s === "running" ? "працює" : s === "done" ? "готово" : "помилка"}
             </span>
           </span>
           {run?.finishedAt && (
-            <span>Останній запуск: <span className="text-[var(--muted)]">{fmtDate(run.finishedAt)}</span></span>
+            <span>Останній запуск: <span className="text-(--muted)">{fmtDate(run.finishedAt)}</span></span>
           )}
           {duration(run) && (
-            <span>Час: <span className="text-[var(--muted)]">{duration(run)}</span></span>
+            <span>Час: <span className="text-(--muted)">{duration(run)}</span></span>
           )}
         </div>
 
@@ -1147,21 +1147,21 @@ function AgentCard({
         {s === "done" && brands.length > 0 && (
           <div className="flex items-center gap-2 mt-3 flex-wrap">
             {criticalCount > 0 && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#ef4444]/10 border border-[#ef4444]/20 text-[#ef4444]">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-[#ef4444]/10 border border-[#ef4444]/20 text-[#ef4444]">
                 {criticalCount} критичних
               </span>
             )}
             {warningCount > 0 && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#fbbf24]/10 border border-[#fbbf24]/20 text-[#fbbf24]">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-accent-yellow/10 border border-accent-yellow/20 text-accent-yellow">
                 {warningCount} попереджень
               </span>
             )}
             {criticalCount === 0 && warningCount === 0 && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#00e5c4]/10 border border-[#00e5c4]/20 text-[#00e5c4]">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-accent-cyan/10 border border-accent-cyan/20 text-accent-cyan">
                 Все гаразд
               </span>
             )}
-            <button type="button" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded} className="text-[10px] font-mono text-[var(--muted)] hover:text-[var(--text)] ml-auto">
+            <button type="button" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded} className="text-[10px] font-mono text-(--muted) hover:text-(--text) ml-auto">
               {expanded ? "Згорнути ↑" : `Детально (${brands.length} брендів) ↓`}
             </button>
           </div>
@@ -1171,14 +1171,14 @@ function AgentCard({
         {s === "done" && channels.length > 0 && brands.length === 0 && byCategory.length === 0 && (
           <div className="flex items-center gap-2 mt-3 flex-wrap">
             {topChannel && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#00e5c4]/10 border border-[#00e5c4]/20 text-[#00e5c4]">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-accent-cyan/10 border border-accent-cyan/20 text-accent-cyan">
                 Лідер за кількістю: {topChannel}
               </span>
             )}
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--input-bg)] border border-[var(--border)] text-[var(--muted)]">
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-(--input-bg) border border-(--border) text-(--muted)">
               {channels.length} каналів
             </span>
-            <button type="button" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded} className="text-[10px] font-mono text-[var(--muted)] hover:text-[var(--text)] ml-auto">
+            <button type="button" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded} className="text-[10px] font-mono text-(--muted) hover:text-(--text) ml-auto">
               {expanded ? "Згорнути ↑" : "Детально ↓"}
             </button>
           </div>
@@ -1188,16 +1188,16 @@ function AgentCard({
         {s === "done" && byCategory.length > 0 && (
           <div className="flex items-center gap-2 mt-3 flex-wrap">
             {bestsellers.length > 0 && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#00e5c4]/10 border border-[#00e5c4]/20 text-[#00e5c4]">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-accent-cyan/10 border border-accent-cyan/20 text-accent-cyan">
                 Бестселери: {bestsellers.slice(0, 2).join(", ")}
               </span>
             )}
             {deadStock.length > 0 && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#ef4444]/10 border border-[#ef4444]/20 text-[#ef4444]">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-[#ef4444]/10 border border-[#ef4444]/20 text-[#ef4444]">
                 Dead stock: {deadStock.length} категорій
               </span>
             )}
-            <button type="button" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded} className="text-[10px] font-mono text-[var(--muted)] hover:text-[var(--text)] ml-auto">
+            <button type="button" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded} className="text-[10px] font-mono text-(--muted) hover:text-(--text) ml-auto">
               {expanded ? "Згорнути ↑" : `Детально (${byCategory.length} категорій) ↓`}
             </button>
           </div>
@@ -1206,15 +1206,15 @@ function AgentCard({
         {/* Summary badges — Repricing / Reordering */}
         {s === "done" && decisionBrands.length > 0 && (
           <div className="flex items-center gap-2 mt-3 flex-wrap">
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#a78bfa]/10 border border-[#a78bfa]/20 text-[#a78bfa]">
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-accent-purple/10 border border-accent-purple/20 text-accent-purple">
               {decisionBrands.length} {agent.id === "repricing" ? "брендів до уцінки" : "брендів до дозамовлення"}
             </span>
             {recommendedCount > 0 && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#00e5c4]/10 border border-[#00e5c4]/20 text-[#00e5c4]">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-accent-cyan/10 border border-accent-cyan/20 text-accent-cyan">
                 {recommendedCount} рекомендацій готово
               </span>
             )}
-            <button type="button" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded} className="text-[10px] font-mono text-[var(--muted)] hover:text-[var(--text)] ml-auto">
+            <button type="button" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded} className="text-[10px] font-mono text-(--muted) hover:text-(--text) ml-auto">
               {expanded ? "Згорнути ↑" : "Детально ↓"}
             </button>
           </div>
@@ -1223,15 +1223,15 @@ function AgentCard({
         {/* Summary badges — Commercial Marketer */}
         {s === "done" && marketerBrands.length > 0 && (
           <div className="flex items-center gap-2 mt-3 flex-wrap">
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#fbbf24]/10 border border-[#fbbf24]/20 text-[#fbbf24]">
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-accent-yellow/10 border border-accent-yellow/20 text-accent-yellow">
               {marketerBrands.length} брифів готово
             </span>
             {marketerBrands.filter((b: any) => b.urgency === "critical" || b.urgency === "high").length > 0 && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#ef4444]/10 border border-[#ef4444]/20 text-[#ef4444]">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-[#ef4444]/10 border border-[#ef4444]/20 text-[#ef4444]">
                 {marketerBrands.filter((b: any) => b.urgency === "critical" || b.urgency === "high").length} термінових
               </span>
             )}
-            <button type="button" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded} className="text-[10px] font-mono text-[var(--muted)] hover:text-[var(--text)] ml-auto">
+            <button type="button" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded} className="text-[10px] font-mono text-(--muted) hover:text-(--text) ml-auto">
               {expanded ? "Згорнути ↑" : "Детально ↓"}
             </button>
           </div>
@@ -1241,26 +1241,26 @@ function AgentCard({
         {s === "done" && (annotations.length > 0 || healthScore) && (
           <div className="flex items-center gap-2 mt-3 flex-wrap">
             {healthScore?.coverage_percent != null && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#fbbf24]/10 border border-[#fbbf24]/20 text-[#fbbf24]">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-accent-yellow/10 border border-accent-yellow/20 text-accent-yellow">
                 Покриття: {healthScore.coverage_percent}%
               </span>
             )}
             {healthScore?.recommendation_count != null && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--input-bg)] border border-[var(--border)] text-[var(--muted)]">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-(--input-bg) border border-(--border) text-(--muted)">
                 {healthScore.scheduled_recommendations ?? 0} заплановано / {healthScore.recommendation_count} рекомендовано
               </span>
             )}
             {criticalAnnotations > 0 && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#ef4444]/10 border border-[#ef4444]/20 text-[#ef4444]">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-[#ef4444]/10 border border-[#ef4444]/20 text-[#ef4444]">
                 {criticalAnnotations} критичних прогалин
               </span>
             )}
             {annotations.length > 0 && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--input-bg)] border border-[var(--border)] text-[var(--muted)]">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-(--input-bg) border border-(--border) text-(--muted)">
                 {annotations.length} анотацій
               </span>
             )}
-            <button type="button" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded} className="text-[10px] font-mono text-[var(--muted)] hover:text-[var(--text)] ml-auto">
+            <button type="button" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded} className="text-[10px] font-mono text-(--muted) hover:text-(--text) ml-auto">
               {expanded ? "Згорнути ↑" : "Детально ↓"}
             </button>
           </div>
@@ -1270,29 +1270,29 @@ function AgentCard({
         {s === "done" && agent.id === "campaign_analysis" && campaignOverallHealth && (
           <div className="flex items-center gap-2 mt-3 flex-wrap">
             {campaignOverallHealth && (
-              <span className={`text-[10px] font-mono px-2 py-0.5 rounded border ${campaignHealthClasses(campaignOverallHealth)}`}>
+              <span className={`text-[10px] font-mono px-2 py-0.5 rounded-sm border ${campaignHealthClasses(campaignOverallHealth)}`}>
                 {campaignHealthLabel(campaignOverallHealth)}
               </span>
             )}
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--input-bg)] border border-[var(--border)] text-[var(--muted)]">
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-(--input-bg) border border-(--border) text-(--muted)">
               {activeCampaignCount} активних
             </span>
             {scheduledCampaignCount > 0 && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--input-bg)] border border-[var(--border)] text-[var(--muted)]">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-(--input-bg) border border-(--border) text-(--muted)">
                 {scheduledCampaignCount} у календарі
               </span>
             )}
             {pendingRecommendations > 0 && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#fbbf24]/10 border border-[#fbbf24]/20 text-[#fbbf24]">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-accent-yellow/10 border border-accent-yellow/20 text-accent-yellow">
                 {pendingRecommendations} очікують погодження
               </span>
             )}
             {campaignsBehind > 0 && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#ef4444]/10 border border-[#ef4444]/20 text-[#ef4444]">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-[#ef4444]/10 border border-[#ef4444]/20 text-[#ef4444]">
                 {campaignsBehind} відстають
               </span>
             )}
-            <button type="button" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded} className="text-[10px] font-mono text-[var(--muted)] hover:text-[var(--text)] ml-auto">
+            <button type="button" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded} className="text-[10px] font-mono text-(--muted) hover:text-(--text) ml-auto">
               {expanded ? "Згорнути ↑" : "Детально ↓"}
             </button>
           </div>
@@ -1302,21 +1302,21 @@ function AgentCard({
         {s === "done" && isWeeklyReport && (output.pm_brief || output.summary) && (
           <div className="flex items-center gap-2 mt-3 flex-wrap">
             {output.week && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#fb923c]/10 border border-[#fb923c]/20 text-[#fb923c]">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-[#fb923c]/10 border border-[#fb923c]/20 text-[#fb923c]">
                 {output.week}
               </span>
             )}
             {weeklyPriorities.length > 0 && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--input-bg)] border border-[var(--border)] text-[var(--muted)]">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-(--input-bg) border border-(--border) text-(--muted)">
                 {weeklyPriorities.length} пріоритетів
               </span>
             )}
             {weeklyDecisions.length > 0 && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#fbbf24]/10 border border-[#fbbf24]/20 text-[#fbbf24]">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-accent-yellow/10 border border-accent-yellow/20 text-accent-yellow">
                 {weeklyDecisions.length} рішень PM
               </span>
             )}
-            <button type="button" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded} className="text-[10px] font-mono text-[var(--muted)] hover:text-[var(--text)] ml-auto">
+            <button type="button" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded} className="text-[10px] font-mono text-(--muted) hover:text-(--text) ml-auto">
               {expanded ? "Згорнути ↑" : "Показати звіт ↓"}
             </button>
           </div>
@@ -1329,10 +1329,10 @@ function AgentCard({
 
         {/* No data message */}
         {s === "done" && brands.length === 0 && decisionBrands.length === 0 && marketerBrands.length === 0 && annotations.length === 0 && campaigns.length === 0 && !isWeeklyReport && run?.output?.message && (
-          <p className="mt-2 text-[11px] text-[var(--muted)]">{run.output.message}</p>
+          <p className="mt-2 text-[11px] text-(--muted)">{run.output.message}</p>
         )}
         {s === "done" && isWeeklyReport && !output.pm_brief && run?.output?.message && (
-          <p className="mt-2 text-[11px] text-[var(--muted)]">{run.output.message}</p>
+          <p className="mt-2 text-[11px] text-(--muted)">{run.output.message}</p>
         )}
 
         {/* Action buttons row */}
@@ -1341,7 +1341,7 @@ function AgentCard({
             <button
               type="button"
               onClick={() => setShowModal(true)}
-              className="flex items-center gap-1.5 text-[10px] font-mono text-[var(--muted)] hover:text-[var(--text)] transition-colors border border-[var(--border)] rounded-lg px-3 py-1.5 hover:bg-[var(--input-bg)]"
+              className="flex items-center gap-1.5 text-[10px] font-mono text-(--muted) hover:text-(--text) transition-colors border border-(--border) rounded-lg px-3 py-1.5 hover:bg-(--input-bg)"
             >
               <Eye size={11} aria-hidden="true" />
               Переглянути аналіз
@@ -1350,7 +1350,7 @@ function AgentCard({
               <button
                 type="button"
                 onClick={() => setShowDebug(true)}
-                className="flex items-center gap-1.5 text-[10px] font-mono text-[var(--subtle)] hover:text-[var(--text)] transition-colors border border-[var(--border)] rounded-lg px-3 py-1.5 hover:bg-[var(--input-bg)]"
+                className="flex items-center gap-1.5 text-[10px] font-mono text-(--subtle) hover:text-(--text) transition-colors border border-(--border) rounded-lg px-3 py-1.5 hover:bg-(--input-bg)"
                 title="Промт, дані та сирий відповідь AI"
               >
                 <Code2 size={11} aria-hidden="true" />
@@ -1363,7 +1363,7 @@ function AgentCard({
 
       {/* Expanded — Inventory Analyst */}
       {expanded && brands.length > 0 && (
-        <div className="border-t border-[var(--border)] px-4 py-3 space-y-2">
+        <div className="border-t border-(--border) px-4 py-3 space-y-2">
           {brands.map((b) => (
             <BrandCard key={b.brand_id} b={b} />
           ))}
@@ -1372,32 +1372,32 @@ function AgentCard({
 
       {/* Expanded — Channel Analytics */}
       {expanded && channels.length > 0 && brands.length === 0 && (
-        <div className="border-t border-[var(--border)] px-4 py-3 space-y-2">
+        <div className="border-t border-(--border) px-4 py-3 space-y-2">
           {output.summary && (
-            <p className="text-sm text-[var(--muted)] pb-2">{output.summary}</p>
+            <p className="text-sm text-(--muted) pb-2">{output.summary}</p>
           )}
           {channels.map((ch: any, i: number) => (
-            <div key={i} className="bg-[var(--row)] rounded-lg px-4 py-3">
+            <div key={i} className="bg-(--row) rounded-lg px-4 py-3">
               <div className="flex items-center justify-between mb-1">
-                <span className="font-semibold text-sm text-[var(--text)] capitalize">{ch.channel}</span>
+                <span className="font-semibold text-sm text-(--text) capitalize">{ch.channel}</span>
                 <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
-                  ch.status === "best" ? "bg-[#00e5c4]/10 text-[#00e5c4]" :
-                  ch.status === "weak" || ch.status === "inactive" ? "bg-[#fbbf24]/10 text-[#fbbf24]" :
-                  "bg-[var(--input-bg)] text-[var(--muted)]"
+                  ch.status === "best" ? "bg-accent-cyan/10 text-accent-cyan" :
+                  ch.status === "weak" || ch.status === "inactive" ? "bg-accent-yellow/10 text-accent-yellow" :
+                  "bg-(--input-bg) text-(--muted)"
                 }`}>
                   {ch.status?.toUpperCase()}
                 </span>
               </div>
-              {ch.insight && <p className="text-[11px] text-[var(--muted)]">{ch.insight}</p>}
+              {ch.insight && <p className="text-[11px] text-(--muted)">{ch.insight}</p>}
               {ch.recommendation && (
-                <p className="text-[11px] text-[#00e5c4] mt-1">→ {ch.recommendation}</p>
+                <p className="text-[11px] text-accent-cyan mt-1">→ {ch.recommendation}</p>
               )}
             </div>
           ))}
           {output.action && (
-            <div className="mt-2 px-3 py-2 bg-[#00e5c4]/5 border border-[#00e5c4]/20 rounded-lg">
-              <span className="text-[10px] font-mono text-[var(--subtle)]">Дія: </span>
-              <span className="text-[11px] text-[#00e5c4]">{output.action}</span>
+            <div className="mt-2 px-3 py-2 bg-accent-cyan/5 border border-accent-cyan/20 rounded-lg">
+              <span className="text-[10px] font-mono text-(--subtle)">Дія: </span>
+              <span className="text-[11px] text-accent-cyan">{output.action}</span>
             </div>
           )}
         </div>
@@ -1405,33 +1405,33 @@ function AgentCard({
 
       {/* Expanded — Product Attributes */}
       {expanded && byCategory.length > 0 && (
-        <div className="border-t border-[var(--border)] px-4 py-3 space-y-2">
+        <div className="border-t border-(--border) px-4 py-3 space-y-2">
           {output.summary && (
-            <p className="text-sm text-[var(--muted)] pb-2">{output.summary}</p>
+            <p className="text-sm text-(--muted) pb-2">{output.summary}</p>
           )}
           {byCategory.map((cat: any, i: number) => (
-            <div key={i} className="bg-[var(--row)] rounded-lg px-4 py-3">
+            <div key={i} className="bg-(--row) rounded-lg px-4 py-3">
               <div className="flex items-center justify-between mb-1">
-                <span className="font-semibold text-sm text-[var(--text)]">{cat.category || cat.attribute}</span>
+                <span className="font-semibold text-sm text-(--text)">{cat.category || cat.attribute}</span>
                 <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
-                  cat.status === "bestseller" ? "bg-[#00e5c4]/10 text-[#00e5c4]" :
+                  cat.status === "bestseller" ? "bg-accent-cyan/10 text-accent-cyan" :
                   cat.status === "dead" ? "bg-[#ef4444]/10 text-[#ef4444]" :
-                  cat.status === "slow" ? "bg-[#fbbf24]/10 text-[#fbbf24]" :
-                  "bg-[var(--input-bg)] text-[var(--muted)]"
+                  cat.status === "slow" ? "bg-accent-yellow/10 text-accent-yellow" :
+                  "bg-(--input-bg) text-(--muted)"
                 }`}>
                   {(cat.status || "normal").toUpperCase()}
                 </span>
               </div>
-              {cat.insight && <p className="text-[11px] text-[var(--muted)]">{cat.insight}</p>}
+              {cat.insight && <p className="text-[11px] text-(--muted)">{cat.insight}</p>}
               {cat.recommendation && (
-                <p className="text-[11px] text-[#00e5c4] mt-1">→ {cat.recommendation}</p>
+                <p className="text-[11px] text-accent-cyan mt-1">→ {cat.recommendation}</p>
               )}
             </div>
           ))}
           {output.action && (
-            <div className="mt-2 px-3 py-2 bg-[#00e5c4]/5 border border-[#00e5c4]/20 rounded-lg">
-              <span className="text-[10px] font-mono text-[var(--subtle)]">Дія: </span>
-              <span className="text-[11px] text-[#00e5c4]">{output.action}</span>
+            <div className="mt-2 px-3 py-2 bg-accent-cyan/5 border border-accent-cyan/20 rounded-lg">
+              <span className="text-[10px] font-mono text-(--subtle)">Дія: </span>
+              <span className="text-[11px] text-accent-cyan">{output.action}</span>
             </div>
           )}
         </div>
@@ -1439,26 +1439,26 @@ function AgentCard({
 
       {/* Expanded — Repricing / Reordering */}
       {expanded && decisionBrands.length > 0 && (
-        <div className="border-t border-[var(--border)] px-4 py-4 space-y-4">
+        <div className="border-t border-(--border) px-4 py-4 space-y-4">
           {decisionBrands.map((brand: any) => {
             const items: any[] = brand.options ?? brand.scenarios ?? [];
             const recommended = items.find((i: any) => i.evaluation?.recommended);
             return (
-              <div key={brand.brand_id} className="border border-[#a78bfa]/20 rounded-xl overflow-hidden">
-                <div className="px-4 py-3 bg-[#a78bfa]/5 flex items-start justify-between">
+              <div key={brand.brand_id} className="border border-accent-purple/20 rounded-xl overflow-hidden">
+                <div className="px-4 py-3 bg-accent-purple/5 flex items-start justify-between">
                   <div>
-                    <span className="font-semibold text-sm text-[var(--text)]">{brand.brand_name}</span>
+                    <span className="font-semibold text-sm text-(--text)">{brand.brand_name}</span>
                     {brand.current_situation && (
-                      <p className="text-[11px] text-[var(--muted)] mt-0.5">{brand.current_situation}</p>
+                      <p className="text-[11px] text-(--muted) mt-0.5">{brand.current_situation}</p>
                     )}
                   </div>
                   {recommended && (
-                    <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-[#00e5c4]/10 border border-[#00e5c4]/20 text-[#00e5c4] flex-shrink-0 ml-3">
+                    <span className="text-[9px] font-mono px-2 py-0.5 rounded-sm bg-accent-cyan/10 border border-accent-cyan/20 text-accent-cyan shrink-0 ml-3">
                       ✓ {recommended.label}
                     </span>
                   )}
                 </div>
-                <div className="divide-y divide-[var(--border)]">
+                <div className="divide-y divide-(--border)">
                   {items.map((item: any) => {
                     const isRec = item.evaluation?.recommended;
                     const score = item.evaluation?.score ?? 0;
@@ -1469,33 +1469,33 @@ function AgentCard({
                         style={{ background: isRec ? "#00e5c4" + "07" : undefined }}
                       >
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded" style={{
+                          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm" style={{
                             background: agent.color + "20", color: agent.color,
                           }}>
                             {item.strategy_type ?? item.type}
                           </span>
-                          <span className="text-[12px] font-semibold text-[var(--text)]">{item.label}</span>
+                          <span className="text-[12px] font-semibold text-(--text)">{item.label}</span>
                           {isRec && (
-                            <span className="text-[9px] font-mono text-[#00e5c4] ml-auto">★ РЕКОМЕНДОВАНО</span>
+                            <span className="text-[9px] font-mono text-accent-cyan ml-auto">★ РЕКОМЕНДОВАНО</span>
                           )}
                         </div>
-                        <div className="flex items-center gap-4 text-[10px] font-mono text-[var(--muted)] mt-1 flex-wrap">
+                        <div className="flex items-center gap-4 text-[10px] font-mono text-(--muted) mt-1 flex-wrap">
                           {item.discount_percent !== undefined && (
-                            <span>Знижка: <span className="text-[var(--text)]">-{item.discount_percent}%</span></span>
+                            <span>Знижка: <span className="text-(--text)">-{item.discount_percent}%</span></span>
                           )}
                           {item.duration_days && (
-                            <span>Строк: <span className="text-[var(--text)]">{item.duration_days}д</span></span>
+                            <span>Строк: <span className="text-(--text)">{item.duration_days}д</span></span>
                           )}
                           {item.forecast && (
-                            <span>Днів запасу після (DOH): <span className="text-[var(--text)]">
+                            <span>Днів запасу після (DOH): <span className="text-(--text)">
                               {item.forecast.woh_after == null ? "недостатньо даних" : formatWohDays(item.forecast.woh_after)}
                             </span></span>
                           )}
                           {item.woh_after !== undefined && (
-                            <span>Днів запасу після (DOH): <span className="text-[var(--text)]">{formatWohDays(item.woh_after)}</span></span>
+                            <span>Днів запасу після (DOH): <span className="text-(--text)">{formatWohDays(item.woh_after)}</span></span>
                           )}
                           {item.qty_multiplier !== undefined && (
-                            <span>Обʼєм: <span className="text-[var(--text)]">×{item.qty_multiplier}</span></span>
+                            <span>Обʼєм: <span className="text-(--text)">×{item.qty_multiplier}</span></span>
                           )}
                           <span className="ml-auto">
                             Оцінка: <span style={{ color: score >= 7 ? "#00e5c4" : score >= 5 ? "#fbbf24" : "#ef4444" }}>
@@ -1504,7 +1504,7 @@ function AgentCard({
                           </span>
                         </div>
                         {item.evaluation?.risks?.length > 0 && (
-                          <p className="text-[10px] text-[#fbbf24] mt-1.5">
+                          <p className="text-[10px] text-accent-yellow mt-1.5">
                             ⚠ {item.evaluation.risks[0]}
                           </p>
                         )}
@@ -1542,36 +1542,36 @@ function AgentCard({
 
       {/* Expanded — Commercial Marketer */}
       {expanded && marketerBrands.length > 0 && (
-        <div className="border-t border-[var(--border)] px-4 py-4 space-y-4">
-          {output.summary && <p className="text-sm text-[var(--muted)]">{output.summary}</p>}
+        <div className="border-t border-(--border) px-4 py-4 space-y-4">
+          {output.summary && <p className="text-sm text-(--muted)">{output.summary}</p>}
           {marketerBrands.map((brand: any) => (
-            <div key={brand.brand_id} className="border border-[#fbbf24]/20 rounded-xl overflow-hidden">
-              <div className="px-4 py-3 bg-[#fbbf24]/5 flex items-center justify-between">
+            <div key={brand.brand_id} className="border border-accent-yellow/20 rounded-xl overflow-hidden">
+              <div className="px-4 py-3 bg-accent-yellow/5 flex items-center justify-between">
                 <div>
-                  <span className="font-semibold text-sm text-[var(--text)]">{brand.brand_name}</span>
-                  {brand.decision_summary && <p className="text-[11px] text-[var(--muted)] mt-0.5">{brand.decision_summary}</p>}
+                  <span className="font-semibold text-sm text-(--text)">{brand.brand_name}</span>
+                  {brand.decision_summary && <p className="text-[11px] text-(--muted) mt-0.5">{brand.decision_summary}</p>}
                 </div>
-                <span className={`text-[9px] font-mono px-2 py-0.5 rounded flex-shrink-0 ml-3 ${
+                <span className={`text-[9px] font-mono px-2 py-0.5 rounded shrink-0 ml-3 ${
                   brand.urgency === "critical" ? "bg-[#ef4444]/10 text-[#ef4444]" :
-                  brand.urgency === "high" ? "bg-[#fbbf24]/10 text-[#fbbf24]" :
-                  "bg-[var(--input-bg)] text-[var(--muted)]"
+                  brand.urgency === "high" ? "bg-accent-yellow/10 text-accent-yellow" :
+                  "bg-(--input-bg) text-(--muted)"
                 }`}>{(brand.urgency ?? "medium").toUpperCase()}</span>
               </div>
               {brand.key_message && (
-                <div className="px-4 py-2 border-b border-[var(--border)] bg-[var(--surface2)]">
-                  <span className="text-[9px] font-mono text-[var(--subtle)] uppercase tracking-wide">Ключове повідомлення: </span>
-                  <span className="text-[12px] text-[var(--text)]">"{brand.key_message}"</span>
+                <div className="px-4 py-2 border-b border-(--border) bg-(--surface2)">
+                  <span className="text-[9px] font-mono text-(--subtle) uppercase tracking-wide">Ключове повідомлення: </span>
+                  <span className="text-[12px] text-(--text)">"{brand.key_message}"</span>
                 </div>
               )}
-              <div className="divide-y divide-[var(--border)]">
+              <div className="divide-y divide-(--border)">
                 {Object.entries(brand.channels ?? {}).map(([ch, v]: [string, any]) => v?.action_needed ? (
                   <div key={ch} className="px-4 py-3 flex items-start gap-3">
-                    <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#fbbf24]/15 text-[#fbbf24] uppercase flex-shrink-0 mt-0.5">{ch}</span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm bg-accent-yellow/15 text-accent-yellow uppercase shrink-0 mt-0.5">{ch}</span>
                     <div className="min-w-0">
-                      <p className="text-[11px] text-[var(--text)]">{v.brief}</p>
-                      {v.frequency && <p className="text-[10px] text-[var(--muted)] mt-0.5">Частота: {v.frequency}</p>}
-                      {v.send_timing && <p className="text-[10px] text-[var(--muted)] mt-0.5">Відправити: {v.send_timing}</p>}
-                      {v.budget_recommendation && <p className="text-[10px] text-[#00e5c4] mt-0.5">Бюджет: {v.budget_recommendation}</p>}
+                      <p className="text-[11px] text-(--text)">{v.brief}</p>
+                      {v.frequency && <p className="text-[10px] text-(--muted) mt-0.5">Частота: {v.frequency}</p>}
+                      {v.send_timing && <p className="text-[10px] text-(--muted) mt-0.5">Відправити: {v.send_timing}</p>}
+                      {v.budget_recommendation && <p className="text-[10px] text-accent-cyan mt-0.5">Бюджет: {v.budget_recommendation}</p>}
                     </div>
                   </div>
                 ) : null)}
@@ -1583,10 +1583,10 @@ function AgentCard({
 
       {/* Expanded — Calendar Agent */}
       {expanded && (annotations.length > 0 || healthScore) && (
-        <div className="border-t border-[var(--border)] px-4 py-4 space-y-3">
-          {healthScore?.summary && <p className="text-sm text-[var(--muted)]">{healthScore.summary}</p>}
+        <div className="border-t border-(--border) px-4 py-4 space-y-3">
+          {healthScore?.summary && <p className="text-sm text-(--muted)">{healthScore.summary}</p>}
           {output.summary && output.summary !== healthScore?.summary && (
-            <p className="text-sm text-[var(--muted)]">{output.summary}</p>
+            <p className="text-sm text-(--muted)">{output.summary}</p>
           )}
           {annotations.map((ann: any, i: number) => {
             const prioColor = ann.priority === "critical" ? "#ef4444" : ann.priority === "high" ? "#fbbf24" : ann.priority === "medium" ? "#a78bfa" : "#6b7a8d";
@@ -1594,22 +1594,22 @@ function AgentCard({
             const recommendation = planningRecommendations.find((item) => item.recommendation_id === ann.id && item.status === "draft");
             const scheduledRecommendation = planningRecommendations.find((item) => item.recommendation_id === ann.id && item.status === "scheduled");
             return (
-              <div key={ann.id ?? i} className="border border-[var(--border)] rounded-xl p-3">
+              <div key={ann.id ?? i} className="border border-(--border) rounded-xl p-3">
                 <div className="flex items-start gap-2 mb-1">
                   <span className="text-[10px] font-mono" style={{ color: prioColor }}>{typeIcon} {(ann.type ?? "").toUpperCase()}</span>
-                  {ann.channel && <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#fbbf24]/15 text-[#fbbf24]">{ann.channel}</span>}
-                  {ann.brand && <span className="text-[9px] font-mono text-[var(--subtle)]">{ann.brand}</span>}
+                  {ann.channel && <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm bg-accent-yellow/15 text-accent-yellow">{ann.channel}</span>}
+                  {ann.brand && <span className="text-[9px] font-mono text-(--subtle)">{ann.brand}</span>}
                   <span className="text-[9px] font-mono ml-auto" style={{ color: prioColor }}>{(ann.priority ?? "").toUpperCase()}</span>
                 </div>
-                <p className="text-[12px] text-[var(--text)]">{ann.message}</p>
+                <p className="text-[12px] text-(--text)">{ann.message}</p>
                 {ann.suggested_action && (
-                  <p className="text-[11px] text-[#00e5c4] mt-1">→ {ann.suggested_action}</p>
+                  <p className="text-[11px] text-accent-cyan mt-1">→ {ann.suggested_action}</p>
                 )}
                 {recommendation && run?.id && (
                   <button
                     type="button"
                     onClick={() => setApprovalTarget(recommendation)}
-                    className="mt-3 rounded-lg border border-[#fbbf24]/30 bg-[#fbbf24]/10 px-3 py-1.5 text-[10px] font-mono font-semibold text-[#fbbf24] hover:bg-[#fbbf24]/15"
+                    className="mt-3 rounded-lg border border-accent-yellow/30 bg-accent-yellow/10 px-3 py-1.5 text-[10px] font-mono font-semibold text-accent-yellow hover:bg-accent-yellow/15"
                   >
                     Погодити й додати до календаря
                   </button>
@@ -1617,7 +1617,7 @@ function AgentCard({
                 {scheduledRecommendation && (
                   <Link
                     href="/calendar"
-                    className="mt-3 inline-flex rounded-lg border border-[#00e5c4]/30 bg-[#00e5c4]/10 px-3 py-1.5 text-[10px] font-mono font-semibold text-[#00e5c4] hover:bg-[#00e5c4]/15"
+                    className="mt-3 inline-flex rounded-lg border border-accent-cyan/30 bg-accent-cyan/10 px-3 py-1.5 text-[10px] font-mono font-semibold text-accent-cyan hover:bg-accent-cyan/15"
                   >
                     Відкрити в календарі
                   </Link>
@@ -1630,21 +1630,21 @@ function AgentCard({
 
       {/* Expanded — Campaign Analysis */}
       {expanded && agent.id === "campaign_analysis" && (campaigns.length > 0 || output.summary) && (
-        <div className="border-t border-[var(--border)] px-4 py-4 space-y-3">
-          {output.summary && <p className="text-sm text-[var(--muted)]">{output.summary}</p>}
+        <div className="border-t border-(--border) px-4 py-4 space-y-3">
+          {output.summary && <p className="text-sm text-(--muted)">{output.summary}</p>}
           {campaigns.map((camp: any, i: number) => {
             const statusColor = campaignStatusColor(camp.status);
             return (
-              <div key={camp.campaign_id ?? i} className="border border-[var(--border)] rounded-xl p-3">
+              <div key={camp.campaign_id ?? i} className="border border-(--border) rounded-xl p-3">
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
-                  <span className="font-semibold text-sm text-[var(--text)]">{camp.brand_name}</span>
-                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded" style={{ background: statusColor + "20", color: statusColor, border: `1px solid ${statusColor}30` }}>
+                  <span className="font-semibold text-sm text-(--text)">{camp.brand_name}</span>
+                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm" style={{ background: statusColor + "20", color: statusColor, border: `1px solid ${statusColor}30` }}>
                     {camp.status?.toUpperCase()}
                   </span>
-                  <span className="text-[9px] font-mono text-[var(--subtle)] ml-auto">{campaignMetricLabel(camp)}</span>
+                  <span className="text-[9px] font-mono text-(--subtle) ml-auto">{campaignMetricLabel(camp)}</span>
                 </div>
-                {camp.actual_observation && <p className="text-[11px] text-[var(--muted)] mb-1">{camp.actual_observation}</p>}
-                {camp.next_action && <p className="text-[11px] text-[#00e5c4]">→ {camp.next_action}</p>}
+                {camp.actual_observation && <p className="text-[11px] text-(--muted) mb-1">{camp.actual_observation}</p>}
+                {camp.next_action && <p className="text-[11px] text-accent-cyan">→ {camp.next_action}</p>}
               </div>
             );
           })}
@@ -1653,34 +1653,34 @@ function AgentCard({
 
       {/* Expanded — Weekly Report */}
       {expanded && isWeeklyReport && (output.pm_brief || output.marketing_brief) && (
-        <div className="border-t border-[var(--border)] px-4 py-4 space-y-4">
+        <div className="border-t border-(--border) px-4 py-4 space-y-4">
           {output.summary && (
-            <p className="text-sm text-[var(--text)] font-medium">{output.summary}</p>
+            <p className="text-sm text-(--text) font-medium">{output.summary}</p>
           )}
           {output.pm_brief && (
-            <div className="bg-[var(--row)] rounded-xl p-4">
-              <div className="text-[9px] font-mono uppercase tracking-widest text-[var(--subtle)] mb-2">PM Brief</div>
-              <p className="text-[12px] text-[var(--text)] leading-relaxed">{output.pm_brief}</p>
+            <div className="bg-(--row) rounded-xl p-4">
+              <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-2">PM Brief</div>
+              <p className="text-[12px] text-(--text) leading-relaxed">{output.pm_brief}</p>
             </div>
           )}
           {output.marketing_brief && (
-            <div className="bg-[var(--row)] rounded-xl p-4">
-              <div className="text-[9px] font-mono uppercase tracking-widest text-[var(--subtle)] mb-2">Marketing Brief</div>
-              <p className="text-[12px] text-[var(--text)] leading-relaxed">{output.marketing_brief}</p>
+            <div className="bg-(--row) rounded-xl p-4">
+              <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-2">Marketing Brief</div>
+              <p className="text-[12px] text-(--text) leading-relaxed">{output.marketing_brief}</p>
             </div>
           )}
           {weeklyPriorities.length > 0 && (
             <div>
-              <div className="text-[9px] font-mono uppercase tracking-widest text-[var(--subtle)] mb-2">Пріоритети</div>
+              <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-2">Пріоритети</div>
               <div className="space-y-2">
                 {weeklyPriorities.map((p: any) => (
-                  <div key={p.rank} className="flex items-start gap-3 py-2 border-b border-[var(--border)] last:border-0">
-                    <span className="text-[11px] font-mono font-bold text-[#fb923c] w-5 flex-shrink-0">#{p.rank}</span>
+                  <div key={p.rank} className="flex items-start gap-3 py-2 border-b border-(--border) last:border-0">
+                    <span className="text-[11px] font-mono font-bold text-[#fb923c] w-5 shrink-0">#{p.rank}</span>
                     <div className="min-w-0">
-                      <span className="text-[11px] text-[var(--text)]">{p.action}</span>
+                      <span className="text-[11px] text-(--text)">{p.action}</span>
                       <div className="flex items-center gap-2 mt-0.5">
-                        {p.brand && p.brand !== "все" && <span className="text-[9px] font-mono text-[var(--subtle)]">{p.brand}</span>}
-                        <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${p.deadline === "today" ? "bg-[#ef4444]/10 text-[#ef4444]" : p.deadline === "tomorrow" ? "bg-[#fbbf24]/10 text-[#fbbf24]" : "bg-[var(--input-bg)] text-[var(--muted)]"}`}>
+                        {p.brand && p.brand !== "все" && <span className="text-[9px] font-mono text-(--subtle)">{p.brand}</span>}
+                        <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded-sm ${p.deadline === "today" ? "bg-[#ef4444]/10 text-[#ef4444]" : p.deadline === "tomorrow" ? "bg-accent-yellow/10 text-accent-yellow" : "bg-(--input-bg) text-(--muted)"}`}>
                           {p.deadline}
                         </span>
                       </div>
@@ -1691,11 +1691,11 @@ function AgentCard({
             </div>
           )}
           {weeklyDecisions.length > 0 && (
-            <div className="bg-[#fbbf24]/5 border border-[#fbbf24]/20 rounded-xl p-3">
-              <div className="text-[9px] font-mono uppercase tracking-widest text-[#fbbf24]/70 mb-2">Рішення PM</div>
+            <div className="bg-accent-yellow/5 border border-accent-yellow/20 rounded-xl p-3">
+              <div className="text-[9px] font-mono uppercase tracking-widest text-accent-yellow/70 mb-2">Рішення PM</div>
               <ul className="space-y-1">
                 {weeklyDecisions.map((d: string, i: number) => (
-                  <li key={i} className="text-[11px] text-[var(--text)]">· {d}</li>
+                  <li key={i} className="text-[11px] text-(--text)">· {d}</li>
                 ))}
               </ul>
             </div>
@@ -1752,8 +1752,8 @@ function AgentCard({
 
 function PipelineDiagram({ runs }: { runs: Record<string, AgentRunInfo> }) {
   return (
-    <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5 mb-6 overflow-x-auto">
-      <div className="text-[9px] font-mono uppercase tracking-widest text-[var(--subtle)] mb-4">Пайплайн агентів</div>
+    <div className="bg-(--surface) border border-(--border) rounded-xl p-5 mb-6 overflow-x-auto">
+      <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-4">Пайплайн агентів</div>
       <div className="flex items-start gap-2 min-w-max">
         {BLOCKS.map((block, bi) => {
           const blockAgents = AGENTS.filter((a) => a.block === block.id);
@@ -1803,7 +1803,7 @@ function PipelineDiagram({ runs }: { runs: Record<string, AgentRunInfo> }) {
               {/* Arrow between blocks */}
               {bi < BLOCKS.length - 1 && (
                 <div className="flex items-center self-center pb-1">
-                  <div className="w-6 h-px bg-[var(--border)]" />
+                  <div className="w-6 h-px bg-(--border)" />
                   <div
                     className="w-0 h-0"
                     style={{
@@ -1881,25 +1881,25 @@ export default function AgentsPage() {
     <div className="p-6 max-w-4xl">
       {/* Header */}
       <div className="mb-6">
-        <div className="text-[10px] font-mono uppercase tracking-widest text-[var(--subtle)] mb-2">AI Pipeline</div>
+        <div className="text-[10px] font-mono uppercase tracking-widest text-(--subtle) mb-2">AI Pipeline</div>
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-[var(--text)]">Агенти</h1>
-            <p className="text-sm text-[var(--muted)] mt-0.5">
+            <h1 className="text-2xl font-bold text-(--text)">Агенти</h1>
+            <p className="text-sm text-(--muted) mt-0.5">
               9 агентів · {totalDone} виконано
               {totalError > 0 && <span className="text-[#ef4444] ml-2">· {totalError} помилок</span>}
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 text-[10px] font-mono text-[var(--subtle)]">
-              <Zap size={11} className="text-[#fbbf24]" aria-hidden="true" />
+            <div className="flex items-center gap-1.5 text-[10px] font-mono text-(--subtle)">
+              <Zap size={11} className="text-accent-yellow" aria-hidden="true" />
               OpenAI GPT-4o / GPT-4o mini
             </div>
             <button
               type="button"
               onClick={fetchStatus}
               aria-label="Оновити статус агентів"
-              className="p-1.5 rounded-lg border border-[var(--border)] text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)] transition-colors"
+              className="p-1.5 rounded-lg border border-(--border) text-(--muted) hover:text-(--text) hover:bg-(--input-bg) transition-colors"
               title="Оновити статус"
             >
               <RefreshCw size={13} className={loading ? "animate-spin" : ""} aria-hidden="true" />
@@ -1916,14 +1916,14 @@ export default function AgentsPage() {
       )}
 
       {/* Date range picker */}
-      <div className="mb-4 bg-[var(--surface2)] border border-[var(--border)] rounded-xl p-4">
+      <div className="mb-4 bg-(--surface2) border border-(--border) rounded-xl p-4">
         <div className="flex items-center gap-4 flex-wrap">
           <div className="flex items-center gap-3">
-            <CalendarDays size={14} className="text-[var(--subtle)]" aria-hidden="true" />
-            <span className="text-[10px] font-mono uppercase tracking-widest text-[var(--subtle)]">Період даних</span>
+            <CalendarDays size={14} className="text-(--subtle)" aria-hidden="true" />
+            <span className="text-[10px] font-mono uppercase tracking-widest text-(--subtle)">Період даних</span>
           </div>
           <div className="flex items-center gap-2">
-            <label htmlFor="agents-date-from" className="text-[10px] font-mono text-[var(--subtle)]">від</label>
+            <label htmlFor="agents-date-from" className="text-[10px] font-mono text-(--subtle)">від</label>
             <input
               id="agents-date-from"
               name="agents-date-from"
@@ -1932,11 +1932,11 @@ export default function AgentsPage() {
               max={maxFromStr}
               aria-label="Дата початку періоду"
               onChange={(e) => setDateFrom(e.target.value || "")}
-              className="text-[11px] font-mono px-3 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--input-bg)] text-[var(--text)] focus:outline-none focus:border-[#00e5c4]/50"
+              className="text-[11px] font-mono px-3 py-1.5 rounded-lg border border-(--border) bg-(--input-bg) text-(--text) focus:outline-hidden focus:border-accent-cyan/50"
             />
           </div>
           <div className="flex items-center gap-2">
-            <label htmlFor="agents-date-to" className="text-[10px] font-mono text-[var(--subtle)]">до</label>
+            <label htmlFor="agents-date-to" className="text-[10px] font-mono text-(--subtle)">до</label>
             <input
               id="agents-date-to"
               name="agents-date-to"
@@ -1951,28 +1951,28 @@ export default function AgentsPage() {
                 // якщо "до" стала раніше за "від" — скидаємо "від"
                 if (dateFrom && v <= dateFrom) setDateFrom("");
               }}
-              className="text-[11px] font-mono px-3 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--input-bg)] text-[var(--text)] focus:outline-none focus:border-[#00e5c4]/50"
+              className="text-[11px] font-mono px-3 py-1.5 rounded-lg border border-(--border) bg-(--input-bg) text-(--text) focus:outline-hidden focus:border-accent-cyan/50"
             />
           </div>
           {(isHistoricalDate || hasDateFrom) && (
             <button
               type="button"
               onClick={() => { setAnalysisDate(todayStr); setDateFrom(""); }}
-              className="text-[10px] font-mono px-2.5 py-1 rounded-lg border border-[var(--border)] text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)] transition-colors"
+              className="text-[10px] font-mono px-2.5 py-1 rounded-lg border border-(--border) text-(--muted) hover:text-(--text) hover:bg-(--input-bg) transition-colors"
             >
               Скинути
             </button>
           )}
           {!isHistoricalDate && !hasDateFrom && (
-            <span className="text-[10px] font-mono text-[#00e5c4]">Останні 30 днів (стандарт)</span>
+            <span className="text-[10px] font-mono text-accent-cyan">Останні 30 днів (стандарт)</span>
           )}
           {hasDateFrom && (
-            <span className="text-[10px] font-mono text-[#a78bfa]">Період: {periodDays} дн.</span>
+            <span className="text-[10px] font-mono text-accent-purple">Період: {periodDays} дн.</span>
           )}
           <button
             type="button"
             onClick={() => setShowInfo(true)}
-            className="ml-auto flex items-center gap-1.5 text-[10px] font-mono px-2.5 py-1 rounded-lg border border-[var(--border)] text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)] transition-colors"
+            className="ml-auto flex items-center gap-1.5 text-[10px] font-mono px-2.5 py-1 rounded-lg border border-(--border) text-(--muted) hover:text-(--text) hover:bg-(--input-bg) transition-colors"
           >
             <Info size={11} aria-hidden="true" />
             Важлива інформація
@@ -1981,10 +1981,10 @@ export default function AgentsPage() {
 
         {/* Warning for custom period */}
         {hasDateFrom && (
-          <div className="mt-3 flex items-start gap-2 bg-[#a78bfa]/5 border border-[#a78bfa]/20 rounded-lg px-3 py-2.5">
-            <Info size={12} className="text-[#a78bfa] flex-shrink-0 mt-0.5" aria-hidden="true" />
-            <p className="text-[11px] text-[var(--muted)] leading-relaxed">
-              <span className="text-[#a78bfa] font-semibold">Власний період ({periodDays} дн.):</span> швидкість продажів і WOH рахуються за весь період <span className="text-[var(--text)]">{dateFrom} — {analysisDate}</span> замість стандартних 30 днів. Тренд = друга половина періоду проти першої. Дані раніше дати «від» агенти не бачать.
+          <div className="mt-3 flex items-start gap-2 bg-accent-purple/5 border border-accent-purple/20 rounded-lg px-3 py-2.5">
+            <Info size={12} className="text-accent-purple shrink-0 mt-0.5" aria-hidden="true" />
+            <p className="text-[11px] text-(--muted) leading-relaxed">
+              <span className="text-accent-purple font-semibold">Власний період ({periodDays} дн.):</span> швидкість продажів і WOH рахуються за весь період <span className="text-(--text)">{dateFrom} — {analysisDate}</span> замість стандартних 30 днів. Тренд = друга половина періоду проти першої. Дані раніше дати «від» агенти не бачать.
             </p>
           </div>
         )}
@@ -1992,22 +1992,22 @@ export default function AgentsPage() {
         {/* Warnings for historical date */}
         {isHistoricalDate && (
           <div className="mt-3 space-y-2">
-            <div className="flex items-start gap-2 bg-[#fbbf24]/5 border border-[#fbbf24]/20 rounded-lg px-3 py-2.5">
-              <AlertTriangle size={12} className="text-[#fbbf24] flex-shrink-0 mt-0.5" aria-hidden="true" />
-              <p className="text-[11px] text-[var(--muted)] leading-relaxed">
-                <span className="text-[#fbbf24] font-semibold">Блоки 1–2:</span> Метрики продажів пораховані {hasDateFrom ? `за період ${dateFrom} — ${analysisDate}` : `за 7/30 днів до ${analysisDate}`}. Залишки на складі — найближчий знімок до дати <span className="text-[var(--text)]">{analysisDate}</span> (якщо щоденні знімки не записувались, будуть використані поточні залишки).
+            <div className="flex items-start gap-2 bg-accent-yellow/5 border border-accent-yellow/20 rounded-lg px-3 py-2.5">
+              <AlertTriangle size={12} className="text-accent-yellow shrink-0 mt-0.5" aria-hidden="true" />
+              <p className="text-[11px] text-(--muted) leading-relaxed">
+                <span className="text-accent-yellow font-semibold">Блоки 1–2:</span> Метрики продажів пораховані {hasDateFrom ? `за період ${dateFrom} — ${analysisDate}` : `за 7/30 днів до ${analysisDate}`}. Залишки на складі — найближчий знімок до дати <span className="text-(--text)">{analysisDate}</span> (якщо щоденні знімки не записувались, будуть використані поточні залишки).
               </p>
             </div>
-            <div className="flex items-start gap-2 bg-[#a78bfa]/5 border border-[#a78bfa]/20 rounded-lg px-3 py-2.5">
-              <AlertTriangle size={12} className="text-[#a78bfa] flex-shrink-0 mt-0.5" aria-hidden="true" />
-              <p className="text-[11px] text-[var(--muted)] leading-relaxed">
-                <span className="text-[#a78bfa] font-semibold">Блок 3 (Execution):</span> Commercial Marketer та Calendar Agent генерують рекомендації на майбутнє — при минулій даті вони будуть ретроспективними, не actionable.
+            <div className="flex items-start gap-2 bg-accent-purple/5 border border-accent-purple/20 rounded-lg px-3 py-2.5">
+              <AlertTriangle size={12} className="text-accent-purple shrink-0 mt-0.5" aria-hidden="true" />
+              <p className="text-[11px] text-(--muted) leading-relaxed">
+                <span className="text-accent-purple font-semibold">Блок 3 (Execution):</span> Commercial Marketer та Calendar Agent генерують рекомендації на майбутнє — при минулій даті вони будуть ретроспективними, не actionable.
               </p>
             </div>
             <div className="flex items-start gap-2 bg-[#6b7a8d]/5 border border-[#6b7a8d]/20 rounded-lg px-3 py-2.5">
-              <Clock size={12} className="text-[var(--subtle)] flex-shrink-0 mt-0.5" aria-hidden="true" />
-              <p className="text-[11px] text-[var(--muted)] leading-relaxed">
-                <span className="text-[var(--text)] font-semibold">Блок 4 (Tracking):</span> Campaign Analysis та Weekly Report читають збережені результати інших агентів — обрана дата майже не впливає на їх вивід.
+              <Clock size={12} className="text-(--subtle) shrink-0 mt-0.5" aria-hidden="true" />
+              <p className="text-[11px] text-(--muted) leading-relaxed">
+                <span className="text-(--text) font-semibold">Блок 4 (Tracking):</span> Campaign Analysis та Weekly Report читають збережені результати інших агентів — обрана дата майже не впливає на їх вивід.
               </p>
             </div>
           </div>
@@ -2024,15 +2024,15 @@ export default function AgentsPage() {
           return (
             <div key={block.id}>
               <div className="flex items-center gap-3 mb-3">
-                <div className="h-px flex-1 bg-[var(--border)]" />
+                <div className="h-px flex-1 bg-(--border)" />
                 <div
                   className="text-[9px] font-mono uppercase tracking-widest px-3 py-1 rounded-full border"
                   style={{ color: block.color, borderColor: block.color + "40", background: block.color + "10" }}
                 >
                   Блок {block.id} — {block.label}
                 </div>
-                <div className="text-[9px] font-mono text-[var(--subtle)]">{block.desc}</div>
-                <div className="h-px flex-1 bg-[var(--border)]" />
+                <div className="text-[9px] font-mono text-(--subtle)">{block.desc}</div>
+                <div className="h-px flex-1 bg-(--border)" />
               </div>
               <div className="space-y-3">
                 {blockAgents.map((agent) => (
@@ -2055,19 +2055,19 @@ export default function AgentsPage() {
       {showInfo && <InfoModal onClose={() => setShowInfo(false)} />}
 
       {/* Legend */}
-      <div className="mt-8 pt-4 border-t border-[var(--border)] flex items-center gap-6 flex-wrap">
+      <div className="mt-8 pt-4 border-t border-(--border) flex items-center gap-6 flex-wrap">
         {[
           { color: "var(--subtle)", label: "Очікування" },
           { color: "#fbbf24", label: "Працює" },
           { color: "#00e5c4", label: "Готово" },
           { color: "#ef4444", label: "Помилка" },
         ].map((item) => (
-          <div key={item.label} className="flex items-center gap-1.5 text-[10px] font-mono text-[var(--muted)]">
+          <div key={item.label} className="flex items-center gap-1.5 text-[10px] font-mono text-(--muted)">
             <div className="w-2 h-2 rounded-full" style={{ background: item.color }} />
             {item.label}
           </div>
         ))}
-        <span className="text-[10px] font-mono text-[var(--subtle)] ml-auto">
+        <span className="text-[10px] font-mono text-(--subtle) ml-auto">
           9 агентів · 4 блоки · повний пайплайн
         </span>
       </div>

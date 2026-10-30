@@ -46,7 +46,7 @@ function Cost({
         <>
           <PartialMarker label={copy.partial} />
           {covered !== undefined ? (
-            <small className="block text-[var(--muted)]">
+            <small className="block text-(--muted)">
               {copy.covered}: {format(covered, "money", locale)}
             </small>
           ) : null}
@@ -117,12 +117,12 @@ function QualityRing({
             })}
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-10">
-            <strong className="text-xl tabular-nums leading-tight break-words">
+            <strong className="text-xl tabular-nums leading-tight wrap-break-word">
               {active
                 ? format(active.ringShare, "percentage", locale)
                 : format(block.ringCost, "money", locale)}
             </strong>
-            <span className="mt-1 text-xs text-[var(--muted)]">
+            <span className="mt-1 text-xs text-(--muted)">
               {active ? statusName(copy, active.status) : copy.cost}
             </span>
             <span className="text-xs mt-1">
@@ -149,24 +149,24 @@ function QualityRing({
                   button +
                   " w-full justify-between gap-2 " +
                   (selected === status
-                    ? " bg-[var(--input-bg)] ring-1 ring-[var(--accent)]"
+                    ? " bg-(--input-bg) ring-1 ring-(--accent)"
                     : "")
                 }
               >
                 <span className="inline-flex items-center gap-2">
                   <span
                     aria-hidden="true"
-                    className="w-2.5 h-2.5 rounded-sm shrink-0"
+                    className="w-2.5 h-2.5 rounded-xs shrink-0"
                     style={{ background: stockStatusColors[status] }}
                   />
                   {statusName(copy, status)}{" "}
-                  <span className="text-xs text-[var(--muted)]">
+                  <span className="text-xs text-(--muted)">
                     {row?.skuCount ?? 0} {copy.skus}
                   </span>
                 </span>
                 <span className="text-right tabular-nums">
                   {format(row ? row.stockCost : "0", "money", locale)}
-                  <small className="block text-[var(--muted)]">
+                  <small className="block text-(--muted)">
                     {format(row?.ringShare, "percentage", locale)}
                   </small>
                 </span>
@@ -195,7 +195,7 @@ function QualityRing({
           {format(block.coveredRingCost, "money", locale)}
         </p>
       ) : null}
-      <div className="border-t border-[var(--border)] pt-4 space-y-3">
+      <div className="border-t border-(--border) pt-4 space-y-3">
         <h4 className="text-sm font-semibold">{copy.outside}</h4>
         <ul className="space-y-2 text-xs">
           {block.statuses
@@ -262,7 +262,7 @@ function Structure({
     <span
       role="img"
       aria-label={label || copy.empty}
-      className="block h-2 w-36 rounded overflow-hidden bg-[var(--input-bg)]"
+      className="block h-2 w-36 rounded-sm overflow-hidden bg-(--input-bg)"
     >
       {row.statuses
         .filter((s) => s.share !== null && s.share !== "0")
@@ -344,10 +344,10 @@ export default function StockContent({
       <header className="flex flex-wrap justify-between items-start gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">{copy.title}</h1>
-          <p className="mt-2 text-sm text-[var(--muted)]">
+          <p className="mt-2 text-sm text-(--muted)">
             {copy.snapshot}: {date(model.asOf)} · {copy.allChannels}
           </p>
-          <p className="mt-1 text-xs text-[var(--muted)]">
+          <p className="mt-1 text-xs text-(--muted)">
             {copy.cutoff}:{" "}
             {new Intl.DateTimeFormat(locale, {
               dateStyle: "medium",
@@ -409,7 +409,7 @@ export default function StockContent({
             className="space-y-5"
             aria-label={block.currency ?? copy.unassigned}
           >
-            <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-[var(--border)] pb-3">
+            <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-(--border) pb-3">
               <h2 className="text-lg font-bold">
                 {block.currency ?? copy.unassigned}
               </h2>
@@ -423,7 +423,7 @@ export default function StockContent({
                     copy={copy}
                   />
                 </strong>
-                <span className="ml-3 text-[var(--muted)]">
+                <span className="ml-3 text-(--muted)">
                   {copy.quantity}: {format(block.quantity, "quantity", locale)}
                 </span>
               </div>
@@ -544,7 +544,7 @@ export default function StockContent({
                 }}
               />
               {!block.categories.rows.length ? (
-                <p className="p-5 text-sm text-[var(--muted)]">{copy.empty}</p>
+                <p className="p-5 text-sm text-(--muted)">{copy.empty}</p>
               ) : null}
               <Pager
                 pagination={block.categories.pagination}
@@ -609,7 +609,7 @@ export default function StockContent({
                                   : r.signal === "NEW" ||
                                       r.signal === "OFF_SEASON"
                                     ? styles.info
-                                    : "text-[var(--muted)]"
+                                    : "text-(--muted)"
                           }
                         >
                           {copy.signals[
@@ -621,7 +621,7 @@ export default function StockContent({
                             </small>
                           ) : null}
                           {r.warnings.length ? (
-                            <small className="block mt-1 text-[var(--muted)]">
+                            <small className="block mt-1 text-(--muted)">
                               {copy.ownershipUnknown}
                             </small>
                           ) : null}
@@ -647,7 +647,7 @@ export default function StockContent({
                   }}
                 />
                 {!block.brands.rows.length ? (
-                  <p className="p-5 text-sm text-[var(--muted)]">
+                  <p className="p-5 text-sm text-(--muted)">
                     {copy.empty}
                   </p>
                 ) : null}
@@ -698,7 +698,7 @@ export default function StockContent({
                 return (
                   <span>
                     {String(row.name ?? row.sku)}
-                    <small className="block text-[var(--muted)]">
+                    <small className="block text-(--muted)">
                       {String(row.sku ?? "")}
                     </small>
                   </span>

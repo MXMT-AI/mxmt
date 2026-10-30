@@ -58,7 +58,7 @@ export default function ReorderingControls({
           <button
             className={
               button +
-              " aria-pressed:bg-[var(--input-bg)] aria-pressed:font-semibold"
+              " aria-pressed:bg-(--input-bg) aria-pressed:font-semibold"
             }
             type="button"
             key={mode}
@@ -117,7 +117,7 @@ export default function ReorderingControls({
           );
         })}
       </div>
-      <p id="reordering-settings-note" className="text-xs text-[var(--muted)]">
+      <p id="reordering-settings-note" className="text-xs text-(--muted)">
         {copy.inherit}
       </p>
       {error?.details.some((d) => d.startsWith("parameters.")) ? (

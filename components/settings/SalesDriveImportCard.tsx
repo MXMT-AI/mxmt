@@ -216,14 +216,14 @@ export default function SalesDriveImportCard({
         COMPLETE: "Complete",
       };
   const button =
-    "touch-manipulation focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--text)] rounded-lg border border-[var(--border)] px-3 py-2 text-sm text-[var(--text)] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--bg)]";
+    "touch-manipulation focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--text) rounded-lg border border-(--border) px-3 py-2 text-sm text-(--text) disabled:opacity-50 disabled:cursor-not-allowed hover:bg-(--bg)";
   return (
     <section
-      className="mb-10 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5"
+      className="mb-10 rounded-xl border border-(--border) bg-(--surface) p-5"
       aria-labelledby={headingId}
       aria-busy={busy}
     >
-      <h2 id={headingId} className="font-semibold text-[var(--text)]">
+      <h2 id={headingId} className="font-semibold text-(--text)">
         {sync
           ? uk
             ? generic?"Синхронізація даних":"Синхронізація SalesDrive"
@@ -236,7 +236,7 @@ export default function SalesDriveImportCard({
               ? generic?"Історія замовлень":"Історія замовлень SalesDrive"
               : generic?"Order history":"SalesDrive order history"}
       </h2>
-      <p className="mt-1 text-sm text-[var(--muted)]">
+      <p className="mt-1 text-sm text-(--muted)">
         {sync
           ? uk
             ? "Замовлення — кожні дві години. Залишки — о 03:00 за Києвом. Автоматичні оновлення потребують підключеного зовнішнього планувальника."
@@ -249,7 +249,7 @@ export default function SalesDriveImportCard({
               ? "Історія за два роки, потім — оновлені замовлення. Імпорт зберігає прогрес між запусками."
               : "Two years of history, then updated orders. Progress is saved between runs."}
       </p>
-      <p className="mt-3 text-sm text-[var(--text)]" role="status">
+      <p className="mt-3 text-sm text-(--text)" role="status">
         {!loaded
           ? uk
             ? "Завантаження…"
@@ -284,8 +284,8 @@ export default function SalesDriveImportCard({
                   ]
               ).map(([label, count]) => (
                 <div key={label}>
-                  <dt className="text-[var(--muted)]">{label}</dt>
-                  <dd className="tabular-nums text-[var(--text)]">
+                  <dt className="text-(--muted)">{label}</dt>
+                  <dd className="tabular-nums text-(--text)">
                     {typeof count === "number"
                       ? count.toLocaleString(uk ? "uk-UA" : "en-GB")
                       : count}
@@ -295,20 +295,20 @@ export default function SalesDriveImportCard({
             </dl>
           )}
           {job.stats.warnings > 0 && (
-            <p className="mt-3 text-sm text-[var(--text)]">
+            <p className="mt-3 text-sm text-(--text)">
               {uk
                 ? "Є попередження якості даних. Перевірте ці попередження перед використанням у звітах."
                 : "Data quality warnings exist. Review these warnings before using records in reports."}
             </p>
           )}
           {job.issues?.length > 0 && (
-            <details className="mt-3 text-sm text-[var(--text)]">
+            <details className="mt-3 text-sm text-(--text)">
               <summary className="cursor-pointer">
                 {uk ? "Попередження якості даних" : "Data quality warnings"}
               </summary>
               <ul className="mt-2 list-disc space-y-1 pl-5">
                 {job.issues.map((code) => (
-                  <li key={code} className="break-words">
+                  <li key={code} className="wrap-break-word">
                     {issueLabel(code, uk,generic)}
                   </li>
                 ))}
@@ -316,12 +316,12 @@ export default function SalesDriveImportCard({
             </details>
           )}
           {job.errorCode && (
-            <p className="mt-3 break-words text-sm text-[var(--text)]">
+            <p className="mt-3 wrap-break-word text-sm text-(--text)">
               {uk ? "Причина" : "Reason"}: {errorLabel(job.errorCode, uk,generic)}
             </p>
           )}
           {job.state === "RETRY" && (
-            <p className="mt-2 text-sm text-[var(--muted)]">
+            <p className="mt-2 text-sm text-(--muted)">
               {uk ? "Наступна спроба не раніше" : "Next attempt after"}:{" "}
               {new Date(job.availableAt).toLocaleString(uk ? "uk-UA" : "en-GB")}
             </p>
@@ -331,17 +331,17 @@ export default function SalesDriveImportCard({
       {sync && (
         <>
           {job && (
-            <p className="mt-2 break-all text-sm text-[var(--muted)]">
+            <p className="mt-2 break-all text-sm text-(--muted)">
               {uk ? "Цикл" : "Cycle"}: {job.id}
             </p>
           )}
           {job?.state === "COMPLETE" && (
-            <p className="mt-2 text-sm text-[var(--muted)]">
+            <p className="mt-2 text-sm text-(--muted)">
               {uk ? "Завершено" : "Completed"}:{" "}
               {new Date(job.updatedAt).toLocaleString(uk ? "uk-UA" : "en-GB")}
             </p>
           )}
-          <p className="mt-2 text-sm text-[var(--muted)]">
+          <p className="mt-2 text-sm text-(--muted)">
             {uk ? "Останній виклик планувальника" : "Last scheduler tick"}:{" "}
             {syncInfo.lastTickAt
               ? new Date(syncInfo.lastTickAt).toLocaleString(
@@ -352,7 +352,7 @@ export default function SalesDriveImportCard({
                 : "none yet — connect an external scheduler"}
           </p>
           {syncInfo.backfill && (
-            <p className="mt-2 text-sm text-[var(--muted)]">
+            <p className="mt-2 text-sm text-(--muted)">
               {uk ? "Історичний імпорт" : "Historical import"}:{" "}
               {labels[syncInfo.backfill.state] ?? syncInfo.backfill.state};{" "}
               {uk ? "сторінок" : "pages"} {syncInfo.backfill.stats.pages ?? 0};{" "}
@@ -361,7 +361,7 @@ export default function SalesDriveImportCard({
             </p>
           )}
           {syncInfo.resources?.map((r) => (
-            <p key={r.resource} className="mt-3 text-sm text-[var(--muted)]">
+            <p key={r.resource} className="mt-3 text-sm text-(--muted)">
               {r.resource === "orders"
                 ? uk
                   ? "Замовлення"
@@ -384,7 +384,7 @@ export default function SalesDriveImportCard({
           ))}
           <div role="status" aria-live="polite">
             {syncInfo.calculation?.state === "COMPLETE" && (
-              <p className="mt-3 text-sm text-[var(--muted)]">
+              <p className="mt-3 text-sm text-(--muted)">
                 {uk ? "Показники перераховано." : "Metrics recalculated."}
               </p>
             )}
@@ -392,14 +392,14 @@ export default function SalesDriveImportCard({
             {["WAITING_ENGINE", "PENDING", "RUNNING"].includes(
               syncInfo.calculation?.state ?? "",
             ) && (
-              <p className="mt-3 text-sm text-[var(--muted)]">
+              <p className="mt-3 text-sm text-(--muted)">
                 {uk
                   ? "Дані імпортовано. Оновлюємо показники продажів і запасів…"
                   : "Inputs imported. Updating sales and stock metrics…"}
               </p>
             )}
             {syncInfo.calculation?.state === "FAILED" && (
-              <p className="mt-3 text-sm text-[var(--muted)]">
+              <p className="mt-3 text-sm text-(--muted)">
                 {uk
                   ? "Не вдалося оновити показники. Повторимо спробу автоматично."
                   : "Could not update metrics. We will retry automatically."}
@@ -407,7 +407,7 @@ export default function SalesDriveImportCard({
             )}
           </div>
           {sync && job?.state === "PAUSED" && (
-            <p className="mt-3 text-sm text-[var(--muted)]">
+            <p className="mt-3 text-sm text-(--muted)">
               {uk
                 ? "Відновіть цикл після виправлення з’єднання або налаштувань."
                 : "Resume this cycle after correcting the connection or source settings."}
@@ -416,7 +416,7 @@ export default function SalesDriveImportCard({
         </>
       )}
       {inventory && coverage && (
-        <p className="mt-3 text-sm text-[var(--muted)]">
+        <p className="mt-3 text-sm text-(--muted)">
           {coverage.firstObservedAt
             ? `${uk ? "Перше спостереження" : "First observation"}: ${new Date(coverage.firstObservedAt).toLocaleString(uk ? "uk-UA" : "en-GB")}. ${uk ? "Днів зі знімками" : "Days with snapshots"}: ${coverage.observedDays}. ${uk ? "Пропущених днів" : "Missing days"}: ${coverage.missingDays ?? 0}. ${uk ? "Раніша історія недоступна." : "Earlier history is unavailable."}`
             : uk

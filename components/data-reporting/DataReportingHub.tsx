@@ -47,7 +47,7 @@ export default function DataReportingHub(props: {
             type="button"
             aria-pressed={sales === item.value}
             onClick={() => choose(item.value)}
-            className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] hover:bg-[var(--input-bg)] focus-visible:outline focus-visible:outline-2 touch-manipulation aria-pressed:border-[var(--text)] aria-pressed:font-semibold"
+            className="rounded-lg border border-(--border) bg-(--surface) px-3 py-2 text-sm text-(--text) hover:bg-(--input-bg) focus-visible:outline-solid focus-visible:outline-2 touch-manipulation aria-pressed:border-(--text) aria-pressed:font-semibold"
           >
             {item.label}
           </button>

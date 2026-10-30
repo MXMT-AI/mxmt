@@ -1,0 +1,59 @@
+{
+  "date": "2026-10-30",
+  "branch": "chore/deps-upgrade",
+  "implementationHead": "b80b5167cf3fe621d16fbe3a84d7fc9f528dd6bd",
+  "packageLockSha256": "59ce7d929b5c7f991d44f8c66fbc68ab58af67976e99430c3ddba406b7b9ea7a",
+  "node": "v24.22.2",
+  "npm": "11.19.1",
+  "cleanInstallBuildExitCodes": {
+    "ci": 0,
+    "build": 0,
+    "vercel": 0
+  },
+  "cleanCopyTestExitCodes": {
+    "tsc": 0,
+    "tests": 0,
+    "mvp": 0
+  },
+  "tests": {
+    "files": 167,
+    "passed": 1651,
+    "existingOptionalWorkbookSkipped": 1
+  },
+  "mvp": {
+    "files": 80,
+    "passed": 965,
+    "overlapsFullSuite": true
+  },
+  "frozenWorkbookOffline": {
+    "files": 6,
+    "passed": 84
+  },
+  "npmAudit": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0,
+    "total": 0
+  },
+  "productionHttp": {
+    "login": 200,
+    "databaseHealth": "ok",
+    "protectedDashboard": "redirected to login",
+    "scope": "local production HTTP, synthetic native PostgreSQL; not customer-data acceptance"
+  },
+  "developmentHttp": {
+    "login": 200,
+    "databaseHealth": "ok",
+    "protectedDashboard": "redirected to login",
+    "scope": "local development HTTP including predev database check, synthetic native PostgreSQL; not customer-data acceptance"
+  },
+  "nativePostgresql": "CRUD, parameterized SQL, JSON/Decimal/BigInt, serializable rollback passed; schema diff empty",
+  "browserReview": "synthetic admin, five empty-source reports and Settings; light/dark/mobile, menu, language, keyboard focus; populated tables not accepted",
+  "firstCleanAttempts": "intermittent timeouts in different fixtures/volume tests; unchanged final suite passed with transient caffeinate preventing idle sleep; cause not proven",
+  "hostingRuntimeChanged": false,
+  "productionDatabaseChanged": false,
+  "liveConnectorOrPaidAiTested": false,
+  "businessReconciliation": "still requires owner-approved source/reference inputs"
+}

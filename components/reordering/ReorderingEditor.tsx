@@ -128,7 +128,7 @@ export default function ReorderingEditor({
       <p
         role="status"
         aria-live="polite"
-        className="text-sm text-[var(--muted)]"
+        className="text-sm text-(--muted)"
       >
         {needsBrand
           ? copy.chooseBrand
@@ -141,7 +141,7 @@ export default function ReorderingEditor({
       {error ? (
         <div
           role="alert"
-          className="rounded-lg border border-[var(--border)] p-4 space-y-3"
+          className="rounded-lg border border-(--border) p-4 space-y-3"
         >
           <p>
             {error.code === "INVALID_REORDERING_REQUEST"

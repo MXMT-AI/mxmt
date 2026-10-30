@@ -1,784 +1,302 @@
 # MXMT Analytics — Production Runbook
 
-Операційна інструкція для production-середовища MXMT Analytics.
+Операційна інструкція для поточної версії MVP та оновленого toolchain. Оновлено **30 жовтня 2026 року**. Описує процедури; не засвідчує, що live-доступи, cron, UAT або rollout уже перевірені.
 
-Актуальна інфраструктура:
+Для локального встановлення й env inventory використовуйте [README](README.md), для дій користувача — [INSTRUCTIONS](INSTRUCTIONS.md). Детальні контракти зберігаються в tracked `prisma/verification/`.
 
-- **Vercel** — Next.js application, API routes, Middleware і Cron;
-- **Neon PostgreSQL** — production database;
-- **Prisma ORM** — runtime queries і schema migrations;
-- **Google Drive / Google Sheets** — операційне джерело даних;
-- **Anthropic / OpenAI** — AI providers.
+## 1. Topology і межі повноважень
 
-> Railway більше не використовується. Не застосовуйте Railway deployment, variables, logs, backups або start commands до цього проєкту.
+| Компонент | Source of truth / операційна поверхня |
+| --- | --- |
+| Код | GitHub branch / exact commit; production Git integration зазвичай `main` |
+| Application та API | Vercel deployment; Next.js 16, Node 24, `proxy.ts` |
+| Runtime config | Environment відповідного Vercel deployment |
+| БД | Neon PostgreSQL branch/database/schema; pooled runtime, direct CLI |
+| Schema | `prisma/schema.prisma`, `prisma/migrations`, Prisma 7 config |
+| Remote sync | Trusted external minute worker → `/api/cron/salesdrive-sync`; durable jobs у БД |
+| Daily Sheets pipeline | Два daily Vercel Cron slots у `vercel.json` |
+| Дані клієнта | Обране tenant/source, raw imports, затверджені mappings, версійовані settings |
+| AI | Provider keys + окремі approved/enabled v2 budgets; старі agents мають свій workflow |
 
-## Зміст
+Назва SalesDrive збережена в сумісних worker routes/scripts, хоча runtime підтримує також KeyCRM, Horoshop і Shopify. Google Sheets має native projection path, CSV — offline upload path. Реальна наявність worker/relay перевіряється оператором, не випливає з мерджу коду.
 
-1. [Призначення та межі](#призначення-та-межі)
-2. [Production topology](#production-topology)
-3. [Доступи та секрети](#доступи-та-секрети)
-4. [Щоденний operational check](#щоденний-operational-check)
-5. [Health check](#health-check)
-6. [Стандартний deployment](#стандартний-deployment)
-7. [Prisma migrations](#prisma-migrations)
-8. [Vercel Cron та щоденний імпорт](#vercel-cron-та-щоденний-імпорт)
-9. [Neon backup і restore](#neon-backup-і-restore)
-10. [Rollback застосунку](#rollback-застосунку)
-11. [Incident response](#incident-response)
-12. [Типові інциденти](#типові-інциденти)
-13. [Smoke test](#smoke-test)
-14. [Корисні read-only перевірки БД](#корисні-read-only-перевірки-бд)
-15. [Incident record](#incident-record)
-16. [Офіційні посилання](#офіційні-посилання)
+Цей runbook не є дозволом на production migration, restore, secret rotation, зміну джерела або зовнішній запис. Перед такими діями зафіксуйте точний environment/tenant/source/branch і погоджений обсяг. Не застосовуйте Railway deployment commands до поточної Vercel/Neon topology.
 
-## Призначення та межі
+## 2. Toolchain і доступи
 
-Runbook використовується для:
+Використовуйте `.nvmrc` та `package-lock.json`: Node 24.22.2 локально, npm 11.19.1, Prisma CLI/Client/adapter 7.10.1. Не запускайте випадковий latest CLI або Prisma 5 за старою інструкцією в історичному документі.
 
-- production release;
-- перевірки Vercel deployment і Runtime Logs;
-- застосування Prisma migrations до Neon;
-- контролю щоденного Google Sheets import pipeline;
-- rollback application code;
-- backup/restore production database;
-- відновлення auth, AI agents, Drive sync і calculated reports;
-- документування production incidents.
+Потрібні GitHub, Vercel, Neon та мінімальні права на обране джерело. Для provider incident потрібен доступ до відповідної console. Не копіюйте customer rows, payloads, credentials або prompts у публічні logs/tickets.
 
-Runbook не надає дозволу на видалення production data. Будь-які destructive SQL, database restore, secret rotation або зміна production branch виконуються лише авторизованим оператором після підтвердження точного target.
+Критичні secrets:
 
-## Production topology
+- `DATABASE_URL` / `DIRECT_URL` — той самий target; Neon pooled/direct для public, TLS; custom schema потребує явного direct runtime URL.
+- Незалежні `JWT_ACCESS_SECRET` і `JWT_REFRESH_SECRET`; rotation потребує повторного входу користувачів.
+- `CONNECTOR_ENCRYPTION_KEY` — стабільні 32 байти в base64. Під час rotation потрібне кероване переведення існуючого ciphertext; проста заміна value не дешифрує старі credentials.
+- `CRON_SECRET` — Bearer для scheduled/worker requests. `SALESDRIVE_WEBHOOK_SECRET` — окремий relay secret, не той самий token.
+- Google Service Account / provider credentials / AI keys — лише у відповідних secret/config surfaces. CRM keys вводить ADMIN через Settings; не додавайте їх у URL.
+- Для Horoshop `HOROSHOP_ALLOWED_ORIGINS` містить точні перевірені HTTPS origins, без wildcard.
 
-```mermaid
-flowchart LR
-    User["Користувач"] --> Vercel["Vercel Production Deployment"]
-    Cron["Vercel Cron"] --> Vercel
-    Vercel --> Neon["Neon pooled endpoint"]
-    Migration["Prisma Migrate"] --> Direct["Neon direct endpoint"]
-    Direct --> Neon
-    Vercel --> Google["Google Drive / Sheets"]
-    Vercel --> AI["Anthropic / OpenAI"]
-```
+Повний inventory — [README configuration](README.md#конфігурація-і-секрети), [`.env.example`](.env.example). Зміна Vercel env потребує нового deployment. Preview має використовувати окрему migrated branch та тестові credentials.
 
-### Production components
+## 3. Щоденний operational check
 
-| Component | Source of truth | Operational surface |
-| --- | --- | --- |
-| Application code | GitHub `main` | Vercel Deployments |
-| Runtime configuration | Vercel Production variables | Vercel Project Settings |
-| Database schema | `prisma/schema.prisma` + `prisma/migrations` | Neon + Prisma CLI |
-| Application data | Neon production branch | Neon Console |
-| Scheduled import | `vercel.json` | Vercel Cron Jobs |
-| Source workbook | Google Drive file | Google sharing / Service Account |
-| AI configuration | Vercel variables + user preferences | Vercel + `/settings` |
+1. Перевірте exact production deployment SHA та `GET /api/health`.
+2. У Settings перевірте **обране джерело MVP**, revision, readiness, останній успішний import і stock observation. Підключення та вкладка Data & Reports самі по собі не вибирають джерело.
+3. Для remote provider перевірте heartbeat external worker, watermark lag, baseline/backfill, queued/retry/paused jobs, 429/budget блокування та останній завершений cycle.
+4. Для Sheets перевірте останній raw import, approved mapping і окремо MVP projection. Daily raw import/legacy calculation не дорівнює свіжому MVP snapshot.
+5. Перевірте recalculation queue: прийнятий import ще не є завершеним financial/daily результатом.
+6. На всіх п’яти екранах звірте період, валюту, джерело, timestamps, coverage та source-change попередження.
+7. У Settings Data Quality перегляньте поточні diagnostics і окремо import-warning history. Групи issues перетинаються: не сумуйте їх як незалежну вартість проблемного стоку.
+8. У Runtime Logs зіставте 5xx з route, requestId, source/run і duration; не робіть повторні мутації навмання.
 
-### Runtime rules
+### Health не є повним прийманням MVP
 
-- `DATABASE_URL` використовується Prisma Client у Vercel Functions і повинен бути pooled Neon URL.
-- `DIRECT_URL` використовується для migrations/admin tooling і повинен бути direct Neon URL.
-- Production branch у Vercel — `main`.
-- Merge або push у `main` запускає deployment, якщо Git integration активна.
-- Зміна Vercel variables не змінює вже створені deployments; потрібен redeploy.
-- Database migration не повинна автоматично виконуватися під час кожного Function startup.
+`GET /api/health` перевіряє `SELECT 1` і наявні data-health правила.
 
-## Доступи та секрети
+| Результат | Значення / дія |
+| --- | --- |
+| HTTP 200, `healthy` | Application/DB відповідають; це не доказ повної історії або правильності всіх формул |
+| HTTP 200, `degraded` | Переглянути `checks.data.issues`: negative quantities/sales, stale Drive/AgentRun, catalog count mismatch |
+| HTTP 503, `unhealthy` | Зіставити requestId з logs, DB target, TLS, compute і connections |
 
-Оператор production повинен мати лише необхідні права:
+Публічний health endpoint не замінює tenant-specific Data Quality, connector queue, AI usage та UAT. Перед поширенням response перевірте його на внутрішні деталі.
 
-- GitHub repository і protected `main`;
-- Vercel project;
-- Neon project/production branch;
-- Google source file або Service Account;
-- AI provider console за потреби.
-
-### Production variables
-
-| Variable | Required | Purpose |
-| --- | --- | --- |
-| `DATABASE_URL` | так | Pooled Neon runtime connection |
-| `DIRECT_URL` | так | Direct Neon migration connection |
-| `JWT_ACCESS_SECRET` | так | Access token signing |
-| `JWT_REFRESH_SECRET` | так | Refresh token signing |
-| `CRON_SECRET` | так | Vercel Cron Bearer authorization |
-| `GOOGLE_DRIVE_FILE_ID` | так | Source workbook |
-| `GOOGLE_SERVICE_ACCOUNT_KEY` | для private source | Base64 Service Account JSON |
-| `GOOGLE_DRIVE_EXPORT_FOLDER_ID` | optional | Server-side Sheets exports |
-| `AI_PROVIDER` | так для AI | `anthropic` або `openai` |
-| `AI_TIMEOUT_MS` | рекомендовано | AI request timeout |
-| `ANTHROPIC_API_KEY` | за provider | Anthropic API |
-| `OPENAI_API_KEY` | за provider | OpenAI API |
-| `NEXT_PUBLIC_APP_URL` | так | Production application URL |
-
-### Secret handling
-
-- Не вставляйте values у tickets, commits, screenshots або incident notes.
-- Не використовуйте production secrets у Preview без явної потреби.
-- Не додавайте server secrets з префіксом `NEXT_PUBLIC_`.
-- Після rotation оновіть Vercel variables і створіть новий deployment.
-- Rotation JWT secrets завершує існуючі sessions; плануйте її як user-visible change.
-- Після компрометації Service Account key відкличте старий key у Google, а не лише замініть value у Vercel.
-
-## Щоденний operational check
-
-Рекомендована щоденна перевірка після 08:00 `Europe/Kyiv`:
-
-1. Відкрити production `/api/health`.
-2. Перевірити Vercel Runtime Logs за останній cron window.
-3. На `/data-reporting` перевірити:
-   - timestamp останнього імпорту;
-   - status active import;
-   - status report calculation;
-   - кількість issues;
-   - доступність п'яти tabs.
-4. У Vercel Cron Jobs переконатися, що обидва DST slots активні.
-5. Якщо status `WARNING`, переглянути `/api/data/issues`; `WARNING` не дорівнює failed import.
-6. Якщо імпорт не оновився, перейти до [Vercel Cron та щоденний імпорт](#vercel-cron-та-щоденний-імпорт).
-
-## Health check
-
-Endpoint:
-
-```text
-GET /api/health
-```
-
-Healthy або degraded database-connected response повертає HTTP 200:
-
-```json
-{
-  "ok": true,
-  "status": "healthy",
-  "checks": {
-    "app": "ok",
-    "database": "ok",
-    "data": {
-      "status": "ok",
-      "issues": []
-    }
-  },
-  "requestId": "...",
-  "durationMs": 123,
-  "environment": "production",
-  "timestamp": "..."
-}
-```
-
-### `healthy`
-
-- application відповідає;
-- `SELECT 1` до Neon успішний;
-- data health checks не знайшли відхилень.
-
-### `degraded`
-
-HTTP 200, але `checks.data.issues` містить одну або більше проблем:
-
-- `negative_inventory_quantities`;
-- `negative_sales_values`;
-- `stale_drive_syncs`;
-- `stale_agent_runs`;
-- `catalog_item_count_mismatches`.
-
-`degraded` потребує розслідування, але не завжди потребує rollback deployment.
-
-### `unhealthy`
-
-HTTP 503 означає, що database check не пройшов. Перевірте:
-
-1. Vercel Runtime Logs за `requestId`;
-2. Neon project/compute status;
-3. `DATABASE_URL` у Vercel Production;
-4. Neon pooled hostname і TLS parameters;
-5. connection limits і довгі queries;
-6. останню migration/restore operation.
-
-## Стандартний deployment
+## 4. Release і Vercel build
 
 ### Перед release
 
-1. Переконатися, що feature branch синхронізована з `main`.
-2. Перевірити diff на secrets, `.env`, customer exports і destructive SQL.
-3. Виконати:
-
-```bash
-npm install
-npm test
+```sh
+nvm use
+npm ci
+npx prisma validate
+npx tsc --noEmit --incremental false
+npm test -- --maxWorkers=2
+npm run test:mvp
 npm run build
+npm audit
+git diff --check
 ```
 
-4. Якщо змінювалася Prisma schema:
-   - migration file створений;
-   - SQL review виконаний;
-   - backup/restore point підготовлений;
-   - migration перевірена на staging/Neon branch;
-   - application і schema backward-compatible на час rollout.
-5. Якщо змінювався data contract або formulas, перевірити `calculationVersion`.
-6. Якщо змінювався cron, перевірити `vercel.json` і local Kyiv gate tests.
+Для database-dependent rehearsal задайте обидва URL **ізольованої migrated БД**, потім:
 
-### Release sequence
-
-Безпечна послідовність:
-
-1. Створити Neon restore point/snapshot або зафіксувати PITR timestamp для ризикової зміни.
-2. Застосувати backward-compatible pending migrations.
-3. Merge перевіреної branch у `main`.
-4. Дочекатися successful Vercel production build.
-5. Перевірити deployment URL до/після production promotion, якщо workflow використовує manual promotion.
-6. Виконати smoke test.
-7. Переглянути Runtime Logs і `/api/health`.
-8. Зафіксувати commit SHA, Vercel deployment ID і migration names.
-
-### Vercel verification
-
-У Vercel перевірте:
-
-- Build status: `Ready`;
-- Environment: `Production`;
-- Git branch/commit: очікуваний `main` SHA;
-- Functions не мають нових 5xx;
-- Middleware не створює redirect loop;
-- Cron configuration відповідає `vercel.json`.
-
-CLI-перевірка, якщо Vercel CLI linked:
-
-```bash
-npx vercel list --prod
-npx vercel logs --environment production
+```sh
+npm run db:check
+npm run build:vercel
 ```
 
-## Prisma migrations
+Звичайний `build` не перевіряє migration readiness. `build:vercel` перевіряє target/status до генерації Client і збірки; не застосовує pending migrations. `dev` і `start` також мають pre-hooks перевірки readiness. Не прибирайте їх, щоб приховати P2022 або pending schema.
 
-### Створення migration у development
+На laptop не допускайте системного сну під час тривалих SQL/volume перевірок. При timeout збережіть невдалий результат, перевірте середовище й повторіть незмінний набір; не збільшуйте ліміти або skips без розслідування. Dependency-upgrade [звіт](prisma/verification/dependency-upgrade/report.md) містить приклад такого environmental збою та успішного повтору.
 
-Після зміни `prisma/schema.prisma`:
+### Порядок deployment
 
-```bash
-npm run db:migrate -- --name describe_change
-```
+1. Зафіксуйте release SHA/lock hash, environments, цільову Neon branch, schema history, активні джерела та rollback artifact.
+2. Перевірте [MVP acceptance gates](prisma/verification/51-mvp-acceptance-rollout.md). Відкриті customer gates потребують owner go/no-go, а не формального PASS на підставі unit-тестів.
+3. Призупиніть старі external workers/relay writers окремо від daily Vercel Cron, якщо rollout змінює queue/runtime contract. Збережіть checkpoints і raw evidence.
+4. Для schema changes підготуйте restore point, проведіть rehearsal на копії з реальними volumes, порівняйте counts/суми й backward compatibility.
+5. Окремо застосуйте погоджені additive migrations на точному target. Перевірте `db:check`.
+6. Розгорніть exact commit через Git/погоджений Vercel workflow. Repository Build Command — **`npm run build:vercel`**; звірте project override.
+7. Перевірте Node **24.x** у build і function runtime, environment та SHA. Vercel може використовувати інший patch, ніж локальна `.nvmrc` ([runtime docs](https://vercel.com/docs/functions/runtimes/node-js/node-js-versions)).
+8. Виконайте smoke нижче. Відновіть лише погоджені workers/relay/crons, проведіть canary та моніторинг черги.
+9. Зафіксуйте deployment ID, schema/config/selection versions, smoke результати й owner рішення.
 
-Перевірте generated SQL у `prisma/migrations/<timestamp>_describe_change/migration.sql`.
+Під час dependency upgrade schema diff порожній; оновлення Prisma само по собі не вимагає нової міграції. Наявні pending migrations від попередніх MVP-функцій усе одно мають бути застосовані окремо. Build settings/env у репозиторії не є доказом фактичного production runtime.
 
-### Перевірка status
+## 5. Prisma 7 і migration recovery
 
-```bash
+CLI читає `DIRECT_URL` у `prisma.config.ts`, runtime використовує `PrismaPg` і `DATABASE_URL` у `lib/prisma.ts`. Обидва URL мають однакові branch/database/schema; lifecycle check нормалізує Neon `-pooler` і відхиляє mismatch без друку credentials.
+
+```sh
 npx prisma migrate status
-```
-
-### Production apply
-
-```bash
 npm run db:migrate:deploy
+npm run db:check
 ```
 
-Production migration використовує `DIRECT_URL` з `prisma/schema.prisma`.
+`db:migrate:deploy` вище — **write action**, лише після target/rehearsal approval. `migrate status` / `db:check` не виконують DDL. У production не використовуйте `db push`, `migrate reset`, ручне додавання однієї відсутньої колонки або редагування вже застосованого SQL.
 
-### Заборонені production операції
+### Custom schema і transaction pooling
 
-Не запускайте без окремого recovery plan:
+Neon не гарантує session search_path між транзакціями ([pooling limitations](https://neon.com/docs/connect/connection-pooling)). У цій версії custom schemas підтримуються лише з direct runtime; pooled custom schema є явно непідтриманою конфігурацією. Lifecycle і runtime використовують одну policy та зупиняються до читання/запису application data.
 
-```text
-prisma migrate reset
-prisma db push
-DROP DATABASE
-DROP SCHEMA
-TRUNCATE ... CASCADE
-```
+Не виконуйте `ALTER ROLE`, не прибирайте guard і не перемикайте production URL як випадковий workaround. Якщо потрібен custom schema, підготуйте direct runtime/migration target у staging, перевірте pool/compute capacity та розгорніть погоджену конфігурацію. Підтримка custom schema через transaction pooler потребує окремої schema-qualified raw SQL стратегії; цей patch не заявляє таку підтримку.
 
-### Migration failure
+### P2022 / `Sku.catalogAttributes` відсутня
 
-1. Не повторюйте випадкові commands.
-2. Збережіть повний Prisma error і migration name.
-3. Виконайте `npx prisma migrate status`.
-4. Перевірте Neon Operations і Postgres logs.
-5. Визначте, чи migration:
-   - не почалася;
-   - rollback-нулась транзакційно;
-   - частково змінила schema/data;
-   - позначена failed у `_prisma_migrations`.
-6. Не редагуйте вже застосований migration file.
-7. Для production надавайте перевагу forward-fix migration.
-8. `prisma migrate resolve` використовуйте лише після ручної перевірки фактичного стану schema.
+1. Зіставте SHA з повною migration history цільової БД.
+2. Перевірте, що local `.env.local` або Vercel environment не вказують на іншу branch.
+3. Rehearse backlog на копії; перевірте legacy counts/totals і нові application reads.
+4. Після погодженого apply перезапустіть локальний процес або redeploy matching code.
+5. Якщо history каже up-to-date, дослідіть ручний drift. `prisma generate` змінює Client, а не БД.
 
-### Expand/contract для ризикових змін
+### Failed migration
 
-Для rename/drop колонок:
+Зупиніть повторні спроби, збережіть migration name, SQL error, logs і фактичний стан DDL/data. Не позначайте успішну міграцію rolled-back. `prisma migrate resolve` доречний лише після перевірки, що конкретний failed migration був відкочений або завершений відповідно до recovery plan. Після використання нових моделей віддавайте перевагу forward fix; emergency pre-use rollback SQL не є загальним down migration.
 
-1. Expand: додати нову nullable schema без видалення старої.
-2. Deploy code, який підтримує обидві версії.
-3. Backfill і перевірити дані.
-4. Переключити reads/writes.
-5. Contract: видалити стару schema окремою migration після стабілізації.
+Для rename/drop застосовуйте expand → compatible code → verified backfill → switch → separate contract migration. Зберігайте SQL CHECK/partial indexes/triggers, яких Prisma schema не відображає повністю. Деталі — [модель/rollback](prisma/verification/README.md), [startup lifecycle](prisma/verification/database-schema-startup.md), [Prisma 7](https://www.prisma.io/docs/guides/upgrade-prisma-orm/v7).
 
-Це дозволяє виконати Vercel application rollback без несумісності зі schema.
+### Connection incident
 
-## Vercel Cron та щоденний імпорт
+Перевірте direct/pooled target, TLS, актуальний deployment env, Neon compute, connections і довгі транзакції. Runtime pool має окремі `connect_timeout` (default 5s) і `pool_timeout` (default 10s). Pool checkout deadline включає також отримання нового connection; нуль вимикає лише відповідний deadline. `schema` задає ORM qualification; session search_path для raw SQL застосовується лише на direct runtime. Neon `-pooler` і `pgbouncer=true` не виконують session SET. Custom schema з transaction pooler блокується до network/CLI; потрібен явно обраний direct `DATABASE_URL` тієї самої БД/schema й переглянутий connection budget. Автоматичного bypass через `DIRECT_URL` або зміни role defaults немає. Public pooled runtime потребує стандартного public role search_path; інші transaction poolers позначайте `pgbouncer=true`. Pool options мають явний `max`; не вимикайте TLS, не перемикайтеся на випадкову branch і не змінюйте limits без аналізу навантаження. Не використовуйте синтетичний local probe як доказ production capacity.
 
-Production import повинен виконуватися щодня у вікні `07:00–07:59 Europe/Kyiv`.
+## 6. Три незалежні шляхи імпорту
 
-`vercel.json` містить два UTC slots:
+### Google Sheets
 
-```text
-04:00 UTC → 07:00 Kyiv під час daylight-saving time
-05:00 UTC → 07:00 Kyiv під час standard time
-```
+Для нового джерела потрібні raw import, approved mapping, explicit selection і projection. ADMIN виконує їх у Settings / Data & Reports. Mappings прив’язані до import/schema/hash, тому після змін джерела старе approval може стати непридатним.
 
-Routes:
+Data & Reports Import виконує незалежні кроки: raw save → MVP projection для вибраного Sheets → legacy tab calculation. Частковий успіх зберігається й пояснюється окремо; не повторюйте весь import, якщо потрібне лише відновлення projection. **Refresh MVP reports** працює зі збереженим import; не завантажує файл і не рахує legacy tabs. Нові snapshots п’яти екранів використовують shared engines.
 
-```text
-GET /api/cron/data-import/utc-04
-GET /api/cron/data-import/utc-05
-POST /api/cron/data-import?force=1
-```
+Ліміти: workbook 15 MiB / 100 000 сумарних raw rows; projection має bounded preparation і 45-second publication transaction / 60-second route. Необроблені/конфліктні order identities quarantined, а не здогадуються. Не вигадуйте дати повернення, historical stock, ownership або transit.
 
-Обидва GET routes проходять local-time gate. Невідповідний slot повертає:
+Daily Vercel Cron:
 
-```json
-{
-  "ok": true,
-  "skipped": true,
-  "reason": "outside_schedule_window"
-}
-```
+| Route | UTC schedule |
+| --- | --- |
+| `/api/cron/data-import/utc-04` | `0 4 * * *` |
+| `/api/cron/data-import/utc-05` | `0 5 * * *` |
 
-### Очікуваний successful run
+Local Kyiv gate пропускає невідповідний DST slot. На Hobby час виклику має годинну точність; це вікно, не точна 07:00 ([Vercel limits](https://vercel.com/docs/cron-jobs/usage-and-pricing)). Перед cron потрібен створений tenant Sheets source. Цей scheduler виконує існуючий raw/legacy pipeline; **автоматичною MVP-проєкцією він не є**.
 
-```json
-{
-  "ok": true,
-  "skipped": false,
-  "tenants": {
-    "total": 1,
-    "succeeded": 1,
-    "failed": 0
-  }
-}
-```
+Погоджений операторський forced run:
 
-Повторна доставка cron event без зміни workbook повинна завершитися idempotently:
-
-```text
-importOutcome: unchanged
-calculationOutcome: cached
-```
-
-### Ручний forced run
-
-```bash
+```sh
 curl --fail --request POST \
   --header "Authorization: Bearer $CRON_SECRET" \
-  "https://your-production-domain.example/api/cron/data-import?force=1"
+  "https://your-app.example/api/cron/data-import?force=1"
 ```
 
-`force=1` обходить лише schedule window. `CRON_SECRET` залишається обов'язковим.
+Це import write, не read-only health check. `force=1` обходить тільки time gate. Перевірте target, retries/idempotency, per-tenant results і raw/legacy/MVP outcomes окремо. Не робіть public workbook доступним без погодженого data-access рішення; для приватного джерела використовуйте Service Account.
 
-### Cron incident checklist
+### Remote connectors і external worker
 
-1. Перевірити **Vercel → Project → Settings → Cron Jobs**.
-2. Перевірити, що останній production deployment містить актуальний `vercel.json`.
-3. Перевірити `CRON_SECRET` у Production і redeploy після його зміни.
-4. Перевірити Runtime Logs routes `api/cron/data-import/*`.
-5. Розрізняти expected `skipped: true` і real failure.
-6. Перевірити `GOOGLE_DRIVE_FILE_ID` та доступ до source.
-7. Перевірити duration; routes мають `maxDuration = 300`.
-8. Якщо один tenant failed, переглянути `results[]` response і active import status.
-9. Після усунення причини виконати один forced run.
-10. Переконатися, що повтор не створив duplicate snapshots.
+На погодженому Hobby-плані minute worker зовнішній; minute expression у `vercel.json` не додається. Trusted host з Node 24 отримує тільки потрібні secrets:
 
-## Neon backup і restore
-
-### Перед ризиковою операцією
-
-Використайте доступний для Neon plan механізм:
-
-- snapshot production root branch;
-- instant restore/PITR restore point;
-- point-in-time branch для preview;
-- за потреби encrypted `pg_dump` через direct connection.
-
-Зафіксуйте:
-
-- Neon project і branch;
-- timestamp у UTC та `Europe/Kyiv`;
-- migration/deployment, перед яким створено restore point;
-- відповідального оператора;
-- retention/expiry тимчасового backup.
-
-### Optional logical export
-
-Тільки в захищене сховище:
-
-```bash
-pg_dump --format=custom --no-owner --no-acl \
-  --dbname="$DIRECT_URL" \
-  --file="mxmt-production-YYYYMMDD-HHMM.dump"
+```sh
+node scripts/salesdrive-sync-worker.mjs --help
+# SALESDRIVE_SYNC_ORIGIN і CRON_SECRET вже задані в secret environment host.
+node scripts/salesdrive-sync-worker.mjs --once
+# Або довготривалий sequential runner:
+node scripts/salesdrive-sync-worker.mjs
 ```
 
-Не додавайте dump до Git і не зберігайте його на незашифрованому спільному диску.
+Origin — plain HTTPS, secret — у header, не query string. Runner не слідує redirects і не перекриває ticks. Він викликає `/api/cron/salesdrive-sync`; один tick обмежено dispatch/page/recalculation work, не повний backfill.
 
-### Restore procedure
+Orders intents створюються за двогодинними UTC slots, stock intent — за Kyiv date після 03:00. Це політика планування; фактична затримка залежить від queue/provider budgets. Історія/receipts можуть бути неповними, а поточний feed не відновлює минулі stock observations.
 
-1. Оголосити incident і за можливості зупинити writes:
-   - не запускати manual imports;
-   - призупинити Vercel Cron;
-   - обмежити admin operations.
-2. Визначити останній valid timestamp до пошкодження.
-3. У Neon створити point-in-time/restore preview і **спочатку перевірити дані окремо**.
-4. Перевірити schema та ключові row counts.
-5. Перевірити tenant isolation і останні valid imports/calculations.
-6. Лише після validation виконати restore active production branch.
-7. Дочекатися завершення Neon operation; під час restore можливий короткий database disconnect.
-8. Перевірити pooled і direct connections.
-9. Виконати `/api/health` і smoke test.
-10. Увімкнути writes і Cron.
-11. Тимчасовий old/preview branch видаляти лише після завершення verification та відповідно до retention policy.
+Manual `refresh`, `step`, `resume`, `resumeBackfill` доступні ADMIN через shared connector controls; VIEWER читає progress. На 429 дотримуйтеся account-wide budget/Retry-After. Не запускайте нескінченний цикл ручних retries і не стирайте checkpoints, щоб зняти блокування.
 
-### Minimum database verification
+Jobs мають source lease, revision fencing, durable continuations і atomic publication. `PENDING` import run між сторінками не означає втрату progress. `WAITING_ENGINE` recalculation означає очікування роботи/доказів, а не відсутність реалізованих engines: daily, sales і classification уже реалізовані. Перевірте input provenance, active source і фазу, перш ніж повторювати.
 
-Перевірте row counts і останні записи для:
+### Webhook relay
 
-- `Tenant`, `User`;
-- `Sku`, `SalesRecord`, `InventorySnapshot`;
-- `AgentRun`;
-- `DataSource`, `DataImportRun`;
-- `DataSheetSnapshot`, `SourceProduct`, `SourceSaleLine`;
-- `ReportCalculationRun`;
-- `ArticleReportResult`, `BrandReportResult`, `CategoryReportResult`.
+`POST /api/webhooks/salesdrive/<sourceId>` приймає лише trusted relay із source-scoped bearer. Native CRM signature/header capabilities не припускаються. Relay має сам перевіряти походження, зберігати й повторювати delivery. Receiver зберігає intent до `202`, deduplicates і планує verified API refetch. `503` потребує retry relay, не фальшивого success.
 
-### Важливо
+### CSV
 
-Application rollback у Vercel не відновлює Neon data. Neon restore не змінює application code. Координуйте обидві дії окремо.
+Settings upload → explicit mapping → preview → activation → bounded job processing. Credentials зовнішнього API не потрібні, але metadata storage використовує connector encryption key. Polling відсутній; worker не має завантажувати remote CSV URL. Complete/partial population і history coverage декларуються окремо; відсутній рядок не стає нульовим stock. Recovery зберігає version/upload identity та audit, не редагує прийняті байти.
 
-## Rollback застосунку
+## 7. Симптоми й recovery
 
-### Коли достатньо Vercel rollback
-
-- frontend regression;
-- API regression без schema incompatibility;
-- auth/middleware regression;
-- AI/UI зміна без destructive database write;
-- помилкова runtime configuration у конкретному deployment.
-
-### Процедура
-
-1. Підтвердити user impact і current production deployment.
-2. Перевірити Runtime Logs і `/api/health`.
-3. Переконатися, що попередній deployment сумісний з поточною Neon schema.
-4. Виконати **Instant Rollback** у Vercel або:
-
-```bash
-npx vercel rollback
-npx vercel rollback status
-```
-
-5. Повторити health check і affected user flow.
-6. Зафіксувати bad/good deployment IDs.
-7. Підготувати forward fix у feature branch і перевірити preview.
-8. Після fix виконати promote/redeploy. Після Instant Rollback перевірте, чи автоматичне призначення production domain знову активне.
-
-### Не робити blind rollback
-
-Не повертайте старий code deployment, якщо нова migration:
-
-- видалила/перейменувала потрібні старому code колонки;
-- змінила enum несумісним способом;
-- виконала destructive data rewrite;
-- змінила cache/data version contract.
-
-У такому випадку спочатку оберіть forward fix або coordinate database restore.
-
-## Incident response
-
-### Severity
-
-| Severity | Приклад | Початкова дія |
+| Симптом | Перевірити | Наступна дія |
 | --- | --- | --- |
-| SEV-1 | login/application недоступні всім, database corruption | Негайно зупинити rollout/writes, rollback або restore |
-| SEV-2 | ключовий модуль/імпорт/звіт не працює | Ізолювати route, перевірити logs, підготувати fix |
-| SEV-3 | часткова деградація, AI provider failure, data warnings | Workaround, плановий fix, monitoring |
+| П’ять екранів порожні | Source readiness, mapping, projection, calculation, правильний період | Відкрити відповідну recovery destination; Retry не імпортує джерело |
+| Raw таблиця є, MVP немає | Чи вибране Sheets, чи погоджений mapping, чи завершено projection | ADMIN Refresh MVP, потім перевірити queue/snapshot |
+| `SOURCE_CHANGED` / stale preview | Selection revision, import hash, settings, snapshot/input-set | Створити новий snapshot/preview; не перевикористовувати старий сценарій як поточний |
+| Import `FAILED` | Run/error code, exact source, page/lease і quarantined rows | Виправити причину та відновити штатним resume; попередня успішна публікація не видаляється |
+| Import `WARNING` | Issues code/count/provenance, current Data Quality окремо від history | Узгодити correction, re-import/reproject потрібний scope, звірити результат |
+| History / GP / valuation unavailable | Датовані observations, costs, ownership, supplier terms, coverage | Доповнити підтверджені докази; не заповнювати нулями |
+| 429 / paused job | Budget, Retry-After, account check, credentials/mapping revision | Зберегти checkpoint, усунути конфігураційну причину; resume після дозволеного часу |
+| Auth redirect loop / 401 | Proxy, signed cookies, JWT env, refresh/revocation, DB membership | Відтворити login/refresh/logout без токенів у logs; сумісний rollback за потреби |
+| AI policy/budget failure | Capability policy, enabled period, limits, credentials, context fingerprint | Missing policy не bypass-ити; створити новий budgeted request лише після виправлення |
+| Export conflict / 409 | Preview identity, actor, request UUID, source/config revision | Невизначений export retry — той самий UUID та intent; змінився сценарій — новий preview |
+| External action UNKNOWN | Stored attempt, exact approved export, access policy | Не відправляти повторно; explicit reconciliation за контрактом |
 
-### Перші 15 хвилин
+Свіжість і completeness — різні показники. Нещодавній Sheets import може бути fresh і водночас мати непідтверджену історію. Stock history UI має бути provider-neutral; лише реальні observations, без обіцянки появи історії через певну кількість днів.
 
-1. Зафіксувати UTC/Kyiv start time.
-2. Визначити affected routes, tenants і data window.
-3. Перевірити `/api/health`.
-4. Знайти Vercel deployment ID/commit.
-5. Відфільтрувати Runtime Logs за route, status і `requestId`.
-6. Перевірити Neon Monitoring/Operations.
-7. Зупинити destructive або повторні writes.
-8. Вирішити: rollback application, forward fix, pause cron або database restore.
+## 8. CSV, AI та зовнішні дії
 
-### Communication
+Repricing/Reordering export має UTF-8 BOM, `;`, CRLF, CSV escaping і захист текстових formula prefixes. Журнал фіксує **створення файлу**, а не його завантаження на диск, зміну ціни, відправлення чи виконання промо. Exact replay повертає збережені байти; не генеруйте receipt заново з поточних даних.
 
-Повідомлення повинно містити:
+v2 AI потребує окремо створеного disabled budget period і явного enable у trusted admin context. Публічного provisioning endpoint/default paid policy немає. Usage резервується перед кожною спробою; зміна source/settings invalidates context, але не скасовує вже incurred usage. Legacy agents не мігрують у цей budget автоматично. GPT-4o/model access та якість відповідей оцінюються окремо; SDK upgrade не є дозволом змінити модель.
 
-- що не працює;
-- хто/які tenants affected;
-- коли почалося;
-- чи є data-loss risk;
-- поточний mitigation;
-- час наступного update.
+**Live price write-back і supplier delivery вимкнені:** production routes не мають live transport/access policy. Price flow — ADMIN preview → approve → execute, до 20 цін, 15 хвилин approval. Supplier flow — одна перевірена supplier/currency group, окремий preview → approve → send, 15 хвилин approval; cancellation — окреме погодження. Timeout не дозволяє автоматично повторити write/send. Не підключайте transport як аварійний workaround без provider/account contract і canary.
 
-Не включайте credentials, connection strings, JWT, raw customer rows або AI keys.
+Retrospective evidence не виконує зовнішню дію: ADMIN підтверджує exact exported subset із reference. SENT, ACCEPTED і RECEIVED — різні події. GMROI використовує saved GP з returns / середню вартість щоденних own-stock observations за той самий період; однакові повні before/after вікна без дня запуску, без annualization та causal uplift. Missing evidence / zero denominator → unavailable.
 
-## Типові інциденти
+## 9. Smoke та customer acceptance
 
-### Vercel build failed
+Виконуйте на staging з погодженими даними й signed test sessions; production canary потребує окремого обсягу. Сам перегляд не має запускати source activation, expensive AI або external writes.
 
-Symptoms:
+1. Health, `/login`, login, refresh і logout. Після входу поточний маршрут `/dashboard`; відкрийте `/overview` через меню.
+2. VIEWER бачить дозволені reports/history, але не може змінити джерело, approve mapping, імпортувати, export/download або виконати external action.
+3. ADMIN у Settings читає всі три tabs, source/connection/progress/Data Quality; secrets не повертаються.
+4. Пройдіть `/overview`, `/sales`, `/stock`, `/repricing`, `/reordering`: loading/empty/error/success, мова, тема, mobile, keyboard focus.
+5. На реальних дозволених входах звірте KPI → detail на тому самому snapshot, валюті, датах і SKU population. Channel впливає на sales, а не shared stock.
+6. Перевірте partial GP, missing LY/history/transit, classifications і source-switch invalidation; невідомі дані не створюють неправдивих нулів.
+7. На staging побудуйте preview, перевірте exact repricing CSV та supplier/currency reorder CSV, історію і idempotent retry. Не тестуйте реальний CRM write/order send як частину звичайного smoke.
+8. Перевірте два tenants, foreign IDs і ролі. Synthetic fixture success не є UAT.
+9. За дозволеного sync canary перевірте реальну observation/watermark, bounded retry, queue completion та новий snapshot; daily Sheets і MVP projection — окремо.
+10. Зафіксуйте release/config/calculation IDs і результати в [acceptance checklist](prisma/verification/51-mvp-acceptance-rollout.md).
 
-- deployment status `Error`;
-- production не переключився на новий commit;
-- Build Logs містять TypeScript/Prisma/Next.js error.
+Zavod benchmark/threshold sign-off, Sasha/Olia UAT, Bimba live onboarding та production operational evidence не підтверджуються мерджем PR або unit-тестами. Погодження загальних правил у чаті не замінює approval конкретного mapping чи actual benchmark package.
 
-Actions:
+Офлайн-пакет без активації:
 
-1. Production traffic залишається на попередньому successful deployment.
-2. Відкрити Build Logs.
-3. Локально повторити `npm install`, `npm test`, `npm run build`.
-4. Перевірити build-time environment variables.
-5. Виправити в новому commit; не редагувати deployed artifact.
+```sh
+npm run audit:zavod -- /private/workbook.xlsx --out /private/audit.json
+npm run reconcile:zavod -- /private/manifest.json --out /private/reconciliation.json
+npm run verify:reporting:offline -- /private/workbook.xlsx /private/offline.json
+```
 
-### Vercel runtime 5xx
+Audit навмисно повертає exit 2 із review-required evidence; reconciliation може повернути exit 2/BLOCKED через відсутні inputs/approvals. Не переписуйте report на PASS. Порівнюйте один frozen workbook/hash, а не два завантаження динамічної таблиці. Зберігайте restricted artifacts поза Git.
 
-1. Перевірити Runtime Logs і request ID.
-2. Визначити route, deployment, duration, memory і outgoing request.
-3. Перевірити `/api/health`.
-4. Якщо regression прив'язаний до deployment і schema compatible — rollback.
-5. Якщо проблема зовнішня, не робити code rollback без доказів.
+## 10. Backup, restore і rollback
 
-### Neon connection failure
+Перед ризиковою операцією зафіксуйте Neon project/branch, direct target, UTC/Kyiv timestamp, restore window/expiry, exact SHA і відповідального. Перевірте доступний механізм recovery на своєму плані; не припускайте retention, що не підтверджена в console.
 
-1. Перевірити Neon project/compute status.
-2. Перевірити pooled `DATABASE_URL` (`-pooler`) і `sslmode=require`.
-3. Перевірити, що Production variable доступна current deployment.
-4. Перевірити Neon Operations, connection count і long-running queries.
-5. Не перемикайте application на випадкову Neon branch.
-6. Після recovery redeploy потрібен лише якщо змінювали variables/configuration.
+1. Призупиніть відповідні writers: external worker, webhook relay і Vercel crons незалежно; не губіть queued jobs/checkpoints.
+2. Створіть ізольовану point-in-time/backup branch та спочатку перевірте дані там. Для logical export використовуйте захищене сховище; dump не потрапляє в Git.
+3. Зіставте schema history, tenants/users, raw imports, normalized orders/receipts, stock/price history, config approvals, screen/calculation IDs, exports/actions та AI usage ledger.
+4. Rehearse matching code та smoke на копії. Restore production виконується лише після окремого target/point-in-time approval.
+5. Перевірте TLS, pooled/direct URLs, health і tenant isolation. Відновіть writers контрольовано та перевірте replay/idempotency.
 
-### Failed data import
+Application rollback у Vercel **не** відновлює БД, source selection, cron config або зроблені зовнішні дії. Перед rollback перевірте сумісність старого artifact із поточною schema, queue continuation та encryption envelopes. Для additive schema переважно залишити дані й відкотити code; для несумісного старого worker потрібен pause і forward fix. Dependency block відкочується разом із adapter/config/package/lock змінами та відповідним Node runtime, а не випадковим downgrade одного пакета.
 
-Symptoms:
+Невизначений external write/send не виправляється database restore або blind resend. Збережіть attempt evidence й виконайте передбачену reconciliation/compensating-action процедуру.
 
-- `/data-reporting` показує `FAILED`;
-- cron response має failed tenants;
-- active snapshot не оновився.
+## 11. Read-only діагностика БД
 
-Actions:
-
-1. Старий successful active import повинен залишатися доступним.
-2. Перевірити `DataImportRun.errorMessage`, stats і issues.
-3. Перевірити required sheets/headers і workbook size.
-4. Перевірити Google download у Runtime Logs.
-5. Виправити source/configuration.
-6. Виконати один manual import.
-7. Зіставити row counts і calculated totals.
-
-### Import status `WARNING`
-
-`WARNING` може містити:
-
-- unmatched/ambiguous product matches;
-- missing optional fields;
-- invalid non-final dates;
-- negative calculated metrics через returns;
-- source row-count changes.
-
-Actions:
-
-1. Перевірити `/api/data/issues`.
-2. Визначити severity/code/count.
-3. Не видаляти rows і не виправляти source silently.
-4. Узгодити source-data correction з owner.
-5. Після виправлення виконати import і reconciliation.
-
-### Failed Google Drive sync
-
-1. Перевірити `GOOGLE_DRIVE_FILE_ID`.
-2. Для public mode: файл має `Anyone with the link → Viewer`.
-3. Для Service Account: файл shared з account email, key не відкликаний.
-4. Перевірити `GOOGLE_SERVICE_ACCOUNT_KEY` base64 decoding.
-5. Перевірити Google quota і Vercel outgoing request logs.
-6. Після fix повторити sync/import один раз.
-
-### Failed AI agent
-
-1. Перевірити `AI_PROVIDER` і provider-specific key.
-2. Перевірити quota/rate limits/provider status.
-3. Перевірити `AgentRun.errorMsg` і `_debug`, не публікуючи raw sensitive prompts.
-4. Якщо agent already `running`, перевірити `stale_agent_runs` у health.
-5. Закрити stale run лише після підтвердження, що provider request завершився.
-6. Повторити agent після fix.
-
-Recovery SQL для підтвердженого stale run наведений у [`docs/ai-agents-runbook.md`](./docs/ai-agents-runbook.md).
-
-### Auth/login failure
-
-1. Перевірити Vercel Runtime Logs `/api/auth/*` і Middleware.
-2. Перевірити наявність обох JWT secrets у current Production deployment.
-3. Перевірити database connection і `User`/`Tenant` relations.
-4. Не логувати password, password hash або tokens.
-5. Після secret rotation користувачам потрібно увійти повторно.
-6. Якщо regression у code і schema compatible — Vercel rollback.
-
-### Stale або неправильні звіти
-
-1. Перевірити active `importRunId` і latest `calculationRunId`.
-2. Перевірити `Date From`, `Date To`, `asOfDate` у UI/API.
-3. Перевірити, що calculation version актуальна.
-4. Перевірити source workbook checksum/idempotency outcome.
-5. Запустити manual calculation для active import.
-6. Зіставити ARTICLE REPORT totals з normalized sale lines.
-7. Зіставити BY BRAND/BY CATEGORY totals з ARTICLE REPORT.
-
-## Smoke test
-
-Виконується після deployment, rollback, migration або restore.
-
-### Public/auth
-
-1. `GET /api/health`.
-2. Відкрити `/login`.
-3. Увійти production test/admin account.
-4. Перевірити refresh session без redirect loop.
-
-### Application
-
-1. `/dashboard` — KPI та sync status.
-2. `/agents` — status list завантажується; не запускайте дорогі AI agents без потреби.
-3. `/calendar` — events завантажуються.
-4. `/analyst` — таблиця й filters працюють.
-5. `/assortment` — brands/catalog/cart доступні.
-6. `/settings` — Drive та provider settings завантажуються.
-
-### Data reporting
-
-1. `/data-reporting` відкривається.
-2. П'ять tabs доступні:
-   - Product YML 2.0;
-   - ZAVOD_API;
-   - ARTICLE REPORT;
-   - BY BRAND;
-   - BY CATEGORY.
-3. Pagination/search/column selection працюють.
-4. Report period відповідає очікуваним датам.
-5. Active import/calculation не `FAILED`.
-
-### Database/release
-
-1. `npx prisma migrate status` не показує unexpected pending/failed migration.
-2. Vercel Runtime Logs не мають нового spike 5xx.
-3. Cron Jobs відображають обидва DST slots.
-
-## Корисні read-only перевірки БД
-
-Виконуйте лише через Neon SQL Editor або захищений direct client.
-
-### Migration history
+Тільки захищений SQL client на перевіреному target. Замініть placeholders на авторизований tenant/source; ці запити не змінюють дані. Не виводьте payloads, encryption envelopes або customer rows у tickets.
 
 ```sql
 SELECT migration_name, finished_at, rolled_back_at
-FROM "_prisma_migrations"
-ORDER BY started_at DESC;
-```
+FROM "_prisma_migrations" ORDER BY started_at DESC;
 
-### Останні імпорти
-
-```sql
-SELECT id, "tenantId", status, trigger, "businessDate", "startedAt", "completedAt"
+SELECT id, "sourceId", status, "startedAt", "completedAt"
 FROM "DataImportRun"
-ORDER BY "createdAt" DESC
-LIMIT 20;
+WHERE "tenantId" = '<tenant-id>' ORDER BY "createdAt" DESC LIMIT 20;
+
+SELECT id, "sourceId", resource, mode, state, attempts,
+       "availableAt", "leaseExpiresAt", "errorCode", "updatedAt"
+FROM "ConnectorSyncJob"
+WHERE "tenantId" = '<tenant-id>' AND "sourceId" = '<source-id>'
+ORDER BY "createdAt" DESC LIMIT 20;
+
+SELECT "importRunId", "sourceId", state, "requestedAt"
+FROM "ConnectorRecalculation"
+WHERE "tenantId" = '<tenant-id>' AND "sourceId" = '<source-id>'
+ORDER BY "requestedAt" DESC LIMIT 20;
+
+SELECT id, "configType", key, revision, "isActive", "approvedAt"
+FROM "MerchandisingConfig"
+WHERE "tenantId" = '<tenant-id>' ORDER BY "createdAt" DESC LIMIT 20;
 ```
 
-### Останні розрахунки
+Не виправляйте lease/state/config через довільний UPDATE. Використовуйте штатні revision/role/fencing-aware recovery APIs або окремий reviewed repair plan.
 
-```sql
-SELECT id, "tenantId", "importRunId", status,
-       "dateFrom", "dateTo", "asOfDate", "calculationVersion", "completedAt"
-FROM "ReportCalculationRun"
-ORDER BY "createdAt" DESC
-LIMIT 20;
-```
+## 12. Incident record і документи
 
-### Stale agent runs
+Зафіксуйте severity, user impact, UTC/Kyiv час, tenant/source, deployment SHA/ID, Neon target, migration/config/selection revision, import/job/cycle/calculation/snapshot/export IDs, requestId, mitigation, recovery, результат і follow-up owner. Без secrets, raw prompts і customer payloads.
 
-```sql
-SELECT id, "tenantId", "agentType", status, "startedAt"
-FROM "AgentRun"
-WHERE status = 'running'
-  AND "startedAt" < NOW() - INTERVAL '2 hours';
-```
-
-### Report row counts
-
-```sql
-SELECT
-  (SELECT COUNT(*) FROM "ArticleReportResult" WHERE "calculationRunId" = '<calculation-id>') AS article_rows,
-  (SELECT COUNT(*) FROM "BrandReportResult" WHERE "calculationRunId" = '<calculation-id>') AS brand_rows,
-  (SELECT COUNT(*) FROM "CategoryReportResult" WHERE "calculationRunId" = '<calculation-id>') AS category_rows;
-```
-
-Замініть placeholders тільки після перевірки tenant/calculation target. Ці queries не змінюють дані.
-
-## Incident record
-
-Для кожного production incident зафіксуйте:
-
-```text
-Incident ID:
-Severity:
-Start time UTC:
-Start time Europe/Kyiv:
-Detected by:
-User-visible impact:
-Affected tenants/routes:
-Data-loss risk:
-Vercel deployment ID:
-Git commit SHA:
-Neon project/branch:
-Latest migration:
-Cron/import/calculation IDs:
-Request IDs:
-Mitigation:
-Recovery action:
-Resolved time:
-Root cause:
-Follow-up owner/date:
-```
-
-Не включайте credentials, tokens, connection strings або customer data.
-
-## Офіційні посилання
-
-- [Vercel Runtime Logs](https://vercel.com/docs/logs/runtime)
-- [Vercel Observability](https://vercel.com/docs/observability)
-- [Vercel Cron Jobs](https://vercel.com/docs/cron-jobs)
-- [Vercel Instant Rollback](https://vercel.com/docs/instant-rollback)
-- [Vercel production rollback guide](https://vercel.com/docs/deployments/rollback-production-deployment)
-- [Neon connection pooling](https://neon.com/docs/connect/connection-pooling)
-- [Neon branching and recovery](https://neon.com/docs/guides/branching-intro)
-- [Neon project restore window](https://neon.com/docs/manage/projects)
-- [Prisma migrate deploy](https://www.prisma.io/docs/cli/migrate/deploy)
-- [`README.md`](./README.md)
-- [`docs/scheduled-data-import.md`](./docs/scheduled-data-import.md)
-- [`docs/data-reliability-runbook.md`](./docs/data-reliability-runbook.md)
-- [`docs/ai-agents-runbook.md`](./docs/ai-agents-runbook.md)
-
-## Merchandising MVP release and acceptance
-
-The legacy smoke checks above remain applicable. For the five merchandising
-workspaces, use the [ordered #51 release checklist](prisma/verification/51-mvp-acceptance-rollout.md):
-it adds identical-version KPI/detail comparisons, real CSV validation, two-tenant
-RBAC, customer UAT, migration rehearsal and explicit go/no-go evidence.
-
-The SalesDrive minute worker is external on the agreed Hobby plan; the two
-`vercel.json` daily UTC slots continue to serve the existing Sheets scheduler.
-During rollout or rollback pause the external worker, authenticated webhook relay
-and affected Vercel crons independently. A Vercel application rollback does not
-restore cron configuration or database state. Preserve queue checkpoints, source
-versions, raw evidence and audited export files; prefer an additive-schema
-application rollback or reviewed forward fix over destructive data rollback.
-
-Do not report #38 reconciliation, Bimba activation, customer UAT, daily production
-sync or production rollout as completed from local synthetic test results. Record
-the actual deployment/schema/config/calculation IDs and restricted evidence using
-the acceptance document's UAT and release tables before closing #51.
+Ключові деталізації: [automatic sync](prisma/verification/32-automatic-sync.md), [provider foundation](prisma/verification/81-connector-foundation.md), [Sheets projection](prisma/verification/google-sheets-reporting-step-3.md), [Data Quality](prisma/verification/49-settings-data-quality.md), [scenario exports](prisma/verification/48-scenario-csv-exports.md), [AI budgets](prisma/verification/93-ai-execution-context-budgets.md), [write-back](prisma/verification/109-salesdrive-price-writeback.md), [supplier delivery](prisma/verification/110-supplier-order-delivery.md).

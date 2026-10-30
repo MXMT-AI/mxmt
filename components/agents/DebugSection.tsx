@@ -24,9 +24,9 @@ function CopyButton({ text }: { text: string }) {
     <button
       type="button"
       onClick={handleCopy}
-      className="flex items-center gap-1 text-[9px] font-mono px-2 py-0.5 rounded border border-[var(--border)] text-[var(--subtle)] hover:text-[var(--text)] hover:bg-[var(--input-bg)] transition-colors flex-shrink-0"
+      className="flex items-center gap-1 text-[9px] font-mono px-2 py-0.5 rounded-sm border border-(--border) text-(--subtle) hover:text-(--text) hover:bg-(--input-bg) transition-colors shrink-0"
     >
-      {copied ? <Check size={9} className="text-[#00e5c4]" /> : <Copy size={9} />}
+      {copied ? <Check size={9} className="text-accent-cyan" /> : <Copy size={9} />}
       {copied ? "copied" : copyError ? "failed" : "copy"}
     </button>
   );
@@ -46,24 +46,24 @@ export default function DebugSection({
   const [open, setOpen] = useState(defaultOpen);
 
   return (
-    <div className="border border-[var(--border)] rounded-xl overflow-hidden">
+    <div className="border border-(--border) rounded-xl overflow-hidden">
       <button
         onClick={() => setOpen((value) => !value)}
-        className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/[0.02] transition-colors text-left"
+        className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/2 transition-colors text-left"
       >
-        <span className="text-[10px] font-mono uppercase tracking-widest text-[var(--subtle)]">{title}</span>
+        <span className="text-[10px] font-mono uppercase tracking-widest text-(--subtle)">{title}</span>
         <div className="flex items-center gap-2">
-          <span className="text-[9px] font-mono text-[var(--subtle)]">{content.length} chars</span>
-          {open ? <ChevronUp size={12} className="text-[var(--subtle)]" /> : <ChevronDown size={12} className="text-[var(--subtle)]" />}
+          <span className="text-[9px] font-mono text-(--subtle)">{content.length} chars</span>
+          {open ? <ChevronUp size={12} className="text-(--subtle)" /> : <ChevronDown size={12} className="text-(--subtle)" />}
         </div>
       </button>
       {open && (
-        <div className="border-t border-[var(--border)]">
-          <div className="flex justify-end px-3 py-1.5 bg-[var(--surface2)]">
+        <div className="border-t border-(--border)">
+          <div className="flex justify-end px-3 py-1.5 bg-(--surface2)">
             <CopyButton text={content} />
           </div>
           <pre
-            className="px-4 py-3 text-[11px] leading-relaxed text-[var(--text)] overflow-x-auto max-h-72 overflow-y-auto"
+            className="px-4 py-3 text-[11px] leading-relaxed text-(--text) overflow-x-auto max-h-72 overflow-y-auto"
             style={{ fontFamily: mono ? "monospace" : "inherit", whiteSpace: "pre-wrap", wordBreak: "break-word" }}
           >
             {content}

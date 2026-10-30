@@ -95,11 +95,11 @@ export default function ConnectorSourceCard({
     }
   }
   return (
-    <section className="mb-10 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 min-w-0">
-      <h2 className="font-semibold text-[var(--text)]">
+    <section className="mb-10 rounded-xl border border-(--border) bg-(--surface) p-5 min-w-0">
+      <h2 className="font-semibold text-(--text)">
         {uk ? "Джерело звітів" : "Reporting source"}
       </h2>
-      <p className="mt-1 mb-4 text-sm text-[var(--muted)]">
+      <p className="mt-1 mb-4 text-sm text-(--muted)">
         {uk
           ? "Для звітів використовується одне джерело. Збереження іншого з’єднання не змінює цей вибір. Історія звітів і експортів зберігається."
           : "Reports use one selected source. Saving another connection does not change this selection. Report and export history is retained."}
@@ -155,7 +155,7 @@ export default function ConnectorSourceCard({
           <button
             type="submit"
             disabled={busy || !source || !dirty}
-            className="min-h-11 rounded-lg border border-[var(--border)] px-4 py-2 text-sm text-[var(--text)] hover:bg-[var(--bg)] focus-visible:outline focus-visible:outline-2 disabled:opacity-50"
+            className="min-h-11 rounded-lg border border-(--border) px-4 py-2 text-sm text-(--text) hover:bg-(--bg) focus-visible:outline-solid focus-visible:outline-2 disabled:opacity-50"
           >
             {busy
               ? uk
@@ -172,7 +172,7 @@ export default function ConnectorSourceCard({
           {error}
         </p>
       ) : null}
-      <p role="status" className="mt-3 text-sm text-[var(--muted)]">
+      <p role="status" className="mt-3 text-sm text-(--muted)">
         {message}
       </p>
     </section>

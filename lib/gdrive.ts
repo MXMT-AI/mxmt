@@ -1,7 +1,8 @@
 import { Prisma } from "@prisma/client";
 import { randomUUID } from "node:crypto";
 import { createSign } from "node:crypto";
-import * as XLSX from "xlsx";
+import type * as XLSX from "xlsx";
+import { readWorkbook, sheetToJson } from "./workbook-compat.mjs";
 import { prisma } from "@/lib/prisma";
 import { fetchWithTimeout } from "@/lib/server-fetch";
 import { assertDriveRowLimit } from "@/lib/drive-limits";
@@ -156,7 +157,7 @@ function parseRowDate(row: Row, ...keys: string[]): Date | null {
 // Find actual header row when sheet has metadata rows at top.
 // Returns rows with proper header-keyed objects starting after the header row.
 function parseWithAutoHeader(ws: XLSX.WorkSheet): Row[] {
-  const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" }) as unknown[][];
+  const raw = sheetToJson(ws, { header: 1, defval: "" }) as unknown[][];
 
   // Find the row that looks like a header (contains "Article" or "SKU" or "product.sku")
   let headerIdx = -1;
@@ -174,7 +175,7 @@ function parseWithAutoHeader(ws: XLSX.WorkSheet): Row[] {
 
   if (headerIdx === -1) {
     // Fallback: use first row as headers (original behavior)
-    return XLSX.utils.sheet_to_json(ws, { defval: "" }) as Row[];
+    return sheetToJson(ws, { defval: "" }) as Row[];
   }
 
   const headers = (raw[headerIdx] as unknown[]).map((h) => String(h));
@@ -603,7 +604,7 @@ export async function downloadConfiguredDriveWorkbook(): Promise<{
 export async function syncFromDrive(tenantId: string): Promise<SyncResult> {
   const { buffer } = await downloadConfiguredDriveWorkbook();
 
-  const wb = XLSX.read(buffer, { type: "buffer", cellDates: true });
+  const wb = readWorkbook(buffer, { type: "buffer", cellDates: true });
   const existingBrands = await prisma.brand.findMany({
     where: { tenantId },
     select: { id: true, name: true },

@@ -2,6 +2,7 @@ import {spawnSync} from "node:child_process";
 import {createRequire} from "node:module";
 import {resolve} from "node:path";
 import {pathToFileURL} from "node:url";
+import {databaseSchemaPolicy} from "../lib/database-schema-policy.mjs";
 
 const require=createRequire(import.meta.url);
 
@@ -20,6 +21,8 @@ export function validateDatabaseTarget(env){
     throw new Error("DATABASE_URL and DIRECT_URL must target the same database and schema.");
   if(direct.hostname.endsWith(".neon.tech")&&direct.hostname.includes("-pooler."))
     throw new Error("DIRECT_URL must use the direct Neon endpoint, without -pooler.");
+  databaseSchemaPolicy(runtime);
+  databaseSchemaPolicy(direct);
 }
 
 /**

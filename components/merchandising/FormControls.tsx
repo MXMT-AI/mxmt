@@ -1,7 +1,7 @@
 "use client";
 import { useId, useState, type ReactNode } from "react";
 export const control =
-  "min-h-11 w-full min-w-0 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50";
+  "min-h-11 w-full min-w-0 rounded-lg border border-(--border) bg-(--surface) px-3 py-2 text-sm text-(--text) focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50";
 /** Keep native single-control labels consistent across scenario workspaces. */
 export function Field({
   label,
@@ -11,7 +11,7 @@ export function Field({
   children: ReactNode;
 }) {
   return (
-    <label className="flex min-w-0 flex-col gap-1.5 text-xs text-[var(--muted)]">
+    <label className="flex min-w-0 flex-col gap-1.5 text-xs text-(--muted)">
       {label}
       {children}
     </label>
@@ -46,7 +46,7 @@ export function Choice({
       ? [selected, ...matching]
       : matching;
   return (
-    <fieldset className="min-w-0 space-y-1.5 text-xs text-[var(--muted)]">
+    <fieldset className="min-w-0 space-y-1.5 text-xs text-(--muted)">
       <legend>{label}</legend>
       {options.length > 100 ? (
         <input

@@ -43,7 +43,7 @@ export default function DataQualitySummary({
         {s.currency ?? (uk ? "валюта невідома" : "currency unknown")}
       </span>
       {s.unknownValueCount > 0 && (
-        <span className="block text-xs text-[var(--muted)]">
+        <span className="block text-xs text-(--muted)">
           {uk
             ? "Відома частина вартості; SKU без оцінки"
             : "Known value only; unvalued SKUs"}
@@ -60,11 +60,11 @@ export default function DataQualitySummary({
   );
   return (
     <div className="mt-5 space-y-4">
-      <div className="border-y border-[var(--border)] py-4 space-y-2">
+      <div className="border-y border-(--border) py-4 space-y-2">
         <h3 className="font-semibold">
           {uk ? "Товарний залишок з проблемами" : "Affected merchandise stock"}
         </h3>
-        <p className="text-sm text-[var(--muted)]">
+        <p className="text-sm text-(--muted)">
           {uk
             ? "Кожен SKU враховано один раз. Групи нижче перетинаються — їх не можна додавати. Вартість наведено за собівартістю, окремо для кожної валюти."
             : "Each SKU is counted once. The groups below overlap and must not be added together. Stock is valued at cost, separately for each currency."}
@@ -90,11 +90,11 @@ export default function DataQualitySummary({
       >
         {uk ? "Усі товари" : "All products"}
       </button>
-      <ul className="divide-y divide-[var(--border)]">
+      <ul className="divide-y divide-(--border)">
         {summary.map((s) => (
           <li key={s.code + ":" + s.currency} className="py-3 space-y-2">
             <button
-              className="text-left text-sm font-semibold underline underline-offset-4 min-h-11 focus-visible:outline"
+              className="text-left text-sm font-semibold underline underline-offset-4 min-h-11 focus-visible:outline-solid"
               type="button"
               aria-pressed={selected === s.code}
               onClick={() => onSelect(s.code)}
@@ -102,11 +102,11 @@ export default function DataQualitySummary({
               {qualityLabel(s.code, lang)}
             </button>
             <p className="text-sm">{figures(s)}</p>
-            <p className="text-sm text-[var(--muted)] max-w-prose">
+            <p className="text-sm text-(--muted) max-w-prose">
               {qualityGuidance(s.code, lang)}
             </p>
             <a
-              className="inline-flex min-h-11 items-center text-sm underline underline-offset-4 focus-visible:outline"
+              className="inline-flex min-h-11 items-center text-sm underline underline-offset-4 focus-visible:outline-solid"
               href={qualityFixHref(s.code)}
             >
               {uk ? "Де виправити" : "Where to fix"}

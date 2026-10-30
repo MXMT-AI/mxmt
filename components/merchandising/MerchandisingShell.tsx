@@ -28,7 +28,7 @@ const Filters = createContext<MerchandisingFilters | null>(null);
 export const useMerchandisingFilters = () => useContext(Filters);
 export const useMerchandisingOptions = () => useContext(Options);
 const control =
-  "rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] min-h-11 disabled:opacity-50 touch-manipulation";
+  "rounded-lg border border-(--border) bg-(--surface) px-3 py-2 text-sm text-(--text) min-h-11 disabled:opacity-50 touch-manipulation";
 
 /** URL state is shared across the screen family; invalid links never silently select different dates. */
 export default function MerchandisingShell({
@@ -70,7 +70,7 @@ export default function MerchandisingShell({
             {!options ? (
               <div
                 role="alert"
-                className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5 space-y-3"
+                className="rounded-lg border border-(--border) bg-(--surface) p-5 space-y-3"
               >
                 <p>{copy.error}</p>
                 <button
@@ -84,7 +84,7 @@ export default function MerchandisingShell({
             ) : !filters ? (
               <div
                 role="alert"
-                className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5 space-y-3"
+                className="rounded-lg border border-(--border) bg-(--surface) p-5 space-y-3"
               >
                 <p>{copy.invalidLink}</p>
                 <Link className={control + " inline-block"} href={pathname}>
@@ -159,14 +159,14 @@ function FilterForm({
   return (
     <section
       aria-label={copy.filters}
-      className="mb-8 border-b border-[var(--border)] pb-5"
+      className="mb-8 border-b border-(--border) pb-5"
     >
       <form
         onSubmit={apply}
         aria-busy={pending}
         className="flex flex-wrap items-end gap-3"
       >
-        <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
+        <label className="flex flex-col gap-1 text-xs text-(--muted)">
           {copy.period}
           <select
             name="period"
@@ -185,7 +185,7 @@ function FilterForm({
         </label>
         {draft.period === "custom" ? (
           <>
-            <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
+            <label className="flex flex-col gap-1 text-xs text-(--muted)">
               {copy.from}
               <input
                 type="date"
@@ -199,7 +199,7 @@ function FilterForm({
                 }
               />
             </label>
-            <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
+            <label className="flex flex-col gap-1 text-xs text-(--muted)">
               {copy.to}
               <input
                 type="date"
@@ -213,7 +213,7 @@ function FilterForm({
             </label>
           </>
         ) : (
-          <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
+          <label className="flex flex-col gap-1 text-xs text-(--muted)">
             {copy.anchor}
             <input
               type="date"
@@ -226,7 +226,7 @@ function FilterForm({
             />
           </label>
         )}
-        <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
+        <label className="flex flex-col gap-1 text-xs text-(--muted)">
           {copy.channel}
           <select
             name="channelId"
@@ -254,20 +254,20 @@ function FilterForm({
         <button
           type="submit"
           disabled={pending}
-          className={control + " font-medium hover:bg-[var(--input-bg)]"}
+          className={control + " font-medium hover:bg-(--input-bg)"}
         >
           {pending ? copy.loading : copy.apply}
         </button>
       </form>
       <p
-        className="mt-3 text-sm tabular-nums text-[var(--text)]"
+        className="mt-3 text-sm tabular-nums text-(--text)"
         aria-live="polite"
       >
         {date(filters.dateFrom)} – {date(filters.dateTo)}
       </p>
-      <p className="mt-1 text-xs text-[var(--muted)]">{copy.stockScope}</p>
+      <p className="mt-1 text-xs text-(--muted)">{copy.stockScope}</p>
       {options.channels.length === 0 ? (
-        <p className="mt-2 text-xs text-[var(--muted)]">
+        <p className="mt-2 text-xs text-(--muted)">
           {copy.noChannels}{" "}
           <Link className="underline" href={`/settings?${params}`}>
             {copy.settings}
@@ -275,7 +275,7 @@ function FilterForm({
         </p>
       ) : null}
       {options.truncated ? (
-        <p className="mt-2 text-xs text-[var(--muted)]">
+        <p className="mt-2 text-xs text-(--muted)">
           {copy.limitedChannels}
         </p>
       ) : null}
@@ -284,7 +284,7 @@ function FilterForm({
           ref={errorRef}
           tabIndex={-1}
           role="alert"
-          className="mt-3 text-sm font-medium text-[var(--text)]"
+          className="mt-3 text-sm font-medium text-(--text)"
         >
           {copy.invalid}
         </p>

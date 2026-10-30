@@ -77,48 +77,48 @@ export default function RecommendationApprovalModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" role="presentation">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs" role="presentation">
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="approval-title"
-        className="w-full max-w-lg rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-2xl"
+        className="w-full max-w-lg rounded-2xl border border-(--border) bg-(--surface) shadow-2xl"
       >
-        <div className="flex items-start justify-between gap-4 border-b border-[var(--border)] p-5">
+        <div className="flex items-start justify-between gap-4 border-b border-(--border) p-5">
           <div>
-            <p className="text-[10px] font-mono uppercase tracking-widest text-[#fbbf24]">Погодження плану</p>
-            <h2 id="approval-title" className="mt-1 text-lg font-semibold text-[var(--text)]">
+            <p className="text-[10px] font-mono uppercase tracking-widest text-accent-yellow">Погодження плану</p>
+            <h2 id="approval-title" className="mt-1 text-lg font-semibold text-(--text)">
               {recommendation.brand_name}
             </h2>
-            <p className="mt-1 text-sm text-[var(--muted)]">{recommendation.decision_summary}</p>
+            <p className="mt-1 text-sm text-(--muted)">{recommendation.decision_summary}</p>
           </div>
-          <button type="button" onClick={onClose} aria-label="Закрити" className="rounded-lg p-1.5 text-[var(--muted)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]">
+          <button type="button" onClick={onClose} aria-label="Закрити" className="rounded-lg p-1.5 text-(--muted) hover:bg-(--input-bg) hover:text-(--text)">
             <X size={16} aria-hidden="true" />
           </button>
         </div>
 
         <div className="space-y-5 p-5">
           <label className="block">
-            <span className="mb-2 block text-[10px] font-mono uppercase tracking-wider text-[var(--subtle)]">Тиждень запуску</span>
+            <span className="mb-2 block text-[10px] font-mono uppercase tracking-wider text-(--subtle)">Тиждень запуску</span>
             <select
               value={weekKey}
               onChange={(event) => setWeekKey(event.target.value)}
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--input-bg)] px-3 py-2 text-sm text-[var(--text)] focus:border-[#fbbf24]/50 focus:outline-none"
+              className="w-full rounded-lg border border-(--border) bg-(--input-bg) px-3 py-2 text-sm text-(--text) focus:border-accent-yellow/50 focus:outline-hidden"
             >
               {weekKeys.map((key) => <option key={key} value={key}>Тиждень {key.slice(1)}</option>)}
             </select>
           </label>
 
           <fieldset>
-            <legend className="mb-2 text-[10px] font-mono uppercase tracking-wider text-[var(--subtle)]">Канали</legend>
+            <legend className="mb-2 text-[10px] font-mono uppercase tracking-wider text-(--subtle)">Канали</legend>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {availableChannels.map((channel) => (
-                <label key={channel} className="flex cursor-pointer items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--input-bg)] px-3 py-2 text-sm text-[var(--text)]">
+                <label key={channel} className="flex cursor-pointer items-center gap-2 rounded-lg border border-(--border) bg-(--input-bg) px-3 py-2 text-sm text-(--text)">
                   <input
                     type="checkbox"
                     checked={channels.includes(channel)}
                     onChange={() => toggleChannel(channel)}
-                    className="accent-[#fbbf24]"
+                    className="accent-accent-yellow"
                   />
                   {CHANNEL_LABELS[channel]}
                 </label>
@@ -127,22 +127,22 @@ export default function RecommendationApprovalModal({
           </fieldset>
 
           {availableChannels.includes("ads") && (
-            <p className="rounded-lg border border-[#fbbf24]/20 bg-[#fbbf24]/5 px-3 py-2 text-[11px] text-[#fbbf24]">
+            <p className="rounded-lg border border-accent-yellow/20 bg-accent-yellow/5 px-3 py-2 text-[11px] text-accent-yellow">
               Рекламний бюджет потребує окремого погодження PM.
             </p>
           )}
           {error && <p role="alert" className="text-xs text-[#ef4444]">{error}</p>}
         </div>
 
-        <div className="flex justify-end gap-2 border-t border-[var(--border)] p-5">
-          <button type="button" onClick={onClose} disabled={saving} className="rounded-lg border border-[var(--border)] px-4 py-2 text-xs text-[var(--muted)] hover:bg-[var(--input-bg)]">
+        <div className="flex justify-end gap-2 border-t border-(--border) p-5">
+          <button type="button" onClick={onClose} disabled={saving} className="rounded-lg border border-(--border) px-4 py-2 text-xs text-(--muted) hover:bg-(--input-bg)">
             Скасувати
           </button>
           <button
             type="button"
             onClick={approve}
             disabled={saving || !weekKey || channels.length === 0}
-            className="flex items-center gap-2 rounded-lg border border-[#fbbf24]/40 bg-[#fbbf24]/15 px-4 py-2 text-xs font-semibold text-[#fbbf24] disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex items-center gap-2 rounded-lg border border-accent-yellow/40 bg-accent-yellow/15 px-4 py-2 text-xs font-semibold text-accent-yellow disabled:cursor-not-allowed disabled:opacity-50"
           >
             <CalendarPlus size={14} aria-hidden="true" />
             {saving ? "Додаємо…" : "Погодити й додати"}

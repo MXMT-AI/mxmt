@@ -304,9 +304,9 @@ Be concise and data-driven. Respond in the same language as the user's message.`
 
   // ─── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col h-full bg-[var(--bg)]">
+    <div className="flex flex-col h-full bg-(--bg)">
       {/* ── Top nav ── */}
-      <div className="bg-[var(--surface)] border-b border-[var(--border)] px-6 flex items-center justify-between h-13 shrink-0">
+      <div className="bg-(--surface) border-b border-(--border) px-6 flex items-center justify-between h-13 shrink-0">
         <div className="flex items-center gap-1">
           {(
             [
@@ -323,8 +323,8 @@ Be concise and data-driven. Respond in the same language as the user's message.`
               onClick={() => setSection(id)}
               className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                 section === id
-                  ? "bg-[#00e5c4]/10 text-[#00e5c4]"
-                  : "text-[var(--muted)] hover:text-white hover:bg-white/[0.04]"
+                  ? "bg-accent-cyan/10 text-accent-cyan"
+                  : "text-(--muted) hover:text-white hover:bg-white/4"
               }`}
             >
               <Icon size={14} />
@@ -335,11 +335,11 @@ Be concise and data-driven. Respond in the same language as the user's message.`
 
         <div className="flex items-center gap-3">
           {/* Budget quick pill */}
-          <div className="text-xs font-mono text-[var(--muted)] bg-white/[0.03] border border-[var(--border)] px-3 py-1.5 rounded-lg">
+          <div className="text-xs font-mono text-(--muted) bg-white/3 border border-(--border) px-3 py-1.5 rounded-lg">
             €{fmt(totalSpent)}{" "}
-            <span className="text-[var(--subtle)]">/ €{fmt(totalBudget)}</span>
+            <span className="text-(--subtle)">/ €{fmt(totalBudget)}</span>
             {totalBudget > 0 && (
-              <span className={`ml-2 ${totalSpent / totalBudget > 0.9 ? "text-[#ff6b35]" : "text-[#00e5c4]"}`}>
+              <span className={`ml-2 ${totalSpent / totalBudget > 0.9 ? "text-accent-orange" : "text-accent-cyan"}`}>
                 {Math.round((totalSpent / totalBudget) * 100)}%
               </span>
             )}
@@ -348,7 +348,7 @@ Be concise and data-driven. Respond in the same language as the user's message.`
           {section === "catalog" && (
             <button
               onClick={() => setUploadModal(true)}
-              className="flex items-center gap-2 px-3 py-1.5 bg-[#00e5c4]/10 border border-[#00e5c4]/20 text-[#00e5c4] rounded-lg text-sm font-medium hover:bg-[#00e5c4]/20 transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 bg-accent-cyan/10 border border-accent-cyan/20 text-accent-cyan rounded-lg text-sm font-medium hover:bg-accent-cyan/20 transition-colors"
             >
               <Upload size={13} /> Завантажити
             </button>
@@ -357,7 +357,7 @@ Be concise and data-driven. Respond in the same language as the user's message.`
             <button
               onClick={findDuplicates}
               disabled={loading}
-              className="flex items-center gap-2 px-3 py-1.5 bg-white/[0.04] border border-[var(--border)] text-white rounded-lg text-sm font-medium hover:bg-white/[0.08] transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 px-3 py-1.5 bg-white/4 border border-(--border) text-white rounded-lg text-sm font-medium hover:bg-white/8 transition-colors disabled:opacity-50"
             >
               <Search size={13} /> {loading ? "Скануємо…" : "Сканувати"}
             </button>
@@ -365,7 +365,7 @@ Be concise and data-driven. Respond in the same language as the user's message.`
           {section === "cart" && cart.length > 0 && (
             <button
               onClick={exportPO}
-              className="flex items-center gap-2 px-3 py-1.5 bg-[#a78bfa]/10 border border-[#a78bfa]/20 text-[#a78bfa] rounded-lg text-sm font-medium hover:bg-[#a78bfa]/20 transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 bg-accent-purple/10 border border-accent-purple/20 text-accent-purple rounded-lg text-sm font-medium hover:bg-accent-purple/20 transition-colors"
             >
               <Download size={13} /> Експорт ЗП
             </button>
@@ -373,7 +373,7 @@ Be concise and data-driven. Respond in the same language as the user's message.`
           {section === "brands" && (
             <button
               onClick={() => setBrandModal("new")}
-              className="flex items-center gap-2 px-3 py-1.5 bg-[#00e5c4]/10 border border-[#00e5c4]/20 text-[#00e5c4] rounded-lg text-sm font-medium hover:bg-[#00e5c4]/20 transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 bg-accent-cyan/10 border border-accent-cyan/20 text-accent-cyan rounded-lg text-sm font-medium hover:bg-accent-cyan/20 transition-colors"
             >
               <Plus size={13} /> Додати бренд
             </button>
@@ -460,7 +460,7 @@ Be concise and data-driven. Respond in the same language as the user's message.`
 
       {/* ── Toast ── */}
       {toast && (
-        <div className="fixed bottom-5 right-5 bg-[var(--surface)] border border-[#00e5c4]/30 text-[#00e5c4] text-sm font-medium px-4 py-2.5 rounded-xl shadow-xl z-50">
+        <div className="fixed bottom-5 right-5 bg-(--surface) border border-accent-cyan/30 text-accent-cyan text-sm font-medium px-4 py-2.5 rounded-xl shadow-xl z-50">
           {toast}
         </div>
       )}
@@ -498,22 +498,22 @@ function DashboardView({ brands, catalogs, budgetStatus, cart, fmt }: {
       {/* KPIs */}
       <div className="grid grid-cols-4 gap-4 mb-8">
         {stats.map(({ label, value, sub }) => (
-          <div key={label} className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5">
-            <div className="text-[9px] font-mono uppercase tracking-widest text-[var(--subtle)] mb-2">{label}</div>
+          <div key={label} className="bg-(--surface) border border-(--border) rounded-xl p-5">
+            <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-2">{label}</div>
             <div className="text-2xl font-bold text-white font-mono mb-1">{value}</div>
-            <div className="text-xs text-[var(--muted)]">{sub}</div>
+            <div className="text-xs text-(--muted)">{sub}</div>
           </div>
         ))}
       </div>
 
       {/* Budget bars */}
-      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5 mb-4">
-        <div className="text-[9px] font-mono uppercase tracking-widest text-[var(--subtle)] mb-4">Бюджет по брендах</div>
+      <div className="bg-(--surface) border border-(--border) rounded-xl p-5 mb-4">
+        <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-4">Бюджет по брендах</div>
         {budgetStatus.length === 0 && (
-          <p className="text-[var(--muted)] text-sm">Брендів ще немає. Додайте бренди для відстеження бюджету.</p>
+          <p className="text-(--muted) text-sm">Брендів ще немає. Додайте бренди для відстеження бюджету.</p>
         )}
         {budgetStatus.map((b) => (
-          <div key={b.id} className="flex items-center gap-4 py-2 border-b border-[var(--border-faint)] last:border-0">
+          <div key={b.id} className="flex items-center gap-4 py-2 border-b border-(--border-faint) last:border-0">
             <div className="w-32 text-sm text-white font-medium truncate">{b.name}</div>
             <div className="flex-1 h-1.5 bg-white/[0.07] rounded-full overflow-hidden">
               <div
@@ -524,10 +524,10 @@ function DashboardView({ brands, catalogs, budgetStatus, cart, fmt }: {
                 }}
               />
             </div>
-            <div className="text-xs font-mono text-[var(--muted)] w-24 text-right">
+            <div className="text-xs font-mono text-(--muted) w-24 text-right">
               €{fmt(b.spent)} / €{fmt(b.budget)}
             </div>
-            <div className={`text-xs font-mono w-10 text-right ${b.pct > 100 ? "text-[#ff6b35]" : "text-[var(--muted)]"}`}>
+            <div className={`text-xs font-mono w-10 text-right ${b.pct > 100 ? "text-accent-orange" : "text-(--muted)"}`}>
               {b.pct}%
             </div>
           </div>
@@ -536,17 +536,17 @@ function DashboardView({ brands, catalogs, budgetStatus, cart, fmt }: {
 
       {/* Recent catalogs */}
       {catalogs.length > 0 && (
-        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5">
-          <div className="text-[9px] font-mono uppercase tracking-widest text-[var(--subtle)] mb-4">Останні завантаження</div>
+        <div className="bg-(--surface) border border-(--border) rounded-xl p-5">
+          <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-4">Останні завантаження</div>
           <div className="space-y-2">
             {catalogs.slice(0, 5).map((c) => (
               <div key={c.id} className="flex items-center justify-between py-1.5">
                 <div>
                   <span className="text-sm text-white font-medium">{c.brand.name}</span>
-                  <span className="text-[var(--subtle)] mx-2">·</span>
-                  <span className="text-xs font-mono text-[#00e5c4]">{c.season}</span>
+                  <span className="text-(--subtle) mx-2">·</span>
+                  <span className="text-xs font-mono text-accent-cyan">{c.season}</span>
                 </div>
-                <span className="text-xs text-[var(--muted)]">{c.itemCount} items</span>
+                <span className="text-xs text-(--muted)">{c.itemCount} items</span>
               </div>
             ))}
           </div>
@@ -580,7 +580,7 @@ function CatalogView({ brands, items, categories, loading, filterBrand, filterCa
         <select
           value={filterBrand}
           onChange={(e) => setFilterBrand(e.target.value)}
-          className="bg-[var(--surface)] border border-[var(--border)] text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-[#00e5c4]/40"
+          className="bg-(--surface) border border-(--border) text-white text-sm rounded-lg px-3 py-2 focus:outline-hidden focus:border-accent-cyan/40"
         >
           <option value="all">Всі бренди</option>
           {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
@@ -588,7 +588,7 @@ function CatalogView({ brands, items, categories, loading, filterBrand, filterCa
         <select
           value={filterCategory}
           onChange={(e) => setFilterCategory(e.target.value)}
-          className="bg-[var(--surface)] border border-[var(--border)] text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-[#00e5c4]/40"
+          className="bg-(--surface) border border-(--border) text-white text-sm rounded-lg px-3 py-2 focus:outline-hidden focus:border-accent-cyan/40"
         >
           <option value="all">Всі категорії</option>
           {categories.map((c) => <option key={c} value={c}>{c}</option>)}
@@ -599,12 +599,12 @@ function CatalogView({ brands, items, categories, loading, filterBrand, filterCa
           onChange={(e) => setFilterSearch(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && onSearch()}
           placeholder="Пошук назви / артикулу…"
-          className="flex-1 min-w-40 bg-[var(--surface)] border border-[var(--border)] text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-[#00e5c4]/40 placeholder:text-[#3d444d]"
+          className="flex-1 min-w-40 bg-(--surface) border border-(--border) text-white text-sm rounded-lg px-3 py-2 focus:outline-hidden focus:border-accent-cyan/40 placeholder:text-[#3d444d]"
         />
         <button
           onClick={onSearch}
           disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 bg-white/[0.04] border border-[var(--border)] text-white text-sm rounded-lg hover:bg-white/[0.08] transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2 bg-white/4 border border-(--border) text-white text-sm rounded-lg hover:bg-white/8 transition-colors disabled:opacity-50"
         >
           {loading ? <RefreshCw size={13} className="animate-spin" /> : <Search size={13} />}
           Шукати
@@ -613,7 +613,7 @@ function CatalogView({ brands, items, categories, loading, filterBrand, filterCa
 
       {/* Items grid */}
       {items.length === 0 && !loading && (
-        <div className="text-center py-20 text-[var(--muted)]">
+        <div className="text-center py-20 text-(--muted)">
           {brands.length === 0
             ? "Спочатку додайте бренд, потім завантажте каталог."
             : "Товарів не знайдено. Завантажте каталог або змініть фільтри."}
@@ -627,17 +627,17 @@ function CatalogView({ brands, items, categories, loading, filterBrand, filterCa
             : null;
 
           return (
-            <div key={item.id} className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4 hover:border-white/[0.14] transition-colors group">
+            <div key={item.id} className="bg-(--surface) border border-(--border) rounded-xl p-4 hover:border-white/[0.14] transition-colors group">
               <div className="flex justify-between items-start mb-2">
-                <span className="text-[10px] font-mono text-[#00e5c4]">{item.sku}</span>
+                <span className="text-[10px] font-mono text-accent-cyan">{item.sku}</span>
                 {margin !== null && (
-                  <span className="text-[10px] font-mono bg-[#3fb950]/10 text-[#3fb950] px-1.5 py-0.5 rounded">
+                  <span className="text-[10px] font-mono bg-[#3fb950]/10 text-[#3fb950] px-1.5 py-0.5 rounded-sm">
                     {margin}%
                   </span>
                 )}
               </div>
               <p className="text-sm text-white font-medium leading-snug mb-1 line-clamp-2">{item.name}</p>
-              <p className="text-[11px] text-[var(--muted)] mb-2">
+              <p className="text-[11px] text-(--muted) mb-2">
                 {item.brand.name} · {item.category}
                 {item.color && ` · ${item.color}`}
               </p>
@@ -647,25 +647,25 @@ function CatalogView({ brands, items, categories, loading, filterBrand, filterCa
               {item.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1 mb-3">
                   {item.tags.slice(0, 2).map((t) => (
-                    <span key={t} className="text-[9px] bg-white/[0.05] text-[var(--muted)] px-1.5 py-0.5 rounded">{t}</span>
+                    <span key={t} className="text-[9px] bg-white/5 text-(--muted) px-1.5 py-0.5 rounded-sm">{t}</span>
                   ))}
                 </div>
               )}
               <div className="flex items-center gap-2">
-                <span className="text-[10px] text-[var(--subtle)]">{item.stockAvail} avail</span>
+                <span className="text-[10px] text-(--subtle)">{item.stockAvail} avail</span>
                 <input
                   ref={(el) => { if (el) qtyRefs.current[item.id] = el; }}
                   type="number"
                   min={1}
                   defaultValue={item.minOrder}
-                  className="w-12 bg-white/[0.05] border border-[var(--border)] text-white text-xs rounded px-1.5 py-1 focus:outline-none text-center"
+                  className="w-12 bg-white/5 border border-(--border) text-white text-xs rounded-sm px-1.5 py-1 focus:outline-hidden text-center"
                 />
                 <button
                   onClick={() => {
                     const qty = parseInt(qtyRefs.current[item.id]?.value ?? "1");
                     addToCart(item, qty || item.minOrder);
                   }}
-                  className="flex-1 bg-[#00e5c4]/10 border border-[#00e5c4]/20 text-[#00e5c4] text-xs font-medium rounded-lg py-1.5 hover:bg-[#00e5c4]/20 transition-colors"
+                  className="flex-1 bg-accent-cyan/10 border border-accent-cyan/20 text-accent-cyan text-xs font-medium rounded-lg py-1.5 hover:bg-accent-cyan/20 transition-colors"
                 >
                   + Додати
                 </button>
@@ -688,43 +688,43 @@ function DuplicatesView({ groups, addToCart, fmt }: {
       <div className="text-center py-20">
         <GitCompare size={40} className="mx-auto text-[#3d444d] mb-4" />
         <p className="text-white font-medium mb-1">Сканування ще не виконано</p>
-        <p className="text-[var(--muted)] text-sm">Натисніть «Сканувати» щоб знайти схожі позиції між брендами</p>
+        <p className="text-(--muted) text-sm">Натисніть «Сканувати» щоб знайти схожі позиції між брендами</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-4 max-w-4xl">
-      <p className="text-[var(--muted)] text-sm mb-4">
+      <p className="text-(--muted) text-sm mb-4">
         Знайдено {groups.length} {groups.length === 1 ? "групу" : "групи"} схожих позицій між різними брендами
       </p>
       {groups.map((group, i) => (
-        <div key={i} className="bg-[var(--surface)] border border-[#ff6b35]/20 rounded-xl overflow-hidden">
-          <div className="px-5 py-3 border-b border-[var(--border)] flex items-center justify-between">
+        <div key={i} className="bg-(--surface) border border-accent-orange/20 rounded-xl overflow-hidden">
+          <div className="px-5 py-3 border-b border-(--border) flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <AlertTriangle size={14} className="text-[#ff6b35]" />
+              <AlertTriangle size={14} className="text-accent-orange" />
               <span className="text-white font-medium text-sm">
                 {group[0].category}
                 {group[0].color && ` · ${group[0].color}`}
                 {group[0].style && ` · ${group[0].style}`}
               </span>
             </div>
-            <span className="text-[10px] font-mono bg-[#ff6b35]/10 text-[#ff6b35] px-2 py-0.5 rounded">
+            <span className="text-[10px] font-mono bg-accent-orange/10 text-accent-orange px-2 py-0.5 rounded-sm">
               {group.length} brands
             </span>
           </div>
           <div className="grid grid-cols-2 gap-3 p-4">
             {group.map((item) => (
-              <div key={item.id} className="bg-white/[0.03] border border-[var(--border)] rounded-lg p-3">
+              <div key={item.id} className="bg-white/3 border border-(--border) rounded-lg p-3">
                 <div className="flex justify-between items-start mb-1">
-                  <span className="text-[10px] font-mono text-[#00e5c4]">{item.brand.name}</span>
+                  <span className="text-[10px] font-mono text-accent-cyan">{item.brand.name}</span>
                   <span className="text-sm font-bold text-white">{item.brand.currency}{item.priceWholesale}</span>
                 </div>
                 <p className="text-sm text-white font-medium mb-1">{item.name}</p>
-                <p className="text-[11px] text-[var(--muted)] mb-2 font-mono">{item.sku}</p>
+                <p className="text-[11px] text-(--muted) mb-2 font-mono">{item.sku}</p>
                 <button
                   onClick={() => addToCart(item, item.minOrder)}
-                  className="w-full text-[11px] bg-[#00e5c4]/10 border border-[#00e5c4]/20 text-[#00e5c4] py-1.5 rounded-lg hover:bg-[#00e5c4]/20 transition-colors"
+                  className="w-full text-[11px] bg-accent-cyan/10 border border-accent-cyan/20 text-accent-cyan py-1.5 rounded-lg hover:bg-accent-cyan/20 transition-colors"
                 >
                   До замовлення
                 </button>
@@ -749,7 +749,7 @@ function CartView({ cart, budgetStatus, removeFromCart, updateQty, fmt }: {
       <div className="text-center py-20">
         <ShoppingCart size={40} className="mx-auto text-[#3d444d] mb-4" />
         <p className="text-white font-medium mb-1">Замовлення порожнє</p>
-        <p className="text-[var(--muted)] text-sm">Перейдіть до Каталогу та додайте товари</p>
+        <p className="text-(--muted) text-sm">Перейдіть до Каталогу та додайте товари</p>
       </div>
     );
   }
@@ -767,24 +767,24 @@ function CartView({ cart, budgetStatus, removeFromCart, updateQty, fmt }: {
         const b = budgetStatus.find((bs) => bs.id === brandId);
         const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
         return (
-          <div key={brandId} className="bg-[var(--surface)] border border-[var(--border)] rounded-xl overflow-hidden">
-            <div className="px-5 py-3 border-b border-[var(--border)] flex items-center justify-between">
+          <div key={brandId} className="bg-(--surface) border border-(--border) rounded-xl overflow-hidden">
+            <div className="px-5 py-3 border-b border-(--border) flex items-center justify-between">
               <span className="text-white font-semibold">{b?.name ?? brandId}</span>
               <div className="flex items-center gap-4 text-sm font-mono">
                 <span className="text-white">€{fmt(subtotal)}</span>
                 {b && b.budget > 0 && (
-                  <span className={b.remaining < 0 ? "text-[#ff6b35]" : "text-[var(--muted)]"}>
+                  <span className={b.remaining < 0 ? "text-accent-orange" : "text-(--muted)"}>
                     {b.remaining >= 0 ? "€" + fmt(b.remaining) + " left" : "€" + fmt(Math.abs(b.remaining)) + " over"}
                   </span>
                 )}
               </div>
             </div>
-            <div className="divide-y divide-white/[0.04]">
+            <div className="divide-y divide-white/4">
               {items.map((item) => (
                 <div key={item.catalogItemId} className="flex items-center gap-4 px-5 py-3">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-white font-medium truncate">{item.name}</p>
-                    <p className="text-[10px] font-mono text-[var(--muted)]">{item.sku} · {item.category}</p>
+                    <p className="text-[10px] font-mono text-(--muted)">{item.sku} · {item.category}</p>
                   </div>
                   <div className="flex items-center gap-3">
                     <input
@@ -792,14 +792,14 @@ function CartView({ cart, budgetStatus, removeFromCart, updateQty, fmt }: {
                       min={1}
                       value={item.qty}
                       onChange={(e) => updateQty(item.catalogItemId, parseInt(e.target.value) || 0)}
-                      className="w-14 bg-white/[0.05] border border-[var(--border)] text-white text-sm rounded-lg px-2 py-1.5 text-center focus:outline-none"
+                      className="w-14 bg-white/5 border border-(--border) text-white text-sm rounded-lg px-2 py-1.5 text-center focus:outline-hidden"
                     />
                     <span className="text-sm font-mono text-white w-20 text-right">
                       €{fmt(item.price * item.qty)}
                     </span>
                     <button
                       onClick={() => removeFromCart(item.catalogItemId)}
-                      className="text-[var(--muted)] hover:text-[#ff6b35] transition-colors"
+                      className="text-(--muted) hover:text-accent-orange transition-colors"
                     >
                       <Trash2 size={14} />
                     </button>
@@ -812,8 +812,8 @@ function CartView({ cart, budgetStatus, removeFromCart, updateQty, fmt }: {
       })}
 
       {/* Total */}
-      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5 flex justify-between items-center">
-        <span className="text-[var(--muted)] text-sm">Загальна сума замовлення</span>
+      <div className="bg-(--surface) border border-(--border) rounded-xl p-5 flex justify-between items-center">
+        <span className="text-(--muted) text-sm">Загальна сума замовлення</span>
         <span className="text-2xl font-bold text-white font-mono">
           €{fmt(cart.reduce((s, c) => s + c.price * c.qty, 0))}
         </span>
@@ -839,9 +839,9 @@ function AIView({ messages, input, loading, onInputChange, onSend }: {
       <div className="flex-1 overflow-auto space-y-4 mb-4">
         {messages.length === 0 && (
           <div className="text-center py-16">
-            <Sparkles size={40} className="mx-auto text-[#fbbf24] mb-4" />
+            <Sparkles size={40} className="mx-auto text-accent-yellow mb-4" />
             <p className="text-white font-semibold mb-2">Запитайте мене про асортимент</p>
-            <div className="text-[var(--muted)] text-sm space-y-1">
+            <div className="text-(--muted) text-sm space-y-1">
               <p>• Які товари пріоритетні для закупки?</p>
               <p>• Де є ризики перевищення бюджету?</p>
               <p>• Є дублі між брендами?</p>
@@ -854,15 +854,15 @@ function AIView({ messages, input, loading, onInputChange, onSend }: {
             key={i}
             className={`max-w-[80%] px-4 py-3 rounded-xl text-sm leading-relaxed whitespace-pre-wrap ${
               msg.role === "user"
-                ? "ml-auto bg-[#00e5c4]/10 border border-[#00e5c4]/20 text-white"
-                : "bg-[var(--surface)] border border-[var(--border)] text-[#e8ecf0]"
+                ? "ml-auto bg-accent-cyan/10 border border-accent-cyan/20 text-white"
+                : "bg-(--surface) border border-(--border) text-[#e8ecf0]"
             }`}
           >
             {msg.content}
           </div>
         ))}
         {loading && (
-          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-[var(--muted)] italic max-w-[80%]">
+          <div className="bg-(--surface) border border-(--border) rounded-xl px-4 py-3 text-sm text-(--muted) italic max-w-[80%]">
             Thinking…
           </div>
         )}
@@ -877,12 +877,12 @@ function AIView({ messages, input, loading, onInputChange, onSend }: {
           onKeyDown={(e) => e.key === "Enter" && !loading && onSend()}
           placeholder="Запитайте про асортимент, бюджет, дублі…"
           disabled={loading}
-          className="flex-1 bg-[var(--surface)] border border-[var(--border)] text-white text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-[#00e5c4]/40 placeholder:text-[#3d444d]"
+          className="flex-1 bg-(--surface) border border-(--border) text-white text-sm rounded-xl px-4 py-3 focus:outline-hidden focus:border-accent-cyan/40 placeholder:text-[#3d444d]"
         />
         <button
           onClick={onSend}
           disabled={loading || !input.trim()}
-          className="px-5 bg-[#00e5c4]/10 border border-[#00e5c4]/20 text-[#00e5c4] rounded-xl font-medium hover:bg-[#00e5c4]/20 transition-colors disabled:opacity-50"
+          className="px-5 bg-accent-cyan/10 border border-accent-cyan/20 text-accent-cyan rounded-xl font-medium hover:bg-accent-cyan/20 transition-colors disabled:opacity-50"
         >
           →
         </button>
@@ -900,7 +900,7 @@ function BrandsView({ brands, catalogs, onEdit, fmt }: {
   return (
     <div className="max-w-3xl">
       {brands.length === 0 && (
-        <div className="text-center py-16 text-[var(--muted)]">
+        <div className="text-center py-16 text-(--muted)">
           Брендів ще немає. Натисніть «Додати бренд» щоб почати.
         </div>
       )}
@@ -911,19 +911,19 @@ function BrandsView({ brands, catalogs, onEdit, fmt }: {
             <div
               key={b.id}
               onClick={() => onEdit(b)}
-              className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5 cursor-pointer hover:border-white/[0.14] transition-colors"
+              className="bg-(--surface) border border-(--border) rounded-xl p-5 cursor-pointer hover:border-white/[0.14] transition-colors"
             >
               <div className="flex items-start justify-between">
                 <div>
                   <h3 className="text-white font-semibold mb-1">{b.name}</h3>
-                  <div className="flex items-center gap-3 text-[11px] font-mono text-[var(--muted)]">
+                  <div className="flex items-center gap-3 text-[11px] font-mono text-(--muted)">
                     <span>Budget: {b.currency}{fmt(b.budget)}</span>
                     <span>Net {b.paymentDays}d</span>
                     <span>Lead {b.leadTimeDays}d</span>
                     {b.country && <span>{b.country}</span>}
                   </div>
                 </div>
-                <span className="text-xs text-[var(--subtle)]">{brandCatalogs.length} каталогів</span>
+                <span className="text-xs text-(--subtle)">{brandCatalogs.length} каталогів</span>
               </div>
             </div>
           );
@@ -971,43 +971,43 @@ function UploadModal({ brands, onClose, onSuccess }: {
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-7 w-full max-w-md">
+      <div className="bg-(--surface) border border-(--border) rounded-2xl p-7 w-full max-w-md">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-white font-semibold text-lg">Завантажити каталог</h2>
-          <button onClick={onClose} className="text-[var(--muted)] hover:text-white"><X size={18} /></button>
+          <button onClick={onClose} className="text-(--muted) hover:text-white"><X size={18} /></button>
         </div>
 
-        <p className="text-[var(--muted)] text-xs font-mono mb-4">
+        <p className="text-(--muted) text-xs font-mono mb-4">
           Колонки: SKU, Name, Category, Color, Style, Material, Price, Retail, MinOrder, Stock, LeadTime, Tags
         </p>
 
         <div className="space-y-3 mb-5">
           <div>
-            <label className="block text-[10px] font-mono uppercase tracking-widest text-[var(--muted)] mb-1.5">Бренд</label>
+            <label className="block text-[10px] font-mono uppercase tracking-widest text-(--muted) mb-1.5">Бренд</label>
             <select
               value={brandId}
               onChange={(e) => setBrandId(e.target.value)}
-              className="w-full bg-[#161b22] border border-[var(--border)] text-white text-sm rounded-lg px-3 py-2.5 focus:outline-none"
+              className="w-full bg-[#161b22] border border-(--border) text-white text-sm rounded-lg px-3 py-2.5 focus:outline-hidden"
             >
               {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-[10px] font-mono uppercase tracking-widest text-[var(--muted)] mb-1.5">Сезон</label>
+            <label className="block text-[10px] font-mono uppercase tracking-widest text-(--muted) mb-1.5">Сезон</label>
             <input
               type="text"
               value={season}
               onChange={(e) => setSeason(e.target.value)}
-              className="w-full bg-[#161b22] border border-[var(--border)] text-white text-sm rounded-lg px-3 py-2.5 focus:outline-none"
+              className="w-full bg-[#161b22] border border-(--border) text-white text-sm rounded-lg px-3 py-2.5 focus:outline-hidden"
               placeholder="SS26"
             />
           </div>
         </div>
 
-        <label className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-8 cursor-pointer transition-colors ${loading ? "opacity-50 cursor-not-allowed" : "border-white/[0.1] hover:border-[#00e5c4]/40"}`}>
-          <Upload size={24} className="text-[var(--muted)] mb-2" />
-          <span className="text-sm text-[var(--muted)]">{loading ? "Завантажуємо…" : "Клікніть або перетягніть .xlsx / .csv"}</span>
-          <span className="text-[10px] text-[var(--subtle)] mt-1">До 4 МБ і 5 000 рядків</span>
+        <label className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-8 cursor-pointer transition-colors ${loading ? "opacity-50 cursor-not-allowed" : "border-white/10 hover:border-accent-cyan/40"}`}>
+          <Upload size={24} className="text-(--muted) mb-2" />
+          <span className="text-sm text-(--muted)">{loading ? "Завантажуємо…" : "Клікніть або перетягніть .xlsx / .csv"}</span>
+          <span className="text-[10px] text-(--subtle) mt-1">До 4 МБ і 5 000 рядків</span>
           <input type="file" accept=".xlsx,.xls,.csv" className="hidden" disabled={loading}
             onChange={(e) => { if (e.target.files?.[0]) handleFile(e.target.files[0]); }} />
         </label>
@@ -1070,15 +1070,15 @@ function BrandModal({ brand, onClose, onSave, onDelete }: {
     onSave();
   }
 
-  const inputClass = "w-full bg-[#161b22] border border-[var(--border)] text-white text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:border-[#00e5c4]/40";
-  const labelClass = "block text-[10px] font-mono uppercase tracking-widest text-[var(--muted)] mb-1.5";
+  const inputClass = "w-full bg-[#161b22] border border-(--border) text-white text-sm rounded-lg px-3 py-2.5 focus:outline-hidden focus:border-accent-cyan/40";
+  const labelClass = "block text-[10px] font-mono uppercase tracking-widest text-(--muted) mb-1.5";
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-7 w-full max-w-md">
+      <div className="bg-(--surface) border border-(--border) rounded-2xl p-7 w-full max-w-md">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-white font-semibold text-lg">{brand ? "Редагувати бренд" : "Додати бренд"}</h2>
-          <button onClick={onClose} className="text-[var(--muted)] hover:text-white"><X size={18} /></button>
+          <button onClick={onClose} className="text-(--muted) hover:text-white"><X size={18} /></button>
         </div>
 
         <div className="space-y-3">
@@ -1102,7 +1102,7 @@ function BrandModal({ brand, onClose, onSave, onDelete }: {
 
         <div className="flex gap-3 mt-6">
           <button onClick={handleSave} disabled={loading || !form.name}
-            className="flex-1 bg-[#00e5c4] hover:bg-[#00c9ab] disabled:opacity-50 text-[#0d1117] font-semibold rounded-lg py-2.5 text-sm transition-colors">
+            className="flex-1 bg-accent-cyan hover:bg-[#00c9ab] disabled:opacity-50 text-[#0d1117] font-semibold rounded-lg py-2.5 text-sm transition-colors">
             {loading ? "Зберігаємо…" : "Зберегти"}
           </button>
           {brand && (

@@ -116,23 +116,23 @@ ${skus.filter(s => ["hit","stockout"].includes(s.flag)).slice(0,5)
   if (summary.total === 0 && !loading) {
     return (
       <div className="p-8 max-w-3xl">
-        <div className="text-[10px] font-mono uppercase tracking-widest text-[var(--subtle)] mb-2">
+        <div className="text-[10px] font-mono uppercase tracking-widest text-(--subtle) mb-2">
           {uk ? "Аналітика" : "Analytics"}
         </div>
         <h1 className="text-2xl font-bold text-white mb-1">
           {uk ? "Агент Аналітик" : "Analyst Agent"}
         </h1>
-        <div className="mt-8 bg-[var(--surface)] border border-[#fbbf24]/20 rounded-xl p-8 text-center">
+        <div className="mt-8 bg-(--surface) border border-accent-yellow/20 rounded-xl p-8 text-center">
           <div className="text-3xl mb-3">📦</div>
           <p className="text-white font-semibold mb-2">
             {uk ? "Немає даних для аналізу" : "No data to analyze"}
           </p>
-          <p className="text-[var(--muted)] text-sm mb-4">
+          <p className="text-(--muted) text-sm mb-4">
             {uk
               ? "Імпортуйте товари та дані продажів щоб агент міг класифікувати асортимент"
               : "Import products and sales data so the agent can classify your assortment"}
           </p>
-          <a href="/settings" className="inline-flex px-4 py-2 bg-[#fbbf24]/10 border border-[#fbbf24]/20 text-[#fbbf24] rounded-lg text-sm font-medium hover:bg-[#fbbf24]/20 transition-colors">
+          <a href="/settings" className="inline-flex px-4 py-2 bg-accent-yellow/10 border border-accent-yellow/20 text-accent-yellow rounded-lg text-sm font-medium hover:bg-accent-yellow/20 transition-colors">
             {uk ? "Підключити дані →" : "Connect data →"}
           </a>
         </div>
@@ -145,7 +145,7 @@ ${skus.filter(s => ["hit","stockout"].includes(s.flag)).slice(0,5)
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <div className="text-[10px] font-mono uppercase tracking-widest text-[var(--subtle)] mb-1">
+          <div className="text-[10px] font-mono uppercase tracking-widest text-(--subtle) mb-1">
             {uk ? "Аналітика" : "Analytics"}
           </div>
           <h1 className="text-2xl font-bold text-white">
@@ -153,7 +153,7 @@ ${skus.filter(s => ["hit","stockout"].includes(s.flag)).slice(0,5)
           </h1>
         </div>
         <button onClick={() => reload(activeFlag)} disabled={loading}
-          className="flex items-center gap-2 px-3 py-2 bg-white/[0.04] border border-[var(--border)] text-[var(--muted)] hover:text-white text-sm rounded-lg transition-colors disabled:opacity-50">
+          className="flex items-center gap-2 px-3 py-2 bg-white/4 border border-(--border) text-(--muted) hover:text-white text-sm rounded-lg transition-colors disabled:opacity-50">
           <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
           {uk ? "Оновити" : "Refresh"}
         </button>
@@ -163,20 +163,20 @@ ${skus.filter(s => ["hit","stockout"].includes(s.flag)).slice(0,5)
       <div className="grid grid-cols-5 gap-3 mb-6">
         {(["hit", "stockout", "slow", "dead", "ok"] as SkuFlag[]).map((f) => (
           <button key={f} onClick={() => setFilter(f === activeFlag ? "all" : f)}
-            className={`text-left bg-[var(--surface)] border rounded-xl p-4 transition-colors ${activeFlag === f ? "border-white/[0.2]" : "border-[var(--border)] hover:border-white/[0.14]"}`}>
+            className={`text-left bg-(--surface) border rounded-xl p-4 transition-colors ${activeFlag === f ? "border-white/20" : "border-(--border) hover:border-white/[0.14]"}`}>
             <div className="text-2xl mb-1">{FLAG[f].emoji}</div>
             <div className="text-xl font-bold font-mono" style={{ color: FLAG[f].color }}>
               {summary[f]}
             </div>
-            <div className="text-[10px] text-[var(--muted)] mt-0.5">{flagLabel(f)}</div>
+            <div className="text-[10px] text-(--muted) mt-0.5">{flagLabel(f)}</div>
           </button>
         ))}
       </div>
 
       {/* AI Chat — above table */}
-      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl overflow-hidden mb-6">
-        <div className="flex items-center gap-2 px-5 py-3 border-b border-[var(--border)]">
-          <Sparkles size={14} className="text-[#fbbf24]" />
+      <div className="bg-(--surface) border border-(--border) rounded-xl overflow-hidden mb-6">
+        <div className="flex items-center gap-2 px-5 py-3 border-b border-(--border)">
+          <Sparkles size={14} className="text-accent-yellow" />
           <span className="text-sm font-medium text-white">
             {uk ? "Запитати агента" : "Ask the agent"}
           </span>
@@ -185,7 +185,7 @@ ${skus.filter(s => ["hit","stockout"].includes(s.flag)).slice(0,5)
         <div ref={chatRef} className="h-56 overflow-auto p-4 space-y-3">
           {aiMsgs.length === 0 && (
             <div className="text-center py-6">
-              <p className="text-[var(--subtle)] text-sm">
+              <p className="text-(--subtle) text-sm">
                 {uk
                   ? "Запитайте про конкретний товар, ситуацію зі стоком або рекомендації"
                   : "Ask about a specific product, stock situation or recommendations"}
@@ -197,7 +197,7 @@ ${skus.filter(s => ["hit","stockout"].includes(s.flag)).slice(0,5)
                   uk ? "Що акційно просувати?" : "What to promote on sale?",
                 ].map((q) => (
                   <button key={q} onClick={() => setAiInput(q)}
-                    className="text-[11px] px-3 py-1.5 bg-[var(--input-bg)] border border-[var(--border)] text-[var(--muted)] rounded-lg hover:text-[var(--text)] hover:border-[var(--border-faint)] transition-colors">
+                    className="text-[11px] px-3 py-1.5 bg-(--input-bg) border border-(--border) text-(--muted) rounded-lg hover:text-(--text) hover:border-(--border-faint) transition-colors">
                     {q}
                   </button>
                 ))}
@@ -207,28 +207,28 @@ ${skus.filter(s => ["hit","stockout"].includes(s.flag)).slice(0,5)
           {aiMsgs.map((m, i) => (
             <div key={i} className={`max-w-[85%] px-4 py-2.5 rounded-xl text-sm whitespace-pre-wrap leading-relaxed ${
               m.role === "user"
-                ? "ml-auto bg-[#00e5c4]/10 border border-[#00e5c4]/20 text-white"
-                : "bg-[var(--surface2)] border border-[var(--border)] text-[#e8ecf0]"
+                ? "ml-auto bg-accent-cyan/10 border border-accent-cyan/20 text-white"
+                : "bg-(--surface2) border border-(--border) text-[#e8ecf0]"
             }`}>
               {m.content}
             </div>
           ))}
           {aiLoading && (
-            <div className="bg-[var(--surface2)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm text-[var(--muted)] italic max-w-[85%]">
+            <div className="bg-(--surface2) border border-(--border) rounded-xl px-4 py-2.5 text-sm text-(--muted) italic max-w-[85%]">
               {uk ? "Аналізую…" : "Analyzing…"}
             </div>
           )}
         </div>
 
-        <div className="flex gap-2 p-3 border-t border-[var(--border)]">
+        <div className="flex gap-2 p-3 border-t border-(--border)">
           <input type="text" value={aiInput} onChange={(e) => setAiInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !aiLoading && sendAi()}
             disabled={aiLoading}
             placeholder={uk ? "Запитайте про стан асортименту…" : "Ask about your assortment…"}
-            className="flex-1 bg-[var(--surface2)] border border-[var(--border)] text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#00e5c4]/40 placeholder:text-[#3d444d]"
+            className="flex-1 bg-(--surface2) border border-(--border) text-white text-sm rounded-xl px-4 py-2.5 focus:outline-hidden focus:border-accent-cyan/40 placeholder:text-[#3d444d]"
           />
           <button onClick={sendAi} disabled={aiLoading || !aiInput.trim()}
-            className="px-4 bg-[#00e5c4]/10 border border-[#00e5c4]/20 text-[#00e5c4] rounded-xl hover:bg-[#00e5c4]/20 transition-colors disabled:opacity-40">
+            className="px-4 bg-accent-cyan/10 border border-accent-cyan/20 text-accent-cyan rounded-xl hover:bg-accent-cyan/20 transition-colors disabled:opacity-40">
             <Send size={15} />
           </button>
         </div>
@@ -237,12 +237,12 @@ ${skus.filter(s => ["hit","stockout"].includes(s.flag)).slice(0,5)
       {/* Filter tabs */}
       <div className="flex items-center gap-2 mb-4 flex-wrap">
         <button onClick={() => setFilter("all")}
-          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${activeFlag === "all" ? "bg-[var(--input-bg)] text-[var(--text)]" : "text-[var(--muted)] hover:text-[var(--text)]"}`}>
+          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${activeFlag === "all" ? "bg-(--input-bg) text-(--text)" : "text-(--muted) hover:text-(--text)"}`}>
           {uk ? `Всі (${summary.total})` : `All (${summary.total})`}
         </button>
         {(["hit", "stockout", "slow", "dead"] as SkuFlag[]).filter((f) => summary[f] > 0).map((f) => (
           <button key={f} onClick={() => setFilter(f)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${activeFlag === f ? "text-white" : "text-[var(--muted)] hover:text-[var(--text)]"}`}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${activeFlag === f ? "text-white" : "text-(--muted) hover:text-(--text)"}`}
             style={activeFlag === f ? { background: FLAG[f].bg, color: FLAG[f].color } : undefined}>
             {FLAG[f].emoji} {flagLabel(f)} ({summary[f]})
           </button>
@@ -250,13 +250,13 @@ ${skus.filter(s => ["hit","stockout"].includes(s.flag)).slice(0,5)
 
         {/* Page size selector */}
         <div className="ml-auto flex items-center gap-2">
-          <span className="text-xs text-[var(--subtle)]">
+          <span className="text-xs text-(--subtle)">
             {uk ? "На сторінці:" : "Per page:"}
           </span>
           <select
             value={pageSize}
             onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
-            className="bg-[var(--surface)] border border-[var(--border)] text-[var(--text)] text-xs rounded-lg px-2 py-1.5 focus:outline-none"
+            className="bg-(--surface) border border-(--border) text-(--text) text-xs rounded-lg px-2 py-1.5 focus:outline-hidden"
           >
             <option value={20}>20</option>
             <option value={50}>50</option>
@@ -266,53 +266,53 @@ ${skus.filter(s => ["hit","stockout"].includes(s.flag)).slice(0,5)
       </div>
 
       {/* SKU table */}
-      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl overflow-hidden mb-4">
+      <div className="bg-(--surface) border border-(--border) rounded-xl overflow-hidden mb-4">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[var(--border)]">
-                <th className="text-left text-[10px] font-mono uppercase tracking-widest text-[var(--subtle)] px-4 py-3">
+              <tr className="border-b border-(--border)">
+                <th className="text-left text-[10px] font-mono uppercase tracking-widest text-(--subtle) px-4 py-3">
                   {uk ? "Артикул / Назва" : "SKU / Name"}
                 </th>
-                <th className="text-left text-[10px] font-mono uppercase tracking-widest text-[var(--subtle)] px-3 py-3 hidden md:table-cell">
+                <th className="text-left text-[10px] font-mono uppercase tracking-widest text-(--subtle) px-3 py-3 hidden md:table-cell">
                   {uk ? "Бренд / Категорія" : "Brand / Category"}
                 </th>
-                <th className="text-right text-[10px] font-mono uppercase tracking-widest text-[var(--subtle)] px-3 py-3">
+                <th className="text-right text-[10px] font-mono uppercase tracking-widest text-(--subtle) px-3 py-3">
                   {uk ? "Залишок" : "Stock"}
                 </th>
-                <th className="text-right text-[10px] font-mono uppercase tracking-widest text-[var(--subtle)] px-3 py-3 hidden lg:table-cell">
+                <th className="text-right text-[10px] font-mono uppercase tracking-widest text-(--subtle) px-3 py-3 hidden lg:table-cell">
                   {uk ? "Продажі 7д / 30д" : "Sales 7d / 30d"}
                 </th>
-                <th className="text-right text-[10px] font-mono uppercase tracking-widest text-[var(--subtle)] px-3 py-3 hidden lg:table-cell">
+                <th className="text-right text-[10px] font-mono uppercase tracking-widest text-(--subtle) px-3 py-3 hidden lg:table-cell">
                   {uk ? "Днів запасу" : "Days of stock"}
                 </th>
-                <th className="text-center text-[10px] font-mono uppercase tracking-widest text-[var(--subtle)] px-3 py-3">
+                <th className="text-center text-[10px] font-mono uppercase tracking-widest text-(--subtle) px-3 py-3">
                   {uk ? "Статус" : "Status"}
                 </th>
               </tr>
             </thead>
             <tbody>
               {pagedSkus.map((s) => (
-                <tr key={s.id} className="border-b border-[var(--border-faint)] hover:bg-[var(--input-bg)] transition-colors">
+                <tr key={s.id} className="border-b border-(--border-faint) hover:bg-(--input-bg) transition-colors">
                   <td className="px-4 py-3">
-                    <div className="text-[10px] font-mono text-[#00e5c4]">{s.sku}</div>
-                    <div className="text-[var(--text)] text-sm font-medium truncate max-w-48">{s.name}</div>
+                    <div className="text-[10px] font-mono text-accent-cyan">{s.sku}</div>
+                    <div className="text-(--text) text-sm font-medium truncate max-w-48">{s.name}</div>
                   </td>
                   <td className="px-3 py-3 hidden md:table-cell">
-                    <div className="text-[var(--muted)] text-xs">{s.brand ?? "—"}</div>
-                    <div className="text-[var(--subtle)] text-[11px]">{s.category}</div>
+                    <div className="text-(--muted) text-xs">{s.brand ?? "—"}</div>
+                    <div className="text-(--subtle) text-[11px]">{s.category}</div>
                   </td>
                   <td className="px-3 py-3 text-right">
-                    <span className="text-[var(--text)] font-mono">{s.stock}</span>
-                    <span className="text-[var(--subtle)] text-[10px] ml-1">{uk ? "шт" : "pcs"}</span>
+                    <span className="text-(--text) font-mono">{s.stock}</span>
+                    <span className="text-(--subtle) text-[10px] ml-1">{uk ? "шт" : "pcs"}</span>
                   </td>
                   <td className="px-3 py-3 text-right hidden lg:table-cell">
-                    <span className="text-[var(--text)] font-mono">{s.sold7}</span>
-                    <span className="text-[var(--subtle)] mx-1">/</span>
-                    <span className="text-[var(--muted)] font-mono">{s.sold30}</span>
+                    <span className="text-(--text) font-mono">{s.sold7}</span>
+                    <span className="text-(--subtle) mx-1">/</span>
+                    <span className="text-(--muted) font-mono">{s.sold30}</span>
                   </td>
                   <td className="px-3 py-3 text-right hidden lg:table-cell">
-                    <span className={`font-mono ${s.daysOfStock < s.leadTime * 1.5 ? "text-[#fca5a5]" : s.daysOfStock > 90 ? "text-[#93c5fd]" : "text-[var(--muted)]"}`}>
+                    <span className={`font-mono ${s.daysOfStock < s.leadTime * 1.5 ? "text-[#fca5a5]" : s.daysOfStock > 90 ? "text-[#93c5fd]" : "text-(--muted)"}`}>
                       {s.daysOfStock >= 9999 ? "—" : s.daysOfStock}
                     </span>
                   </td>
@@ -323,7 +323,7 @@ ${skus.filter(s => ["hit","stockout"].includes(s.flag)).slice(0,5)
               ))}
               {pagedSkus.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="text-center text-[var(--subtle)] py-8 text-sm">
+                  <td colSpan={6} className="text-center text-(--subtle) py-8 text-sm">
                     {uk ? "Немає товарів для відображення" : "No items to display"}
                   </td>
                 </tr>
@@ -336,7 +336,7 @@ ${skus.filter(s => ["hit","stockout"].includes(s.flag)).slice(0,5)
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between mb-8">
-          <span className="text-xs text-[var(--subtle)] font-mono">
+          <span className="text-xs text-(--subtle) font-mono">
             {uk
               ? `${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, skus.length)} з ${skus.length}`
               : `${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, skus.length)} of ${skus.length}`}
@@ -345,12 +345,12 @@ ${skus.filter(s => ["hit","stockout"].includes(s.flag)).slice(0,5)
             <button
               onClick={() => setPage(1)}
               disabled={page === 1}
-              className="px-2 py-1.5 text-xs text-[var(--muted)] hover:text-[var(--text)] disabled:opacity-30 transition-colors"
+              className="px-2 py-1.5 text-xs text-(--muted) hover:text-(--text) disabled:opacity-30 transition-colors"
             >«</button>
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="px-3 py-1.5 text-xs bg-[var(--surface)] border border-[var(--border)] text-[var(--muted)] hover:text-[var(--text)] rounded-lg disabled:opacity-30 transition-colors"
+              className="px-3 py-1.5 text-xs bg-(--surface) border border-(--border) text-(--muted) hover:text-(--text) rounded-lg disabled:opacity-30 transition-colors"
             >
               {uk ? "← Назад" : "← Prev"}
             </button>
@@ -366,8 +366,8 @@ ${skus.filter(s => ["hit","stockout"].includes(s.flag)).slice(0,5)
                   onClick={() => setPage(p)}
                   className={`w-8 h-8 text-xs rounded-lg transition-colors ${
                     p === page
-                      ? "bg-[#00e5c4]/10 border border-[#00e5c4]/30 text-[#00e5c4]"
-                      : "text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--input-bg)]"
+                      ? "bg-accent-cyan/10 border border-accent-cyan/30 text-accent-cyan"
+                      : "text-(--muted) hover:text-(--text) hover:bg-(--input-bg)"
                   }`}
                 >
                   {p}
@@ -378,14 +378,14 @@ ${skus.filter(s => ["hit","stockout"].includes(s.flag)).slice(0,5)
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
-              className="px-3 py-1.5 text-xs bg-[var(--surface)] border border-[var(--border)] text-[var(--muted)] hover:text-[var(--text)] rounded-lg disabled:opacity-30 transition-colors"
+              className="px-3 py-1.5 text-xs bg-(--surface) border border-(--border) text-(--muted) hover:text-(--text) rounded-lg disabled:opacity-30 transition-colors"
             >
               {uk ? "Далі →" : "Next →"}
             </button>
             <button
               onClick={() => setPage(totalPages)}
               disabled={page === totalPages}
-              className="px-2 py-1.5 text-xs text-[var(--muted)] hover:text-[var(--text)] disabled:opacity-30 transition-colors"
+              className="px-2 py-1.5 text-xs text-(--muted) hover:text-(--text) disabled:opacity-30 transition-colors"
             >»</button>
           </div>
         </div>

@@ -16,7 +16,7 @@ export default function StatusMappingFields({
   const copy = (uk: string, en: string) => (lang === "uk" ? uk : en);
   return (
     <fieldset className="space-y-3">
-      <legend className="text-sm text-[var(--text)]">
+      <legend className="text-sm text-(--text)">
         {copy("Значення статусів", "Status meanings")}
       </legend>
       {rows.map((s, i) => (
@@ -65,7 +65,7 @@ export default function StatusMappingFields({
       <button
         type="button"
         disabled={rows.length >= 100}
-        className="min-h-11 rounded-lg border border-[var(--border)] px-4 py-2 text-sm text-[var(--text)] hover:bg-[var(--input-hover)] focus-visible:outline disabled:opacity-50"
+        className="min-h-11 rounded-lg border border-(--border) px-4 py-2 text-sm text-(--text) hover:bg-(--input-hover) focus-visible:outline-solid disabled:opacity-50"
         onClick={() => onChange([...rows, { id: "", kind: "" }])}
       >
         {copy("Додати статус", "Add status")}

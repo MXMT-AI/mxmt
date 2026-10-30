@@ -61,12 +61,12 @@ export default function ImportIssueList({
       className="mt-6 text-sm"
       onToggle={(e) => setOpen(e.currentTarget.open)}
     >
-      <summary className="cursor-pointer min-h-11 py-3 font-semibold focus-visible:outline">
+      <summary className="cursor-pointer min-h-11 py-3 font-semibold focus-visible:outline-solid">
         {uk
           ? "Попередження імпорту та незв’язані продажі"
           : "Import warnings and unmatched sales"}
       </summary>
-      <p className="my-2 text-[var(--muted)]">
+      <p className="my-2 text-(--muted)">
         {uk
           ? "Історія попереджень поточного підключення. Виправлені незв’язані продажі не показуються. Інші історичні попередження можуть уже бути виправлені — перевірте поточну діагностику."
           : "Warning history for the current connection. Resolved unmatched sales are omitted. Other historical warnings may already be corrected; check current diagnostics."}
@@ -76,7 +76,7 @@ export default function ImportIssueList({
         <select
           name="import-issue-code"
           aria-label={uk ? "Код попередження" : "Warning code"}
-          className={button + " ml-2 bg-[var(--surface)]"}
+          className={button + " ml-2 bg-(--surface)"}
           value={code}
           onChange={(e) => {
             setCode(e.target.value);
@@ -110,7 +110,7 @@ export default function ImportIssueList({
             {data?.rows.map((row) => (
               <li
                 key={row.id}
-                className="border-t border-[var(--border)] py-3 break-words"
+                className="border-t border-(--border) py-3 wrap-break-word"
               >
                 <p className="font-medium">
                   {qualityLabel(row.code, lang)} ·{" "}
@@ -121,10 +121,10 @@ export default function ImportIssueList({
                       "—"}
                   </span>
                 </p>
-                <p className="mt-1 text-[var(--muted)]">
+                <p className="mt-1 text-(--muted)">
                   {qualityGuidance(row.code, lang)}
                 </p>
-                <dl className="mt-2 break-all text-xs text-[var(--muted)]">
+                <dl className="mt-2 break-all text-xs text-(--muted)">
                   {Object.entries({
                     [uk ? "Джерело" : "Source"]: row.sourceId,
                     [uk ? "Імпорт" : "Import"]: row.importRunId,
