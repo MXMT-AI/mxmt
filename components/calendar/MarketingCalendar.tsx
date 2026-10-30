@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight, X, Eye, EyeOff, Sparkles, Pencil } from "lucide-react";
 import { useLang } from "@/components/LanguageProvider";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Chip { t: ChipType; l: string; id?: string }
 type ChipType = "promo" | "holiday" | "agent" | "warn" | "sale" | "event" | "stock";
@@ -29,7 +28,6 @@ interface DbEvent {
   source: string;
 }
 
-// ─── Dynamic week generation ──────────────────────────────────────────────────
 
 const MONTHS_UK = ["Січ","Лют","Бер","Кві","Тра","Чер","Лип","Сер","Вер","Жов","Лис","Гру"];
 const MONTHS_EN = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -69,9 +67,6 @@ function generateWeeks(count: number): Week[] {
 
 const WEEKS: Week[] = generateWeeks(13);
 
-// ─── Demo data remapping ──────────────────────────────────────────────────────
-// DEMO_DATA originally used absolute week keys (w14-w26).
-// Remap them to start from the current first week so demo is always visible.
 
 function remapWeekKeys<T>(
   data: Record<string, Record<string, T>>,
@@ -110,7 +105,6 @@ function remapAgentInsightKeys(
   return result;
 }
 
-// ─── UA Holidays ──────────────────────────────────────────────────────────────
 
 const UA_HOLIDAYS_LIST = [
   { month: 2,  day: 14, label: "14.02 День Валентина 💌" },
@@ -178,7 +172,6 @@ const ROWS: Row[] = [
   { t: "r", l: "Постачання", k: "supply" },
 ];
 
-// ─── Chip colours (dark-theme) ────────────────────────────────────────────────
 
 const CHIP: Record<ChipType, { bg: string; c: string; border: string }> = {
   promo:   { bg: "rgba(96,165,250,0.12)",  c: "#93c5fd", border: "transparent" },
@@ -272,7 +265,6 @@ const AGENT_INSIGHTS: Record<string, Chip[]> = {
   "w21_accent":  [{ t: "agent", l: "+ Температура 25°C → максимум окулярів" }],
 };
 
-// Remap demo data keys from absolute (w14-w26) to current week keys
 const DEMO_OLD_KEYS = ["w14","w15","w16","w17","w18","w19","w20","w21","w22","w23","w24","w25","w26"];
 const DEMO_NEW_KEYS = WEEKS.map((w) => w.k);
 const DEMO_DATA_MAPPED = remapWeekKeys(DEMO_DATA, DEMO_OLD_KEYS, DEMO_NEW_KEYS);
@@ -308,7 +300,6 @@ const ST_COLORS = {
   excess: { bg: "rgba(96,165,250,0.1)",  c: "#93c5fd", label: "Надлишок" },
 };
 
-// ─── Main component ───────────────────────────────────────────────────────────
 
 interface InsightItem {
   type: "warn" | "agent" | "stock";
@@ -346,7 +337,6 @@ export default function MarketingCalendar({ initialEvents }: { initialEvents: Db
       .catch(() => {});
   }, []);
 
-  // Load real AI insights; fall back to INSIGHTS demo data if none
   useEffect(() => {
     fetch("/api/calendar/insights")
       .then((r) => r.json())
@@ -357,26 +347,20 @@ export default function MarketingCalendar({ initialEvents }: { initialEvents: Db
   const visibleWeeks = WEEKS.slice(scrollStart, scrollStart + 4);
 
   const getChips = (rowKey: string, weekKey: string): Chip[] => {
-    // Demo template (remapped to current weeks)
     const demo = showDemo ? ((DEMO_DATA_MAPPED[rowKey] ?? {})[weekKey] ?? []) : [];
 
-    // User's own events from DB
     const user = dbEvents
       .filter((e) => e.rowKey === rowKey && e.weekKey === weekKey)
       .map((e) => ({ t: e.type as ChipType, l: e.label, id: e.id }));
 
-    // UA holidays always visible in "events" row
     const holidays = rowKey === "events" ? (HOLIDAY_CHIPS[weekKey] ?? []) : [];
 
-    // Agent tab chips
     let agent: Chip[] = [];
     if (tab === "agent") {
-      // 1. AI-generated plan chips (highest priority)
       const aiRowChips = aiChips
         .filter((c) => c.weekKey === weekKey && c.rowKey === rowKey)
         .map((c) => ({ t: c.type, l: c.label }));
 
-      // 2. Real insight chips from classify API
       const insightChips = insights
         .filter((ins) => (ins as InsightItem & { weekKey?: string; rowKey?: string }).weekKey === weekKey
           && (ins as InsightItem & { weekKey?: string; rowKey?: string }).rowKey === rowKey)
@@ -385,7 +369,6 @@ export default function MarketingCalendar({ initialEvents }: { initialEvents: Db
           l: ins.brand.length > 18 ? ins.brand.slice(0, 16) + "…" : ins.brand,
         }));
 
-      // 3. Fallback to demo if showDemo and no real data
       const fallback = showDemo ? (AGENT_INSIGHTS_MAPPED[`${weekKey}_${rowKey}`] ?? []) : [];
 
       agent = aiRowChips.length > 0 ? aiRowChips
@@ -451,7 +434,6 @@ export default function MarketingCalendar({ initialEvents }: { initialEvents: Db
         setTab("agent");
       }
     } catch {
-      // silent fail
     } finally {
       setAiLoading(false);
     }
@@ -494,7 +476,6 @@ export default function MarketingCalendar({ initialEvents }: { initialEvents: Db
 
   return (
     <div className="p-6 max-w-full overflow-hidden">
-      {/* ── Header ── */}
       <div className="flex justify-between items-start mb-5 flex-wrap gap-3">
         <div>
           <div className="text-[10px] font-mono uppercase tracking-widest text-(--subtle) mb-1">
@@ -513,7 +494,6 @@ export default function MarketingCalendar({ initialEvents }: { initialEvents: Db
         </div>
 
         <div className="flex gap-2 items-center flex-wrap">
-          {/* AI Plan button */}
           <button
             onClick={generateAiPlan}
             disabled={aiLoading}
@@ -532,7 +512,6 @@ export default function MarketingCalendar({ initialEvents }: { initialEvents: Db
               : (lang === "uk" ? "AI план" : "AI plan")}
           </button>
 
-          {/* Demo toggle */}
           <button
             onClick={() => setShowDemo((v) => !v)}
             title={showDemo
@@ -548,7 +527,6 @@ export default function MarketingCalendar({ initialEvents }: { initialEvents: Db
             {lang === "uk" ? "Шаблон" : "Template"}
           </button>
 
-          {/* Tabs */}
           <div className="flex bg-(--surface) border border-(--border) rounded-lg overflow-hidden">
             {(["plan", "agent", "stock"] as const).map((t) => (
               <button key={t} onClick={() => setTab(t)}
@@ -564,7 +542,6 @@ export default function MarketingCalendar({ initialEvents }: { initialEvents: Db
         </div>
       </div>
 
-      {/* ── Stats ── */}
       <div className="grid grid-cols-3 gap-3 mb-5">
         {[
           { v: `${(showDemo ? 68 : 0) + userCount}`, l: labels.events_in_plan, c: "text-white" },
@@ -578,7 +555,6 @@ export default function MarketingCalendar({ initialEvents }: { initialEvents: Db
         ))}
       </div>
 
-      {/* ── Legend ── */}
       <div className="flex gap-3 mb-3 flex-wrap">
         {([
           { l: lang === "uk" ? "Акція/промо" : "Promo",         t: "promo"   },
@@ -596,7 +572,6 @@ export default function MarketingCalendar({ initialEvents }: { initialEvents: Db
         ))}
       </div>
 
-      {/* ── Week nav ── */}
       <div className="flex items-center justify-between mb-2">
         <button onClick={() => setScrollStart(Math.max(0, scrollStart - 1))} disabled={scrollStart === 0}
           className="flex items-center gap-1 text-xs text-(--muted) hover:text-white disabled:opacity-30 transition-colors">
@@ -611,7 +586,6 @@ export default function MarketingCalendar({ initialEvents }: { initialEvents: Db
         </button>
       </div>
 
-      {/* ── Calendar grid ── */}
       <div className="overflow-x-auto rounded-xl border border-(--border) mb-5">
         <table className="w-full text-xs border-collapse" style={{ tableLayout: "fixed" }}>
           <colgroup>
@@ -704,7 +678,6 @@ export default function MarketingCalendar({ initialEvents }: { initialEvents: Db
         </table>
       </div>
 
-      {/* ── Bottom panels ── */}
       <div className={`grid gap-4 ${tab === "plan" ? "grid-cols-2" : "grid-cols-1"}`}>
         {(tab === "plan" || tab === "agent") && (
           <div className="bg-(--surface) border border-(--border) rounded-xl p-5">
@@ -799,7 +772,6 @@ export default function MarketingCalendar({ initialEvents }: { initialEvents: Db
         )}
       </div>
 
-      {/* ── Edit event modal ── */}
       {editModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
           onClick={() => setEditModal(null)}>
@@ -849,7 +821,6 @@ export default function MarketingCalendar({ initialEvents }: { initialEvents: Db
         </div>
       )}
 
-      {/* ── Add event modal ── */}
       {addModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
           onClick={() => setAddModal(null)}>

@@ -262,8 +262,6 @@ export function parseRawWorkbook(buffer: Buffer): ParsedRawWorkbook {
     dense: true,
     cellFormula: false,
     cellHTML: false,
-    // Auxiliary workbook tabs are not imported. Avoid materializing their cells
-    // inside the serverless process alongside the five saved source tables.
     sheets: RAW_SHEET_CONFIGS.map(config => config.name),
   });
   const sheets: ParsedRawSheet[] = [];

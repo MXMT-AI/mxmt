@@ -14,7 +14,6 @@ import {marketSourceInTx,validateMarketRights,validateMarketAttribute,purgeMarke
 import {MarketEvidenceError,parseMarketQuery,normalizeMarketObservation,marketObservationSummary,marketMoney,marketId,type MarketPolicy,type MarketQuery,type MarketObservation} from "./market-evidence";
 
 export interface MarketSourceAdapter {
- /** Implement only after a real source contract/access decision; never construct transports from browser URLs. */
  read(input:{query:MarketQuery;policy:MarketPolicy;signal:AbortSignal}):Promise<{observation:unknown;charge?:{amount:string;currency:string}}>;
 }
 interface RequestRecord {id:string;actorId:string;createdAt:Date|string;context:{kind:string;requestHash:string;state:"STARTED"|"DONE"|"FAILED"|"RECOVERED";code?:string;maxCharge:string;chargedAmount?:string;quality?:string;quotaKey:string;budgetFrom:string;budgetTo:string}}
@@ -23,13 +22,11 @@ interface StoredEvidence {id:string;context:{kind:string;cacheKey:string;expires
 const unavailable=(reason:string)=>({version:1 as const,status:"unavailable" as const,reason,externalEvidence:null,internalSales:{status:"not_computed"},hypotheses:[],causality:"not_established",forecastInput:false});
 const known=(error:unknown)=>error instanceof MarketEvidenceError||error instanceof CustomLabelError||error instanceof ProductAttributeError||error instanceof AiExecutionError&&error.code!=="AI_FORBIDDEN";
 const reason=(error:unknown)=>error instanceof Error&&"code" in error?String(error.code):"SOURCE_CONTEXT_UNAVAILABLE";
-/** Budget accounting is independent from AI tokens and includes conservative outstanding request exposure. */
 export async function marketSourceUsage(p:AiPrincipal,budget:MarketPolicy["budget"],tx:SqlClient){
  const [row]=await tx.$queryRaw<Array<{requests:number;requestExposure:string}>>(Prisma.sql`SELECT count(*)::int requests,COALESCE(sum(COALESCE(context->>'chargedAmount',context->>'maxCharge')::numeric),0)::text "requestExposure"
   FROM "MerchandisingAction" WHERE "tenantId"=${p.tenantId} AND "entityType"='MARKET_REQUEST' AND context->>'kind'='MARKET_REQUEST_V1' AND context->>'quotaKey'=${budget.key} AND context->>'budgetFrom'=${budget.from} AND context->>'budgetTo'=${budget.to}`);
  return {requests:row.requests,requestExposure:D(row.requestExposure).toFixed(8),approvedSubscriptionAmount:budget.subscriptionAmount,totalExposure:D(row.requestExposure).plus(budget.subscriptionAmount).toFixed(8),currency:budget.currency,resetsAt:budget.to};
 }
-/** Pin source policy, geographic/category scope and optional approved physical mapping to the current MVP envelope. */
 async function sourceContext(p:AiPrincipal,q:MarketQuery,tx:SqlClient,now:Date){
  const source=await marketSourceInTx(p,q.profileId,tx);if(!source.approvedAt)throw new MarketEvidenceError("SOURCE_NOT_APPROVED",409);
  const policy=source.values;validateMarketRights(policy,now);await validateMarketAttribute(p,policy,tx);
@@ -41,12 +38,10 @@ async function sourceContext(p:AiPrincipal,q:MarketQuery,tx:SqlClient,now:Date){
 }
 const requestInTx=async(p:AiPrincipal,key:string,tx:SqlClient)=>(await tx.$queryRaw<RequestRecord[]>(Prisma.sql`SELECT id,"actorId","createdAt",context FROM "MerchandisingAction" WHERE "tenantId"=${p.tenantId} AND "idempotencyKey"=${`market-request:${key}`} AND "entityType"='MARKET_REQUEST'`))[0];
 const cachedInTx=async(p:AiPrincipal,key:string,tx:SqlClient)=>(await tx.$queryRaw<StoredEvidence[]>(Prisma.sql`SELECT id,context,after FROM "MerchandisingAction" WHERE "tenantId"=${p.tenantId} AND "entityType"='MARKET_EVIDENCE' AND context->>'kind'='MARKET_EVIDENCE_V1' AND context->>'cacheKey'=${key} ORDER BY "createdAt" DESC,id DESC LIMIT 1`))[0];
-/** Expose retained external observations separately from internal sales references and untested hypotheses. */
 function available(stored:StoredEvidence,cached:boolean,usage:Awaited<ReturnType<typeof marketSourceUsage>>){
  const r=stored.context.receipt,q=r.query,params=new URLSearchParams({snapshotId:q.snapshotId,period:"custom",dateFrom:q.from,dateTo:q.to,categoryId:q.categoryId});
  return {version:1 as const,status:"available" as const,cached,externalEvidence:{...r,observation:stored.after.observation!,summary:stored.after.summary!},sourceUsage:usage,internalSales:{status:"separate_internal_report",href:`/sales?${params}`,snapshotId:q.snapshotId},hypotheses:[],causality:"not_established",forecastInput:false};
 }
-/** Reserve one whole external request before dispatch, using only explicitly injected server adapters; production has none. */
 export async function getMarketEvidence(p:AiPrincipal,value:unknown,options:{db?:SqlDatabase;now?:()=>Date;adapters?:ReadonlyMap<string,MarketSourceAdapter>;timeoutMs?:number}={}){
  const q=parseMarketQuery(value),db=options.db??prisma,clock=options.now??(()=>new Date()),adapters=options.adapters??new Map<string,MarketSourceAdapter>();
  let prepared;
@@ -94,7 +89,6 @@ export async function getMarketEvidence(p:AiPrincipal,value:unknown,options:{db?
   return available({id:evidenceId,context:metadata,after:body},false,await marketSourceUsage(p,policy.budget,tx));
  });
 }
-/** An owner may conservatively settle a stale dispatched request; recovery never replays a provider call or frees its allowance. */
 export async function recoverMarketRequest(p:AiPrincipal,requestKey:string,db:SqlDatabase=prisma,now=new Date()){
  marketId(requestKey);return aiTransaction(p,db,async tx=>{
   const row=await requestInTx(p,requestKey,tx);if(!row)throw new MarketEvidenceError("SOURCE_REQUEST_NOT_FOUND",404);

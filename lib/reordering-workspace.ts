@@ -12,7 +12,6 @@ const filterKeys = [
   "skuId",
   "currency",
 ] as const;
-/** Keep global context and canonical drill-down IDs; absent numeric controls inherit supplier policy. */
 export function readReorderingDraft(query: URLSearchParams): ReorderingDraft {
   const filters: ReorderingRequest["filters"] = {};
   for (const key of filterKeys) {
@@ -31,7 +30,6 @@ export function readReorderingDraft(query: URLSearchParams): ReorderingDraft {
     coverDays: query.get("coverDays") ?? "",
   };
 }
-/** Persist shareable controls while leaving scenario-only transit confirmations out of the URL. */
 export function writeReorderingDraft(
   query: URLSearchParams,
   draft: ReorderingDraft,
@@ -55,7 +53,6 @@ export type ReorderingState = {
   transit: Record<string, string>;
   page: number;
 };
-/** Restore safe navigation defaults; financial scenario values still require server validation. */
 export const initialReorderingState = (
   query: URLSearchParams,
 ): ReorderingState => ({
@@ -71,7 +68,6 @@ export type ReorderingAction =
   | { type: "restoreTransit"; skuId: string }
   | { type: "page"; page: number }
   | { type: "restore"; query: string };
-/** Transit confirmations persist across terms, filters and paging within one pinned snapshot. */
 export function reorderingReducer(
   state: ReorderingState,
   action: ReorderingAction,
@@ -95,7 +91,6 @@ export function reorderingReducer(
   else transit[action.skuId] = action.value;
   return { ...state, transit };
 }
-/** Serialize intent only; malformed day values remain for server-side field validation. */
 export function reorderingRequest(
   snapshotId: string,
   state: ReorderingState,

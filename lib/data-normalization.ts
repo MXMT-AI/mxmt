@@ -351,7 +351,6 @@ function productResolver(products: NormalizedProduct[]) {
   };
 }
 
-/** Retain raw Sheets transaction facts and apply the existing report inclusion contract. */
 function normalizeSales(
   sheet: ParsedRawSheet,
   products: NormalizedProduct[]
@@ -502,7 +501,6 @@ function normalizeSales(
   return { saleLines, issues };
 }
 
-/** Normalize required source sheets while keeping row-level issues and raw lineage. */
 export function normalizeRawWorkbook(parsed: ParsedRawWorkbook): NormalizedWorkbook {
   const productResult = normalizeProducts(sheetByKey(parsed, "product_yml"));
   const salesResult = normalizeSales(
@@ -517,26 +515,22 @@ export function normalizeRawWorkbook(parsed: ParsedRawWorkbook): NormalizedWorkb
   };
 }
 
-/** Canonical tenant brand key. Raw spellings remain in source records. */
 export function normalizedBrandKey(name: string | null | undefined): string | null {
   return name?.trim().toUpperCase() || null;
 }
 
-/** Separate non-merchandise components before any financial or stock aggregation. */
 export function productEligibility(kind: string) {
   return { isService: kind==='SERVICE', isGiftCard: kind==='GIFT_CARD',
     merchandiseRevenue: kind==='MERCHANDISE', serviceRevenue: kind==='SERVICE',
     merchandiseMargin: kind==='MERCHANDISE', stock: kind==='MERCHANDISE', classification: kind==='MERCHANDISE' };
 }
 
-/** A first-sale proxy is labelled and never replaces the verified receipt/cohort date. */
 export function productAgeReference(receiptAt: Date | null, firstSaleAt: Date | null, observedAt: Date) {
   const chosen=receiptAt ?? firstSaleAt;
   if (!chosen || chosen>observedAt) return {date:null,basis:'UNAVAILABLE',inferred:false,issue:chosen?'NEGATIVE_PRODUCT_AGE':'MISSING_RECEIPT_DATE'};
   return {date:chosen,basis:receiptAt?'VERIFIED_RECEIPT':'FIRST_SALE_PROXY',inferred:!receiptAt,issue:receiptAt?null:'INFERRED_PRODUCT_AGE'};
 }
 
-/** Negative or invalid derived metrics are missing data with an explicit exception. */
 export function nonnegativeMetric(value: string | null) {
   const parsed=decimal(value);
   return !parsed || parsed.isNegative() ? {value:null,issue:parsed?'NEGATIVE_METRIC':'INVALID_METRIC'} : {value:parsed,issue:null};

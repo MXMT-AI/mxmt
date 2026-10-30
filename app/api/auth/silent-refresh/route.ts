@@ -6,8 +6,6 @@ import { prisma } from "@/lib/prisma";
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from "@/lib/auth";
 import { createRequestContext, logError, requestLogContext, withRequestId } from "@/lib/observability";
 
-// Called by middleware when access token is expired but refresh token exists.
-// Refreshes tokens, sets cookies, then redirects back to the original page.
 export async function GET(request: NextRequest) {
   const context = createRequestContext(request, "api.auth.silent-refresh");
   const returnTo = request.nextUrl.searchParams.get("next");

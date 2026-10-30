@@ -5,7 +5,6 @@ import { apiFetch } from "@/lib/fetch";
 import type { ReportingSources } from "@/lib/reporting-source-contract";
 import { reportingSourceHelp } from "@/lib/reporting-readiness-copy";
 import { useLang } from "@/components/LanguageProvider";
-/** Safe selected-source metadata only; status never switches sources or starts an import. */
 export default function ReportingSourceStatus({
   explainTabs = false,
   compact = false,

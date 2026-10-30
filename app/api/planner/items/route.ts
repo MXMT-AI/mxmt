@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     },
     include: { brand: { select: { id: true, name: true, currency: true } } },
     orderBy: [{ brandId: "asc" }, { category: "asc" }, { name: "asc" }],
-    take: 500, // safety limit
+    take: 500,
   });
 
   return NextResponse.json(items);

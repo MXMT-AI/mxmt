@@ -33,7 +33,7 @@ it("retains SalesDrive defaults, validates tenant/actor scope and uses optimisti
   await f.pg
     .exec(`INSERT INTO "DataSource" (id,"tenantId",kind,"sourceKey","updatedAt") VALUES ('csv-a','a','CSV','upload-a',now());
     INSERT INTO "ConnectorConnection" (id,"tenantId","sourceId",provider,"accountHost","encryptedConfig","lastCheck","updatedAt") VALUES ('csv-a','a','csv-a','csv','upload-a','synthetic','{"ok":true}',now());`);
-  expect((await listConnectorSources("a", f.db)).sourceId).toBe("source"); // saving did not switch
+  expect((await listConnectorSources("a", f.db)).sourceId).toBe("source");
   await expect(
     selectConnectorSource("a", "owner", "bimba:source", 0, f.db),
   ).rejects.toMatchObject({ status: 404 });
@@ -117,7 +117,6 @@ it("runs the same financial/daily/navigation consumers for equivalent non-SalesD
   const baseline = await getSalesReport("b", screenSelection, f.db);
   const daily = await calculateSkuDaily("b", screenSelection, f.db);
   const navigation = await readNavigationOptions("b", f.db);
-  // Transform only this synthetic fixture's provider identity; production sources are never relabeled.
   await f.pg.exec(
     `UPDATE "DataSource" SET kind='CSV' WHERE id='bimba:source'; UPDATE "ConnectorSyncJob" SET checkpoint=checkpoint||'{"historyComplete":true}'::jsonb WHERE id='bimba:orders-job'; UPDATE "ConnectorConnection" SET provider='csv',"lastCheck"='{"ok":true}' WHERE "tenantId"='b'; UPDATE "MerchandisingConfig" SET key=replace(key,'salesdrive:','csv:') WHERE "tenantId"='b' AND "configType"='SOURCE_MAPPING';`,
   );
@@ -150,7 +149,6 @@ it("does not bridge unverified history with a scan watermark but accepts contigu
     .exec(`UPDATE "ConnectorSyncJob" SET checkpoint=checkpoint||'{"coverageFrom":"2025-01-01T00:00:00.000Z","coverageTo":"2026-08-01T00:00:00.000Z"}'::jsonb WHERE id='bimba:orders-job';
     INSERT INTO "DataImportRun" (id,"tenantId","sourceId",trigger,status,"idempotencyKey","businessDate","completedAt","updatedAt") VALUES ('unverified','b','bimba:source','MANUAL','WARNING','unverified',now(),now(),now());
     INSERT INTO "ConnectorSyncJob" (id,"tenantId","sourceId","importRunId",resource,mode,state,"connectionRevision",checkpoint,"updatedAt") VALUES ('unverified','b','bimba:source','unverified','orders','BACKFILL','COMPLETE',1,'{"from":"2026-08-01T00:00:00.000Z","to":"2026-10-25T09:00:00.000Z","historyComplete":false}',now());`);
-  // The scan has advanced, but the old verified baseline stops in August.
   let evidence = await readOrderHistory("b", "bimba:source", f.db);
   expect(evidence.cursor?.through).toBe("2026-10-25T09:00:00Z");
   expect(evidence.cursor?.coverageThrough).toBeNull();
@@ -187,7 +185,7 @@ it("does not bridge unverified history with a scan watermark but accepts contigu
   );
   expect(
     (await getSalesReport("b", screenSelection, f.db)).history.current,
-  ).toBe(false); // verified spans still have a gap
+  ).toBe(false);
   await f.pg.exec(
     `UPDATE "ConnectorSyncJob" SET checkpoint=checkpoint||'{"coverageFrom":"2026-08-01T00:00:00.000Z"}'::jsonb WHERE id='unverified';`,
   );

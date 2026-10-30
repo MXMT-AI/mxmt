@@ -9,8 +9,8 @@ import ExportButtons from "@/components/agents/ExportButtons";
 export interface PromoSimParams {
   brandId: string;
   brandName: string;
-  strategyType: string; // AGGRESSIVE | BALANCED | CONSERVATIVE
-  label: string; // "Флеш-сейл -50%"
+  strategyType: string;
+  label: string;
   discountPercent: number;
   durationDays: number;
   unitsToSellPercent?: number | null;
@@ -79,7 +79,6 @@ export default function PromoTableModal({
         className="relative w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl border border-(--border) bg-(--surface)"
         style={{ boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}
       >
-        {/* Header */}
         <div className="sticky top-0 bg-(--surface) border-b border-(--border) px-6 py-4 flex items-center justify-between z-10 gap-3">
           <div className="min-w-0">
             <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-0.5">
@@ -98,7 +97,6 @@ export default function PromoTableModal({
         </div>
 
         <div className="px-6 py-5 space-y-4">
-          {/* Export */}
           {sim && (
             <ExportButtons
               title={title}
@@ -110,7 +108,6 @@ export default function PromoTableModal({
             />
           )}
 
-          {/* Loading / error */}
           {!sim && !error && (
             <div className="flex items-center justify-center gap-2 py-12 text-(--muted) text-sm">
               <RefreshCw size={14} className="animate-spin" /> Розрахунок…
@@ -125,7 +122,6 @@ export default function PromoTableModal({
 
           {sim && (
             <>
-              {/* Summary cards */}
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
                 {[
                   { label: "Позицій", value: String(sim.totals.skuCount) },
@@ -146,7 +142,6 @@ export default function PromoTableModal({
                 ))}
               </div>
 
-              {/* Model note */}
               <p className="text-[10px] font-mono text-(--subtle)">
                 Параметри сценарію — від AI-агента; розрахунок таблиці — детермінований (PostgreSQL + формули).
                 Прогноз: {sim.forecastModel === "ai_percent"
@@ -156,7 +151,6 @@ export default function PromoTableModal({
                 В експорті знижка в клітинці B2 — формули перерахуються автоматично.
               </p>
 
-              {/* Table */}
               {sim.rows.length === 0 ? (
                 <p className="text-sm text-(--muted) py-6 text-center">
                   Немає SKU з позитивним залишком для цього бренда.

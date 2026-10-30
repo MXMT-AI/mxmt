@@ -9,7 +9,6 @@ import {
 import * as XLSX from "xlsx";
 import { useLang } from "@/components/LanguageProvider";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Brand {
   id: string;
@@ -71,7 +70,6 @@ interface AiMessage { role: "user" | "assistant"; content: string }
 
 const MAX_CATALOG_UPLOAD_BYTES = 4 * 1024 * 1024;
 
-// ─── PlannerApp ───────────────────────────────────────────────────────────────
 
 export default function PlannerApp({
   initialBrands,
@@ -95,16 +93,13 @@ export default function PlannerApp({
   const [toast, setToast] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Filters for catalog view
   const [filterBrand, setFilterBrand] = useState("all");
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterSearch, setFilterSearch] = useState("");
 
-  // Modals
   const [uploadModal, setUploadModal] = useState(false);
   const [brandModal, setBrandModal] = useState<Brand | null | "new">(null);
 
-  // ─── Budget computed ────────────────────────────────────────────────────────
   const budgetStatus = brands.map((b) => {
     const spent = cart.filter((c) => c.brandId === b.id).reduce((s, c) => s + c.price * c.qty, 0);
     const budget = b.budget ?? 0;
@@ -114,7 +109,6 @@ export default function PlannerApp({
   const totalSpent = budgetStatus.reduce((s, b) => s + b.spent, 0);
   const totalCartItems = cart.reduce((s, c) => s + c.qty, 0);
 
-  // ─── Helpers ────────────────────────────────────────────────────────────────
   const showToast = useCallback((msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 3000);
@@ -123,7 +117,6 @@ export default function PlannerApp({
   const fmt = (n: number) =>
     Number(n || 0).toLocaleString("uk-UA", { maximumFractionDigits: 0 });
 
-  // ─── Load items ─────────────────────────────────────────────────────────────
   const loadItems = useCallback(async () => {
     setLoading(true);
     try {
@@ -144,7 +137,6 @@ export default function PlannerApp({
     if (section === "catalog") loadItems();
   }, [section, loadItems]);
 
-  // ─── Cart persistence ───────────────────────────────────────────────────────
   const saveCartRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const saveCart = useCallback((newCart: CartItem[]) => {
     clearTimeout(saveCartRef.current);
@@ -162,7 +154,6 @@ export default function PlannerApp({
     saveCart(newCart);
   }, [saveCart]);
 
-  // ─── Cart operations ────────────────────────────────────────────────────────
   const addToCart = useCallback((item: CatalogItem, qty: number) => {
     setCart((prev) => {
       const existing = prev.find((c) => c.catalogItemId === item.id);
@@ -212,7 +203,6 @@ export default function PlannerApp({
     });
   }, [saveCart]);
 
-  // ─── Find duplicates ────────────────────────────────────────────────────────
   const findDuplicates = async () => {
     setLoading(true);
     try {
@@ -226,7 +216,6 @@ export default function PlannerApp({
     }
   };
 
-  // ─── Export PO ──────────────────────────────────────────────────────────────
   const exportPO = () => {
     const rows = cart.map((c) => ({
       Brand: c.brandName,
@@ -245,7 +234,6 @@ export default function PlannerApp({
     XLSX.writeFile(wb, `PO-${new Date().toISOString().split("T")[0]}.xlsx`);
   };
 
-  // ─── AI chat ────────────────────────────────────────────────────────────────
   const sendToAI = async () => {
     if (!aiInput.trim() || aiLoading) return;
     const userMsg: AiMessage = { role: "user", content: aiInput };
@@ -295,19 +283,15 @@ Be concise and data-driven. Respond in the same language as the user's message.`
     }
   };
 
-  // ─── Refresh brands ─────────────────────────────────────────────────────────
   const reloadBrands = async () => {
     const res = await fetch("/api/planner/brands");
     setBrands(await res.json());
   };
 
-  // ─── Unique categories from items ───────────────────────────────────────────
   const categories = [...new Set(items.map((i) => i.category))].sort();
 
-  // ─── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col h-full bg-(--bg)">
-      {/* ── Top nav ── */}
       <div className="bg-(--surface) border-b border-(--border) px-6 flex items-center justify-between h-13 shrink-0">
         <div className="flex items-center gap-1">
           {(
@@ -336,7 +320,6 @@ Be concise and data-driven. Respond in the same language as the user's message.`
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Budget quick pill */}
           <div className="text-xs font-mono text-(--muted) bg-white/3 border border-(--border) px-3 py-1.5 rounded-lg">
             €{fmt(totalSpent)}{" "}
             <span className="text-(--subtle)">/ €{fmt(totalBudget)}</span>
@@ -383,7 +366,6 @@ Be concise and data-driven. Respond in the same language as the user's message.`
         </div>
       </div>
 
-      {/* ── Content ── */}
       <div className="flex-1 overflow-auto p-6">
         {section === "dashboard" && (
           <DashboardView brands={brands} catalogs={catalogs} budgetStatus={budgetStatus} cart={cart} fmt={fmt} />
@@ -425,7 +407,6 @@ Be concise and data-driven. Respond in the same language as the user's message.`
         )}
       </div>
 
-      {/* ── Upload Modal ── */}
       {uploadModal && (
         <UploadModal
           brands={brands}
@@ -434,14 +415,11 @@ Be concise and data-driven. Respond in the same language as the user's message.`
             showToast(msg);
             setUploadModal(false);
             const res = await fetch("/api/planner/catalogs");
-            // re-load catalogs list — simple approach: reload page data on next visit
-            // for now just reload items if we're in catalog view
             if (section === "catalog") loadItems();
           }}
         />
       )}
 
-      {/* ── Brand Modal ── */}
       {brandModal && (
         <BrandModal
           brand={brandModal === "new" ? null : brandModal}
@@ -460,7 +438,6 @@ Be concise and data-driven. Respond in the same language as the user's message.`
         />
       )}
 
-      {/* ── Toast ── */}
       {toast && (
         <div className="fixed bottom-5 right-5 bg-(--surface) border border-accent-cyan/30 text-accent-cyan text-sm font-medium px-4 py-2.5 rounded-xl shadow-xl z-50">
           {toast}
@@ -470,9 +447,6 @@ Be concise and data-driven. Respond in the same language as the user's message.`
   );
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// VIEWS
-// ══════════════════════════════════════════════════════════════════════════════
 
 function DashboardView({ brands, catalogs, budgetStatus, cart, fmt }: {
   brands: Brand[];
@@ -497,7 +471,6 @@ function DashboardView({ brands, catalogs, budgetStatus, cart, fmt }: {
 
   return (
     <div className="max-w-4xl">
-      {/* KPIs */}
       <div className="grid grid-cols-4 gap-4 mb-8">
         {stats.map(({ label, value, sub }) => (
           <div key={label} className="bg-(--surface) border border-(--border) rounded-xl p-5">
@@ -508,7 +481,6 @@ function DashboardView({ brands, catalogs, budgetStatus, cart, fmt }: {
         ))}
       </div>
 
-      {/* Budget bars */}
       <div className="bg-(--surface) border border-(--border) rounded-xl p-5 mb-4">
         <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-4">Бюджет по брендах</div>
         {budgetStatus.length === 0 && (
@@ -536,7 +508,6 @@ function DashboardView({ brands, catalogs, budgetStatus, cart, fmt }: {
         ))}
       </div>
 
-      {/* Recent catalogs */}
       {catalogs.length > 0 && (
         <div className="bg-(--surface) border border-(--border) rounded-xl p-5">
           <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-4">Останні завантаження</div>
@@ -577,7 +548,6 @@ function CatalogView({ brands, items, categories, loading, filterBrand, filterCa
 
   return (
     <div>
-      {/* Filters */}
       <div className="flex gap-3 mb-6 flex-wrap">
         <select
           value={filterBrand}
@@ -613,7 +583,6 @@ function CatalogView({ brands, items, categories, loading, filterBrand, filterCa
         </button>
       </div>
 
-      {/* Items grid */}
       {items.length === 0 && !loading && (
         <div className="text-center py-20 text-(--muted)">
           {brands.length === 0
@@ -756,7 +725,6 @@ function CartView({ cart, budgetStatus, removeFromCart, updateQty, fmt }: {
     );
   }
 
-  // Group by brand
   const byBrand: Record<string, CartItem[]> = {};
   cart.forEach((item) => {
     if (!byBrand[item.brandId]) byBrand[item.brandId] = [];
@@ -813,7 +781,6 @@ function CartView({ cart, budgetStatus, removeFromCart, updateQty, fmt }: {
         );
       })}
 
-      {/* Total */}
       <div className="bg-(--surface) border border-(--border) rounded-xl p-5 flex justify-between items-center">
         <span className="text-(--muted) text-sm">Загальна сума замовлення</span>
         <span className="text-2xl font-bold text-white font-mono">
@@ -935,7 +902,6 @@ function BrandsView({ brands, catalogs, onEdit, fmt }: {
   );
 }
 
-// ── Upload Modal ──────────────────────────────────────────────────────────────
 
 function UploadModal({ brands, onClose, onSuccess }: {
   brands: Brand[];
@@ -1020,7 +986,6 @@ function UploadModal({ brands, onClose, onSuccess }: {
   );
 }
 
-// ── Brand Modal ───────────────────────────────────────────────────────────────
 
 function BrandModal({ brand, onClose, onSave, onDelete }: {
   brand: Brand | null;

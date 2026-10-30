@@ -7,10 +7,8 @@ export interface OrderPolicy {
   channels?: Record<string, string>;
   settings?: {configId:string;revision:number;filterFingerprint:string;excludedChannels:string[];excludedProjects:string[];projectField:string|null};
   dates?: { saleOrderTimeFallback?: boolean; returnDateField?: string };
-  /** Enable only after customer evidence verifies API price and discount semantics. */
   amounts?: { price: "gross_unit" | "net_unit" | "net_line"; absoluteDiscount: "line" | "unit"; currency: string; cost?: "unit" | "line" };
 }
-/** Parse source-local dates with explicit precision and reject ambiguous or invalid times. */
 export function sourceDate(value: string | null, timezone: string): { date: Date | null; precision: "instant" | "date" | "unknown" } {
   if (!value) return { date: null, precision: "unknown" };
   try {
@@ -22,14 +20,11 @@ export function sourceDate(value: string | null, timezone: string): { date: Date
     return { date: new Date(instant.epochMilliseconds), precision: dateOnly ? "date" : "instant" };
   } catch { return { date: null, precision: "unknown" }; }
 }
-/** Accept only decimal source values that fit Decimal(18,4) without rounding. */
 export function exact(value: string | null): Prisma.Decimal | null {
-  // Reject precision overflow rather than letting PostgreSQL silently round source facts.
   if (value === null || !/^-?\d{1,14}(?:\.\d{1,4})?$/.test(value)) return null;
   return new Prisma.Decimal(value);
 }
 
-/** Normalize source facts without activating reporting or inventing refund dates. */
 export function normalizeOrder(order: OrderDto, timezone: string, policy: OrderPolicy = {}) {
   const issues = new Set<string>();
   const ordered = sourceDate(order.orderedAt, timezone), paid = sourceDate(order.paidAt, timezone);
@@ -74,7 +69,6 @@ export function normalizeOrder(order: OrderDto, timezone: string, policy: OrderP
         else netAmount = netAmount.sub(line.discountUnit === "percentage" ? netAmount.mul(discount).div(100) : discount.mul(policy.amounts.absoluteDiscount === "unit" ? amountQuantity.abs() : 1).mul(netAmount.isNegative()?-1:1));
       }
     }
-    // A line total is a source fact: do not divide by quantity and round it back.
     if (policy.amounts && quantity) {
       if (policy.amounts.price === "net_line") netAmount = exact(line.netLineAmount ?? null);
       if (policy.amounts.cost === "unit" && cost && !cost.isNegative()) costAmount = cost.mul(kind === "RETURN" ? quantity.abs() : quantity);

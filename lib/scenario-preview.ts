@@ -1,4 +1,3 @@
-/** Guard even transports that resolve after abort; cancellation alone is insufficient. */
 export class LatestScenarioRequest {
   private controller: AbortController | null = null;
   start() {

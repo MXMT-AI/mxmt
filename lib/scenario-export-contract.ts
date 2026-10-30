@@ -1,4 +1,3 @@
-/** Public export metadata contains no client-authoritative prices or CSV body fields. */
 export type ExportKind = "reprice" | "reorder";
 export interface ExportFileMetadata {
   id: string;

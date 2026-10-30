@@ -15,7 +15,6 @@ import {
   type SalesFact,
   type SalesMetricContext,
 } from "./sales-metrics";
-/** One frozen result supplies summary, articles, grouped tables and channel totals. */
 export function calculateSalesReport(
   facts: SalesFact[],
   context: SalesMetricContext,
@@ -84,7 +83,6 @@ export function calculateSalesReport(
     };
   });
   const brands = calculateSalesGroupedRows(headline, "brand", context);
-  // Reference O1/S4: identify LY outliers against each brand's full calendar month.
   const monthly = new Map<
     string,
     { revenue: Prisma.Decimal; missing: boolean }

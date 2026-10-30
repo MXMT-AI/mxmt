@@ -1,4 +1,3 @@
-/** Source facts only. Business policies and financial formulas belong to consumers. */
 export type ConnectorProvider = "salesdrive" | "keycrm" | "horoshop" | "shopify" | "csv" | "mock";
 export type DecimalValue = string;
 export interface SourceContext {
@@ -26,24 +25,19 @@ export interface StockDto extends SourceContext {
   inTransit: DecimalValue | null;
 }
 export interface OrderDto extends SourceContext {
-  /** Identified source row rejected by the adapter; retain audit and skip projection atomically. */
   rejectionCode?: "ORDER_CURRENCY_MISMATCH" | "ORDER_RECORD_INVALID";
-  /** Original provider record, retained server-side only. */
   raw?: Record<string, unknown>;
   sourceVersion?: number | null;
   statusId: string | null;
   channelId: string | null;
-  // Source calendar timestamps; timezone/date policies are applied by normalization.
   orderedAt: string | null;
   paidAt: string | null;
-  /** Optional independently verified return-event timestamp, never generic updateAt. */
   returnedAt?: string | null;
   lines: Array<{
     externalLineId: string | null;
     productId: string | null;
     sku: string | null;
     quantity: DecimalValue | null;
-    /** Exact net line totals require an explicitly approved net_line policy. */
     netLineAmount?: DecimalValue | null;
     costLineAmount?: DecimalValue | null;
     unitPrice: DecimalValue | null;
@@ -61,7 +55,6 @@ export interface ReceiptDto extends SourceContext {
   statusId: string | null;
   supplierId: string | null;
   receivedAt: string | null;
-  // Posting semantics are customer evidence, not inferred from a successful HTTP call.
   postingVerified: false;
   lines: Array<{ externalLineId: string | null; productId: string | null; sourceProductId?: string | null; sku?: string | null; quantity: DecimalValue | null; unitCost: DecimalValue | null }>;
 }
@@ -74,11 +67,8 @@ export interface Dictionary {
 }
 export type ConnectorPosition = {kind:"page";page:number} | {kind:"offset";offset:number} | {kind:"cursor";cursor:string|null};
 export interface ConnectorPage<T> {
-  /** Explicit continuation for v2 adapters. Undefined is the legacy numeric-page protocol. */
   next?: ConnectorPosition | null;
-  /** Verified order-creation/receipt history, not merely an updated-at scan window. */
   historyCoverage?: {from:string;to:string;complete:boolean};
-  /** Original response text for server-side audit; never expose to client progress. */
   rawResponse?: string;
   records: T[];
   nextPage: number | null;
@@ -90,7 +80,6 @@ export interface PageRequest {
   observationId?: string;
   page?: number;
   limit?: number;
-  /** ISO UTC instant (YYYY-MM-DDTHH:mm:ss[.SSS]Z), including observedAt values. */
   updatedFrom?: string;
   updatedTo?: string;
   orderedFrom?: string;
@@ -98,7 +87,6 @@ export interface PageRequest {
   orderId?: string;
 }
 export interface ConnectorCapabilities {
-  /** Full read snapshots without provider versions use fenced observation ordering. */
   orderRevisions?: "observation";
   automaticSync?:boolean;
   pageSize?:Partial<Record<"orders"|"receipts"|"catalog",number>>;
@@ -117,7 +105,6 @@ export interface ConnectorCapabilities {
 export type CheckCode = "OK" | "NOT_CONFIGURED" | "AUTH_FAILED" | "RATE_LIMITED" | "TIMEOUT" | "NETWORK_ERROR" | "INVALID_RESPONSE" | "RESPONSE_TOO_LARGE";
 export interface ResourceCheck { resource: "identity" | "history" | "locations" | "cost" | "orders" | "statuses" | "receipts" | "catalog" | "products" | "offers" | "stock" | "channels"; code: CheckCode }
 export interface ConnectionCheck {
-  /** Non-secret provider identity and actual granted scopes observed during checks. */
   metadata?: {apiVersion:string;shopId:string;appId:string;timezone:string;scopes:string[]};
   checkedAt: string;
   ok: boolean;
@@ -125,12 +112,10 @@ export interface ConnectionCheck {
   statuses: Dictionary;
   channels: Dictionary;
 }
-/** Implementations never expose credentials or write methods through this interface. */
 export interface MerchandisingConnector {
   readonly provider: ConnectorProvider;
   readonly capabilities: ConnectorCapabilities;
   getCatalogSnapshot?(): Promise<CatalogSnapshot>;
-  /** All pages must belong to one explicitly complete, versioned observation. */
   getCatalogPage?(request:PageRequest): Promise<ConnectorPage<{product:ProductDto;stock:StockDto}> & {observationId:string;completePopulation:boolean}>;
   getOrders(request?: PageRequest): Promise<ConnectorPage<OrderDto>>;
   getProducts(request?: PageRequest): Promise<ConnectorPage<ProductDto>>;

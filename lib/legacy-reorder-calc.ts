@@ -1,15 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { brandValueFromAgentId, getActiveAgentImportRunId } from "@/lib/agent-data-source";
 
-// Детермінований калькулятор дозамовлення.
-// AI обирає сценарій (множник обʼєму) — вся математика тут.
-// Семантика множника (з промпта Reordering-агента): 1.0 = покрити до 45 днів при поточному темпі.
 
 export const REORDER_COVER_DAYS = 45;
 
 export interface ReorderSimulationInput {
   tenantId: string;
-  brandId: string; // "brand:null" → товари без бренда
+  brandId: string;
   qtyMultiplier: number;
   asOf?: Date;
   dateFrom?: Date;
@@ -22,7 +19,7 @@ export interface ReorderSkuRow {
   stock: number;
   velocityPerDay: number;
   wohNowDays: number | null;
-  orderQty: number; // max(0, швидкість × 45 × множник − залишок)
+  orderQty: number;
   pricePurchase: number;
   orderCost: number;
   stockAfter: number;
@@ -102,7 +99,7 @@ export async function simulateReorder(input: ReorderSimulationInput): Promise<Re
     const stock = Number(product.stockUnits);
     const soldPeriod = soldByProduct.get(product.productId) ?? 0;
     const velocity = soldPeriod / periodDays;
-    if (velocity <= 0 && stock <= 0) continue; // нічого не продається і нема залишку — пропускаємо
+    if (velocity <= 0 && stock <= 0) continue;
 
     const targetStock = velocity * REORDER_COVER_DAYS * qtyMultiplier;
     const orderQty = Math.max(0, Math.round(targetStock - stock));
@@ -123,7 +120,6 @@ export async function simulateReorder(input: ReorderSimulationInput): Promise<Re
     });
   }
 
-  // Найбільше дозамовлення зверху
   rows.sort((a, b) => b.orderQty - a.orderQty);
 
   const totals = rows.reduce(

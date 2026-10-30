@@ -23,7 +23,6 @@ import Summary, { SupplierGroups } from "./ReorderingSummary";
 export type ReorderingPreview = Awaited<
   ReturnType<typeof getReorderingPreview>
 >;
-/** Preserve scenario intent and confirmations; every recommendation comes from the server. */
 export default function ReorderingEditor({
   snapshotId,
   monobrand = false,
@@ -77,7 +76,6 @@ export default function ReorderingEditor({
     exportState = useScenarioExport("reorder");
   const current = preview.current && !needsBrand,
     error = preview.error;
-  /** Sync shareable controls without putting transient transit confirmations into history. */
   function save(next: URLSearchParams) {
     lastUrl.current = next.toString();
     window.history.replaceState(
@@ -86,14 +84,12 @@ export default function ReorderingEditor({
       `${window.location.pathname}?${next}`,
     );
   }
-  /** Reset pagination while retaining confirmations only for an unchanged filter scope. */
   function change(draft: ReorderingDraft) {
     dispatch({ type: "draft", draft });
     save(
       writeReorderingDraft(new URLSearchParams(window.location.search), draft),
     );
   }
-  /** Reset both shareable controls and scenario-only confirmations to saved source behavior. */
   function reset() {
     const draft: ReorderingDraft = {
         mode: "shortage",

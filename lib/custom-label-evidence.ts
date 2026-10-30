@@ -11,7 +11,6 @@ import { CustomLabelError,LABEL_MAX_ROWS,type LabelInputRow,type LabelScope } fr
 interface EvidenceRow extends LabelInputRow {
   dailyId:string;calculationId:string;calculationVersion:number;sourceObservedAt:Date|string|null;
 }
-/** Validate scoped published rows before any aggregate work; no financial summaries or full daily counts are computed. */
 export async function resolveCustomLabelEvidence(p:AiPrincipal,scope:LabelScope,sourceId:string,tx:SqlClient){
   const {selected,snapshot}=await resolveAiSnapshot(p,scope.snapshotId,tx);
   if(sourceId!==selected.id)throw new CustomLabelError("LABEL_SOURCE_MISMATCH",409);

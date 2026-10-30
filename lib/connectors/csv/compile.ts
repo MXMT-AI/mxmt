@@ -19,7 +19,6 @@ import {
   type CsvResource,
 } from "./schema";
 import { parseCsv, CsvError, CSV_LIMITS } from "./parser";
-/** Optional structured attributes are source evidence, never physical facts inferred from product names. */
 function productAttributes(value:string){
   if(Buffer.byteLength(value,"utf8")>64*1024)throw new CsvError("INVALID_PRODUCT_ATTRIBUTES");
   try{const data:unknown=JSON.parse(value);if(!isRecord(data))throw new Error();return data;}

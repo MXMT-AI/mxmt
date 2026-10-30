@@ -1,6 +1,5 @@
 import type { ReportingSourceChoice } from "./reporting-source-contract";
 export type ReportingHelp = { message: string; href: string; action: string };
-/** Shared, client-safe recovery instructions. Never show database/provider messages. */
 export function reportingErrorHelp(
   code: string,
   lang: "uk" | "en",

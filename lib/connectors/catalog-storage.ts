@@ -13,7 +13,6 @@ import { linkRetainedCatalogFacts } from "./catalog-linking";
 import { retainSheetsSourceIdentity } from "./catalog-identity";
 
 export interface CatalogEvidence {
-  /** Explicit source mapping evidence; absent for existing remote catalog paths. */
   exportedCost?: {mappingId:string;reference:string};
   productKinds?:Record<string,string>;
   stockObserved?:boolean;
@@ -21,7 +20,6 @@ export interface CatalogEvidence {
   inTransitVerified?:boolean;
 }
 
-/** Activate a fully validated observation in one transaction using set-based catalogue writes. */
 export async function storeCatalog(tx: SqlClient, scope: OrderScope, snapshot: CatalogSnapshot, evidence:CatalogEvidence = {}) {
   const { tenantId, sourceId, importRunId, timezone } = scope;
   const normalized=normalizeCatalog(snapshot, sourceId, scope.provider),issues=normalized.issues;
@@ -31,14 +29,12 @@ export async function storeCatalog(tx: SqlClient, scope: OrderScope, snapshot: C
   const [newer] = await tx.$queryRaw<Array<{ n: number }>>(Prisma.sql`SELECT count(*)::int n FROM "DataSourceRecord" WHERE "tenantId"=${tenantId} AND "sourceId"=${sourceId} AND resource=${scope.provider&&scope.provider!=="salesdrive"?"catalog-json":"catalog-yml"} AND "observedAt">${observedAt}`);
   if (newer.n) return { products: rows.length, snapshots: 0, prices: 0, issues: ["STALE_CATALOG_OBSERVATION"], observedAt: snapshot.observedAt, businessDate };
   const rawKey = await retainRecord(tx, scope, scope.provider&&scope.provider!=="salesdrive"?"catalog-json":"catalog-yml", `feed:${snapshot.observedAt}`, { contentType:scope.provider&&scope.provider!=="salesdrive"?"application/json":"application/xml", body: snapshot.rawResponse }, observedAt);
-  // Transaction-local staging never becomes an active catalogue or stock observation.
   await tx.$executeRaw(Prisma.sql`CREATE TEMP TABLE mxmt_catalog_stage ON COMMIT DROP AS
     SELECT x.*, NULL::text AS "skuId", NULL::text AS "canonicalCategoryId", NULL::text AS "brandId", NULL::numeric AS "costPrice", '{}'::jsonb AS "costProvenance"
     FROM jsonb_to_recordset(${JSON.stringify(rows)}::jsonb) AS x("observedAt" timestamptz,"priceObservedAt" timestamptz,"proposedId" text,"externalId" text,article text,"canonicalSku" text,name text,"categoryId" text,"categoryName" text,vendor text,barcode text,"retailPrice" numeric,"oldPrice" numeric,"exportedCost" numeric,"inTransit" numeric,quantity numeric,currency text,attributes jsonb,"attributeEvidence" jsonb,"attributeHash" text)`);
   await tx.$executeRaw(Prisma.sql`INSERT INTO "DataSourceRecord" (id,"tenantId","sourceId","importRunId",resource,"externalId",payload,"payloadHash","observedAt")
     SELECT ${randomUUID()}||':'||t."externalId",${tenantId},${sourceId},${importRunId},'product-attributes',t."externalId"||':'||t."attributeHash",t."attributeEvidence",t."attributeHash",t."priceObservedAt" FROM mxmt_catalog_stage t
     ON CONFLICT ("importRunId",resource,"externalId") DO NOTHING`);
-  // Serialize identity decisions with other catalogue/normalization edits.
   await tx.$queryRaw(Prisma.sql`SELECT id FROM "Tenant" WHERE id=${tenantId} FOR NO KEY UPDATE`);
   if (await retainSheetsSourceIdentity(tx, scope, rawKey)) issues.add("CATALOG_LEGACY_SKU_COLLISION");
   const [conflicts] = await tx.$queryRaw<Array<{ n: number }>>(Prisma.sql`SELECT count(*)::int n FROM mxmt_catalog_stage t WHERE
@@ -51,7 +47,6 @@ export async function storeCatalog(tx: SqlClient, scope: OrderScope, snapshot: C
     (SELECT s.id FROM "Sku" s WHERE s."tenantId"=${tenantId} AND s.sku=t."canonicalSku"),t."proposedId")`);
   const [duplicates] = await tx.$queryRaw<Array<{ n: number }>>(Prisma.sql`SELECT count(*)::int n FROM (SELECT "skuId" FROM mxmt_catalog_stage GROUP BY "skuId" HAVING count(*)>1) d`);
   if (duplicates.n) throw new Error("DUPLICATE_CATALOG_SKU");
-  // Category source IDs are namespaced. Vendor names alone do not prove ownership or supplier terms.
   await tx.$executeRaw(Prisma.sql`INSERT INTO "Category" (id,"tenantId",key,name,"updatedAt")
     SELECT ${randomUUID()} || ':' || t."categoryId",${tenantId},${`${scope.provider??"salesdrive"}:${sourceId}:`} || t."categoryId",MAX(COALESCE(t."categoryName",t."categoryId")),now()
     FROM mxmt_catalog_stage t WHERE t."categoryId" IS NOT NULL GROUP BY t."categoryId"
@@ -75,12 +70,10 @@ export async function storeCatalog(tx: SqlClient, scope: OrderScope, snapshot: C
     SELECT ${randomUUID()} || ':' || t."externalId" || ':id',${tenantId},${sourceId},t."skuId",'SOURCE_PRODUCT_ID'::"SkuAliasType",t."externalId" FROM mxmt_catalog_stage t
     UNION ALL SELECT ${randomUUID()} || ':' || t."externalId" || ':sku',${tenantId},${sourceId},t."skuId",'SKU'::"SkuAliasType",t.article FROM mxmt_catalog_stage t WHERE t.article IS NOT NULL
     ON CONFLICT ("tenantId","sourceId",type,value) DO NOTHING`);
-  // Give the planner statistics for the transaction-local observation.
   await tx.$executeRaw(Prisma.sql`ANALYZE mxmt_catalog_stage`);
   await linkRetainedCatalogFacts(tx, scope);
   const skuIds = rows.length ? (await tx.$queryRaw<Array<{ skuId: string }>>(Prisma.sql`SELECT "skuId" FROM mxmt_catalog_stage`)).map((row) => row.skuId) : [];
   await refreshFirstReceipt(tx, tenantId, skuIds);
-  // Tied date-only receipts with different prices cannot establish which purchase price was latest.
   await tx.$executeRaw(Prisma.sql`WITH ranked AS MATERIALIZED (
     SELECT l."skuId",l."unitCost",l."costVerifiedAt",l.currency,t2.currency AS "catalogCurrency",r.id,r."sourceRecordKey",r."importRunId",r."receivedAt",
       dense_rank() OVER (PARTITION BY l."skuId" ORDER BY r."receivedAt" DESC) AS position

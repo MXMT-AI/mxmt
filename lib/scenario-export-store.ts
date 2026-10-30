@@ -36,7 +36,6 @@ interface ExportRecord {
   context: { kind: string; requestHash: string };
   after: StoredExport;
 }
-/** Parse only scenario intent and expected preview identity; all exported values are recalculated on the server. */
 export function parseScenarioExport(value: unknown) {
   if (
     !isRecord(value) ||
@@ -84,14 +83,12 @@ export function parseScenarioExport(value: unknown) {
     ...(target ? { target } : {}),
   };
 }
-/** Scope idempotency by tenant; another actor cannot reuse an export ID to obtain a conflicting audit attribution. */
 async function readExport(tenantId: string, exportId: string, tx: SqlClient) {
   const [row] = await tx.$queryRaw<ExportRecord[]>(
     Prisma.sql`SELECT "actorId",context,after FROM "MerchandisingAction" WHERE "tenantId"=${tenantId} AND "idempotencyKey"=${`export:${exportId}`} AND "entityType"='SCENARIO_EXPORT' AND context->>'kind'='SCENARIO_EXPORT_V1'`,
   );
   return row ?? null;
 }
-/** Read only immutable scenario evidence for advice; never return CSV bodies or execute an export. */
 export async function readScenarioAdviceEvidence(tenantId: string, actorId: string, exportId: string, snapshotId: string, tx: SqlClient, offerBrandId?: string) {
   if (!uuid.test(exportId)) throw new ScenarioExportError("INVALID_EXPORT_REQUEST");
   const [row] = await tx.$queryRaw<Array<{actorId: string; context: {dataVersion: {snapshotId: string; calculationVersion: unknown}; request: ScenarioExportCommand}; receipt: ScenarioExportReceipt; totals: unknown}>>(Prisma.sql`
@@ -111,15 +108,12 @@ export async function readScenarioAdviceEvidence(tenantId: string, actorId: stri
     const skus = await tx.$queryRaw<Array<{id:string;brandId:string|null}>>(Prisma.sql`
       SELECT id,"brandId" FROM "Sku" WHERE "tenantId"=${tenantId} AND id IN (${Prisma.join(rows.map(r=>String(r.skuId)))})`);
     if (rows.some(r=>!skus.some(s=>s.id===r.skuId&&s.brandId===offerBrandId))) throw new ScenarioExportError("AI_SCENARIO_BRAND_MISMATCH",409);
-    // Price/quantity strings are copied from the frozen export; no CSV bodies, cost or arbitrary row fields enter AI context.
     offerRows = rows.map(r=>Object.fromEntries(["skuId","sku","name","currency","quantity","oldPrice","newPrice","effectiveDiscount","stock"].filter(k=>k in r).map(k=>[k,r[k]])));
   }
-  // Intent and totals retain the export's own filters/parameters; they are not recomputed or treated as actual sales.
   return {receipt, sourceHref:files[0]?`/api/merchandising/exports/${receipt.exportId}?fileId=${encodeURIComponent(files[0].id)}`:null,
     totals: row.totals, scenario: row.context.request.scenario,
     target: row.context.request.target ?? null, version: row.context.dataVersion, ...(offerRows ? {offerRows} : {})};
 }
-/** Publish generated files and the actor/scenario audit as one atomic, retry-safe database operation. */
 export async function createScenarioExport(
   tenantId: string,
   actorId: string,
@@ -130,7 +124,6 @@ export async function createScenarioExport(
   const command = parseScenarioExport(value),
     requestHash = payloadHash(command);
   return withCalculationSnapshot(db, async (tx) => {
-    // Serialize new financial actions with source selection before establishing their snapshot.
     await tx.$queryRaw(Prisma.sql`SELECT id FROM "Tenant" WHERE id=${tenantId} FOR SHARE`);
     const existing = await readExport(tenantId, command.exportId, tx);
     if (existing) {
@@ -185,7 +178,6 @@ export async function createScenarioExport(
           url: `/api/merchandising/exports/${command.exportId}?fileId=${file.id}`,
         })),
       };
-    // Keep receipts and ten-entry history responses within the hosting response limit.
     if (Buffer.byteLength(JSON.stringify(receipt), "utf8") > 256 * 1024)
       throw new ScenarioExportError("EXPORT_METADATA_SIZE_LIMIT", 422);
     const after: StoredExport = {
@@ -225,7 +217,6 @@ export async function createScenarioExport(
     return published.after.receipt;
   });
 }
-/** Replay stored bytes, not newly calculated prices or mutable source data. */
 export async function readScenarioExportFile(
   tenantId: string,
   exportId: string,
@@ -239,7 +230,6 @@ export async function readScenarioExportFile(
   if (!file) throw new ScenarioExportError("EXPORT_NOT_FOUND", 404);
   return file;
 }
-/** Return bounded audit metadata without exposing CSV bodies, full rows or other tenants' actions. */
 export async function readScenarioExportHistory(
   tenantId: string,
   kind: ExportKind,

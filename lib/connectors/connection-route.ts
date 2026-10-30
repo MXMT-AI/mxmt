@@ -23,7 +23,6 @@ export function connectionHandlers(provider: SourceProvider) {
       request,
       `/api/connectors/${provider}`,
     );
-    // Never use a caller-supplied request ID as a log channel for submitted secrets.
     context.requestId = crypto.randomUUID();
     const respond = <T>(response: NextResponse<T>) => {
       response.headers.set("Cache-Control", "no-store");
@@ -92,7 +91,6 @@ export function connectionHandlers(provider: SourceProvider) {
         : unavailable
           ? "CONNECTOR_STORAGE_UNAVAILABLE"
           : "CONNECTOR_REQUEST_FAILED";
-      // Prisma/fetch errors may contain arguments or URLs: never serialize them here.
       logWarn("Connector operation failed", {
         requestId: context.requestId,
         code,
@@ -113,15 +111,12 @@ export function connectionHandlers(provider: SourceProvider) {
     }
   }
 
-  /** Return public connection status only; credentials are never selected for this response. */
   async function GET(request: NextRequest) {
     return handle(request, "get");
   }
-  /** Replace write-only connection credentials for the authenticated tenant. */
   async function PUT(request: NextRequest) {
     return handle(request, "save");
   }
-  /** Check read scopes without importing data or accepting target URLs from the request. */
   async function POST(request: NextRequest) {
     return handle(request, "check");
   }

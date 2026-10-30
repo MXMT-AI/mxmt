@@ -16,7 +16,6 @@ import { overviewCopy } from "@/lib/overview-copy";
 import { useOverview } from "./useOverview";
 import OverviewContent from "./OverviewContent";
 const Chat=dynamic(()=>import("@/components/merchandising/MerchandisingChat"));
-/** Existing auth-aware API wrapper and shared URL filters drive one published Overview. */
 export default function OverviewWorkspace() {
   const filters = useMerchandisingFilters()!;
   const { lang } = useLang(),

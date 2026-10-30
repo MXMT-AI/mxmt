@@ -2,7 +2,6 @@ import { Prisma } from "@prisma/client";
 import type { SqlClient } from "./connectors/database";
 import type { ScreenSnapshot } from "./merchandising-snapshot";
 
-/** Aggregate evidence from the pinned source snapshot; display filters do not change these diagnostics. */
 export async function readReportReadiness(tenantId: string, snapshot: ScreenSnapshot, tx: SqlClient) {
   const [result] = await tx.$queryRaw<Array<{
     total: number; missingStock: number; missingReceipt: number; missingVelocity: number;

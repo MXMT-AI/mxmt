@@ -61,7 +61,6 @@ export default function SettingsTabs({
 
   return (
     <div>
-      {/* Tab bar */}
       <div className="flex flex-wrap items-center gap-1 border-b border-(--border) mb-8">
         {TABS.map((t) => (
           <button
@@ -82,7 +81,6 @@ export default function SettingsTabs({
         ))}
       </div>
 
-      {/* Content */}
       {tab === "general" && generalContent}
 
       {tab === "merchandising" && (

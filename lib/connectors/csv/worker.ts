@@ -34,7 +34,6 @@ export interface CsvJob extends ConnectorJob {
     activationActorId: string;
   };
 }
-/** Bounded local packet, all projections + activation + recalculation intent in one transaction. */
 export async function processCsvJob(
   tenantId?: string,
   db: SqlDatabase = prisma,
@@ -142,7 +141,6 @@ export async function processCsvJob(
         }
         const issues = new Set(preview.warnings),
           stats = { orders: 0, receipts: 0, products: 0, snapshots: 0 };
-        // Stable source IDs resolve once catalog observations activate below; no positional IDs are generated.
         for (let page = 1; ; page++) {
           const result = await connector.getOrders({ page, limit: 100 });
           for (const order of result.records) {
@@ -167,7 +165,6 @@ export async function processCsvJob(
           stats.receipts += saved.imported;
         }
         for (const catalog of bundle.catalogs) {
-          // Dated observations activate in ascending order; stale packets roll back atomically.
           const result = await storeCatalog(tx, scope, catalog);
           stats.products += result.products;
           stats.snapshots += result.snapshots;

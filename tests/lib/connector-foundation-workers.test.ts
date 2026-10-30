@@ -139,7 +139,7 @@ it("keeps staged catalog pages inactive until a complete stable observation vali
       )
     ).rows,
   ).toEqual([{ n: 1 }]);
-  await processInventoryJob("a", f.db, load); // duplicate product ID rejects the whole observation
+  await processInventoryJob("a", f.db, load);
   expect(
     (
       await f.pg.query(

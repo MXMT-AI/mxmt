@@ -77,7 +77,6 @@ export interface DailySkuCalculation {
     inputHash: string;
   };
 }
-/** Persist a single atomic version of all daily SKU rows from the same source/config snapshot. */
 export async function calculateSkuDaily(
   tenantId: string,
   input: { asOf?: string; now?: Date } = {},
@@ -87,7 +86,6 @@ export async function calculateSkuDaily(
     calculateSkuDailyInSnapshot(tenantId, input, tx),
   );
 }
-/** Reuse an existing calculation transaction; the caller owns snapshot isolation. */
 export async function calculateSkuDailyInSnapshot(
   tenantId: string,
   input: { asOf?: string; now?: Date },
@@ -331,7 +329,6 @@ export interface DailySkuQuery {
   sort: (typeof DAILY_SKU_SORTS)[number];
   direction: "asc" | "desc";
 }
-/** Read exactly one frozen calculation, with tenant scope applied to manifest and SKU rows. */
 export async function readSkuDaily(
   tenantId: string,
   calculationId: string,

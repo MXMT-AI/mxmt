@@ -6,13 +6,11 @@ export const panel =
   "min-w-0 rounded-xl border border-(--border) bg-(--surface)";
 export const button =
   "inline-flex min-h-11 touch-manipulation items-center justify-center rounded-lg border border-(--border) px-4 py-2 text-sm hover:bg-(--input-bg) focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2";
-/** Render supporting context consistently across merchandising reports. */
 export function Note({ children }: { children: ReactNode }) {
   return (
     <p className="text-xs leading-relaxed text-(--muted)">{children}</p>
   );
 }
-/** Keep the visible marker decorative and expose its localized meaning as text. */
 export function PartialMarker({ label }: { label: string }) {
   return (
     <>
@@ -21,7 +19,6 @@ export function PartialMarker({ label }: { label: string }) {
     </>
   );
 }
-/** Page one report section without discarding the other URL-owned controls. */
 export function Pager({
   pagination,
   control,

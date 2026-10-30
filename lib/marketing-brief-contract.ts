@@ -35,7 +35,6 @@ export interface MarketingDraft {
   usage:{executionId:string;state:string;charged:string;held:string;currency:string}|null;
 }
 const invalid=():never=>{throw new AiExecutionError("AI_INVALID_MARKETING_BRIEF",400);};
-/** One brand and at most three channels share one bounded, fully reserved generation. */
 export function parseMarketingBrief(value:unknown):MarketingBriefRequest {
   if (!isRecord(value) || Object.keys(value).sort().join()!=="audience,brandId,brandVoice,briefId,budget,campaign,channels,kind,mode,revision,scenarioExportId,snapshotId" || value.mode!=="marketing_v2") return invalid();
   for (const key of ["briefId","snapshotId","brandId"] as const) identifier(value[key]);

@@ -6,7 +6,6 @@ import { repricingApiError } from "@/lib/repricing-api-error";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const maxDuration = 300;
-/** Derive immutable inputs for a signed tenant; this cannot update prices or create an action log. */
 export async function POST(request: NextRequest) {
   const { user, response } = await requireApiUser("VIEWER");
   if (response) return response;

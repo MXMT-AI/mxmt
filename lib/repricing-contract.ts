@@ -1,4 +1,3 @@
-/** Client-safe parameters and wire types; pricing formulas remain server-only. */
 export const REPRICING_VERSION = 1;
 export const REPRICING_INPUT_LIMIT = 20000;
 export const REPRICING_PRESETS = {

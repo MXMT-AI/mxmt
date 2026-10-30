@@ -14,7 +14,6 @@ import { loadConnectorRuntime } from "./runtime";
 import { selectedConnection } from "./source";
 import type { ConnectorCapabilities } from "./contract";
 
-/** Bound enqueue work to 25 connections and rotate them independently of import progress. */
 export async function scheduleSalesDriveSyncs(db: SqlDatabase = prisma, now = new Date()) {
   const decision = salesDriveScheduleDecision(now);
   const sources = await db.$queryRaw<Array<{tenantId:string;sourceId:string;hasYmlUrl:boolean;provider:string;capabilities:ConnectorCapabilities|null}>>(Prisma.sql`SELECT c."tenantId",c."sourceId",c."hasYmlUrl",c.provider,c.capabilities FROM "ConnectorConnection" c WHERE ${selectedConnection()} ORDER BY "lastScheduledAt" ASC NULLS FIRST,id LIMIT 25`);
@@ -31,7 +30,6 @@ export async function scheduleSalesDriveSyncs(db: SqlDatabase = prisma, now = ne
   return {requested,connections:sources.length,decision};
 }
 
-/** One durable dispatch and one remote page/observation fit a single function invocation. */
 export async function processSalesDriveSync(tenantId?: string, db: SqlDatabase = prisma, load = (id:string,backfill=false,sourceId?:string)=>loadConnectorRuntime(id,backfill,db,undefined,sourceId)) {
   await dispatchSyncCycle(db,tenantId);
   const job = await claimConnectorJob<OrderJob | InventoryJob | CsvJob>(null,db,tenantId);
@@ -41,6 +39,5 @@ export async function processSalesDriveSync(tenantId?: string, db: SqlDatabase =
   return result;
 }
 
-// Provider-neutral names; retain old exports and cron URLs as compatibility aliases.
 export const scheduleConnectorSyncs=scheduleSalesDriveSyncs;
 export const processConnectorSync=processSalesDriveSync;

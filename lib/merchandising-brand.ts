@@ -5,7 +5,6 @@ import { prisma } from "./prisma";
 import { normalizedBrandKey } from "./data-normalization";
 import { SettingsValidationError } from "./merchandising-settings";
 import type { SqlDatabase } from "./connectors/database";
-/** Create a tenant-owned brand before the first catalog import, without guessing ownership or commercial terms. */
 export async function createMerchandisingBrand(
   tenantId: string,
   actorId: string,

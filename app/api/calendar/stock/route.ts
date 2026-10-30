@@ -2,13 +2,11 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiUser } from "@/lib/server-auth";
 
-/** Aggregate observed merchandise stock by brand, retaining the Unbranded group. */
 export async function GET() {
   const { user, response } = await requireApiUser();
   if (response) return response;
   const { tenantId } = user;
 
-  // Get latest inventory snapshot per SKU
   const snapshots = await prisma.inventorySnapshot.findMany({
     where: { tenantId, sourceId: null,sku:{productKind:{notIn:["SERVICE","GIFT_CARD"]}} },
     orderBy: { snapshotDate: "desc" },
@@ -16,7 +14,6 @@ export async function GET() {
     include: { sku: { include: { brand: { select: { id: true, name: true } } } } },
   });
 
-  // Get sales last 30 days
   const since = new Date();
   since.setDate(since.getDate() - 30);
 
@@ -25,7 +22,6 @@ export async function GET() {
     include: { sku: { include: { brand: { select: { id: true, name: true } } } } },
   });
 
-  // Aggregate by brand
   const brandStock: Record<string, { name: string; stock: number; sales30: number }> = {};
 
   for (const snap of snapshots) {

@@ -1,11 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { SHEETS_SOURCE_FILTER } from "@/lib/data-source";
 
-/**
- * Resolve the immutable source snapshot that currently powers reporting.
- * Agents must use this import rather than the legacy Sku/SalesRecord tables,
- * which were populated directly from the workbook by the old sync pipeline.
- */
 export async function getActiveAgentImportRunId(tenantId: string): Promise<string | null> {
   const source = await prisma.dataSource.findFirst({
     where: {

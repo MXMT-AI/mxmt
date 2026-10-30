@@ -8,7 +8,6 @@ import {CHAT_TOPICS,type ChatTopic,type ChatHistoryTurn,type MerchandisingChatRe
 import {chatCopy,chatNotice,citationCopy} from "@/lib/merchandising-chat-copy";
 import {button} from "./ReportPrimitives";
 
-/** Exact fact strings and server-owned citations are rendered separately from non-authoritative prose. */
 export const ChatReply=memo(function ChatReply({reply,lang}:{reply:MerchandisingChatReply;lang:Lang}){
  const copy=chatCopy[lang],citation=citationCopy[lang],locale=lang==="uk"?"uk-UA":"en-GB";
  const date=(value:string)=>new Intl.DateTimeFormat(locale,{dateStyle:"medium",timeZone:"UTC"}).format(new Date(`${value}T00:00:00Z`));
@@ -34,7 +33,6 @@ export const ChatReply=memo(function ChatReply({reply,lang}:{reply:Merchandising
 });
 
 interface Props{snapshotId:string;filters:MerchandisingChatRequest["filters"];lang:Lang;allowed:boolean;initialTopic?:ChatTopic;scenarioExportId?:string}
-/** Changing scope/topic starts a fresh local thread; messages are never stored in browser persistence. */
 export default function MerchandisingChat(props:Props){
  const [topic,setTopic]=useState<ChatTopic>(props.initialTopic??"overview"),copy=chatCopy[props.lang],id=useId();
  const scenarioExportId=topic===props.initialTopic?props.scenarioExportId:undefined;
@@ -49,7 +47,6 @@ export default function MerchandisingChat(props:Props){
    <ChatThread key={signature} {...props} topic={topic} scenarioExportId={scenarioExportId}/>
  </div>;
 }
-/** Preserve a request nonce on uncertain network results and ignore responses after a scope change/unmount. */
 function ChatThread({snapshotId,filters,lang,allowed,topic,scenarioExportId}:Props&{topic:ChatTopic}){
  const copy=chatCopy[lang],id=useId();
  const [question,setQuestion]=useState(""),[history,setHistory]=useState<ChatHistoryTurn[]>([]);

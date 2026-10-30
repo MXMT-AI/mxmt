@@ -13,7 +13,6 @@ export async function GET() {
     orderBy: [{ category: "asc" }, { color: "asc" }],
   });
 
-  // Group by category + color + style — same combination across brands = potential duplicate
   const groups: Record<string, typeof items> = {};
   for (const item of items) {
     const key = [
@@ -26,7 +25,6 @@ export async function GET() {
     groups[key].push(item);
   }
 
-  // Only return groups that span more than one brand
   const duplicates = Object.values(groups).filter((group) => {
     const brandIds = new Set(group.map((i) => i.brandId));
     return brandIds.size > 1;

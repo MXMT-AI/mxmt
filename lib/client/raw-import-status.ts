@@ -1,6 +1,5 @@
 import { RAW_IMPORT_MAX_RUNTIME_MS, rawImportIsLive } from "@/lib/data-import-policy";
 
-/** Schedule one status check, or a local expiry update when the claim expires first. */
 export function scheduleRawImportStatusCheck(
   run: { status: string; createdAt: string } | null,
   poll: () => void,

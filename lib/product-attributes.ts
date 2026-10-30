@@ -14,7 +14,6 @@ export interface AttributeMembership {state:AttributeState;valueIds:string[];raw
 const invalid=():never=>{throw new ProductAttributeError("INVALID_ATTRIBUTE_DICTIONARY");};
 const exact=(v:Record<string,unknown>,fields:string[])=>Object.keys(v).every(k=>fields.includes(k));
 const forbidden=new Set(["__proto__","prototype","constructor","name","title","description","image","image_link","images","sku","barcode","article"]);
-/** Require an explicit physical-field dictionary; no default dimensions, title parsing or inherited thresholds. */
 export function parseAttributeDictionary(v:unknown):AttributeDictionary {
   if(!isRecord(v)||Object.keys(v).sort().join()!=="attribution,dimensions,rubric,sourceId,version"||v.version!==1||v.attribution!=="exclusive_bucket"||!text(v.sourceId,160)||!isRecord(v.rubric)||Object.keys(v.rubric).sort().join()!=="kind,minGroupSize"||v.rubric.kind!=="coverage_only"||!Number.isInteger(v.rubric.minGroupSize)||Number(v.rubric.minGroupSize)<1||Number(v.rubric.minGroupSize)>1000||!Array.isArray(v.dimensions)||!v.dimensions.length||v.dimensions.length>5)return invalid();
   const dims=new Set<string>();
@@ -34,13 +33,11 @@ export function parseAttributeDictionary(v:unknown):AttributeDictionary {
   }
   return structuredClone(v) as unknown as AttributeDictionary;
 }
-/** Retain bounded source data as evidence, preserving an explicit unavailable state instead of guessing/truncating. */
 export function productAttributeEvidence(productId:string,raw:unknown){
   if(!isRecord(raw))return {kind:"PRODUCT_ATTRIBUTE_EVIDENCE_V1",productId,state:"MISSING",data:null};
   const bytes=JSON.stringify(raw);if(Buffer.byteLength(bytes,"utf8")>64*1024)return {kind:"PRODUCT_ATTRIBUTE_EVIDENCE_V1",productId,state:"TOO_LARGE",data:null};
   return {kind:"PRODUCT_ATTRIBUTE_EVIDENCE_V1",productId,state:"AVAILABLE",data:JSON.parse(bytes) as Record<string,unknown>};
 }
-/** Resolve only exact approved field paths; named arrays use explicit name/value matching, never name inference. */
 export function normalizeProductAttribute(d:AttributeDimension,raw:unknown):AttributeMembership {
   if(!isRecord(raw))return {state:"SOURCE_UNAVAILABLE",valueIds:[],rawValues:[],bucket:"__unknown__"};
   const extracted:unknown[]=[];

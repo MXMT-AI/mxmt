@@ -14,7 +14,6 @@ import { readScenarioAdviceEvidence } from "../scenario-export-store";
 import { ScenarioExportError } from "../scenario-csv";
 import { AiExecutionError, type AiPrincipal } from "./contracts";
 
-/** Verify current same-tenant membership and the role required by the requested operation. */
 export async function assertAiPrincipal(p: AiPrincipal, tx: SqlClient, admin = false) {
   const [user] = await tx.$queryRaw<Array<{role: string}>>(Prisma.sql`SELECT role FROM "User" WHERE id=${p.userId} AND "tenantId"=${p.tenantId}`);
   if (!user || !(admin ? ["ADMIN", "SUPER_ADMIN"] : ["ADMIN", "SUPER_ADMIN", "ANALYST"]).includes(user.role))
@@ -23,7 +22,6 @@ export async function assertAiPrincipal(p: AiPrincipal, tx: SqlClient, admin = f
 const FILTERS = ["brandId", "categoryId", "skuId", "channelId", "currency", "classification", "ownership", "supplierId", "search"] as const;
 export type AiFilters = Partial<Record<typeof FILTERS[number], string>>;
 export interface AiScenarioSelection {exportId: string; kind: "reprice" | "reorder"; offerBrandId?:string}
-/** Reuse canonical screen validation while keeping caller filter errors in the AI 400 contract. */
 export function evidenceQuery(snapshotId: string, filters: AiFilters): ScreenQuery {
   const params = new URLSearchParams({snapshotId, pageSize: "1", domain: "stock"});
   for (const [key, value] of Object.entries(filters)) {
@@ -38,7 +36,6 @@ export function evidenceQuery(snapshotId: string, filters: AiFilters): ScreenQue
     throw error;
   }
 }
-/** Validate shared identity/source freshness without scanning sales or stock facts. */
 export async function resolveAiSnapshot(p: AiPrincipal, snapshotId: string, tx: SqlClient) {
   await assertAiPrincipal(p, tx);
   const selected = await readSelectedSource(p.tenantId, tx);
@@ -50,12 +47,10 @@ export async function resolveAiSnapshot(p: AiPrincipal, snapshotId: string, tx: 
     throw new AiExecutionError("AI_CONTEXT_STALE");
   return {selected,snapshot};
 }
-/** Apply the same profile-aware canonical scope to paid AI evidence and bounded deterministic exports. */
 export function snapshotEvidenceQuery(snapshot:ScreenSnapshot,filters:AiFilters){
   const query=profileFilters(evidenceQuery(snapshot.snapshotId,filters),snapshot.sales.context.settings.profileMode==="MONOBRAND");
   return {query,canonical:Object.fromEntries(FILTERS.map(k=>[k,query[k]??null]))};
 }
-/** Build the common provenance envelope from already verified context and scoped observations. */
 export function buildEvidenceEnvelope(tenantId:string,selected:NonNullable<Awaited<ReturnType<typeof readSelectedSource>>>,snapshot:ScreenSnapshot,canonical:Record<string,string|null>,observations:{first:string|null;last:string|null;missing:number}){
   return {
     version: 1, tenantId, snapshotId: snapshot.snapshotId,
@@ -68,7 +63,6 @@ export function buildEvidenceEnvelope(tenantId:string,selected:NonNullable<Await
     filters: canonical, coverage: {sales: snapshot.sales.issues, stock: snapshot.stock.issues},
   };
 }
-/** Read saved tenant-scoped facts and reject stale selection, settings or calculation provenance. */
 export async function resolveAiEvidence(p: AiPrincipal, snapshotId: string, filters: AiFilters, tx: SqlClient, scenario?: AiScenarioSelection) {
   const {selected,snapshot}=await resolveAiSnapshot(p,snapshotId,tx);
   const published = await readPublishedSalesReport(p.tenantId, snapshot.sales.calculationId, tx);
@@ -92,7 +86,6 @@ export async function resolveAiEvidence(p: AiPrincipal, snapshotId: string, filt
   const envelope = buildEvidenceEnvelope(p.tenantId,selected,snapshot,canonical,observations);
   const sales = await readScreenSales(p.tenantId, snapshot, query, "overview", tx, false);
   const stock = await readScreenStock(p.tenantId, snapshot, query, "overview", tx, false);
-  // Server facts remain separate from model text; channel filtering intentionally never narrows shared stock.
   let savedScenario: Awaited<ReturnType<typeof readScenarioAdviceEvidence>> | undefined;
   if (scenario) {
     if (!["reprice","reorder"].includes(scenario.kind) || typeof scenario.exportId !== "string") throw new AiExecutionError("AI_INVALID_SCENARIO",400);

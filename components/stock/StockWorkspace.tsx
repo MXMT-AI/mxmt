@@ -8,7 +8,6 @@ import { useMerchandisingFilters } from "@/components/merchandising/Merchandisin
 import { useMerchandisingScreen } from "@/components/merchandising/useMerchandisingScreen";
 import { stockCopy } from "@/lib/stock-copy";
 import StockContent from "./StockContent";
-/** Load frozen stock independently of the shared sales-channel selection. */
 export default function StockWorkspace() {
   const filters = useMerchandisingFilters()!,
     params = useSearchParams(),

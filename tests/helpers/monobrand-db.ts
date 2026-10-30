@@ -6,7 +6,6 @@ import {
   readClientSettings,
   saveMerchandisingSettings,
 } from "@/lib/merchandising-settings-store";
-/** Two synthetic clients share the real schema and calculators, but no identities or configuration rows. */
 export async function createMonobrandDb() {
   const f = await createScreenDb();
   await f.pg.exec(

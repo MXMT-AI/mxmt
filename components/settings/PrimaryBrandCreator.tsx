@@ -2,7 +2,6 @@
 import { useState, useRef } from "react";
 import { apiFetch } from "@/lib/fetch";
 import { readApiJson } from "@/lib/api-response";
-/** Bootstrap monobrand identity within the existing Settings form before credentials or catalog data are available. */
 export default function PrimaryBrandCreator({
   lang,
   disabled,
@@ -18,7 +17,6 @@ export default function PrimaryBrandCreator({
     [error, setError] = useState(""),
     [saved, setSaved] = useState(false);
   const nameRef = useRef<HTMLInputElement>(null);
-  /** Create only identity; the enclosing profile form remains an explicit, separate save. */
   async function create() {
     if (busy || disabled) return;
     setBusy(true);

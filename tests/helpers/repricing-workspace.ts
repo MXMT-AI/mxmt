@@ -1,5 +1,4 @@
 import type { RepricingSku } from "@/lib/repricing-contract";
-/** Synthetic watch assortment for UI tests; no customer data or financial benchmark claim. */
 export const repricingUiSkus: RepricingSku[] = Array.from(
   { length: 32 },
   (_, i) => ({

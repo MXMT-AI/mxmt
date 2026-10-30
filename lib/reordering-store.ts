@@ -18,7 +18,6 @@ import {
   type ReorderingRequest,
 } from "./reordering-contract";
 import type { ClassifiedDailySku, MerchandisingPolicy } from "./classify";
-/** Export can reuse the complete validated scenario inside its own authorized audit transaction. */
 export async function calculateReorderingInSnapshot(
   tenantId: string,
   request: ReorderingRequest,
@@ -126,7 +125,6 @@ export async function calculateReorderingInSnapshot(
     },
   };
 }
-/** No live inventory, catalog, settings or order facts can replace frozen preview inputs. */
 export async function getReorderingPreview(
   tenantId: string,
   value: unknown,

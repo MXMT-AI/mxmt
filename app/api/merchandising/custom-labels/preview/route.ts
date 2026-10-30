@@ -6,7 +6,6 @@ import { customLabelApiError } from "@/lib/custom-label-api";
 import { CustomLabelError } from "@/lib/custom-labels";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
-/** Resolve a bounded deterministic preview without creating export history or using AI. */
 export async function POST(request:NextRequest){
   const {user,response}=await requireApiUser("ANALYST");if(response)return response;
   const {data,response:invalid}=await parseJsonBody(request);if(invalid)return invalid;

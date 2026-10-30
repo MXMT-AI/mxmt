@@ -1,5 +1,4 @@
 import { createScreenDb } from "./screen-db";
-/** Synthetic issue #49 acceptance amounts, independent of customer benchmark sign-off. */
 export async function createDataQualityDb() {
   const f = await createScreenDb();
   await f.pg.exec(`UPDATE "Sku" SET "productKind"='SERVICE';

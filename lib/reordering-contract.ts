@@ -1,4 +1,3 @@
-/** Wire types only: clients can supply scenario settings, never velocity or formula inputs. */
 export const REORDERING_VERSION = 1;
 export const REORDERING_INPUT_LIMIT = 20000;
 export interface ReorderingParameters {

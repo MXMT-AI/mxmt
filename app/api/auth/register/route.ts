@@ -30,7 +30,6 @@ export async function POST(request: NextRequest) {
       slugify(businessName) + "-" + Date.now().toString(36);
     const passwordHash = await hash(password, 12);
 
-    // Create tenant + admin user in a single transaction
     const { user, tenant } = await prisma.$transaction(async (tx) => {
       const tenant = await tx.tenant.create({
         data: { name: businessName, slug },
@@ -47,7 +46,6 @@ export async function POST(request: NextRequest) {
       signRefreshToken(tokenPayload),
     ]);
 
-    // Store bcrypt hash of refresh token — raw token never saved
     await prisma.user.update({
       where: { id: user.id },
       data: { refreshToken: await hash(refreshToken, 10) },

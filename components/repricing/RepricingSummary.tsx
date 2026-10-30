@@ -6,7 +6,6 @@ import {
 import { formatTableValue as format } from "@/lib/data-reporting-ui";
 import type { RepricingCopy } from "@/lib/repricing-copy";
 import type { RepricingPreview } from "./useRepricingPreview";
-/** Only show authoritative current totals, with no local financial calculations. */
 export default function RepricingSummary({
   data,
   current,

@@ -223,7 +223,7 @@ describe("daily materialization with production SQL", () => {
     expect(
       (await pg.query('SELECT count(*)::int n FROM "SkuDaily"')).rows,
     ).toEqual([{ n: 1 }]);
-    expect((await readClientSettings("a", db)).id).toBeNull(); // a derived input manifest does not publish client settings
+    expect((await readClientSettings("a", db)).id).toBeNull();
   });
   it("isolates both source discovery and immutable daily reads by tenant", async () => {
     const result = await calculateSkuDaily("a", args, db);

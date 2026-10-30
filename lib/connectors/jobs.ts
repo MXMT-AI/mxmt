@@ -8,7 +8,6 @@ import type { SqlClient, SqlDatabase } from "./database";
 import { logWarn } from "@/lib/observability";
 export interface ConnectorJob { id: string; tenantId: string; sourceId: string; importRunId: string; resource: string; connectionRevision: number; attempts: number; leaseToken: string | null }
 
-/** Claim one available or expired job atomically; concurrent workers skip locked rows. */
 export async function claimConnectorJob<T extends ConnectorJob>(resource: string | null, db: SqlDatabase = prisma, tenantId?: string, now = new Date(), jobId?: string) {
   const token = randomUUID();
   const [job] = await db.$queryRaw<T[]>(Prisma.sql`WITH candidate AS (
@@ -28,7 +27,6 @@ export async function claimConnectorJob<T extends ConnectorJob>(resource: string
   return job ?? null;
 }
 
-/** Resume the tenant’s latest recoverable job with its checkpoint and current connection revision. */
 export async function resumeConnectorJob(tenantId:string,resource:string,db:SqlDatabase=prisma,jobId?:string,mode?:string) {
   return db.$transaction(async tx=>{
     await tx.$queryRaw(Prisma.sql`SELECT id FROM "Tenant" WHERE id=${tenantId} FOR SHARE`);
@@ -53,7 +51,6 @@ export async function resumeConnectorJob(tenantId:string,resource:string,db:SqlD
   });
 }
 
-/** Expose sanitized progress and issue codes for the current tenant connection only. */
 export async function getConnectorProgress(tenantId: string, resource: string, db: SqlClient = prisma) {
   const [job] = await db.$queryRaw<Array<{ id: string; mode: string; state: string; stats: Record<string, number>; errorCode: string | null; availableAt: Date; updatedAt: Date; issues: string[] }>>(Prisma.sql`
     SELECT j.id,j.mode,j.state,j.stats,j."errorCode",j."availableAt",j."updatedAt", ARRAY(SELECT DISTINCT i.code FROM "ImportIssue" i WHERE i."importRunId"=j."importRunId" AND i."tenantId"=j."tenantId" ORDER BY i.code LIMIT 100) AS issues FROM "ConnectorSyncJob" j JOIN "ConnectorConnection" c ON c."sourceId"=j."sourceId" AND c."tenantId"=j."tenantId"
@@ -61,14 +58,12 @@ export async function getConnectorProgress(tenantId: string, resource: string, d
   return job ?? null;
 }
 
-/** Keep one diagnostic per run/code without storing source customer data in the message. */
 export async function recordIssues(tx: SqlClient, job: Pick<ConnectorJob, "tenantId" | "importRunId">, codes: Set<string>) {
   for (const code of codes) await tx.$executeRaw(Prisma.sql`INSERT INTO "ImportIssue" (id,"tenantId","importRunId",code,severity,message)
     SELECT ${randomUUID()},${job.tenantId},${job.importRunId},${code},'WARNING',${code}
     WHERE NOT EXISTS (SELECT 1 FROM "ImportIssue" WHERE "importRunId"=${job.importRunId} AND code=${code})`);
 }
 
-/** Persist sanitized retry/failure state only if this worker still owns the lease. */
 export async function failConnectorJob(job: ConnectorJob, error: unknown, db: SqlDatabase = prisma) {
     const csvError=error instanceof Error&&error.name==="CsvStoreError"&&/^CSV_[A-Z_]{1,64}$/.test(error.message)?error.message:null;
     const changed = error instanceof Error && error.message === "CONNECTOR_CONFIG_CHANGED";

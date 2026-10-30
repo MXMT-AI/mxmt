@@ -6,7 +6,6 @@ export class SheetsReportingRefreshError extends Error {
     super(code);
   }
 }
-/** Read an object-shaped API payload; error bodies may be valid scalar JSON. */
 async function sheetsJson(
   fetcher: typeof apiFetch,
   path: string,
@@ -24,7 +23,6 @@ async function sheetsJson(
   return body;
 }
 const responseTimeout = (status: number) => status === 408 || status === 504;
-/** Read readiness from the selected source, independently of the legacy Sheets tab. */
 export async function selectedSheetsProjectionIntent(
   fetcher: typeof apiFetch = apiFetch,
 ) {
@@ -39,7 +37,6 @@ export async function selectedSheetsProjectionIntent(
   const intent = await sheetsJson(fetcher, path);
   return { path, intent };
 }
-/** Separate requests preserve the bounded projection budget after the raw import finishes. */
 export async function refreshSelectedSheetsReports(
   expectedImportRunId?: string,
   fetcher: typeof apiFetch = apiFetch,
@@ -60,7 +57,6 @@ export async function refreshSelectedSheetsReports(
   });
   return { state: "READY" as const };
 }
-/** Explain the failed refresh stage while preserving the distinction between saved imports and report readiness. */
 export function sheetsRefreshMessage(code: string, lang: "uk" | "en") {
   const uk = lang === "uk";
   if (code === "SHEETS_CATALOG_IDENTITY_CONFLICT")

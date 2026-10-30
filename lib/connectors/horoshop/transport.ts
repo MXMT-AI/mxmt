@@ -52,7 +52,6 @@ export async function resolveShop(hostname: string, resolve = lookup) {
     throw new ConnectorReadError("NOT_CONFIGURED");
   return addresses[0];
 }
-/** Operator allowlist + socket-pinned public DNS. TLS still verifies the original hostname. */
 export async function horoshopFetch(
   url: URL,
   init: RequestInit,
@@ -96,7 +95,6 @@ export async function horoshopFetch(
             : cb(null, pinned.address, pinned.family)) as any,
       },
       (res) => {
-        // No redirects, cookies or response messages are propagated.
         const chunks: Buffer[] = [];
         let size = 0;
         res.on("data", (chunk: Buffer) => {

@@ -7,9 +7,7 @@ interface Publication {
   id:string;inputKey:string;version:number;sourceId:string;clientConfigId:string|null;configIds:string[];
   period?:unknown;asOf?:string;cutoff?:string;rowCount?:number;
 }
-/** Verify immutable saved publication headers without requiring historical evidence to match today's sync cursor. */
 export async function savedMvpPublicationsMatch(p:{tenantId:string},snapshot:ScreenSnapshot,sourceId:string,tx:SqlClient){
-  // Read only two publication headers; callers separately enforce their scoped row bounds.
   const [sales]=await tx.$queryRaw<Publication[]>(Prisma.sql`SELECT "financialResult"->>'calculationRunId' id,"financialResult"->>'inputKey' "inputKey",("financialResult"->>'calculationVersion')::int version,
     "financialResult"->'provenance'->>'sourceId' "sourceId","financialResult"->'provenance'->>'clientConfigId' "clientConfigId",
     "financialResult"->'provenance'->'configIds' "configIds","financialResult"->'period' period

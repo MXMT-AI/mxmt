@@ -13,7 +13,6 @@ import {
   productEligibility,
 } from "@/lib/data-normalization";
 
-/** Current-connection observations and explicit per-product exceptions, retaining input lineage. */
 function qualityBase(tenantId: string, monoBrandId: string | null, sourceId: string | null) {
   const sourceBrand = Prisma.sql`CASE WHEN s."catalogAttributes" ? 'normalization' THEN s."catalogAttributes"->'normalization'->>'brandKey' ELSE NULLIF(btrim(s."catalogAttributes"->>'vendor'),'') END`;
   return Prisma.sql`WITH latest AS (
@@ -54,7 +53,6 @@ function qualityBase(tenantId: string, monoBrandId: string | null, sourceId: str
 )`;
 }
 
-/** Return bounded diagnostics and currency-separated components, not a replacement financial report. */
 async function readProductQuality(
   tenantId: string,
   options: { page?: number; q?: string; code?: string } = {},
@@ -205,7 +203,6 @@ async function readProductQuality(
   };
 }
 
-/** Keep grouped counts, distinct totals and SKU drill-downs on one consistent database snapshot. */
 export async function getProductQuality(
   tenantId: string,
   options: { page?: number; q?: string; code?: string } = {},

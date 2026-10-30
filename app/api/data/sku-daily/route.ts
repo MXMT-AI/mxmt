@@ -12,7 +12,6 @@ import { DailySkuPeriodError } from "@/lib/sku-daily-period";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const maxDuration = 300;
-/** Readers consume one immutable tenant calculation; pagination never changes the availability denominator. */
 export async function GET(request: NextRequest) {
   const { user, response } = await requireApiUser();
   if (response) return response;

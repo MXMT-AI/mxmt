@@ -4,7 +4,6 @@ import { Prisma } from "@prisma/client";
 import type { SqlClient } from "./database";
 import type { OrderScope } from "./order-storage";
 
-/** Attach per-SKU exceptions to the exact raw catalogue observation, never to guessed zeroes. */
 export async function recordCatalogQuality(tx: SqlClient, scope: OrderScope, rawKey: string) {
   const {tenantId,importRunId,sourceId}=scope;
   await tx.$executeRaw(Prisma.sql`INSERT INTO "ImportIssue" (id,"tenantId","importRunId","entityKey",code,severity,message,context)
@@ -20,7 +19,6 @@ export async function recordCatalogQuality(tx: SqlClient, scope: OrderScope, raw
     ON CONFLICT ("importRunId",code,"entityKey") DO UPDATE SET context=EXCLUDED.context`);
 }
 
-/** Preserve row-level signed movement exceptions with raw-to-normalized identities. */
 export async function recordOrderQuality(tx:SqlClient,scope:OrderScope,orderId?:string) {
  await tx.$executeRaw(Prisma.sql`INSERT INTO "ImportIssue" (id,"tenantId","importRunId","entityKey",code,severity,message,context)
   SELECT ${randomUUID()}||':'||l.id||':'||q.code,${scope.tenantId},${scope.importRunId},'order:'||l."externalOrderId"||':'||l."externalLineId",q.code,'WARNING',q.code,

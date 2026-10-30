@@ -5,7 +5,6 @@ import { prisma } from "@/lib/prisma";
 import { requireApiUser } from "@/lib/server-auth";
 import { apiError, isRecord, numberField, parseJsonBody, stringField, validationError } from "@/lib/api-contracts";
 
-/** Edit planner terms without implicitly resolving an ambiguous legacy identity. */
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -81,7 +80,6 @@ export async function PUT(
   }
 }
 
-/** Delete a tenant brand only after its explicit aliases have been removed. */
 export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -98,8 +96,6 @@ export async function DELETE(
     return apiError("Remove this brand's aliases before deleting it",409,"BRAND_HAS_ALIASES");
   }
 
-  // Composite tenant FKs cannot SET NULL on the required tenantId. Detach only
-  // this tenant's SKUs explicitly, retaining the existing delete behavior.
   await prisma.$transaction(async (tx) => {
     await tx.sku.updateMany({ where: { tenantId, brandId: id }, data: { brandId: null } });
     await tx.brand.delete({ where: { id } });

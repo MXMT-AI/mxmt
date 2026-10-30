@@ -87,7 +87,6 @@ export async function reserveQueryCost(
     return null;
   });
 }
-/** Restrict parsing to a bounded clone; return the original body only after complete GraphQL success. */
 export function graphqlBudgetedFetcher(
   identity: string,
   db: SqlDatabase,
@@ -160,7 +159,6 @@ export function graphqlBudgetedFetcher(
             Prisma.sql`SELECT "costState" FROM "ConnectorRequestBudget" WHERE "accountKey"=${key} FOR UPDATE`,
           );
           const now = new Date();
-          // Refund only this request's unused reservation; concurrent reservations stay debited.
           const state = {
             available: Math.min(Math.max(0,available(row.costState, now)+(finite(actual)?policy.estimatedCost-actual:0)), current),
             maximum,
@@ -189,8 +187,6 @@ export function graphqlBudgetedFetcher(
         throw new ConnectorReadError("INVALID_RESPONSE");
       return response;
     } catch (error) {
-      // A tee waits for both branches: start both cancellations before awaiting.
-      // The inspection reader has released its lock, including on size/read errors.
       await Promise.allSettled([response.body?.cancel(), copy?.body?.cancel()]);
       throw error;
     }

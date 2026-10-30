@@ -7,7 +7,6 @@ import {
 import { scenarioExportApiError } from "@/lib/scenario-export-api";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-/** Deliver the originally audited UTF-8 bytes; repeat downloads do not append another action. */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ exportId: string }> },

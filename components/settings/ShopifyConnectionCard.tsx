@@ -6,7 +6,6 @@ import { useConnectorConnection } from "./useConnectorConnection";
 import ConnectorDiagnostics from "./ConnectorDiagnostics";
 const button =
   "min-h-11 rounded-lg border border-(--border) px-4 py-2 text-sm text-(--text) hover:bg-(--input-hover) focus-visible:outline-solid focus-visible:outline-2 disabled:opacity-50";
-/** Shopify evidence remains an explicit owner decision; saving never selects a reporting source. */
 export default function ShopifyConnectionCard({
   initial,
   lang,

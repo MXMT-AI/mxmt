@@ -5,7 +5,6 @@ import { customLabelApiError } from "@/lib/custom-label-api";
 import { CustomLabelError } from "@/lib/custom-labels";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
-/** Stream only an authenticated tenant's already audited bytes; downloading performs no external action. */
 export async function GET(request:NextRequest,{params}:{params:Promise<{exportId:string}>}){
   const {user,response}=await requireApiUser("ANALYST");if(response)return response;
   try{

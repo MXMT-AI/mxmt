@@ -42,10 +42,6 @@ function hasRole(userRole: string, requiredRole: RequiredRole): boolean {
   return (ROLE_RANK[userRole] ?? -1) >= ROLE_RANK[requiredRole];
 }
 
-/**
- * Resolve the user only from a verified httpOnly access token.
- * Identity headers are not an authentication authority for route handlers.
- */
 export async function getCurrentUser(): Promise<CurrentUser | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get("access_token")?.value;

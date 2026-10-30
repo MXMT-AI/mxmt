@@ -3,7 +3,6 @@ import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
 import { chat, chatWithUsage } from "@/lib/ai";
 
-// Exercise actual SDK serialization and response/error parsing; never dispatch to a provider.
 const transport = vi.fn<typeof fetch>();
 const messages = [{ role: "user" as const, content: "Synthetic compatibility prompt" }];
 const completion = () => ({

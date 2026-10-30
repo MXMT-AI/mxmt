@@ -96,7 +96,6 @@ async function metadata(
   const [active] = await tx.$queryRaw<Array<{ revision: number }>>(
     Prisma.sql`SELECT revision FROM "MerchandisingConfig" WHERE "tenantId"=${p.tenantId} AND "configType"='SOURCE_MAPPING' AND key=${`sheets:${sourceId}`} AND "isActive" AND "approvedAt" IS NOT NULL`,
   );
-  // Reuse only a validated saved draft for this exact schema.
   let chosen = suggestion;
   if (
     old?.values?.sheets?.fileId === input.fileId &&
@@ -148,7 +147,6 @@ export async function readSheetsMappingMetadata(
 ) {
   return aiTransaction(p, db, (tx) => metadata(p, sourceId, tx), true);
 }
-/** Inspect frozen selected columns only, in bounded pages; never fetch a file or calculate financial reports. */
 async function analyzeSheetsMapping(
   p: AiPrincipal,
   input: SheetsMappingInput,

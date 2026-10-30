@@ -2,7 +2,6 @@ import "server-only";
 import { Prisma } from "@prisma/client";
 import type { SqlClient } from "./database";
 
-/** A scan cursor is not evidence of complete order-creation history. */
 export async function readOrderHistory(
   tenantId: string,
   sourceId: string,
@@ -31,7 +30,5 @@ export async function readOrderHistory(
       FROM "SyncCursor" s JOIN "ConnectorConnection" c ON c."tenantId"=s."tenantId" AND c."sourceId"=s."sourceId"
       WHERE s."tenantId"=${tenantId} AND s."sourceId"=${sourceId} AND s.resource='orders'`,
   );
-  // Preserve SalesDrive's legacy backfill + incremental watermark contract.
-  // Other providers extend coverage only via explicitly verified windows above.
   return { windows, cursor };
 }

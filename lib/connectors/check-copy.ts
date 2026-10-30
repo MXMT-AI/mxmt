@@ -1,5 +1,4 @@
 import type { CheckCode } from "./contract";
-/** Shared user-facing read diagnostics; unknown future codes retain their raw fallback. */
 export function connectorCheckLabels(
   lang: "uk" | "en",
 ): Record<CheckCode, string> {

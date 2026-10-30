@@ -85,7 +85,6 @@ export function salesAggregateMetric(
   );
 }
 const headline = Prisma.sql`f.kind<>'PREORDER' AND f."productKind" IN ('MERCHANDISE','SERVICE')`;
-/** SQL performs grouping and paging; the existing engine finalizes money/coverage/ratios. */
 export async function readScreenSales(
   tenantId: string,
   snapshot: ScreenSnapshot,
@@ -152,7 +151,6 @@ export async function readScreenSales(
       snapshot.sales.context.history.ly,
     ),
   }));
-  // PREORDER is a separate movement: never included in any headline or sale-order count.
   const preorder = await db.$queryRaw<
     Array<{ currency: string | null; amount: string | null; lineCount: number }>
   >(

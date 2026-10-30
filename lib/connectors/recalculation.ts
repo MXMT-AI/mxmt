@@ -16,9 +16,6 @@ type Intent = {
   state: string;
   inputProvenance: Record<string, unknown>;
 };
-/** One local calculation per tick, separate from remote import work (Hobby's 60-second budget).
- * Each phase is independently immutable; these two result IDs are not one financial/stock snapshot.
- */
 export async function processConnectorRecalculation(
   tenantId?: string,
   db: SqlDatabase = prisma,
@@ -26,7 +23,6 @@ export async function processConnectorRecalculation(
 ) {
   const token = randomUUID();
   const intent = await db.$transaction(async (tx) => {
-    // Serialize claims for a source, without holding a lock during the calculation.
     let [source] = await tx.$queryRaw<
       Array<{ tenantId: string; sourceId: string; nativeRunId?: string }>
     >(Prisma.sql`
@@ -47,8 +43,6 @@ export async function processConnectorRecalculation(
       AND EXISTS(SELECT 1 FROM "ConnectorRecalculation" r WHERE r."tenantId"=s."tenantId" AND r."sourceId"=s.id AND r."importRunId"=s."activeImportRunId" AND r.state<>'COMPLETE' AND (r.state='WAITING_ENGINE' OR COALESCE((r."inputProvenance"->>'availableAt')::timestamptz,'-infinity'::timestamptz)<=now()))
       ORDER BY s.id LIMIT 1 FOR UPDATE OF s SKIP LOCKED`);
     if (!source) return null;
-    // READ COMMITTED can select the source using a snapshot from before another
-    // claimant committed. Recheck after its connection lock has been acquired.
     const [liveLease] = await tx.$queryRaw<
       Array<{ importRunId: string }>
     >(Prisma.sql`
@@ -71,7 +65,6 @@ export async function processConnectorRecalculation(
     return row;
   });
   if (!intent) return { processed: false };
-  // A settings/metadata edit resets state to WAITING_ENGINE and therefore restarts daily inputs.
   const phase =
     intent.state !== "WAITING_ENGINE" &&
     intent.inputProvenance.phase === "SALES"

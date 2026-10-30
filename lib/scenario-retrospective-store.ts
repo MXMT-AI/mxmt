@@ -6,7 +6,6 @@ import {aiTransaction} from "./ai-execution/budget";
 import type {AiPrincipal} from "./ai-execution/contracts";
 import type {ScenarioExportCommand,ScenarioExportReceipt} from "./scenario-export-contract";
 import {parseRetrospectiveRequest,RetrospectiveError,RETROSPECTIVE_GATES} from "./scenario-retrospective";
-/** Reproduce the original export parameters and receipt without rerunning its calculator or treating CSV download as execution. */
 export async function prepareScenarioRetrospective(p:AiPrincipal,value:unknown,db:SqlDatabase=prisma){
  const q=parseRetrospectiveRequest(value);
  return aiTransaction(p,db,async tx=>{

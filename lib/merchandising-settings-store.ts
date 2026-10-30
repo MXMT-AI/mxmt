@@ -28,7 +28,6 @@ const tables = {
   supplier: "Supplier",
   category: "Category",
 } as const;
-/** Read only the explicitly activated client profile; defaults do not verify source mappings. */
 export async function readClientSettings(
   tenantId: string,
   db: SqlClient = prisma,
@@ -42,7 +41,6 @@ export async function readClientSettings(
     values: row ? validateClientSettings(row.values) : defaultClientSettings(),
   };
 }
-/** Resolve current SKU policy and preserve the settings versions consumed by the server preview. */
 export async function getEffectiveSkuSettings(
   tenantId: string,
   skuId: string,
@@ -70,7 +68,6 @@ export async function getEffectiveSkuSettings(
     policy: resolveMerchandisingPolicy(row, client.values),
   };
 }
-/** Bounded entity listing reuses existing tenant models and exposes each revision for optimistic edits. */
 export async function listMerchandisingSettings(
   tenantId: string,
   resource: SettingsResource,
@@ -132,7 +129,6 @@ export async function listMerchandisingSettings(
     history,
   };
 }
-/** Validate, audit and version one explicit administrative activation in a single tenant transaction. */
 export async function saveMerchandisingSettings(
   tenantId: string,
   actorId: string,

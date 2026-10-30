@@ -17,7 +17,6 @@ import {
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 const headers = { "Cache-Control": "no-store" };
-/** Every view and CSV uses the same immutable financial result and formula version. */
 export async function GET(request: NextRequest) {
   const { user, response } = await requireApiUser();
   if (response) return response;
@@ -47,7 +46,6 @@ export async function GET(request: NextRequest) {
     (format !== null && format !== "csv")
   )
     return apiError("Invalid sales report query", 400, "INVALID_QUERY");
-  // CSV always requires an explicit frozen result; it cannot silently calculate different totals.
   if (format === "csv" && !id)
     return apiError(
       "Select a calculated report before export",

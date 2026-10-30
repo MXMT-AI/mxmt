@@ -8,7 +8,6 @@ export type { SkuFlag, ClassifiedSku };
 
 const FLAG_ORDER: Record<SkuFlag, number> = { hit: 0, stockout: 1, slow: 2, dead: 3, ok: 4 };
 
-/** Classify eligible tenant SKUs using valid observed stock and legacy sales thresholds. */
 export async function GET(request: NextRequest) {
   const { user, response } = await requireApiUser();
   if (response) return response;

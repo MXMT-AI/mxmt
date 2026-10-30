@@ -1,6 +1,5 @@
 import { Temporal } from "@js-temporal/polyfill";
 export class DailySkuPeriodError extends Error {}
-/** asOf is a business calendar date; current-day facts retain their actual observation time. */
 export function resolveDailySkuPeriod(
   asOf?: string,
   now = new Date(),

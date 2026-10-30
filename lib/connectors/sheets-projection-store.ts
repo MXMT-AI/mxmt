@@ -123,7 +123,6 @@ async function readRows(
   }
   return result;
 }
-/** Publish a complete bounded observation atomically; no partial financial inputs become ready. */
 export async function projectSheetsImport(
   p: AiPrincipal,
   sourceId: string,
@@ -177,7 +176,6 @@ export async function projectSheetsImport(
     throw new E("SHEETS_PROJECTION_INPUT_LIMIT", 422);
   return db.$transaction(
     async (tx) => {
-      // Lock order matches source selection/configuration; recheck actual membership and all intent fences.
       await tx.$queryRaw(
         Prisma.sql`SELECT id FROM "Tenant" WHERE id=${p.tenantId} FOR UPDATE`,
       );
@@ -217,8 +215,6 @@ export async function projectSheetsImport(
         timezone: initial.input.timezone,
         provider: "sheets",
       };
-      // Replace this run's derived observations when its approved mapping changes.
-      // Raw snapshots, source records, approvals and older-run historical observations remain retained.
       await tx.$executeRaw(
         Prisma.sql`DELETE FROM "InventorySnapshot" WHERE "tenantId"=${p.tenantId} AND "sourceId"=${sourceId} AND "importRunId"=${expectedRun}`,
       );
@@ -303,7 +299,6 @@ export async function projectSheetsImport(
   );
 }
 
-/** Return only the current fenced intent, never raw rows or workbook credentials. */
 export async function readSheetsProjectionIntent(
   p: AiPrincipal,
   sourceId: string,

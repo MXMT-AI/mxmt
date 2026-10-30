@@ -15,13 +15,11 @@ export async function POST(request: NextRequest) {
     if (accessToken) {
       try {
         const payload = await verifyAccessToken(accessToken);
-        // Revoke refresh token in DB so it can't be reused
         await prisma.user.update({
           where: { id: payload.sub },
           data: { refreshToken: null },
         });
       } catch {
-        // Token already expired — just clear cookies
       }
     }
 

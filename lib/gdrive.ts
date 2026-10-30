@@ -8,7 +8,6 @@ import { fetchWithTimeout } from "@/lib/server-fetch";
 import { assertDriveRowLimit } from "@/lib/drive-limits";
 import { dedupeBySku } from "@/lib/drive-import-utils";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface ServiceAccount {
   client_email: string;
@@ -53,7 +52,6 @@ function ensureDriveFileSize(buffer: Buffer): Buffer {
   return buffer;
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 export function extractDriveFileId(raw: string): string {
   const patterns = [
@@ -133,7 +131,6 @@ async function upsertSalesRecord(input: SalesRecordInput): Promise<void> {
   });
 }
 
-// Handles: DD.MM.YYYY | YYYY-MM-DD | ISO string | JS Date object (from XLSX cellDates)
 function parseRowDate(row: Row, ...keys: string[]): Date | null {
   for (const k of keys) {
     const raw = row[k] ?? row[k.toLowerCase()] ?? row[k.toUpperCase()];
@@ -141,25 +138,20 @@ function parseRowDate(row: Row, ...keys: string[]): Date | null {
     if (raw instanceof Date) return isNaN(raw.getTime()) ? null : raw;
     const s = String(raw).trim();
     if (!s) continue;
-    // DD.MM.YYYY or D.M.YYYY
     const dmy = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})/);
     if (dmy) {
       const d = new Date(`${dmy[3]}-${dmy[2].padStart(2, "0")}-${dmy[1].padStart(2, "0")}`);
       if (!isNaN(d.getTime())) return d;
     }
-    // ISO or any parseable
     const iso = new Date(s.slice(0, 10));
     if (!isNaN(iso.getTime())) return iso;
   }
   return null;
 }
 
-// Find actual header row when sheet has metadata rows at top.
-// Returns rows with proper header-keyed objects starting after the header row.
 function parseWithAutoHeader(ws: XLSX.WorkSheet): Row[] {
   const raw = sheetToJson(ws, { header: 1, defval: "" }) as unknown[][];
 
-  // Find the row that looks like a header (contains "Article" or "SKU" or "product.sku")
   let headerIdx = -1;
   for (let i = 0; i < Math.min(raw.length, 10); i++) {
     const row = raw[i] as unknown[];
@@ -174,7 +166,6 @@ function parseWithAutoHeader(ws: XLSX.WorkSheet): Row[] {
   }
 
   if (headerIdx === -1) {
-    // Fallback: use first row as headers (original behavior)
     return sheetToJson(ws, { defval: "" }) as Row[];
   }
 
@@ -193,7 +184,6 @@ function parseWithAutoHeader(ws: XLSX.WorkSheet): Row[] {
   return result;
 }
 
-// ─── Google auth ──────────────────────────────────────────────────────────────
 
 function buildJwt(sa: ServiceAccount): string {
   const now = Math.floor(Date.now() / 1000);
@@ -269,7 +259,6 @@ async function downloadPublicFile(fileId: string): Promise<Buffer> {
   );
 }
 
-// ─── Brand helpers ────────────────────────────────────────────────────────────
 
 async function findOrCreateBrand(tenantId: string, name: string, cache: Map<string, string>): Promise<string | null> {
   if (!name) return null;
@@ -285,10 +274,6 @@ async function findOrCreateBrand(tenantId: string, name: string, cache: Map<stri
   return brand.id;
 }
 
-// ─── ARTICLE REPORT importer ──────────────────────────────────────────────────
-// Handles sheets like "ARTICLE REPORT" that contain:
-//   Article | Name | Brand | Category | Cost Price | RRP | Retail Price |
-//   Sales,units | 1..12 (monthly) | Stock units | Sales Last week | WOH | ...
 
 async function importArticleReport(
   tenantId: string,
@@ -298,11 +283,9 @@ async function importArticleReport(
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // "Sales Last week" → use Monday of last week as the date
   const lastMonday = new Date(today);
   lastMonday.setDate(today.getDate() - today.getDay() - 6);
 
-  // Determine current season label for CatalogUpload
   const m0 = today.getMonth() + 1;
   const yy = String(today.getFullYear()).slice(-2);
   const currentSeason = `${m0 >= 3 && m0 <= 8 ? "SS" : "AW"}${yy} (Drive)`;
@@ -319,7 +302,6 @@ async function importArticleReport(
     await findOrCreateBrand(tenantId, brandName, brandCache);
   }
 
-  // Collect catalog items per brand for batch catalog sync at the end
   const catalogBatch = new Map<string, Array<{
     sku: string; name: string; category: string;
     priceWholesale: number; priceRetail: number | null; stockAvail: number;
@@ -348,12 +330,10 @@ async function importArticleReport(
     });
     skuCount++;
 
-    // Import inventory snapshot from "Stock units"
     const stockQty = int(row, "Stock units", "stock units", "Stock", "stock", "Залишок", "залишок");
     await upsertInventorySnapshot(tenantId, sku.id, today, stockQty);
     invCount++;
 
-    // Import monthly sales columns (1-12) as individual month records
     const currentYear = today.getFullYear();
     const currentMonth = today.getMonth() + 1;
     for (let m = 1; m <= 12; m++) {
@@ -372,7 +352,6 @@ async function importArticleReport(
       salesCount++;
     }
 
-    // Also import "Sales Last week" as a weekly record
     const lastWeekSales = int(row, "Sales Last week", "sales last week", "Sales last week");
     if (lastWeekSales > 0) {
       await upsertSalesRecord({
@@ -386,7 +365,6 @@ async function importArticleReport(
       salesCount++;
     }
 
-    // Collect for catalog sync (only branded items — CatalogItem requires brandId)
     if (brandId) {
       if (!catalogBatch.has(brandId)) catalogBatch.set(brandId, []);
       catalogBatch.get(brandId)!.push({
@@ -398,19 +376,16 @@ async function importArticleReport(
     }
   });
 
-  // ── Sync to CatalogItem so Drive-imported items appear in Assortment Planner ──
   for (const [brandId, items] of catalogBatch) {
     if (items.length === 0) continue;
     const uniqueItems = dedupeBySku(items);
 
-    // Find or create the "Drive" CatalogUpload for this brand+season
     const upload = await prisma.catalogUpload.upsert({
       where: { tenantId_brandId_season: { tenantId, brandId, season: currentSeason } },
       create: { tenantId, brandId, season: currentSeason, itemCount: 0 },
       update: {},
     });
 
-    // Replace all items for this upload (full refresh on each sync)
     await prisma.catalogItem.deleteMany({ where: { catalogId: upload.id } });
     await prisma.catalogItem.createMany({
       data: uniqueItems.map((item) => ({
@@ -434,8 +409,6 @@ async function importArticleReport(
   return { skus: skuCount, inventory: invCount, sales: salesCount, brands: brandCache.size - brandsCreatedBefore };
 }
 
-// ─── ZAVOD_API importer ───────────────────────────────────────────────────────
-// Handles order export sheets with columns: orderTime, product.sku, product.amount, etc.
 
 async function importZavodApi(tenantId: string, rows: Row[]): Promise<number> {
   const aggregates = new Map<string, { skuCode: string; date: Date; qtySold: number; revenue: number }>();
@@ -444,14 +417,12 @@ async function importZavodApi(tenantId: string, rows: Row[]): Promise<number> {
     const skuCode = str(row, "product.sku");
     const qty = int(row, "product.amount");
 
-    // Skip discount/coupon/empty lines
     if (!skuCode || qty <= 0) continue;
     if (skuCode === "COUPON" || skuCode.length < 3) continue;
 
     const date = parseRowDate(row, "orderTime", "paymentDate");
     if (!date) continue;
 
-    // Normalize to midnight UTC
     date.setUTCHours(0, 0, 0, 0);
 
     const revenue = num(row, "ProductPaymentAmount", "product.price", "paymentAmount");
@@ -486,7 +457,6 @@ async function importZavodApi(tenantId: string, rows: Row[]): Promise<number> {
   return count;
 }
 
-// ─── Generic importers (fallback) ─────────────────────────────────────────────
 
 async function importSkus(tenantId: string, rows: Row[], brandCache: Map<string, string>): Promise<number> {
   const brandNames = new Map<string, string>();
@@ -571,7 +541,6 @@ async function importSales(tenantId: string, rows: Row[]): Promise<number> {
   return count;
 }
 
-// ─── Public API ───────────────────────────────────────────────────────────────
 
 export function isDriveConfigured(): boolean {
   return !!process.env.GOOGLE_DRIVE_FILE_ID;
@@ -619,7 +588,6 @@ export async function syncFromDrive(tenantId: string): Promise<SyncResult> {
     const ws = wb.Sheets[sheetName];
     const nameLower = sheetName.toLowerCase().replace(/\s+/g, " ").trim();
 
-    // Use auto-header detection for all sheets
     const rows = parseWithAutoHeader(ws);
     totalRows += rows.length;
     assertDriveRowLimit(totalRows);
@@ -631,7 +599,6 @@ export async function syncFromDrive(tenantId: string): Promise<SyncResult> {
     const firstRow = rows[0];
     const cols = Object.keys(firstRow).map((k) => k.toLowerCase());
 
-    // Detect sheet type
     const isArticleReport =
       nameLower.includes("article report") ||
       (cols.includes("article") && cols.some((c) => c.includes("stock units") || c === "woh"));
@@ -667,7 +634,6 @@ export async function syncFromDrive(tenantId: string): Promise<SyncResult> {
       continue;
     }
 
-    // Generic handlers
     if (nameLower.includes("sales") || nameLower.includes("продаж") || hasSalesDate) {
       const n = await importSales(tenantId, rows);
       totalSales += n;

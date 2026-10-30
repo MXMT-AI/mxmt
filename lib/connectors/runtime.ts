@@ -51,7 +51,6 @@ export interface ProviderRegistration {
     context?:JournalScope,
   ): MerchandisingConnector;
 }
-/** Static code registrations; never mutate a process-wide tenant/credential registry. Provider slices add entries here. */
 export const PROVIDER_ADAPTERS: Readonly<
   Partial<Record<SourceProvider, ProviderRegistration>>
 > = Object.freeze({

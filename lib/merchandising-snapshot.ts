@@ -70,7 +70,6 @@ export interface ScreenSnapshot {
   trend?: { calculationId: string; context: SalesMetricContext };
   trendUnavailableReason?: "INPUT_LIMIT";
 }
-/** Only provenance/freshness is live. Navigation never reads mutable facts or catalog values. */
 export async function readScreenSourceState(
   tenantId: string,
   sourceId: string,

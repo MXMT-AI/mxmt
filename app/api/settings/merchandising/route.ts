@@ -18,7 +18,6 @@ import {
 export const dynamic = "force-dynamic";
 const resources = ["client", "brand", "sku", "supplier", "category"];
 const headers = { "Cache-Control": "no-store" };
-/** Tenant-scoped configuration reads and resolved SKU policy never trust caller identity fields. */
 export async function GET(request: NextRequest) {
   const { user, response } = await requireApiUser();
   if (response) return response;
@@ -52,7 +51,6 @@ export async function GET(request: NextRequest) {
     return failure(error);
   }
 }
-/** Role-protected writes create validated revisions; previews read persisted policy instead of request settings. */
 export async function POST(request: NextRequest) {
   const { user, response } = await requireApiUser("ADMIN");
   if (response) return response;
@@ -166,7 +164,6 @@ export async function POST(request: NextRequest) {
     return failure(error);
   }
 }
-/** Return fixed public codes and field errors; database/customer payloads stay private. */
 function failure(error: unknown) {
   if (error instanceof SettingsValidationError)
     return NextResponse.json(

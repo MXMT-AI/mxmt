@@ -171,7 +171,6 @@ export async function GET() {
 
   await closeStaleAgentRuns(tenantId);
 
-  // Return last run for each agent type
   const agentTypes = [
     "inventory_analyst",
     "channel_analytics",
@@ -189,7 +188,6 @@ export async function GET() {
     orderBy: { startedAt: "desc" },
   });
 
-  // Get latest run per agent type
   const latest: Record<string, any> = {};
   for (const run of runs) {
     if (!latest[run.agentType]) latest[run.agentType] = run;

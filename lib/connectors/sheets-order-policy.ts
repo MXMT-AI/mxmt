@@ -1,6 +1,5 @@
 import type { SheetsFieldMapping } from "../sheets-mapping-contract";
 import type { OrderPolicy } from "./order-normalization";
-/** One derived policy, captured during mapping approval and reused during projection. */
 export function sheetsOrderPolicy(mapping: SheetsFieldMapping): OrderPolicy {
   return {
     statuses: mapping.policy.statuses,

@@ -51,7 +51,6 @@ export function instant(v: unknown): string {
     return invalid();
   return date.toISOString();
 }
-/** Require a complete, advancing connection; opaque provider URLs are never followed. */
 export function connection(v: unknown, after: string | null, limit = 100) {
   const c = object(v),
     records = list(c.nodes, limit),
@@ -71,7 +70,6 @@ export function connection(v: unknown, after: string | null, limit = 100) {
   return { records, next: p.hasNextPage ? (p.endCursor as string) : null };
 }
 
-/** Read exact shop-currency amounts only; presentment currency never substitutes for shop money. */
 export function money(v: unknown, currency: string): string {
   const m = object(object(v).shopMoney);
   if (m.currencyCode !== currency) invalid();

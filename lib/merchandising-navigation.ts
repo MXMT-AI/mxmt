@@ -26,7 +26,6 @@ const SHARED_KEYS = [
 ] as const;
 const DETAIL_KEYS = ["brandId", "categoryId", "skuId", "currency"] as const;
 
-/** Expand a calendar preset to completed Kyiv days, using the approved default month. */
 export function presetPeriod(
   mode: Exclude<PeriodMode, "custom">,
   anchor: string,
@@ -62,7 +61,6 @@ export function presetPeriod(
   });
 }
 
-/** Restore explicit dates without silently replacing malformed links with default data. */
 export function readMerchandisingFilters(
   params: URLSearchParams,
   now = new Date(),
@@ -93,8 +91,6 @@ export function readMerchandisingFilters(
       dateFrom,
       now,
     );
-    // A link frozen earlier in the current month/quarter/year must remain valid
-    // tomorrow. Apply may deliberately advance it to the latest completed day.
     if (preset.from !== resolved.from || resolved.to > preset.to)
       throw new Error("INVALID_FILTERS");
   }
@@ -117,7 +113,6 @@ export function readMerchandisingFilters(
   };
 }
 
-/** Cross-screen links retain global context and explicit drill-down IDs, not stale table controls. */
 export function merchandisingHref(
   path: string,
   params: URLSearchParams,
@@ -150,7 +145,6 @@ export function merchandisingHref(
   return next.size ? `${path}?${next}` : path;
 }
 
-/** Changing dates invalidates the pinned snapshot; changing channel preserves shared stock. */
 export function applyMerchandisingFilters(
   params: URLSearchParams,
   filters: MerchandisingFilters,
@@ -185,7 +179,6 @@ export function applyMerchandisingFilters(
   return next;
 }
 
-/** Apply against one fresh clock reading, independently of the cached layout timestamp. */
 export function applyMerchandisingSelection(
   params: URLSearchParams,
   draft: MerchandisingFilters,
@@ -203,7 +196,6 @@ export function applyMerchandisingSelection(
   };
 }
 
-/** Monobrand profiles skip brand grouping even when an old deep link asks for it. */
 export function merchandisingGroup(
   params: URLSearchParams,
   monobrand: boolean,

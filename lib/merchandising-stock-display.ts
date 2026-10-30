@@ -1,4 +1,3 @@
-/** Shared stock status colors; NEW/OFF_SEASON form the gray Overview remainder. */
 export const stockStatusColors: Record<string, string> = {
   HEALTHY: "#599577",
   RISK: "#d19a35",

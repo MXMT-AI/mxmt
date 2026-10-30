@@ -8,7 +8,6 @@ import { parseOrderWebhook, webhookAuthorized } from "@/lib/connectors/order-web
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
-/** Authenticated relay only. Order data is re-read under the shared API budget. */
 export async function POST(request: NextRequest, context: { params: Promise<{ sourceId: string }> }) {
   const { sourceId } = await context.params;
   const headers = { "Cache-Control": "no-store" };
@@ -22,7 +21,6 @@ export async function POST(request: NextRequest, context: { params: Promise<{ so
     await enqueueOrderImport(connection.tenantId, "WEBHOOK", event);
     return NextResponse.json({ accepted: true }, { status: 202, headers });
   } catch {
-    // Acknowledge only after durable enqueue; capacity/storage failures require relay retry.
     return NextResponse.json({ error: "Retry delivery later" }, { status: 503, headers: { ...headers, "Retry-After": "60" } });
   }
 }

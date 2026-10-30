@@ -13,7 +13,6 @@ import {
   type MvpScreen,
 } from "@/lib/merchandising-navigation";
 
-/** Shared route boundary for upcoming screen content; navigation does not invent report values. */
 export default function MerchandisingDestination({
   screen,
 }: {
@@ -24,7 +23,6 @@ export default function MerchandisingDestination({
   const params = useSearchParams(),
     options = useMerchandisingOptions();
   const query = new URLSearchParams(params);
-  // Include resolved dates even before the first Apply, preserving D15 across links.
   const filters = useMerchandisingFilters()!;
   for (const key of ["period", "dateFrom", "dateTo"] as const)
     query.set(key, filters[key]);

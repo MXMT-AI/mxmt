@@ -25,10 +25,8 @@ import styles from "@/components/merchandising/report.module.css";
 type Block = SalesWorkspaceModel["byCurrency"][number];
 type MatrixRow = Block["matrix"]["rows"][number];
 type Href = (values: Record<string, string | null>) => string;
-/** Map server comparison tones to the shared theme-aware semantic colors. */
 const tone = (value: string) =>
   value === "GREEN" ? styles.good : value === "RED" ? styles.bad : "";
-/** Format server monthly cells and retain currency-scoped SKU drill links. */
 function Matrix({
   rows,
   total,
@@ -144,7 +142,6 @@ function Matrix({
   );
 }
 const categoryColors = ["#779ab5", "#87a88c", "#c4a36e", "#a08eb5", "#9a9ea4"];
-/** Only chart coordinates use numbers; accessible values retain the server decimal strings. */
 function CategoryChart({
   rows,
   locale,
@@ -296,7 +293,6 @@ function CategoryChart({
     </figure>
   );
 }
-/** Present S1–S4 from one pinned response without deriving financial totals. */
 export default function SalesContent({
   data,
   lang,

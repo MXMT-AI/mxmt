@@ -135,7 +135,6 @@ async function main() {
         : resolve(root, ".local/reconciliation/readiness.json")),
   );
   await savePrivate(out, report);
-  // Reports are private by default. Do not print raw records, financial values or exception messages.
   process.stdout.write(
     JSON.stringify({
       status: report.status,

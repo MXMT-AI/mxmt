@@ -65,7 +65,6 @@ async function seedMerchandising() {
   `);
 }
 
-// Expected constraint failures must not poison the surrounding test transaction.
 async function rejects(sql: string, code = "23503") {
   await db.exec("SAVEPOINT expected_failure");
   await expect(db.exec(sql)).rejects.toMatchObject({ code });

@@ -165,8 +165,6 @@ export default function SheetsMappingCard({
         if (!abort.signal.aborted) setLoading(false);
       });
     return () => abort.abort();
-    // Language changes reload the localized request feedback too.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sourceId, reload, uk]);
   function edit(update: (value: SheetsFieldMapping) => void) {
     setDraft((old) => {

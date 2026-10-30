@@ -2,7 +2,6 @@ import "server-only";
 import { Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
 import type { SqlClient } from "./connectors/database";
-/** Bounded current-source import warnings with explicitly allowlisted lineage, never raw customer payloads. */
 export async function getSalesDriveIssues(
   tenantId: string,
   options: {

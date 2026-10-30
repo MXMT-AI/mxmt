@@ -55,7 +55,7 @@ it("keeps opaque cursors bound to the source, credential revision and query", ()
       2,
     ),
   ).toThrow();
-  expect(() => advancePage(next, page, 2)).toThrow(); // ignored cursor is not terminal history
+  expect(() => advancePage(next, page, 2)).toThrow();
   expect(advancePage(next, { ...page, next: null }, 2)).toBeNull();
   expect(() =>
     advancePage(next, { ...page, next: { kind: "offset", offset: 2 } }, 2),

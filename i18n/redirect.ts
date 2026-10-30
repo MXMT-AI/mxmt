@@ -1,6 +1,5 @@
 import { isLocale, localeFromPath, localizeHref, routing, type Locale } from "./routing";
 
-/** Return paths must stay on this origin and point to a page in the selected locale. */
 export function safeReturnPath(value: string | null, locale: Locale): string {
   if (!value || !value.startsWith("/") || value.startsWith("//") || /[\\\u0000-\u001f\u007f]/.test(value)) {
     return `/${locale}/dashboard`;

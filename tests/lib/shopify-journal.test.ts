@@ -55,7 +55,6 @@ beforeAll(async () => {
       JSON.stringify({ empty: true }),
     ],
   );
-  // Recreate the pre-change schema to execute the real migration against existing pages.
   await f.pg.exec(
     `ALTER TABLE "DataImportRun" DROP COLUMN "connectorJournalBytes", DROP COLUMN "connectorJournalPages";`,
   );

@@ -3,7 +3,6 @@ import type { Lang } from "@/lib/translations";
 import type { readReportReadiness } from "@/lib/report-readiness";
 import { panel } from "./ReportPrimitives";
 
-/** Explain unavailable metrics once using frozen evidence, with links to the relevant settings. */
 export default function ReportReadiness({ data, lang }: { data: Awaited<ReturnType<typeof readReportReadiness>>; lang: Lang }) {
   const uk = lang === "uk";
   const reasons = [

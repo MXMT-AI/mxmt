@@ -14,7 +14,7 @@ export interface ChannelMetric {
   salesLast30d: number;
   revenue30d: number;
   skuCount: number;
-  strPercent: number; // gross sold_7d / total_stock * 100 per channel
+  strPercent: number;
 }
 
 export interface ChannelMetrics {
@@ -146,8 +146,6 @@ export async function getChannelMetrics(
     grouped.set(channel, aggregate);
   }
 
-  // `sajt` is an opaque source-system site/channel code. Keep its identity
-  // without guessing business names until an explicit mapping is configured.
   const channels: ChannelMetric[] = [...grouped].map(([channel, aggregate]) => ({
     channel,
     grossSalesLast7d: aggregate.grossSold7,
@@ -165,7 +163,6 @@ export async function getChannelMetrics(
       : 0,
   }));
 
-  // Sort by sales30d desc
   channels.sort((a, b) => b.salesLast30d - a.salesLast30d);
 
   const topChannel = channels[0]?.channel ?? "—";
@@ -174,5 +171,4 @@ export async function getChannelMetrics(
   return { channels, totalStock, topChannel, bottomChannel, periodDays };
 }
 
-/** Deterministic financial channels are separate from the legacy Sheets agent/stock contract. */
 export function calculateSalesChannelRows(facts:import('./sales-metrics').SalesFact[],context:import('./sales-metrics').SalesMetricContext){return calculateSalesGroupedRows(facts,'channel',context);}

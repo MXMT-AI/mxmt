@@ -7,7 +7,6 @@ import {AiExecutionError} from "@/lib/ai-execution/contracts";
 import {ScreenApiError} from "@/lib/merchandising-snapshot";
 import {logError} from "@/lib/observability";
 export const maxDuration=60;export const runtime="nodejs";export const dynamic="force-dynamic";
-/** Use signed tenant membership and explicit evidence selectors; no route sends or applies external changes. */
 export async function POST(request:NextRequest){
  const {user,response}=await requireApiUser("ANALYST");if(response)return response;
  const {data,response:invalid}=await parseJsonBody(request);if(invalid)return invalid;

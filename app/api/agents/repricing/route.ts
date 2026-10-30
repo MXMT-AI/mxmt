@@ -107,10 +107,9 @@ export async function POST(req: NextRequest) {
   try {
     const allBrands = await getBrandMetrics(tenantId, asOf, dateFrom);
 
-    // Candidates: high days of inventory (DOH) or significantly falling trend
     const candidates = allBrands
       .filter((b) => b.skuCount > 0 && (b.wohDays > WOH_YELLOW || b.trend7dPct < -15))
-      .slice(0, 8); // cap to avoid token overflow
+      .slice(0, 8);
 
     if (candidates.length === 0) {
       await prisma.agentRun.update({

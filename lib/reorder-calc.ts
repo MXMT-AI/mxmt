@@ -24,7 +24,6 @@ export class ReorderingError extends Error {
   }
 }
 const compare = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
-/** Strict bounded scenario parsing; no client formula, velocity, cost or stock is authoritative. */
 export function parseReorderingRequest(value: unknown): ReorderingRequest {
   const issues: string[] = [];
   const record = (v: unknown, keys: string[], path: string) => {
@@ -178,7 +177,6 @@ const nonNegative = (value: string | null) =>
   value !== null && D(value).isFinite() && D(value).gte(0);
 const positive = (value: string | null) =>
   nonNegative(value) && D(value!).gt(0);
-/** Match canonical frozen IDs, resolving supplier through policy rather than display text. */
 function matches(row: ReorderingSku, filters: ReorderingRequest["filters"]) {
   for (const key of [
     "brandId",
@@ -196,7 +194,6 @@ function matches(row: ReorderingSku, filters: ReorderingRequest["filters"]) {
   }
   return true;
 }
-/** Reuse persisted 12-week velocity (minimum four-week exposure), D14 eligibility and D18 MOQ math. */
 export function calculateReordering(
   inputs: ReorderingInputs,
   request: ReorderingRequest,

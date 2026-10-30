@@ -434,7 +434,6 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
         return response.json();
       };
       let importedRunId:string|undefined;
-      // Preserve the raw import even if either independent reporting engine fails.
       if(kind==="import"){
         const body=await post("/api/data/import",{dateFrom,dateTo,calculate:false});
         importedRunId=body.import?.importRunId;

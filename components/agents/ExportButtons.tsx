@@ -3,20 +3,17 @@
 import { Download } from "lucide-react";
 import type { SheetCell } from "@/lib/promo-sheet";
 
-// Експорт таблиці симуляції в Excel (.xlsx) з живими формулами:
-// параметри в шапці (знижка B2 / покриття B2 + множник E2) — зміни і все перерахується.
 
 async function downloadXlsxWithFormulas(values: SheetCell[][], fileName: string, sheetName: string) {
   const XLSX = await import("xlsx");
   const ws = XLSX.utils.aoa_to_sheet(values);
-  // рядки що починаються з "=" → живі формули
   for (const addr of Object.keys(ws)) {
     if (addr.startsWith("!")) continue;
     const cell: any = (ws as any)[addr];
     if (cell && typeof cell.v === "string" && cell.v.startsWith("=")) {
       cell.f = cell.v.slice(1);
       cell.t = "n";
-      cell.v = 0; // без значення SheetJS викидає клітинку; Excel перерахує при відкритті
+      cell.v = 0;
     }
   }
   const wb = XLSX.utils.book_new();
@@ -30,8 +27,8 @@ export default function ExportButtons({
   buildValues,
   disabled,
 }: {
-  title: string; // назва файлу
-  sheetName: string; // назва аркуша
+  title: string;
+  sheetName: string;
   buildValues: (formulas: boolean) => SheetCell[][];
   disabled?: boolean;
 }) {

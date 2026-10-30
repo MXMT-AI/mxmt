@@ -14,13 +14,12 @@ const ACCESS_SECRET = getJwtSecret("JWT_ACCESS_SECRET", "dev-access-secret-chang
 const REFRESH_SECRET = getJwtSecret("JWT_REFRESH_SECRET", "dev-refresh-secret-change-in-production");
 
 export interface TokenPayload {
-  sub: string;      // userId
+  sub: string;
   tenantId: string;
   role: string;
   type: "access" | "refresh";
 }
 
-// ─── Sign ─────────────────────────────────────────────────────────────────────
 
 export async function signAccessToken(
   payload: Omit<TokenPayload, "type">
@@ -42,7 +41,6 @@ export async function signRefreshToken(
     .sign(REFRESH_SECRET);
 }
 
-// ─── Verify ───────────────────────────────────────────────────────────────────
 
 export async function verifyAccessToken(token: string): Promise<TokenPayload> {
   const { payload } = await jwtVerify(token, ACCESS_SECRET);

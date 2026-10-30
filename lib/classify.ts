@@ -7,7 +7,6 @@ import {
 } from "./merchandising-policy";
 import type { DailySkuMetrics } from "./sku-daily-metrics";
 
-/** SalesDrive has a versioned daily contract; never reclassify it using Sheets sales. */
 export const LEGACY_CLASSIFICATION_FILTER = {
   aliases: { none: { source: { kind: "SALESDRIVE" } } },
   productKind: { notIn: ["SERVICE", "GIFT_CARD"] },
@@ -36,7 +35,6 @@ export const isNewReceipt = (
   calendarAge(first, asOf) >= 0 &&
   calendarAge(first, asOf) < weeks * 7;
 
-/** Shared unrounded WOH bands for section 8 and K4. */
 export function classifyWoh(woh: string | null, policy: MerchandisingPolicy) {
   return woh === null
     ? null
@@ -47,7 +45,6 @@ export function classifyWoh(woh: string | null, policy: MerchandisingPolicy) {
         : ("HEALTHY" as const);
 }
 
-/** Shared D14 shortage union; scenario lead changes must not duplicate eligibility rules. */
 export function shortageSignals(
   row: {
     classification: string | null;
@@ -74,7 +71,6 @@ export function shortageSignals(
   };
 }
 
-/** SalesDrive section 8. Legacy 7/30-day flags below retain their separate Sheets contract. */
 export function classifyDailySku(
   row: DailySkuMetrics,
   policy: MerchandisingPolicy,
@@ -159,7 +155,6 @@ export type ClassifiedDailySku = DailySkuMetrics &
     brandOwnership: MerchandisingPolicy["ownership"];
   };
 
-/** Distinct IDs, including OOS with zero velocity whose days-to-zero is unavailable. */
 export function summarizeSkuClassification(rows: ClassifiedDailySku[]) {
   return {
     statusCounts: Object.fromEntries(
@@ -182,10 +177,6 @@ export function summarizeSkuClassification(rows: ClassifiedDailySku[]) {
   };
 }
 
-// Thresholds vary by business model:
-// SEASONAL  — faster churn: hit at +20%, dead at 60 days, strict stockout (2x lead time)
-// CARRYOVER — slower churn: hit at +35%, dead at 120 days, normal stockout (1.5x)
-// HYBRID/null — balanced defaults
 export function getThresholds(businessModel: string | null): ClassifyThresholds {
   switch (businessModel) {
     case "SEASONAL":
@@ -218,12 +209,10 @@ export function classify(
   return "ok";
 }
 
-/** Retain exact fractional observations; unknown stock cannot become a zero-stock signal. */
 export function snapshotStock(snapshot: {quantity?: unknown;qtyOnHand:number|null}): number|null {
   const value=snapshot.quantity==null?snapshot.qtyOnHand:Number(snapshot.quantity);
   return value!==null && Number.isFinite(value)?value:null;
 }
-/** Explicit non-merchandise and unverified imported products never enter classification. */
 export function canClassifyProduct(product:{productKind?:string;catalogAttributes?:unknown},stock:number|null|undefined) {
   if(stock==null || stock<0 || !Number.isFinite(stock) || product.productKind==='SERVICE' || product.productKind==='GIFT_CARD')return false;
   const attributes=product.catalogAttributes;

@@ -10,7 +10,6 @@ export interface NavigationOptions {
   channels: Array<{ id: string }>;
   truncated: boolean;
 }
-/** Read tenant-owned navigation choices without calculating reports or exposing connector credentials. */
 export async function readNavigationOptions(
   tenantId: string,
   db: SqlDatabase = prisma,

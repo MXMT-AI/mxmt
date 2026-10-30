@@ -7,7 +7,6 @@ import { sheetsMappingApiError } from "@/lib/connectors/sheets-mapping-api";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
-/** Mapping intent is separate from import, report-source selection and calculation. */
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ sourceId: string }> },

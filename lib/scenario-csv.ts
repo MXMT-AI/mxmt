@@ -55,7 +55,6 @@ const decimal = (v: string | number): Cell => ({
   type: "decimal",
   value: D(v).toFixed(),
 });
-/** Quote the semicolon dialect and neutralize formula initiators, including invisible/full-width prefixes. */
 export function csvCell(cell: Cell) {
   let value = cell.value;
   if (cell.type === "decimal") {
@@ -70,7 +69,6 @@ export function csvCell(cell: Cell) {
     value = "'" + value;
   return '"' + value.replaceAll('"', '""') + '"';
 }
-/** Build deterministic UTF-8 CSV bytes with BOM, explicit CRLF records and an export-size bound. */
 export function csvDocument(headers: readonly string[], rows: Cell[][]) {
   const content =
     "\uFEFF" +
@@ -107,7 +105,6 @@ function file(
     currency,
   };
 }
-/** Export the exact valid final selection, using the approved D09 column order and effective discounts. */
 export function repricingCsv(result: RepriceResult, exportId: string) {
   if (!result.canExport) throw new ScenarioExportError("EXPORT_NOT_READY", 422);
   const rows = result.rows.filter((r) => r.selected);
@@ -163,7 +160,6 @@ export function repricingCsv(result: RepriceResult, exportId: string) {
     totals: result.totals,
   };
 }
-/** A targeted supplier/currency export may proceed only when every positive row in that explicit scope is ready. */
 export function reorderingCsv(
   result: ReorderResult,
   exportId: string,

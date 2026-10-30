@@ -7,7 +7,6 @@ import type {
   ExportKind,
   ScenarioExportReceipt,
 } from "@/lib/scenario-export-contract";
-/** Keep retry identity across uncertain POST responses, and load only bounded audit metadata. */
 export function useScenarioExport(kind: ExportKind) {
   const [receipt, setReceipt] = useState<ScenarioExportReceipt | null>(null),
     [busy, setBusy] = useState(false),

@@ -9,7 +9,6 @@ export interface SalesPeriod {
   days: number;
   leapDayPolicy: "CLAMP_TO_FEBRUARY_28";
 }
-/** D15 uses completed Kyiv calendar days; custom endpoints are inclusive. */
 export function resolveSalesPeriod(
   input: { dateFrom?: string; dateTo?: string; now?: Date } = {},
 ): SalesPeriod {

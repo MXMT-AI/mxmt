@@ -23,7 +23,6 @@ export class ConnectorSourceError extends Error {
     super(code);
   }
 }
-/** Correlated selection; no row retains the exact legacy SalesDrive default. Aliases are code constants. */
 export function selectedConnection(alias = "c") {
   const c = Prisma.raw(
     alias === "ConnectorConnection" ? '"ConnectorConnection"' : alias,
@@ -96,7 +95,6 @@ export async function listConnectorSources(
     ],
   };
 }
-/** Only an explicit administrator action changes financial source selection; saving credentials never calls this. */
 export async function selectConnectorSource(
   tenantId: string,
   actorId: string,
@@ -157,7 +155,6 @@ export async function selectConnectorSource(
     return { sourceId, revision };
   });
 }
-/** Historic reads remain available; new financial actions require the currently selected source/revision. */
 export async function assertSelectedSource(
   tenantId: string,
   sourceId: string,
@@ -174,7 +171,6 @@ export async function assertSelectedSource(
 }
 
 
-/** Raw Sheets data/reporting is independent; new metrics require approved projected facts. */
 export async function assertReportingSourceReady(tenantId:string,source:{id:string;provider:ReportingSourceProvider},tx:SqlClient){
   if(source.provider!=="sheets")return;
   const [sheet]=await readSheetsSources(tenantId,tx,source.id);

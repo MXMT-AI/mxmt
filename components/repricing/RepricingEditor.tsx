@@ -19,7 +19,6 @@ import RepricingSummary from "./RepricingSummary";
 import { useScenarioExportPermission } from "@/components/merchandising/MerchandisingShell";
 import { useScenarioExport } from "@/components/merchandising/useScenarioExport";
 import ScenarioExportPanel from "@/components/merchandising/ScenarioExportPanel";
-/** Controls own draft intent; the server owns eligibility, ranking, prices and totals. */
 export default function RepricingEditor({
   snapshotId,
   monobrand = false,
@@ -46,7 +45,6 @@ export default function RepricingEditor({
     }),
   );
   const lastUrl = useRef(query);
-  // Back/forward or a deep link resets edits; local native history changes already applied atomically.
   useEffect(() => {
     if (query !== lastUrl.current) {
       lastUrl.current = query;

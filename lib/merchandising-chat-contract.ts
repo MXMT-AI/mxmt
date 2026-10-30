@@ -1,4 +1,3 @@
-/** Public read-only chat contracts; no server imports, provider selection or client-authoritative facts. */
 export const CHAT_TOPICS=["overview","sales","stock","repricing","reordering"] as const;
 export type ChatTopic=typeof CHAT_TOPICS[number];
 export interface ChatHistoryTurn {executionId:string; question:string; topic:ChatTopic}

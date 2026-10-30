@@ -14,7 +14,6 @@ export interface QualityStockGroup {
   unknownValueCount: number;
   unknownQuantityCount: number;
 }
-/** Distinct affected-stock totals are separate from overlapping issue groups. */
 export default function DataQualitySummary({
   summary,
   affectedStock,

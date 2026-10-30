@@ -7,12 +7,10 @@ export interface SalesDriveCredentials {
   ymlUrl: string | null;
 }
 
-/** Accept only SalesDrive-controlled HTTPS origins; credentials never cross redirects. */
 export function salesDriveHost(value: string): string | null {
   return /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.salesdrive\.me$/.test(value) ? value : null;
 }
 
-/** The feed token is confidential and must remain inside encrypted credentials. */
 export function salesDriveYmlUrl(value: string, accountHost: string): string | null {
   try {
     const url = new URL(value);
@@ -22,7 +20,6 @@ export function salesDriveYmlUrl(value: string, accountHost: string): string | n
   } catch { return null; }
 }
 
-/** Validate field names without echoing submitted keys, URLs or arbitrary values. */
 export function parseSalesDriveCredentials(input: unknown): { credentials: SalesDriveCredentials | null; issues: string[] } {
   const issues: string[] = [];
   if (!isRecord(input)) return { credentials: null, issues: ["body must be an object"] };

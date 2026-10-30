@@ -7,7 +7,6 @@ import { payloadHash, type OrderScope } from "./order-storage";
 import { sourceDate, exact } from "./order-normalization";
 import type { InventoryPolicy } from "./inventory-normalization";
 
-/** Retain source payloads under content identities; replaying a page cannot duplicate records. */
 export async function retainRecord(tx: SqlClient, scope: Pick<OrderScope, "tenantId" | "sourceId" | "importRunId">, resource: string, externalId: string, payload: unknown, observedAt: Date, updatedAt: Date | null = null) {
   const hash = payloadHash(payload), key = `${externalId}:${hash}`;
   await tx.$executeRaw(Prisma.sql`INSERT INTO "DataSourceRecord" (id,"tenantId","sourceId","importRunId",resource,"externalId",payload,"payloadHash","observedAt","sourceUpdatedAt")
@@ -16,7 +15,6 @@ export async function retainRecord(tx: SqlClient, scope: Pick<OrderScope, "tenan
   return key;
 }
 
-/** Recompute the cohort from current verified external receipts, including revoked posting. */
 export async function refreshFirstReceipt(tx: SqlClient, tenantId: string, skuIds: string[]) {
   if (!skuIds.length) return;
   await tx.$executeRaw(Prisma.sql`UPDATE "Sku" s SET "firstReceiptAt"=(SELECT MIN(r."receivedAt") FROM "Receipt" r JOIN "ReceiptLine" l ON l."receiptId"=r.id AND l."tenantId"=r."tenantId"
@@ -24,7 +22,6 @@ export async function refreshFirstReceipt(tx: SqlClient, tenantId: string, skuId
     WHERE s."tenantId"=${tenantId} AND s.id IN (SELECT jsonb_array_elements_text(${JSON.stringify(skuIds)}::jsonb))`);
 }
 
-/** Replace a current movement atomically, retaining all types without treating internal moves as purchases. */
 export async function storeReceipt(tx: SqlClient, scope: OrderScope, receipt: ReceiptDto, policy: InventoryPolicy) {
   if (!receipt.raw) throw new Error("RAW_PAYLOAD_MISSING");
   const { tenantId, sourceId, importRunId, timezone } = scope;
@@ -45,8 +42,6 @@ export async function storeReceipt(tx: SqlClient, scope: OrderScope, receipt: Re
     return { ...line, quantity, unitCost, externalLineId };
   });
   const lines = candidates.filter((line) => line !== null);
-  // Keep the raw document for review, but never replace any part of a receipt
-  // with invalid lines or prevent unrelated current-stock observations.
   if (lines.length !== candidates.length) return { imported: 0, issues: ["INVALID_RECEIPT_LINE"] };
   const mapping = policy.receipts;
   const mappedSupplier = receipt.supplierId ? mapping?.suppliers[receipt.supplierId] : null;

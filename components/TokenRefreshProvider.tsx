@@ -10,8 +10,6 @@ function getExpCookie(): number | null {
   return match ? parseInt(match[1], 10) : null;
 }
 
-// Proactively refreshes the access token 2 minutes before it expires.
-// Reads the non-httpOnly access_token_exp cookie set by auth routes.
 export default function TokenRefreshProvider() {
   const router = useRouter();
   const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -37,21 +35,19 @@ export default function TokenRefreshProvider() {
       try {
         const res = await fetch("/api/auth/refresh", { method: "POST" });
         if (res.ok) {
-          schedule(); // schedule next refresh with the new token's expiry
-          router.refresh(); // revalidate server components with new token
+          schedule();
+          router.refresh();
         } else {
           const { pathname, search, hash } = window.location;
           router.push(`/login?${new URLSearchParams({ next: pathname + search + hash })}`);
         }
       } catch {
-        // network error — retry in 30s
         timerRef.current = setTimeout(doRefresh, 30_000);
       }
     }
 
     schedule();
 
-    // Reschedule when tab becomes visible after being hidden
     function onVisibilityChange() {
       if (document.visibilityState === "visible") schedule();
     }

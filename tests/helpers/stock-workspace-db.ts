@@ -1,5 +1,4 @@
 import { createScreenDb } from "./screen-db";
-/** Synthetic named scenarios verify reference behavior without claiming customer benchmark values. */
 export async function createStockWorkspaceDb() {
   const fixture = await createScreenDb(),
     { pg } = fixture;

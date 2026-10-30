@@ -3,7 +3,6 @@ import type { CSSProperties, ReactNode } from "react";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import type { DataColumnMetadata } from "@/lib/data-table-api";
 import { formatTableValue } from "@/lib/data-reporting-ui";
-/** Shared report grid only formats server values; it never derives financial totals. */
 export default function ReportTable({
   columns,
   rows,

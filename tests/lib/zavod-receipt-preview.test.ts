@@ -31,7 +31,6 @@ it.each(["A1:A100002", "A1:IW2", "IW1:IW2", "A1048576:A1048576"])("rejects overs
   expect(() => previewZavodReceiptSheet(sheet)).toThrow("RECEIPT_PREVIEW_LIMIT");
 });
 it("accepts the exact dimensions limit and keeps the workbook preview usable", () => {
-  // Check each inclusive boundary without materializing a 25-million-cell matrix.
   expect(previewZavodReceiptSheet({ "!ref": "A1:A100001" }).state).toBe("PREVIEW_ONLY");
   expect(previewZavodReceiptSheet({ "!ref": "A1:IV2" }).state).toBe("PREVIEW_ONLY");
   const sheet = XLSX.utils.aoa_to_sheet([headers, row({ "ID документа": "1", "Тип": 1 })]);

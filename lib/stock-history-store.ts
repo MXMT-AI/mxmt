@@ -5,7 +5,6 @@ import type {ScreenSnapshot} from "./merchandising-snapshot";
 import type {ScreenQuery} from "./merchandising-screen-query";
 import {screenStockJoin,screenStockFilter} from "./merchandising-screen-stock";
 import {buildStockHistory,stockHistoryDates,STOCK_HISTORY_COHORT_LIMIT,type StockHistoryObservation} from "./stock-history";
-/** Read a bounded fixed cohort from the saved screen; historical categories/statuses are not inferred from today's catalog. */
 export async function readStockHistory(tenantId:string,snapshot:ScreenSnapshot,q:ScreenQuery,tx:SqlClient){
  const cohort=await tx.$queryRaw<Array<{skuId:string;currency:string|null}>>(Prisma.sql`SELECT s."skuId",d.currency FROM ${screenStockJoin} WHERE ${screenStockFilter(tenantId,q,"stock")} AND d.metrics->>'productKind'='MERCHANDISE' ORDER BY s."skuId" LIMIT ${STOCK_HISTORY_COHORT_LIMIT+1}`);
  if(cohort.length>STOCK_HISTORY_COHORT_LIMIT)return {...buildStockHistory(snapshot.stock.asOf,[]),unavailableReason:"COHORT_LIMIT" as const};

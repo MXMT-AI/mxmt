@@ -8,7 +8,6 @@ import { productAttributeEvidence } from "../product-attributes";
 export interface InventoryPolicy {
   receipts?: { postedStatuses: string[]; suppliers: Record<string, string>; productIdField?: "id" | "parameter"; currency?: string; unitCostVerified?: boolean };
 }
-/** Only a separately approved mapping can establish supplier posting and procurement cost. */
 export function inventoryPolicy(value: unknown): InventoryPolicy {
   if (!isRecord(value) || value.receipts === undefined) return {};
   const r = value.receipts;
@@ -26,7 +25,6 @@ export interface CatalogEntry {
   attributes: Record<string, unknown>;
   attributeEvidence:ReturnType<typeof productAttributeEvidence>;
 }
-/** Validate the entire observation before any catalogue or business snapshot is changed. */
 export function normalizeCatalog(snapshot: CatalogSnapshot, sourceId: string, provider="salesdrive") {
   if (!Number.isFinite(Date.parse(snapshot.observedAt)) || snapshot.products.length !== snapshot.stock.length) throw new Error("INVALID_CATALOG");
   const stock = new Map(snapshot.stock.map((row) => [row.productId, row]));

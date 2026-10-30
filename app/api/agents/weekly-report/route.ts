@@ -101,14 +101,11 @@ export async function POST(req: NextRequest) {
     const currentWeek = isoWeekNumber(now);
     const year = now.getFullYear();
 
-    // Fetch all latest done runs
     const latestRuns = dependencyStates.map((state) => state.run);
     const runMap = Object.fromEntries(agentTypes.map((t, i) => [t, latestRuns[i]]));
 
-    // Build text summary per agent
     const sections: string[] = [];
 
-    // Inventory Analyst
     const invRun = runMap["inventory_analyst"];
     if (invRun?.output) {
       const out = invRun.output as any;
@@ -121,7 +118,6 @@ export async function POST(req: NextRequest) {
 Резюме: ${out.summary ?? "—"}`);
     }
 
-    // Channel Analytics
     const chRun = runMap["channel_analytics"];
     if (chRun?.output) {
       const out = chRun.output as any;
@@ -132,7 +128,6 @@ export async function POST(req: NextRequest) {
 Резюме: ${out.summary ?? "—"}`);
     }
 
-    // Product Attributes
     const prodRun = runMap["product_attributes"];
     if (prodRun?.output) {
       const out = prodRun.output as any;
@@ -142,7 +137,6 @@ export async function POST(req: NextRequest) {
 Резюме: ${out.summary ?? "—"}`);
     }
 
-    // Repricing
     const repRun = runMap["repricing"];
     if (repRun?.output) {
       const out = repRun.output as any;
@@ -151,7 +145,6 @@ export async function POST(req: NextRequest) {
       sections.push(`УЦЕНКА: ${brands.length} брендов требуют уценки${recommended ? ` (рекомендовано: ${recommended})` : ""}`);
     }
 
-    // Reordering
     const reRun = runMap["reordering"];
     if (reRun?.output) {
       const out = reRun.output as any;
@@ -160,7 +153,6 @@ export async function POST(req: NextRequest) {
       sections.push(`ДОЗАКАЗ: ${brands.length} брендов с риском нехватки${recommended ? ` (рекомендовано: ${recommended})` : ""}`);
     }
 
-    // Commercial Marketer
     const mktRun = runMap["commercial_marketer"];
     if (mktRun?.output) {
       const out = mktRun.output as any;
@@ -170,7 +162,6 @@ export async function POST(req: NextRequest) {
 Резюме: ${out.summary ?? "—"}`);
     }
 
-    // Calendar Agent
     const calRun = runMap["calendar_agent"];
     if (calRun?.output) {
       const out = calRun.output as any;
@@ -182,7 +173,6 @@ export async function POST(req: NextRequest) {
 Резюме: ${out.summary ?? hs.summary ?? "—"}`);
     }
 
-    // Campaign Analysis
     const campRun = runMap["campaign_analysis"];
     if (campRun?.output) {
       const out = campRun.output as any;

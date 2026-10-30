@@ -1,8 +1,5 @@
 import type { PromoSimulation } from "@/lib/promo-calc";
 
-// Будує 2D-масив для експорту симуляції акції.
-// formulas=true → живі формули для Google Sheets (знижка в B2, можна міняти);
-// formulas=false → готові числа (Excel-файл).
 
 export type SheetCell = string | number;
 
@@ -13,7 +10,7 @@ export const PROMO_SHEET_HEADERS = [
   "Звільнений капітал, грн", "Залишок після, шт", "WOH після, дн",
 ];
 
-const HEADER_ROW = 5; // рядок заголовків таблиці (1-індексований)
+const HEADER_ROW = 5;
 
 export function buildPromoSheetValues(
   sim: PromoSimulation,

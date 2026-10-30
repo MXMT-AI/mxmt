@@ -17,7 +17,6 @@ const FILTER_KEYS = [
   "channelId",
 ] as const;
 
-/** Pin a server snapshot into the URL; stale requests cannot replace data for newer filters. */
 export function useMerchandisingScreen(
   filters: MerchandisingFilters,
   screen: "overview" | "sales" | "stock" | "repricing" | "reordering",

@@ -10,7 +10,6 @@ export interface HoroshopConfig {
   evidence: {
     reference: string;
     currency: string;
-    // Account evidence, not an invented provider-wide quota.
     requestsPerWindow: number;
     windowSeconds: number;
     stableOrderPagination: boolean;

@@ -6,7 +6,6 @@ import { customLabelApiError } from "@/lib/custom-label-api";
 import { CustomLabelError } from "@/lib/custom-labels";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
-/** Explicitly compare the server preview and persist its exact file as one audited action. */
 export async function POST(request:NextRequest){
   const {user,response}=await requireApiUser("ANALYST");if(response)return response;
   const {data,response:invalid}=await parseJsonBody(request);if(invalid)return invalid;
@@ -15,7 +14,6 @@ export async function POST(request:NextRequest){
     return NextResponse.json(await createCustomLabelExport({tenantId:user.tenantId,userId:user.userId},data),{status:201,headers:{"Cache-Control":"private, no-store"}});
   }catch(error){return customLabelApiError(error);}
 }
-/** History contains bounded provenance/metadata, without loading file or assignment bodies. */
 export async function GET(request:NextRequest){
   const {user,response}=await requireApiUser("ANALYST");if(response)return response;
   try{

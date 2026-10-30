@@ -14,7 +14,6 @@ interface Props {
   tenantName: string;
 }
 
-// ─── Flag config ──────────────────────────────────────────────────────────────
 
 const FLAG: Record<SkuFlag, { emoji: string; label_uk: string; label_en: string; color: string; bg: string }> = {
   hit:      { emoji: "🔥", label_uk: "Хіт",         label_en: "Hit",        color: "#fbbf24", bg: "rgba(251,191,36,0.1)" },
@@ -24,7 +23,6 @@ const FLAG: Record<SkuFlag, { emoji: string; label_uk: string; label_en: string;
   ok:       { emoji: "✅", label_uk: "Норма",         label_en: "OK",         color: "#86efac", bg: "rgba(134,239,172,0.1)" },
 };
 
-// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function AnalystApp({ initialSkus, initialSummary, businessModel, tenantName }: Props) {
   const { lang } = useLang();
@@ -113,7 +111,6 @@ ${skus.filter(s => ["hit","stockout"].includes(s.flag)).slice(0,5)
   const totalPages = Math.max(1, Math.ceil(skus.length / pageSize));
   const pagedSkus = skus.slice((page - 1) * pageSize, page * pageSize);
 
-  // ── Empty state ──
   if (summary.total === 0 && !loading) {
     return (
       <div className="p-8 max-w-3xl">
@@ -143,7 +140,6 @@ ${skus.filter(s => ["hit","stockout"].includes(s.flag)).slice(0,5)
 
   return (
     <div className="p-6 max-w-full">
-      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <div className="text-[10px] font-mono uppercase tracking-widest text-(--subtle) mb-1">
@@ -160,7 +156,6 @@ ${skus.filter(s => ["hit","stockout"].includes(s.flag)).slice(0,5)
         </button>
       </div>
 
-      {/* KPI row */}
       <div className="grid grid-cols-5 gap-3 mb-6">
         {(["hit", "stockout", "slow", "dead", "ok"] as SkuFlag[]).map((f) => (
           <button key={f} onClick={() => setFilter(f === activeFlag ? "all" : f)}
@@ -174,7 +169,6 @@ ${skus.filter(s => ["hit","stockout"].includes(s.flag)).slice(0,5)
         ))}
       </div>
 
-      {/* AI Chat — above table */}
       <div className="bg-(--surface) border border-(--border) rounded-xl overflow-hidden mb-6">
         <div className="flex items-center gap-2 px-5 py-3 border-b border-(--border)">
           <Sparkles size={14} className="text-accent-yellow" />
@@ -235,7 +229,6 @@ ${skus.filter(s => ["hit","stockout"].includes(s.flag)).slice(0,5)
         </div>
       </div>
 
-      {/* Filter tabs */}
       <div className="flex items-center gap-2 mb-4 flex-wrap">
         <button onClick={() => setFilter("all")}
           className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${activeFlag === "all" ? "bg-(--input-bg) text-(--text)" : "text-(--muted) hover:text-(--text)"}`}>
@@ -249,7 +242,6 @@ ${skus.filter(s => ["hit","stockout"].includes(s.flag)).slice(0,5)
           </button>
         ))}
 
-        {/* Page size selector */}
         <div className="ml-auto flex items-center gap-2">
           <span className="text-xs text-(--subtle)">
             {uk ? "На сторінці:" : "Per page:"}
@@ -266,7 +258,6 @@ ${skus.filter(s => ["hit","stockout"].includes(s.flag)).slice(0,5)
         </div>
       </div>
 
-      {/* SKU table */}
       <div className="bg-(--surface) border border-(--border) rounded-xl overflow-hidden mb-4">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -334,7 +325,6 @@ ${skus.filter(s => ["hit","stockout"].includes(s.flag)).slice(0,5)
         </div>
       </div>
 
-      {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between mb-8">
           <span className="text-xs text-(--subtle) font-mono">
@@ -356,7 +346,6 @@ ${skus.filter(s => ["hit","stockout"].includes(s.flag)).slice(0,5)
               {uk ? "← Назад" : "← Prev"}
             </button>
 
-            {/* Page numbers */}
             {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
               const start = Math.max(1, Math.min(page - 2, totalPages - 4));
               const p = start + i;

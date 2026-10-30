@@ -24,7 +24,6 @@ describe("Prisma native pg pool compatibility", () => {
 });
 
 
-/** Keep actual pg queue/release behavior while replacing only the wire protocol. */
 function mockWireConnections() {
   vi.spyOn(Client.prototype, "connect").mockImplementation(function (callback) {
     queueMicrotask(() => (callback as (error: null) => void)(null));

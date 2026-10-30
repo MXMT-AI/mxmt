@@ -12,13 +12,11 @@ import {attributeDictionaryInTx} from "./product-attribute-store";
 import {marketId,marketText,parseMarketPolicy,MarketEvidenceError,type MarketPolicy} from "./market-evidence";
 
 export interface MarketSourceRecord {id:string;revision:number;values:MarketPolicy;approvedAt:Date|string|null;approvedById:string|null;approvalReference:string|null}
-/** Read the latest source policy, preserving an explicit draft until commercial/rights approval. */
 export async function marketSourceInTx(p:AiPrincipal,profileId:string,tx:SqlClient){
  marketId(profileId);
  const [row]=await tx.$queryRaw<MarketSourceRecord[]>(Prisma.sql`SELECT id,revision,values,"approvedAt","approvedById","approvalReference" FROM "MerchandisingConfig" WHERE "tenantId"=${p.tenantId} AND "configType"='GENERAL' AND key=${`market-source:${profileId}`} ORDER BY revision DESC LIMIT 1`);
  if(!row)throw new MarketEvidenceError("SOURCE_NOT_CONFIGURED",404);row.values=parseMarketPolicy(row.values);return row;
 }
-/** Prepare a versioned draft; this does not buy access, select a live transport or activate a source. */
 export async function saveMarketSource(p:AiPrincipal,profileId:string,value:unknown,db:SqlDatabase=prisma){
  marketId(profileId);
  if(!isRecord(value)||Object.keys(value).sort().join()!=="expectedRevision,policy"||!Number.isSafeInteger(value.expectedRevision)||Number(value.expectedRevision)<0||Number(value.expectedRevision)>10000)throw new MarketEvidenceError("INVALID_SOURCE_REVISION");
@@ -35,20 +33,17 @@ export async function saveMarketSource(p:AiPrincipal,profileId:string,value:unkn
   return {profileId,configId:id,revision,state:"draft",policy};
  },true);
 }
-/** Check current approved attribute meaning rather than accepting a caller's external-to-internal mapping claim. */
 export async function validateMarketAttribute(p:AiPrincipal,policy:MarketPolicy,tx:SqlClient){
  const a=policy.scope.attribute;if(!a)return;
  const dictionary=await attributeDictionaryInTx(p,a.dictionaryId,tx).catch(error=>{if(error instanceof ProductAttributeError)throw new MarketEvidenceError("ATTRIBUTE_MAPPING_UNAVAILABLE",409);throw error;});
  if(dictionary.id!==a.configId||!dictionary.approvedAt||dictionary.values.sourceId!==policy.internalSourceId||!dictionary.values.dimensions.some(d=>d.id===a.dimensionId&&d.values.some(v=>v.id===a.valueId)))throw new MarketEvidenceError("ATTRIBUTE_MAPPING_UNAVAILABLE",409);
 }
-/** Enforce explicit granted rights and a conservative daily-cleanup margin before allowing ingestion/display. */
 export function validateMarketRights(policy:MarketPolicy,now:Date){
  const r=policy.rights;
  if(!r.canIngest||!r.canRetain||!r.canDisplay)throw new MarketEvidenceError("SOURCE_RIGHTS_MISSING",409);
  if(now.getTime()<Date.parse(r.validFrom)||now.getTime()+86400000>=Date.parse(r.validUntil))throw new MarketEvidenceError("SOURCE_RIGHTS_EXPIRED",409);
  if(now.getTime()<Date.parse(policy.budget.from)||now.getTime()>=Date.parse(policy.budget.to))throw new MarketEvidenceError("SOURCE_BUDGET_PERIOD_INACTIVE",409);
 }
-/** Owner approval pins license, access, price/caps, cadence, normalization, redistribution and relevance policy. */
 export async function approveMarketSource(p:AiPrincipal,profileId:string,value:unknown,db:SqlDatabase=prisma,now=new Date()){
  if(!isRecord(value)||Object.keys(value).sort().join()!=="approvalReference,configId"||!marketText(value.approvalReference,1000))throw new MarketEvidenceError("SOURCE_APPROVAL_REQUIRED",409);
  const configId=marketId(value.configId),reference=value.approvalReference;
@@ -65,13 +60,10 @@ export async function approveMarketSource(p:AiPrincipal,profileId:string,value:u
   return {configId,revision:source.revision,state:"approved"};
  },true);
 }
-/** Return source configuration to the signed tenant without treating a draft as an approved integration. */
 export async function readMarketSource(p:AiPrincipal,profileId:string,db:SqlDatabase=prisma){return aiTransaction(p,db,async tx=>({profileId,...await marketSourceInTx(p,profileId,tx)}));}
 
-/** Purge normalized external values while preserving only non-value audit metadata; safe on repeated cron/read calls. */
 export async function purgeMarketEvidenceInTx(tx:SqlClient,now:Date,tenantId?:string){
  return tx.$executeRaw(Prisma.sql`UPDATE "MerchandisingAction" SET after='{"purged":true}'::jsonb,context=context||jsonb_build_object('purgedAt',${now.toISOString()}::text)
   WHERE "entityType"='MARKET_EVIDENCE' AND context->>'kind'='MARKET_EVIDENCE_V1' AND context->>'expiresAt'<=${now.toISOString()} AND COALESCE(after->>'purged','false')<>'true' ${tenantId?Prisma.sql`AND "tenantId"=${tenantId}`:Prisma.empty}`);
 }
-/** Scheduled cleanup uses the existing authenticated daily cron; it never fetches or refreshes any source. */
 export async function purgeExpiredMarketEvidence(db:SqlDatabase=prisma,now=new Date()){return db.$transaction(tx=>purgeMarketEvidenceInTx(tx,now));}

@@ -6,7 +6,6 @@ import type { SqlClient } from "./database";
 import { normalizeOrder, type OrderPolicy } from "./order-normalization";
 import { payloadHash, type OrderScope } from "./order-storage";
 
-/** Prepare a bounded complete source observation using the shared financial normalizer. */
 export function prepareOrderSnapshot(
   orders: OrderDto[],
   timezone: string,
@@ -43,7 +42,6 @@ export function prepareOrderSnapshot(
   });
   return { documents, issues: [...issues], policy };
 }
-/** Atomic full-snapshot replacement. Caller fences source/mapping and owns the transaction. */
 export async function replaceOrderSnapshot(
   tx: SqlClient,
   scope: OrderScope,
@@ -60,7 +58,6 @@ export async function replaceOrderSnapshot(
   await tx.$executeRaw(
     Prisma.sql`INSERT INTO "DataSourceRecord" (id,"tenantId","sourceId","importRunId",resource,"externalId",payload,"payloadHash","observedAt","sourceUpdatedAt") SELECT ${randomUUID()}||':'||key,${tenantId},${sourceId},${importRunId},'orders',key,raw,hash,"observedAt","updatedAt" FROM mxmt_order_snapshot_stage ON CONFLICT ("importRunId",resource,"externalId") DO NOTHING`,
   );
-  // Omitted/quarantined rows cannot survive as old current financial facts.
   await tx.$executeRaw(
     Prisma.sql`DELETE FROM "OrderLine" WHERE "tenantId"=${tenantId} AND "sourceId"=${sourceId} AND "eventKey"='current'`,
   );

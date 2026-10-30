@@ -1,4 +1,3 @@
-/** Source selection is shared; remote connector registration stays independent. */
 export type ReportingSourceProvider =
   | "sheets" | "salesdrive" | "keycrm" | "horoshop" | "shopify" | "csv";
 export type ReportingSourceReadiness =

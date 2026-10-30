@@ -4,7 +4,6 @@ import { apiFetch } from "@/lib/fetch";
 import { readApiJson } from "@/lib/api-response";
 import { isPublicConnection } from "@/lib/connectors/public-connection";
 import type { PublicConnection } from "@/lib/connectors/contract";
-/** Shared write-only onboarding mutations, draft guards, response validation and accessible feedback. */
 export function useConnectorConnection(
   provider: "horoshop" | "shopify",
   initial: PublicConnection,

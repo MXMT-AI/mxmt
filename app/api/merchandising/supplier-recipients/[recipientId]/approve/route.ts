@@ -5,5 +5,4 @@ import {approveSupplierRecipient} from "@/lib/supplier-recipient-store";
 import {SupplierDeliveryError} from "@/lib/supplier-delivery";
 import {supplierDeliveryApiError} from "@/lib/supplier-delivery-api";
 export const runtime="nodejs";export const dynamic="force-dynamic";
-/** Pin explicit verified recipient consent and terms, without sending or enabling any transport. */
 export async function POST(request:NextRequest,{params}:{params:Promise<{recipientId:string}>}){const {user,response}=await requireApiUser("ADMIN");if(response)return response;const {data,response:invalid}=await parseJsonBody(request);if(invalid)return invalid;try{if(request.nextUrl.search)throw new SupplierDeliveryError("INVALID_SUPPLIER_DELIVERY_REQUEST");return NextResponse.json(await approveSupplierRecipient({tenantId:user.tenantId,userId:user.userId},(await params).recipientId,data),{headers:{"Cache-Control":"private, no-store"}});}catch(error){return supplierDeliveryApiError(error);}}

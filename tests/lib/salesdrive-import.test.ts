@@ -174,9 +174,9 @@ describe("queue checkpoints and worker", () => {
   it("persists each page, retries without advancing, then commits a completed cursor", async () => {
     const job = await enqueueOrderImport("a", "BACKFILL", {}, db);
     expect((await enqueueOrderImport("a", "BACKFILL", {}, db)).id).toBe(job.id);
-    await processOrderJob("a", db, runtime); // statuses
-    await processOrderJob("a", db, runtime); // channels
-    await processOrderJob("a", db, runtime); // page 1
+    await processOrderJob("a", db, runtime);
+    await processOrderJob("a", db, runtime);
+    await processOrderJob("a", db, runtime);
     expect((await getOrderImportProgress("a", db))?.stats.pages).toBe(1);
     expect((await pg.query('SELECT * FROM "SyncCursor"')).rows).toHaveLength(0);
     fail = true; await processOrderJob("a", db, runtime); fail = false;
@@ -218,7 +218,6 @@ describe("queue checkpoints and worker", () => {
     const queued = await enqueueOrderImport("a", "WEBHOOK", event, db);
     expect(queued.state).toBe("PENDING");
     expect(await claimOrderJob(db,"a")).toBeNull();
-    // Release the deliberately stolen fixture lease; failed-job recovery is tested below.
     await pg.exec(`UPDATE "ConnectorSyncJob" SET state='COMPLETE', "leaseToken"=NULL, "leaseExpiresAt"=NULL WHERE "tenantId"='a' AND state='RUNNING'; UPDATE "DataImportRun" SET status='WARNING' WHERE "tenantId"='a' AND status='RUNNING'`);
     const one = await enqueueOrderImport("a", "WEBHOOK", event, db);
     expect((await enqueueOrderImport("a", "WEBHOOK", event, db)).id).toBe(one.id);
@@ -263,7 +262,6 @@ describe("two-year import volume", () => {
     const job = await enqueueOrderImport("b", "BACKFILL", {}, db);
     let requests = 0;
     const budget = async () => {
-      // Advance virtual request time, never sleep or bypass the rolling budget.
       expect(await reserveRequest(db, "volume", new Date(new Date(observedAt).getTime() + requests * 60_000))).toBeNull(); requests++;
     };
     const connector = {

@@ -81,7 +81,6 @@ const empty = (reason: string): Dictionary => ({
   complete: false,
   reason,
 });
-/** Fixed-origin, read-only KeyCRM v1 transport. No remote URL, write or receipt methods. */
 export class KeyCrmConnector implements MerchandisingConnector {
   readonly provider = "keycrm" as const;
   readonly capabilities: ConnectorCapabilities;
@@ -234,7 +233,6 @@ export class KeyCrmConnector implements MerchandisingConnector {
     const ids = records.map((r) => id(r.id));
     if (new Set(ids).size !== ids.length)
       throw new ConnectorReadError("INVALID_RESPONSE");
-    // Pagination URLs are metadata only. Never follow them with the bearer key.
     return {
       ...result,
       records,
@@ -256,7 +254,6 @@ export class KeyCrmConnector implements MerchandisingConnector {
         Date.parse(String(from)) > Date.parse(String(to))
       )
         throw new ConnectorReadError("INVALID_RESPONSE");
-      // Expand to the documented UTC-second filter precision, never truncate coverage.
       const format = (s: string, upper = false) =>
         new Date((upper ? Math.ceil : Math.floor)(Date.parse(s) / 1000) * 1000)
           .toISOString()

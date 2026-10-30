@@ -32,7 +32,6 @@ beforeAll(async () => {
 }, 30000);
 afterAll(async () => f?.pg.close());
 
-/** Synthetic baseline and provider responses exercise production orchestration; no live customer acceptance is asserted. */
 it("connect check → incremental sync → pinned KPIs/details → both audited CSV scenarios", async () => {
   const original = (await createScreenSnapshot("b", screenSelection, f.db))
     .snapshotId;
@@ -133,7 +132,6 @@ it("connect check → incremental sync → pinned KPIs/details → both audited 
     expect(model.context).toEqual(overview.context);
   expect(overview.sales!.summary).toEqual(sales.sales!.summary);
   expect(stock.stock!.summary).toEqual(overview.stock!.summary);
-  // Action screens have narrower candidate populations; compare identical scopes.
   const deadStock = await read(snapshotId, "stock", { classification: "DEAD" });
   expect(repricing.stock!.summary).toEqual(deadStock.stock!.summary);
   const shortageDetail = await read(snapshotId, "stock", {
@@ -291,7 +289,6 @@ it("does not turn successful empty imports into proven history or exportable sce
         )
       ).rows,
     ).toEqual([{ status: "PENDING" }]);
-    // Reproduce a yielded run retained by the pre-#51 worker during an upgrade.
     await empty.pg.exec(
       `UPDATE "DataImportRun" r SET status='RUNNING' FROM "ConnectorSyncJob" j WHERE j."importRunId"=r.id AND j."tenantId"='empty' AND j.resource='orders'`,
     );

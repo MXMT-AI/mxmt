@@ -109,7 +109,6 @@ export const csvContentHash = (options: CsvOptions, files: CsvFileInput[]) =>
     options,
     files: [...files].sort((a, b) => a.resource.localeCompare(b.resource)),
   });
-/** Remove bytes of expired unactivated previews, retaining their audit/hash/diagnostics. */
 export async function expireCsvPreviews(tenantId: string, tx: SqlClient) {
   await tx.$executeRaw(
     Prisma.sql`DELETE FROM "DataSourceRecord" r USING "CsvImport" u WHERE u."tenantId"=${tenantId} AND u."expiresAt"<now() AND u.state IN ('READY','INVALID','CANCELLED','EXPIRED') AND r."tenantId"=u."tenantId" AND r."importRunId"=u."importRunId" AND r.resource='csv-file'`,
