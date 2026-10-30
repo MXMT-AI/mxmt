@@ -311,3 +311,10 @@ Baseline production browser screenshots saved privately for five report screens 
 
 
 Tailwind 4 validation complete: TypeScript, 167 files / 1,651 tests passed / one optional workbook skip, MVP 80 files / 965 passed, independent npm ci and both builds passed. Official codemod changed style strings in 69 TSX files; compiler-AST comparison found no other structural differences. Production browser review covered five empty-source report screens, Settings, Overview light/dark/mobile, expanded mobile menu, English translation and keyboard focus (2px teal outline). Controls and layouts remain usable; minor upstream spacing differences remain (Settings page 24px shorter, sidebar Settings item 8px lower). Populated customer report tables were not visually accepted by this check. npm audit reports zero vulnerabilities.
+
+
+## Final release rehearsal
+
+Independent npm ci, build and build:vercel passed. In the clean copy TypeScript passed, then the full suite passed 167 files / 1,651 tests / one existing optional skip, and MVP passed 80 files / 965 tests. Two initial clean runs had intermittent wall-clock timeouts in different PGlite/volume cases. The unchanged final run used transient caffeinate to prevent idle sleep while the command ran; no test timeouts, assertions or skips were changed. Sleep remains a suspected environmental cause, not confirmed telemetry. Full suite took 55.71s; MVP 32.50s.
+
+Final npm audit: zero findings; npm ls --depth=0 passed. Frozen Zavod offline checks again passed 6 files / 84 tests. Native PostgreSQL probe and local production/development login/health/protected redirect passed, including predev migration-status check. Browser tab and both own UI servers were closed; the synthetic visual tenant was removed only from the isolated local DB. See report.md and final-validation.json for package versions and remaining hosting/business-acceptance limitations. No push, deployment, production migration, connector activation or paid AI calls performed.

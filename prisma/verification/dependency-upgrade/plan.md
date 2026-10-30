@@ -7,7 +7,7 @@ Historical planning snapshot: 2026-10-29, Europe/Kyiv. The inventory below descr
 - One PR, separate logical commits, branch `chore/deps-upgrade` from freshly fetched main after confirming merged PR #118.
 - Keep SheetJS; use an official stable vendor tarball instead of replacing the parser with ExcelJS.
 - Initial target Node 26 was superseded by explicit owner approval of Node 24 LTS on 2026-10-29 after Vercel project access was unavailable. Target Node 24 locally and in package engines; production hosting settings have not been changed.
-- Do not commit without explicit owner approval of the implemented block; run all gates first. A later explicit instruction can authorize commits/pushes.
+- Initially each commit required approval. The owner subsequently authorized updating and committing every remaining step without further approval; gates still precede each implementation commit. No final push/deployment has been performed.
 - Preserve DRY, existing components and business behavior. Use vercel-react-best-practices for framework work and existing frontend/design guidelines for visual verification.
 
 ## Inventory evidence and caveats
