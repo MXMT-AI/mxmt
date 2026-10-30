@@ -1,8 +1,10 @@
 import { afterAll, beforeAll, beforeEach, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
+vi.mock("@/lib/prisma", () => ({ prisma: {} }));
 import { createMerchandisingDb } from "../helpers/merchandising-db";
 import { storeCatalog } from "@/lib/connectors/catalog-storage";
 import type { CatalogSnapshot } from "@/lib/connectors/contract";
+import { getProductQuality } from "@/lib/product-quality";
 
 let f: Awaited<ReturnType<typeof createMerchandisingDb>>;
 const scope = { tenantId: "a", sourceId: "sheet", importRunId: "first", timezone: "Europe/Kyiv", provider: "sheets" };
@@ -18,6 +20,7 @@ beforeEach(async () => {
   await f.pg.exec(`TRUNCATE "Tenant" CASCADE;
     INSERT INTO "Tenant" (id,name,slug,"updatedAt") VALUES ('a','A','a',now());
     INSERT INTO "DataSource" (id,"tenantId",kind,"driveFileId","updatedAt") VALUES ('sheet','a','GOOGLE_SHEETS','file',now());
+    INSERT INTO "ConnectorSelection" ("tenantId","sourceId") VALUES ('a','sheet');
     INSERT INTO "DataImportRun" (id,"tenantId","sourceId",trigger,status,"idempotencyKey","businessDate","updatedAt")
       VALUES ('first','a','sheet','MANUAL','SUCCESS','first','2026-10-28',now()),('second','a','sheet','MANUAL','SUCCESS','second','2026-10-29',now());
     INSERT INTO "Sku" (id,"tenantId",sku,name,category) VALUES ('legacy','a','real-sku','Legacy product','Test');
@@ -35,6 +38,11 @@ it("keeps the source identity and historical facts when a formerly unavailable S
   await f.pg.query(`INSERT INTO "OrderLine" (id,"tenantId","sourceId","importRunId","externalOrderId","externalLineId","skuId",quantity,"sourceRecordKey","observedAt","updatedAt") VALUES ('history','a','sheet','first','o','l',$1,1,'fixture','2026-10-28',now())`, [id]);
   const result = await refresh();
   expect(result.issues).toContain("CATALOG_LEGACY_SKU_COLLISION");
+  const quality = await getProductQuality("a", { code: "CATALOG_LEGACY_SKU_COLLISION" }, f.db);
+  expect(quality.pagination.totalRows).toBe(1);
+  expect(quality.rows[0]).toMatchObject({ id, sku: "@sheets:sheet:p", name: "Product", sourceId: "sheet", importRunId: "second" });
+  expect(quality.rows[0].issues).toContain("CATALOG_LEGACY_SKU_COLLISION");
+  expect(quality.summary).toContainEqual(expect.objectContaining({ code: "CATALOG_LEGACY_SKU_COLLISION", skuCount: 1 }));
   expect((await f.pg.query(`SELECT "skuId" FROM "SkuAlias" WHERE "sourceId"='sheet' AND value='real-sku'`)).rows).toEqual([{ skuId: id }]);
   expect((await f.pg.query(`SELECT "skuId" FROM "OrderLine" WHERE id='history'`)).rows).toEqual([{ skuId: id }]);
   expect((await f.pg.query(`SELECT "skuId",revenue FROM "SalesRecord" WHERE id='legacy-sale'`)).rows).toEqual([{ skuId: "legacy", revenue: 100 }]);
@@ -47,6 +55,23 @@ it("keeps the source identity and historical facts when a formerly unavailable S
   expect((await f.pg.query(`SELECT count(*)::int n FROM "ImportIssue" WHERE code='CATALOG_LEGACY_SKU_COLLISION'`)).rows).toEqual([{ n: 1 }]);
   expect((await f.pg.query(`SELECT count(*)::int n FROM "InventorySnapshot" WHERE "skuId"=$1`, [id])).rows).toEqual([{ n: 2 }]);
   expect((await f.pg.query(`SELECT count(*)::int n FROM "PriceHistory" WHERE "skuId"=$1`, [id])).rows).toEqual([{ n: 2 }]);
+});
+
+it("does not expose an old collision warning as a current product issue", async () => {
+  await refresh();
+  await f.pg.exec(`UPDATE "ImportIssue" SET "importRunId"='first' WHERE code='CATALOG_LEGACY_SKU_COLLISION'`);
+  const quality = await getProductQuality("a", { code: "CATALOG_LEGACY_SKU_COLLISION" }, f.db);
+  expect(quality.rows).toEqual([]);
+  expect(quality.pagination.totalRows).toBe(0);
+  expect(quality.summary.some(row => row.code === "CATALOG_LEGACY_SKU_COLLISION")).toBe(false);
+});
+
+it("shows the current catalogue warning even when the latest stock observation belongs to an older import", async () => {
+  await f.db.$transaction(tx => storeCatalog(tx, { ...scope, importRunId: "second" }, catalog("real-sku", "2026-10-29"), { stockObserved: false }));
+  const quality = await getProductQuality("a", { code: "CATALOG_LEGACY_SKU_COLLISION" }, f.db);
+  expect(quality.pagination.totalRows).toBe(1);
+  expect(quality.rows[0].id).toBe(await anchor());
+  expect(quality.rows[0].issues).toContain("CATALOG_LEGACY_SKU_COLLISION");
 });
 
 it.each(["alias", "other-source", "order", "receipt", "price", "stock", "provenance"])(

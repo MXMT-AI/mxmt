@@ -60,6 +60,7 @@ export async function refreshSelectedSheetsReports(
   });
   return { state: "READY" as const };
 }
+/** Explain the failed refresh stage while preserving the distinction between saved imports and report readiness. */
 export function sheetsRefreshMessage(code: string, lang: "uk" | "en") {
   const uk = lang === "uk";
   if (code === "SHEETS_CATALOG_IDENTITY_CONFLICT")

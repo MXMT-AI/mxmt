@@ -3,8 +3,15 @@ import { selectedSheetsProjectionIntent, refreshSelectedSheetsReports, sheetsRef
 const response = (value: unknown, status = 200) =>
   new Response(JSON.stringify(value), { status });
 it("keeps catalogue conflicts distinct from temporary server failures", async () => {
-  const fetcher = vi.fn().mockResolvedValue(response({ code: "SHEETS_CATALOG_IDENTITY_CONFLICT", requestId: "request-123" }, 422));
-  await expect(selectedSheetsProjectionIntent(fetcher)).rejects.toMatchObject({ code: "SHEETS_CATALOG_IDENTITY_CONFLICT", requestId: "request-123" });
+  const fetcher = vi.fn()
+    .mockResolvedValueOnce(response({ sourceId: "sheet", connections: [{ sourceId: "sheet", provider: "sheets" }] }))
+    .mockResolvedValueOnce(response({ sourceId: "sheet", importRunId: "run", mappingId: "mapping", selectionRevision: 3 }))
+    .mockResolvedValueOnce(response({ code: "SHEETS_CATALOG_IDENTITY_CONFLICT", requestId: "request-123" }, 422));
+  await expect(refreshSelectedSheetsReports("run", fetcher)).rejects.toMatchObject({ code: "SHEETS_CATALOG_IDENTITY_CONFLICT", requestId: "request-123" });
+  expect(fetcher).toHaveBeenCalledTimes(3);
+  expect(fetcher.mock.calls[2][0]).toBe("/api/connectors/sheets/projection/sheet");
+  expect(fetcher.mock.calls[2][1].method).toBe("POST");
+  expect(JSON.parse(fetcher.mock.calls[2][1].body)).toEqual({ importRunId: "run", mappingId: "mapping", selectionRevision: 3 });
   expect(sheetsRefreshMessage("SHEETS_CATALOG_IDENTITY_CONFLICT", "uk")).toContain("Перевірте ID товарів і SKU");
   expect(sheetsRefreshMessage("SHEETS_CATALOG_IDENTITY_CONFLICT", "en")).toContain("Review product IDs and SKU mappings");
 });
