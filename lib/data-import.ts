@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { insertImportBatch } from "./import-batch";
+import { RAW_IMPORT_MAX_RUNTIME_MS } from "./data-import-policy";
 import {
   DataImportTrigger,
   DataRunStatus,
@@ -68,6 +69,12 @@ export class RawImportInProgressError extends Error {
   constructor() {
     super("A raw data import is already running for this source");
     this.name = "RawImportInProgressError";
+  }
+}
+export class RawImportExpiredError extends Error {
+  constructor() {
+    super("The import exceeded its execution window. The previous active data is retained; start a new import.");
+    this.name = "RawImportExpiredError";
   }
 }
 
@@ -233,6 +240,8 @@ export async function importRawWorkbookBuffer(
   },
   db: ImportDatabaseClient = prisma
 ): Promise<RawImportResult> {
+  const wallStartedAt = Date.now();
+  const operationNow = () => new Date(now.getTime() + Date.now() - wallStartedAt);
   const parsed = parseRawWorkbook(buffer);
   const checksum = sourceWorkbookChecksum(parsed);
   const businessDate = kyivBusinessDate(now);
@@ -262,6 +271,15 @@ export async function importRawWorkbookBuffer(
   });
 
   const activeRun = source.activeImportRun;
+  const expiredBefore = new Date(operationNow().getTime() - RAW_IMPORT_MAX_RUNTIME_MS);
+  await db.dataImportRun.updateMany({
+    where: {
+      tenantId, sourceId: source.id, status: DataRunStatus.RUNNING,
+      createdAt: { lt: expiredBefore },
+      ...(activeRun ? { id: { not: activeRun.id } } : {}),
+    },
+    data: { status: DataRunStatus.FAILED, errorMessage: "RAW_IMPORT_EXECUTION_EXPIRED", completedAt: operationNow() },
+  });
   await pruneInactiveImportRuns(db, tenantId, source.id, activeRun?.id ?? null);
   if (
     activeRun?.sourceChecksum === checksum &&
@@ -300,8 +318,14 @@ export async function importRawWorkbookBuffer(
         businessDate,
         sourceChecksum: checksum,
         startedAt: now,
+        createdAt: now,
       },
       select: { id: true },
+    }).catch((error: unknown) => {
+      // Only a claim collision represents a concurrent import. Later unique
+      // failures are data errors and must not be reported as a running job.
+      if (isUniqueConstraintError(error)) throw new RawImportInProgressError();
+      throw error;
     });
     importRunId = importRun.id;
 
@@ -374,9 +398,12 @@ export async function importRawWorkbookBuffer(
       warningIssues: warningIssueCount,
     };
 
+    if (operationNow().getTime() - now.getTime() >= RAW_IMPORT_MAX_RUNTIME_MS)
+      throw new RawImportExpiredError();
     await db.$transaction([
       db.dataImportRun.update({
-        where: { id: importRun.id },
+        // A reclaimed run can never activate after its replacement has started.
+        where: { id: importRun.id, tenantId, sourceId: source.id, status: DataRunStatus.RUNNING },
         data: {
           status,
           stats: asJson(stats),
@@ -420,7 +447,6 @@ export async function importRawWorkbookBuffer(
         console.error("[data/import] could not clean failed import payload", cleanupError);
       });
     }
-    if (isUniqueConstraintError(error)) throw new RawImportInProgressError();
     throw error;
   }
 }

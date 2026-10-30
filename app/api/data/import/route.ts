@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { isDriveConfigured } from "@/lib/gdrive";
 import { requireApiUser } from "@/lib/server-auth";
 import { apiError, isRecord, parseOptionalJsonBody, serverError, validationError } from "@/lib/api-contracts";
-import { RawImportInProgressError, TypedProjectionValidationError } from "@/lib/data-import";
+import { RawImportInProgressError, RawImportExpiredError, TypedProjectionValidationError } from "@/lib/data-import";
 import {
   ArticleCalculationInProgressError,
   ArticleReportImportError,
@@ -41,7 +41,13 @@ export async function POST(request: NextRequest) {
     const result = await runDataPipeline({ tenantId: user.tenantId, calculate: calculate as boolean, ...dates });
     return NextResponse.json({ ok: true, ...result });
   } catch (error) {
-    if (error instanceof RawImportInProgressError || error instanceof ArticleCalculationInProgressError) {
+    if (error instanceof RawImportInProgressError) {
+      return apiError("An import is still running. Wait for it to finish and refresh status. Interrupted imports become retryable after 10 minutes.", 409, "RAW_IMPORT_IN_PROGRESS");
+    }
+    if (error instanceof RawImportExpiredError) {
+      return apiError(error.message, 409, "RAW_IMPORT_EXPIRED");
+    }
+    if (error instanceof ArticleCalculationInProgressError) {
       return apiError(error.message, 409, "DATA_PIPELINE_IN_PROGRESS");
     }
     if (error instanceof TypedProjectionValidationError || error instanceof RawWorkbookValidationError) {
