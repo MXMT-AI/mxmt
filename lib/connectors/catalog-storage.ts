@@ -10,6 +10,7 @@ import { normalizeCatalog } from "./inventory-normalization";
 import { retainRecord, refreshFirstReceipt } from "./receipt-storage";
 import { payloadHash } from "./order-storage";
 import { linkRetainedCatalogFacts } from "./catalog-linking";
+import { retainSheetsSourceIdentity } from "./catalog-identity";
 
 export interface CatalogEvidence {
   /** Explicit source mapping evidence; absent for existing remote catalog paths. */
@@ -37,12 +38,15 @@ export async function storeCatalog(tx: SqlClient, scope: OrderScope, snapshot: C
   await tx.$executeRaw(Prisma.sql`INSERT INTO "DataSourceRecord" (id,"tenantId","sourceId","importRunId",resource,"externalId",payload,"payloadHash","observedAt")
     SELECT ${randomUUID()}||':'||t."externalId",${tenantId},${sourceId},${importRunId},'product-attributes',t."externalId"||':'||t."attributeHash",t."attributeEvidence",t."attributeHash",t."priceObservedAt" FROM mxmt_catalog_stage t
     ON CONFLICT ("importRunId",resource,"externalId") DO NOTHING`);
+  // Serialize identity decisions with other catalogue/normalization edits.
+  await tx.$queryRaw(Prisma.sql`SELECT id FROM "Tenant" WHERE id=${tenantId} FOR NO KEY UPDATE`);
+  if (await retainSheetsSourceIdentity(tx, scope, rawKey)) issues.add("CATALOG_LEGACY_SKU_COLLISION");
   const [conflicts] = await tx.$queryRaw<Array<{ n: number }>>(Prisma.sql`SELECT count(*)::int n FROM mxmt_catalog_stage t WHERE
     (SELECT count(DISTINCT id) FROM (SELECT a."skuId" id FROM "SkuAlias" a WHERE a."tenantId"=${tenantId} AND a."sourceId"=${sourceId}
        AND ((a.type='SOURCE_PRODUCT_ID' AND a.value=t."externalId") OR (a.type IN ('SKU','VENDOR_CODE') AND a.value=t.article))
-       UNION SELECT s.id FROM "Sku" s WHERE s."tenantId"=${tenantId} AND s.sku=t."canonicalSku") candidates)>1`);
+       UNION SELECT s.id FROM "Sku" s WHERE s."tenantId"=${tenantId} AND s.sku=t."canonicalSku" AND (t."skuId" IS NULL OR s.id=t."skuId")) candidates)>1`);
   if (conflicts.n) throw new Error("CATALOG_IDENTITY_CONFLICT");
-  await tx.$executeRaw(Prisma.sql`UPDATE mxmt_catalog_stage t SET "skuId"=COALESCE(
+  await tx.$executeRaw(Prisma.sql`UPDATE mxmt_catalog_stage t SET "skuId"=COALESCE(t."skuId",
     (SELECT a."skuId" FROM "SkuAlias" a WHERE a."tenantId"=${tenantId} AND a."sourceId"=${sourceId} AND ((a.type='SOURCE_PRODUCT_ID' AND a.value=t."externalId") OR (a.type IN ('SKU','VENDOR_CODE') AND a.value=t.article)) LIMIT 1),
     (SELECT s.id FROM "Sku" s WHERE s."tenantId"=${tenantId} AND s.sku=t."canonicalSku"),t."proposedId")`);
   const [duplicates] = await tx.$queryRaw<Array<{ n: number }>>(Prisma.sql`SELECT count(*)::int n FROM (SELECT "skuId" FROM mxmt_catalog_stage GROUP BY "skuId" HAVING count(*)>1) d`);
@@ -53,8 +57,6 @@ export async function storeCatalog(tx: SqlClient, scope: OrderScope, snapshot: C
     FROM mxmt_catalog_stage t WHERE t."categoryId" IS NOT NULL GROUP BY t."categoryId"
     ON CONFLICT ("tenantId",key) DO UPDATE SET name=EXCLUDED.name,"updatedAt"=now()`);
   await tx.$executeRaw(Prisma.sql`UPDATE mxmt_catalog_stage t SET "canonicalCategoryId"=c.id FROM "Category" c WHERE c."tenantId"=${tenantId} AND c.key=${`${scope.provider??"salesdrive"}:${sourceId}:`} || t."categoryId"`);
-  // Serialize tenant identity edits with catalogue activation, without merging financial terms.
-  await tx.$queryRaw(Prisma.sql`SELECT id FROM "Tenant" WHERE id=${tenantId} FOR NO KEY UPDATE`);
   await tx.$executeRaw(Prisma.sql`INSERT INTO "Brand" (id,"tenantId",name,"normalizationKey",currency)
     SELECT ${randomUUID()} || ':' || t.vendor,${tenantId},t.vendor,t.vendor,'UNKNOWN' FROM mxmt_catalog_stage t
     WHERE t.vendor IS NOT NULL AND NOT EXISTS (SELECT 1 FROM "BrandAlias" a WHERE a."tenantId"=${tenantId} AND a.value=t.vendor)

@@ -3,6 +3,14 @@ import { AiExecutionError } from "../ai-execution/contracts";
 import { SheetsMappingError } from "./sheets-mapping-validation";
 /** Preserve safe diagnostic codes while keeping raw database error data private. */
 export function sheetsMappingApiError(error: unknown, requestId?: string) {
+  if (error instanceof Error && ["CATALOG_IDENTITY_CONFLICT", "DUPLICATE_CATALOG_SKU"].includes(error.message))
+    return apiError(
+      "The catalogue has conflicting product identities. Review source product IDs and SKU mappings before refreshing reports.",
+      422,
+      "SHEETS_CATALOG_IDENTITY_CONFLICT",
+      undefined,
+      requestId,
+    );
   if (error instanceof SheetsMappingError || error instanceof AiExecutionError)
     return apiError(
       "Check the source, mapping fields, active import and preview revision.",

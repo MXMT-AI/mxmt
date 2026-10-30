@@ -25,6 +25,9 @@ function qualityBase(tenantId: string, monoBrandId: string | null, sourceId: str
    COALESCE(b."normalizationKey",NULLIF(upper(btrim(b.name)),''),'UNBRANDED') "brandKey",
    (SELECT MIN(l."paidAt") FROM "OrderLine" l WHERE l."tenantId"=s."tenantId" AND l."skuId"=s.id AND l."sourceId"=${sourceId} AND l.kind='SALE' AND l.quantity>0 AND l."netAmount" IS NOT NULL) "firstSaleAt",
    array_remove(ARRAY[
+    CASE WHEN EXISTS (SELECT 1 FROM "ImportIssue" q JOIN "DataImportRun" r ON r.id=q."importRunId" AND r."tenantId"=q."tenantId"
+      WHERE q."tenantId"=s."tenantId" AND r."sourceId"=${sourceId} AND q."importRunId"=CASE WHEN s."catalogAttributes"->>'sourceId'=${sourceId} THEN s."catalogAttributes"->>'importRunId' ELSE i."importRunId" END
+      AND q."entityKey"='sku:'||s.id AND q.code='CATALOG_LEGACY_SKU_COLLISION') THEN 'CATALOG_LEGACY_SKU_COLLISION' END,
     CASE WHEN b.id IS NULL AND (${sourceBrand}) IS NULL AND s."productKind" NOT IN ('SERVICE','GIFT_CARD') THEN 'MISSING_BRAND' END,
     CASE WHEN (${sourceBrand}) IS NOT NULL AND b.id IS NULL THEN 'BRAND_IDENTITY_CONFLICT' END,
     CASE WHEN s."productKind" NOT IN ('SERVICE','GIFT_CARD') AND i.quantity>0 AND i."retailPrice"=0 THEN 'ZERO_PRICE_WITH_STOCK' END,

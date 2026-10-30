@@ -64,6 +64,16 @@ beforeEach(() => {
   });
 });
 afterAll(() => vi.unstubAllEnvs());
+it.each(["CATALOG_IDENTITY_CONFLICT", "DUPLICATE_CATALOG_SKU"])("returns an actionable validation error for %s", async code => {
+  await login();
+  state.project.mockRejectedValue(new Error(code));
+  const response = await project(req("{}"), context);
+  expect(response.status).toBe(422);
+  const body = await response.json();
+  expect(body.code).toBe("SHEETS_CATALOG_IDENTITY_CONFLICT");
+  expect(body.requestId).toMatch(/^[a-zA-Z0-9_-]{1,80}$/);
+  expect(body.error).toContain("product identities");
+});
 it("requires a signed admin session for metadata, preview and approval, ignoring identity headers", async () => {
   for (const handler of [GET, preview, approve, project, intent])
     expect((await handler(req("{}"), context)).status).toBe(401);

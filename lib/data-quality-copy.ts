@@ -1,6 +1,11 @@
 import type { Lang } from "./translations";
 /** Shared labels and corrective guidance for catalog groups and import lineage warnings. */
 const issues: Record<string, [string, string, string, string]> = {
+  CATALOG_LEGACY_SKU_COLLISION: [
+    "Legacy SKU collision", "Збіг із legacy-SKU",
+    "The existing Sheets identity and its history are retained separately from a legacy SKU. Review both records and their source identifiers before any manual reconciliation; importing again does not merge them.",
+    "Наявний запис Sheets та його історію збережено окремо від legacy-SKU. Перед ручним узгодженням перевірте обидва записи та їхні ідентифікатори джерела; повторний імпорт їх не об’єднує.",
+  ],
   PRODUCT_KIND_UNVERIFIED: [
     "Unverified product type", "Тип товару не підтверджено",
     "These movements are excluded from headline sales and stock classification. Approve category types in the source mapping or verify individual SKU types in Data Quality, then refresh reports.",
