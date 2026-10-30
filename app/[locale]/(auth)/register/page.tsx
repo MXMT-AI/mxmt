@@ -6,6 +6,7 @@ import { useRouter } from "@/i18n/navigation";
 
 import { Link } from "@/i18n/navigation";
 import { safeReturnPath } from "@/i18n/redirect";
+import { ThemeToggle } from "@/components/ThemeProvider";
 import { useLang, LangToggle } from "@/components/LanguageProvider";
 
 export default function RegisterPage() {
@@ -45,30 +46,30 @@ export default function RegisterPage() {
     }
   }
 
-  const ic = "w-full bg-[#0d1117] border border-(--border) rounded-lg px-4 py-2.5 text-white text-sm focus:outline-hidden focus:border-accent-cyan/40 transition-colors placeholder:text-[#3d444d]";
+  const ic = "w-full bg-(--input-bg) border border-(--border) rounded-lg px-4 py-2.5 text-(--text) text-sm focus:outline-hidden focus:border-accent-cyan/40 transition-colors placeholder:text-(--subtle)";
   const lc = "block text-[10px] font-mono uppercase tracking-widest text-(--muted) mb-2";
 
   return (
-    <div className="min-h-screen bg-[#0d1117] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-(--bg) flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2.5 mb-3">
             <div className="w-9 h-9 rounded-xl bg-accent-cyan/10 border border-accent-cyan/20 flex items-center justify-center">
               <span className="text-accent-cyan font-mono text-xs font-bold tracking-widest">MX</span>
             </div>
-            <span className="text-white font-semibold text-lg tracking-tight">MXMT Analytics</span>
+            <span className="text-(--text) font-semibold text-lg tracking-tight">MXMT Analytics</span>
           </div>
           <p className="text-(--muted) text-sm">{t.auth_subtitle_register}</p>
         </div>
 
-        <div className="bg-[#161b22] border border-(--border) rounded-2xl p-7">
+        <div className="bg-(--surface) border border-(--border) rounded-2xl p-7">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div><label htmlFor="register-business-name" className={lc}>{t.auth_business_name}</label><input id="register-business-name" type="text" value={form.businessName} onChange={set("businessName")} required className={ic} placeholder="MXMT Store" /></div>
             <div><label htmlFor="register-name" className={lc}>{t.auth_your_name}</label><input id="register-name" type="text" value={form.name} onChange={set("name")} required autoComplete="name" className={ic} /></div>
             <div><label htmlFor="register-email" className={lc}>{t.auth_email}</label><input id="register-email" type="email" value={form.email} onChange={set("email")} required autoComplete="email" className={ic} placeholder="you@company.com" /></div>
             <div><label htmlFor="register-password" className={lc}>{t.auth_password}</label><input id="register-password" type="password" value={form.password} onChange={set("password")} required autoComplete="new-password" className={ic} placeholder="min 8" /></div>
             <div><label htmlFor="register-confirm-password" className={lc}>{t.auth_confirm_password}</label><input id="register-confirm-password" type="password" value={form.confirmPassword} onChange={set("confirmPassword")} required autoComplete="new-password" className={ic} placeholder="••••••••" /></div>
-            {error && <div role="alert" className="bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2.5 text-red-400 text-sm">{error}</div>}
+            {error && <div role="alert" className="bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2.5 text-(--error-text) text-sm">{error}</div>}
             <button type="submit" disabled={loading}
               className="w-full bg-accent-cyan hover:bg-[#00c9ab] disabled:opacity-50 disabled:cursor-not-allowed text-[#0d1117] font-semibold rounded-lg px-4 py-2.5 text-sm transition-colors mt-2">
               {loading ? t.auth_creating : t.auth_create_btn}
@@ -76,12 +77,15 @@ export default function RegisterPage() {
           </form>
         </div>
 
-        <div className="flex items-center justify-between mt-5">
+        <div className="flex flex-wrap items-center justify-between gap-3 mt-5">
           <p className="text-(--muted) text-sm">
             {t.auth_have_account}{" "}
-            <Link href={`/login${authQuery}`} className="text-accent-cyan hover:underline">{t.auth_sign_in}</Link>
+            <Link href={`/login${authQuery}`} className="text-(--focus-ring) hover:underline">{t.auth_sign_in}</Link>
           </p>
-          <LangToggle />
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <LangToggle />
+          </div>
         </div>
       </div>
     </div>

@@ -131,5 +131,9 @@
   "p_brand_saving": "Saving…",
   "toast_added": "added to order",
   "toast_brand_saved": "Brand saved",
-  "toast_brand_deleted": "Brand deleted"
+  "toast_brand_deleted": "Brand deleted",
+  "theme_label": "Appearance",
+  "theme_light": "Light",
+  "theme_dark": "Dark",
+  "theme_system": "System"
 }

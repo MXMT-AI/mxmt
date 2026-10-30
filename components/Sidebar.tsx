@@ -127,13 +127,13 @@ export default function Sidebar({
       </details>
       <div className="hidden md:block flex-1">{navigation}</div>
       <div className="p-2 border-t border-(--border) flex flex-wrap md:block gap-1 items-center">
-        <div className="flex items-center justify-between px-3 py-1.5 gap-3">
+        <div className="flex flex-col px-1 py-1.5 gap-2">
           <span className="hidden md:flex items-center gap-2 text-xs text-(--muted)">
             <Zap size={12} aria-hidden="true" />
             OpenAI
           </span>
           <div className="flex items-center gap-1.5">
-            <ThemeToggle />
+            <ThemeToggle className="min-w-0 flex-1" />
             <LangToggle />
           </div>
         </div>

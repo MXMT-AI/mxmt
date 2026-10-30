@@ -131,5 +131,9 @@
   "p_brand_saving": "Зберігаємо…",
   "toast_added": "додано до замовлення",
   "toast_brand_saved": "Бренд збережено",
-  "toast_brand_deleted": "Бренд видалено"
+  "toast_brand_deleted": "Бренд видалено",
+  "theme_label": "Тема оформлення",
+  "theme_light": "Світла",
+  "theme_dark": "Темна",
+  "theme_system": "Як у системі"
 }
