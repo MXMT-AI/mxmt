@@ -101,3 +101,26 @@ it("enforces physical connect_timeout even when pool_timeout is disabled", async
     await new Promise<void>(resolve => server.close(() => resolve()));
   }
 });
+
+it.each([
+  "postgresql://synthetic@ep-app-pooler.eu-central-1.aws.neon.tech/db?schema=custom",
+  "postgresql://synthetic@ep-app-pooler.eu-central-1.aws.neon.tech/db?schema=custom&pgbouncer=false",
+  "postgresql://synthetic@db.example/db?schema=custom&pgbouncer=true",
+])("rejects custom schemas over transaction pooling before connecting: %s", url => {
+  const connect = vi.spyOn(Client.prototype, "connect");
+  expect(() => createPrismaPool(prismaPoolOptions(url))).toThrow("Custom schemas require a direct DATABASE_URL");
+  expect(connect).not.toHaveBeenCalled();
+});
+it.each([
+  "postgresql://synthetic@ep-app-pooler.eu-central-1.aws.neon.tech/db",
+  "postgresql://synthetic@db.example/db?schema=public&pgbouncer=true",
+])("never issues session search_path through transaction pooling: %s", async url => {
+  const query = mockWireConnections();
+  const pool = createPrismaPool(prismaPoolOptions(url));
+  const client = await pool.connect();
+  expect(query).not.toHaveBeenCalled();
+  client.release(); await pool.end();
+});
+it("rejects repeated schema selectors instead of checking and using different values", () => {
+  expect(() => prismaPoolOptions("postgresql://synthetic/db?schema=public&schema=custom")).toThrow("Invalid database option: schema");
+});

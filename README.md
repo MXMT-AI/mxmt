@@ -35,7 +35,7 @@
 | Джерело | Реалізація | Що потрібно перед використанням |
 | --- | --- | --- |
 | Google Sheets | Raw snapshot → погоджений мапінг → явна проєкція в спільні факти | Доступ до файлу, реальні правила ідентичності/статусів/сум/дат, approval, вибір джерела, MVP refresh |
-| SalesDrive | Замовлення та incremental changes, YML-каталог, підтверджені надходження, спостереження цін/залишків | Read-доступи, перевірка підключення, мапінг, імпорт, external worker для автоматики |
+| SalesDrive | Замовлення та incremental changes, YML-каталог, дані про надходження, спостереження цін/залишків | Read-доступи, перевірка підключення, мапінг, імпорт, external worker для автоматики; тип руху, supplier/posting semantics і costs підтверджуються окремо перед використанням як receipt evidence |
 | CSV | Версійований ручний пакет, preview, activation, durable jobs | UTF-8 файли, явні колонки/політики та перевірена історична повнота; автоматичного polling немає |
 | KeyCRM | Read-конектор та Settings onboarding | Погоджені поля, account permissions, статуси, ціни/оплати/склад і перевірка реального акаунта |
 | Horoshop | Read-конектор із full-rescan та захистом HTTPS origin/DNS | Точний дозволений origin, account evidence, мапінг і canary |
@@ -160,7 +160,7 @@ npm run dev
 
 | Змінна | Коли потрібна / призначення |
 | --- | --- |
-| `DATABASE_URL` | Runtime PostgreSQL; для Neon pooled endpoint з `-pooler` |
+| `DATABASE_URL` | Runtime PostgreSQL; для Neon/public — pooled endpoint з `-pooler`, для custom schema — явний direct URL |
 | `DIRECT_URL` | Direct endpoint тієї самої БД для Prisma CLI/migrations |
 | `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET` | Незалежні server-only секрети; обов’язкові для production |
 | `CONNECTOR_ENCRYPTION_KEY` | 32 випадкових байти в base64; потрібен для збереження/читання encrypted connector config, включно з CSV metadata |
@@ -179,7 +179,7 @@ npm run dev
 
 ## Prisma 7, БД і deployment
 
-`prisma/schema.prisma` описує provider/models; URL для CLI задає `prisma.config.ts` через `DIRECT_URL`. Runtime створює `PrismaPg` у `lib/prisma.ts` із `DATABASE_URL`; `lib/prisma-pool.ts` переносить pool-параметри. `schema` задає і ORM qualification, і quoted session search_path для raw SQL. `connect_timeout` (default 5s) обмежує physical connection; `pool_timeout` (default 10s) — checkout, включно з новим connection. Нуль вимикає тільки відповідний deadline. Не повертайте Prisma 5 `url/directUrl` у schema і не створюйте Client без adapter.
+`prisma/schema.prisma` описує provider/models; URL для CLI задає `prisma.config.ts` через `DIRECT_URL`. Runtime створює `PrismaPg` у `lib/prisma.ts` із `DATABASE_URL`; `lib/prisma-pool.ts` переносить pool-параметри. `schema` задає ORM qualification; quoted session search_path для raw SQL використовується лише на direct-з’єднанні. Для Neon `-pooler` або `pgbouncer=true` session SET не виконується, а custom schema відхиляється до підключення й до migration-status check. Підтриманий pooled deployment використовує `public` зі стандартним public role search_path. Для custom schema задайте явний direct runtime URL з обмеженим pool size; автоматичного перемикання на `DIRECT_URL` немає. Інші transaction poolers позначайте `pgbouncer=true`. `connect_timeout` (default 5s) обмежує physical connection; `pool_timeout` (default 10s) — checkout, включно з новим connection. Нуль вимикає тільки відповідний deadline. Не повертайте Prisma 5 `url/directUrl` у schema і не створюйте Client без adapter.
 
 Для Neon використовуйте TLS і відповідні pooled/direct endpoints тієї самої branch/database/schema. Не вимикайте перевірку сертифікатів для усунення connection error. `db:check` перевіряє migration history, але не доводить відсутність ручного schema drift. P2022 / відсутня `Sku.catalogAttributes` потребує перевірки повної історії на точному target, а не лише `prisma generate`.
 

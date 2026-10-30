@@ -1,5 +1,6 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Client, Pool, escapeIdentifier, type ClientConfig } from "pg";
+import { databaseSchemaPolicy } from "./database-schema-policy.mjs";
 
 /** Translate Prisma URL settings without merging connection and acquisition deadlines. */
 export function prismaPoolOptions(connectionString?: string) {
@@ -21,21 +22,21 @@ export function prismaPoolOptions(connectionString?: string) {
   const max = integer("connection_limit", 10, 1);
   const connectionTimeoutMillis = milliseconds("connect_timeout", 5);
   const acquisitionTimeoutMillis = milliseconds("pool_timeout", 10);
-  const schema = url.searchParams.get("schema") ?? "public";
-  if (!schema || schema.includes("\0")) throw new Error("Invalid database option: schema");
+  const { schema, useSessionSearchPath } = databaseSchemaPolicy(url);
   for (const key of ["connection_limit", "connect_timeout", "pool_timeout", "pgbouncer", "schema"])
     url.searchParams.delete(key);
   return { connectionString: url.toString(), max, connectionTimeoutMillis,
-    acquisitionTimeoutMillis, schema, idleTimeoutMillis: 300_000 };
+    acquisitionTimeoutMillis, schema, useSessionSearchPath, idleTimeoutMillis: 300_000 };
 }
 
 /**
  * pg's pool deadline bounds checkout (including a new connection); its Client has
  * a separate physical connection deadline. Zero disables only the named deadline.
- * Session search_path also scopes unqualified raw SQL, not just generated queries.
+ * Direct sessions scope raw SQL with search_path; pooled public connections never
+ * issue session SET. Custom schemas over transaction pooling fail before connect.
  */
 export function createPrismaPool(options: ReturnType<typeof prismaPoolOptions>) {
-  const { connectionTimeoutMillis, acquisitionTimeoutMillis, schema, ...config } = options;
+  const { connectionTimeoutMillis, acquisitionTimeoutMillis, schema, useSessionSearchPath, ...config } = options;
   class ConnectionClient extends Client {
     constructor(clientConfig?: ClientConfig) {
       super({ ...clientConfig, connectionTimeoutMillis });
@@ -45,9 +46,9 @@ export function createPrismaPool(options: ReturnType<typeof prismaPoolOptions>) 
     ...config,
     Client: ConnectionClient,
     connectionTimeoutMillis: acquisitionTimeoutMillis,
-    onConnect: async client => {
+    onConnect: useSessionSearchPath ? async client => {
       await client.query("SELECT set_config('search_path', $1, false)", [escapeIdentifier(schema)]);
-    },
+    } : undefined,
   });
 }
 

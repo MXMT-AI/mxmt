@@ -44,3 +44,15 @@ it("accepts identical non-Neon hosts and matching decoded Unix-socket targets",(
  expect(()=>validateDatabaseTarget({DATABASE_URL:"postgresql://a:b@db-pooler.example.com/app",DIRECT_URL:"postgresql://a:b@db-pooler.example.com/app"})).not.toThrow();
  expect(()=>validateDatabaseTarget({DATABASE_URL:"postgresql://a:b@localhost/app?host=%2Fvar%2Frun%2Fpostgresql",DIRECT_URL:"postgresql://a:b@localhost:5432/app?host=/var/run/postgresql"})).not.toThrow();
 });
+
+it("rejects matching custom schema on a transaction pooler before checking migration history", () => {
+ const run=vi.fn<(tool:string,args:string[])=>number>(()=>0),log=vi.fn();
+ const targets={DATABASE_URL:env.DATABASE_URL+"&schema=custom",DIRECT_URL:env.DIRECT_URL+"&schema=custom"};
+ expect(runDatabaseLifecycle("vercel",{env:targets,run,log})).toBe(1);
+ expect(run).not.toHaveBeenCalled();
+ expect(log).toHaveBeenCalledWith("Custom schemas require a direct DATABASE_URL; transaction-pooled runtime URLs are unsupported.");
+});
+it("allows matching custom schema with explicit direct runtime and migration endpoints", () => {
+ const direct=env.DIRECT_URL+"&schema=custom";
+ expect(()=>validateDatabaseTarget({DATABASE_URL:direct,DIRECT_URL:direct})).not.toThrow();
+});

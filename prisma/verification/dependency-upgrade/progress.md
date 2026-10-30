@@ -323,3 +323,8 @@ Final npm audit: zero findings; npm ls --depth=0 passed. Frozen Zavod offline ch
 ## PR #119 review follow-up
 
 Fixed all four actionable CodeRabbit findings: touch/keyboard calendar actions, connect_timeout=0, independent pool acquisition deadline, and configured schema for ORM plus raw SQL. Added ten pool regressions and native custom-schema/queue proof. Full suite 1,661 passed (167 files, one existing optional skip); MVP 965 passed; TypeScript, clean npm ci and both builds passed; audit zero. See review-follow-up.md for exact behavior and browser limits.
+
+
+## Second PR #119 review follow-up
+
+Confirmed the earlier custom-schema native probe covered direct sessions, not transaction pooling. Shared startup/runtime policy now rejects custom schema with Neon -pooler or pgbouncer=true before network/CLI; public pooled connections issue no session SET. Explicit direct custom-schema runtime remains supported, with no automatic URL/role changes. README receipt evidence and pg runtime/types development caret-range wording were corrected. Validation: 44 focused, 1,669 full and 965 MVP tests passed; TypeScript, clean npm ci and both builds passed; direct native probe and local HTTP passed; audit zero. See review-follow-up.md for supported boundaries.

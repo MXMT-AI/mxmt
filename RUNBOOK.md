@@ -30,7 +30,7 @@
 
 Критичні secrets:
 
-- `DATABASE_URL` / `DIRECT_URL` — той самий target; Neon pooled/direct, TLS.
+- `DATABASE_URL` / `DIRECT_URL` — той самий target; Neon pooled/direct для public, TLS; custom schema потребує явного direct runtime URL.
 - Незалежні `JWT_ACCESS_SECRET` і `JWT_REFRESH_SECRET`; rotation потребує повторного входу користувачів.
 - `CONNECTOR_ENCRYPTION_KEY` — стабільні 32 байти в base64. Під час rotation потрібне кероване переведення існуючого ciphertext; проста заміна value не дешифрує старі credentials.
 - `CRON_SECRET` — Bearer для scheduled/worker requests. `SALESDRIVE_WEBHOOK_SECRET` — окремий relay secret, не той самий token.
@@ -115,6 +115,12 @@ npm run db:check
 
 `db:migrate:deploy` вище — **write action**, лише після target/rehearsal approval. `migrate status` / `db:check` не виконують DDL. У production не використовуйте `db push`, `migrate reset`, ручне додавання однієї відсутньої колонки або редагування вже застосованого SQL.
 
+### Custom schema і transaction pooling
+
+Neon не гарантує session search_path між транзакціями ([pooling limitations](https://neon.com/docs/connect/connection-pooling)). У цій версії custom schemas підтримуються лише з direct runtime; pooled custom schema є явно непідтриманою конфігурацією. Lifecycle і runtime використовують одну policy та зупиняються до читання/запису application data.
+
+Не виконуйте `ALTER ROLE`, не прибирайте guard і не перемикайте production URL як випадковий workaround. Якщо потрібен custom schema, підготуйте direct runtime/migration target у staging, перевірте pool/compute capacity та розгорніть погоджену конфігурацію. Підтримка custom schema через transaction pooler потребує окремої schema-qualified raw SQL стратегії; цей patch не заявляє таку підтримку.
+
 ### P2022 / `Sku.catalogAttributes` відсутня
 
 1. Зіставте SHA з повною migration history цільової БД.
@@ -131,7 +137,7 @@ npm run db:check
 
 ### Connection incident
 
-Перевірте direct/pooled target, TLS, актуальний deployment env, Neon compute, connections і довгі транзакції. Runtime pool має окремі `connect_timeout` (default 5s) і `pool_timeout` (default 10s). Pool checkout deadline включає також отримання нового connection; нуль вимикає лише відповідний deadline. `schema` застосовується і до ORM, і до raw SQL session search_path. Pool options мають явний `max`; не вимикайте TLS, не перемикайтеся на випадкову branch і не змінюйте limits без аналізу навантаження. Не використовуйте синтетичний local probe як доказ production capacity.
+Перевірте direct/pooled target, TLS, актуальний deployment env, Neon compute, connections і довгі транзакції. Runtime pool має окремі `connect_timeout` (default 5s) і `pool_timeout` (default 10s). Pool checkout deadline включає також отримання нового connection; нуль вимикає лише відповідний deadline. `schema` задає ORM qualification; session search_path для raw SQL застосовується лише на direct runtime. Neon `-pooler` і `pgbouncer=true` не виконують session SET. Custom schema з transaction pooler блокується до network/CLI; потрібен явно обраний direct `DATABASE_URL` тієї самої БД/schema й переглянутий connection budget. Автоматичного bypass через `DIRECT_URL` або зміни role defaults немає. Public pooled runtime потребує стандартного public role search_path; інші transaction poolers позначайте `pgbouncer=true`. Pool options мають явний `max`; не вимикайте TLS, не перемикайтеся на випадкову branch і не змінюйте limits без аналізу навантаження. Не використовуйте синтетичний local probe як доказ production capacity.
 
 ## 6. Три незалежні шляхи імпорту
 

@@ -16,12 +16,15 @@ No production database, account configuration or live connector was changed.
   The pg pool's public Client hook supplies the physical connection deadline;
   pool checkout has its own deadline, including establishing a new connection.
   No pg private queue/state is modified. Zero disables only its named deadline.
-- Forward schema to PrismaPg and set a parameterized, identifier-quoted session
-  search_path for every physical connection. This also keeps unqualified raw SQL
-  on the same schema as generated ORM queries and migration readiness checks.
+- Forward schema to PrismaPg. Direct connections set a parameterized, quoted
+  search_path for raw SQL. This proof applies only to direct PostgreSQL sessions.
+  The subsequent transaction-pooler correction below supersedes any implication
+  that connection-level SET provides custom-schema safety through PgBouncer.
   Prisma disconnect owns/disposes the externally constructed pool.
-- Declare pg and its types as direct dependencies at their already-installed
-  stable 8.23.1 versions. No transitive package upgrade or schema migration.
+- Declare pg as a direct runtime dependency and @types/pg as a direct development
+  dependency, both with manifest range ^8.23.1. The lockfile records installed
+  version 8.23.1; these are not exact-version manifest pins. No transitive package
+  upgrade or schema migration.
   README/RUNBOOK now document the deadline and schema behavior.
 
 ## Validation
@@ -60,3 +63,38 @@ combined-timeout limitation and adds the custom-schema regression proof.
 - [node-postgres Pool API](https://node-postgres.com/apis/pool)
 - The accepted pg 8.23.1 and @prisma/adapter-pg 7.10.1 source/types were inspected
   locally to verify separate Client configuration, onConnect, schema and disposal.
+
+
+## Second review — transaction pooling and documentation
+
+The direct PostgreSQL probe did not verify Neon transaction pooling. Neon documents
+that session SET/search_path is unsupported across transaction boundaries. This
+application has unqualified raw SQL, so it must not advertise custom-schema safety
+through a transaction pooler based on onConnect.
+
+The shared databaseSchemaPolicy now applies in both startup readiness and runtime:
+Neon -pooler endpoints and explicit pgbouncer=true URLs never execute session SET;
+custom schemas on those URLs fail before network access or Prisma CLI execution.
+Public pooled deployments retain the standard public role search_path. Custom
+schemas remain supported with an explicitly configured direct runtime URL and
+bounded pool, not an automatic fallback to DIRECT_URL. Non-Neon transaction
+poolers must declare pgbouncer=true. No database-role defaults or production URLs
+were changed. Schema-qualified raw SQL support for pooled custom schemas is not
+implemented or claimed by this patch.
+
+README now calls SalesDrive arrival records data requiring separate movement,
+supplier/posting and cost verification. It no longer implies account-specific
+receipt evidence is confirmed by connector availability.
+
+Second-review validation:
+- Focused pool/lifecycle tests: 44 passed, including eight new regressions.
+- Full suite: 167 files / 1,669 passed / one existing optional workbook skip.
+- MVP: 80 files / 965 passed. TypeScript passed.
+- Independent npm ci, build and build:vercel passed; local HTTP login/health/
+  protected redirect passed. Audit: zero findings. Whitespace/doc link checks passed.
+- Direct custom-schema native probe passed again after restarting the unavailable
+  disposable local PostgreSQL cluster. No production service or schema was changed.
+- Pooled public no-SET behavior and pooled custom-schema rejection are regression
+  tested before network/CLI dispatch. No live Neon/PgBouncer acceptance is claimed;
+  custom schemas remain explicitly unsupported on transaction-pooled runtime URLs.
+- The previous browser/calendar checks remain applicable; no UI changed here.
