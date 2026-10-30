@@ -17,11 +17,7 @@ export default async function RootLayout({ children, params }: { children: React
   setRequestLocale(locale);
   const messages = await getMessages();
   return (
-    <html lang={locale}>
-      <head>
-        {/* Apply theme before React hydration to prevent flash */}
-        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem('mxmt_theme');if(t==='light')document.documentElement.classList.add('light');}catch(e){}})();` }} />
-      </head>
+    <html lang={locale} suppressHydrationWarning>
       <body className="antialiased">
         <ThemeProvider>
           <NextIntlClientProvider locale={locale} messages={messages} timeZone="Europe/Kyiv">{children}</NextIntlClientProvider>
