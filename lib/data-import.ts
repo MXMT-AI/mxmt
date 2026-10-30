@@ -141,7 +141,7 @@ async function cleanupImportPayload(
 
 /**
  * Google exports may change ZIP metadata between downloads. Hash normalized
- * sheet contents so identical cell data reuses the active import run.
+ * sheet contents so identical cell data can reuse the same business-day import.
  */
 export function sourceWorkbookChecksum(parsed: ParsedRawWorkbook): string {
   return sha256(JSON.stringify(
@@ -254,6 +254,7 @@ export async function importRawWorkbookBuffer(
           id: true,
           status: true,
           sourceChecksum: true,
+          businessDate: true,
           stats: true,
         },
       },
@@ -264,6 +265,7 @@ export async function importRawWorkbookBuffer(
   await pruneInactiveImportRuns(db, tenantId, source.id, activeRun?.id ?? null);
   if (
     activeRun?.sourceChecksum === checksum &&
+    activeRun.businessDate.getTime() === businessDate.getTime() &&
     (activeRun.status === DataRunStatus.SUCCESS || activeRun.status === DataRunStatus.WARNING)
   ) {
     const stats = (activeRun.stats ?? {}) as {

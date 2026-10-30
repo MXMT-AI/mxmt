@@ -7,7 +7,7 @@ import {
   importRawWorkbookBuffer,
   sourceWorkbookChecksum,
 } from "@/lib/data-import";
-import { parseRawWorkbook, sha256 } from "@/lib/data-import-workbook";
+import { parseRawWorkbook, sha256, kyivBusinessDate } from "@/lib/data-import-workbook";
 
 function importBuffer(options?: { duplicateProduct?: boolean; metadataTitle?: string }): Buffer {
   const wb = XLSX.utils.book_new();
@@ -50,6 +50,7 @@ function importBuffer(options?: { duplicateProduct?: boolean; metadataTitle?: st
 function fakeDatabase(options?: {
   activeChecksum?: string;
   activePipelineVersion?: number;
+  activeBusinessDate?: Date;
   failRows?: boolean;
 }) {
   const dataSourceUpdate = vi.fn(async () => ({ id: "source-1" }));
@@ -66,6 +67,7 @@ function fakeDatabase(options?: {
               id: "active-run",
               status: DataRunStatus.SUCCESS,
               sourceChecksum: options.activeChecksum,
+              businessDate: options.activeBusinessDate ?? kyivBusinessDate(new Date()),
               stats: {
                 pipelineVersion:
                   options.activePipelineVersion ?? DATA_IMPORT_PIPELINE_VERSION,
@@ -215,7 +217,7 @@ describe("atomic raw import", () => {
     });
   });
 
-  it("reuses the active run when the workbook checksum is unchanged", async () => {
+  it("reuses the active run when the workbook checksum and Kyiv business day are unchanged", async () => {
     const buffer = importBuffer();
     const db = fakeDatabase({ activeChecksum: sourceWorkbookChecksum(parseRawWorkbook(buffer)) });
 
@@ -228,6 +230,26 @@ describe("atomic raw import", () => {
     expect(result.importRunId).toBe("active-run");
     expect(db.dataImportRun.create).not.toHaveBeenCalled();
     expect(db.dataSheetSnapshot.create).not.toHaveBeenCalled();
+  });
+
+  it("captures a new dated observation even when workbook cells have not changed since an older day", async () => {
+    const buffer = importBuffer();
+    const db = fakeDatabase({ activeChecksum: sourceWorkbookChecksum(parseRawWorkbook(buffer)), activeBusinessDate: new Date('2026-09-11T00:00:00Z') });
+    const result = await importRawWorkbookBuffer({ tenantId:'tenant-1',fileId:'file-1',buffer,now:new Date('2026-10-30T10:00:00Z') }, db as never);
+    expect(result.outcome).toBe('imported');
+    expect(result.importRunId).toBe('run-1');
+    expect(db.dataImportRun.create).toHaveBeenCalledWith(expect.objectContaining({data:expect.objectContaining({businessDate:new Date('2026-10-30T00:00:00Z')})}));
+    expect(db.dataSheetRow.createMany).toHaveBeenCalled();
+  });
+
+  it("uses the Kyiv day rather than the UTC day when deciding whether an observation is current", async () => {
+    const buffer = importBuffer();
+    const checksum = sourceWorkbookChecksum(parseRawWorkbook(buffer));
+    const now = new Date('2026-10-29T22:30:00Z');
+    const current = fakeDatabase({ activeChecksum: checksum, activeBusinessDate: new Date('2026-10-30T00:00:00Z') });
+    expect((await importRawWorkbookBuffer({tenantId:'tenant-1',fileId:'file-1',buffer,now}, current as never)).outcome).toBe('unchanged');
+    const old = fakeDatabase({ activeChecksum: checksum, activeBusinessDate: new Date('2026-10-29T00:00:00Z') });
+    expect((await importRawWorkbookBuffer({tenantId:'tenant-1',fileId:'file-1',buffer,now}, old as never)).outcome).toBe('imported');
   });
 
   it("rebuilds an unchanged workbook created by an older import pipeline", async () => {

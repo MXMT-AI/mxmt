@@ -11,6 +11,15 @@ import {
   qualityGuidance,
   qualityFixHref,
 } from "@/lib/data-quality-copy";
+it("does not describe missing or unverified stock as a clean catalogue", () => {
+  const html = renderToStaticMarkup(createElement(Summary, {
+    lang: "uk", affectedStock: [], summary: [], selected: "", onSelect: () => {},
+  }));
+  expect(html).not.toContain("Проблемного товарного залишку немає.");
+  expect(html).toContain("Перевірте типи позицій");
+  expect(qualityGuidance("PRODUCT_KIND_UNVERIFIED", "uk")).toContain("основних продажів");
+  expect(qualityFixHref("STOCK_QUANTITY_UNAVAILABLE")).not.toContain("salesdrive");
+});
 it.each(["uk", "en"] as const)(
   "renders localized deduplication, coverage, correction links and group drill-downs in %s",
   (lang) => {

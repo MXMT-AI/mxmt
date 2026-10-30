@@ -30,7 +30,7 @@ interface Row {
   issues: string[];
   ageReference: { date: string | null; basis: string };
   sourceId: string;
-  observedAt: string;
+  observedAt: string | null;
   importRunId: string;
   sourceRecordKey: string;
 }
@@ -481,7 +481,7 @@ export default function DataQualityCard({
                     {uk ? "Джерело" : "Source"}: {row.sourceId}
                     <br />
                     {uk ? "Спостереження" : "Observed"}:{" "}
-                    {new Date(row.observedAt).toLocaleString(locale)}
+                    {row.observedAt ? new Date(row.observedAt).toLocaleString(locale) : (uk ? "Не підтверджено" : "Unverified")}
                     <br />
                     {uk ? "Імпорт" : "Import"}: {row.importRunId}
                     <br />
