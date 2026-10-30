@@ -69,7 +69,7 @@ export default function LoginPage() {
                 className="w-full bg-(--input-bg) border border-(--border) rounded-lg px-4 py-2.5 text-(--text) text-sm focus:outline-hidden focus:border-accent-cyan/40 transition-colors placeholder:text-(--subtle)"
                 placeholder="••••••••" />
             </div>
-            {error && <div role="alert" className="bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2.5 text-red-400 text-sm">{error}</div>}
+            {error && <div role="alert" className="bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2.5 text-(--error-text) text-sm">{error}</div>}
             <button type="submit" disabled={loading}
               className="w-full bg-accent-cyan hover:bg-[#00c9ab] disabled:opacity-50 disabled:cursor-not-allowed text-[#0d1117] font-semibold rounded-lg px-4 py-2.5 text-sm transition-colors mt-2">
               {loading ? t.auth_signing_in : t.auth_sign_in}

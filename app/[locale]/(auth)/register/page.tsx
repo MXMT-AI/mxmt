@@ -69,7 +69,7 @@ export default function RegisterPage() {
             <div><label htmlFor="register-email" className={lc}>{t.auth_email}</label><input id="register-email" type="email" value={form.email} onChange={set("email")} required autoComplete="email" className={ic} placeholder="you@company.com" /></div>
             <div><label htmlFor="register-password" className={lc}>{t.auth_password}</label><input id="register-password" type="password" value={form.password} onChange={set("password")} required autoComplete="new-password" className={ic} placeholder="min 8" /></div>
             <div><label htmlFor="register-confirm-password" className={lc}>{t.auth_confirm_password}</label><input id="register-confirm-password" type="password" value={form.confirmPassword} onChange={set("confirmPassword")} required autoComplete="new-password" className={ic} placeholder="••••••••" /></div>
-            {error && <div role="alert" className="bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2.5 text-red-400 text-sm">{error}</div>}
+            {error && <div role="alert" className="bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2.5 text-(--error-text) text-sm">{error}</div>}
             <button type="submit" disabled={loading}
               className="w-full bg-accent-cyan hover:bg-[#00c9ab] disabled:opacity-50 disabled:cursor-not-allowed text-[#0d1117] font-semibold rounded-lg px-4 py-2.5 text-sm transition-colors mt-2">
               {loading ? t.auth_creating : t.auth_create_btn}
