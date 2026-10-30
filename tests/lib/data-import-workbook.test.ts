@@ -74,6 +74,13 @@ function validWorkbookBuffer(options?: {
 }
 
 describe("raw workbook parser", () => {
+  it("keeps cached formula values when formula expressions are omitted from parsing", () => {
+    const wb = XLSX.read(validWorkbookBuffer(), { type: "buffer" });
+    wb.Sheets["Product YML 2.0"].C2.f = "50*2";
+    const parsed = parseRawWorkbook(XLSX.write(wb, { type: "buffer", bookType: "xlsx" }) as Buffer);
+    expect(parsed.sheets[0].rows[0].data.col_c).toBe(100);
+  });
+
   it("imports only the five allowed sheets and preserves physical row numbers", () => {
     const parsed = parseRawWorkbook(validWorkbookBuffer());
 
@@ -169,6 +176,12 @@ describe("raw workbook parser", () => {
   it("uses the Kyiv local calendar date across a UTC day boundary", () => {
     expect(kyivBusinessDate(new Date("2026-01-01T22:30:00.000Z")).toISOString()).toBe(
       "2026-01-02T00:00:00.000Z"
+    );
+    expect(kyivBusinessDate(new Date("2026-07-01T21:30:00.000Z")).toISOString()).toBe(
+      "2026-07-02T00:00:00.000Z"
+    );
+    expect(kyivBusinessDate(new Date("2026-01-01T21:30:00.000Z")).toISOString()).toBe(
+      "2026-01-01T00:00:00.000Z"
     );
   });
 

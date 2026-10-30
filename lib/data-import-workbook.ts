@@ -1,9 +1,15 @@
 import { createHash } from "node:crypto";
 import * as XLSX from "xlsx";
-import { readWorkbook, sheetToJson } from "./workbook-compat.mjs";
+import { readWorkbook, sheetToJson, worksheetCell } from "./workbook-compat.mjs";
 import { assertDriveRowLimit } from "@/lib/drive-limits";
 
 export const DATA_SOURCE_TIMEZONE = "Europe/Kyiv";
+const businessDateFormatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: DATA_SOURCE_TIMEZONE,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
 
 export const RAW_SHEET_CONFIGS = [
   {
@@ -179,7 +185,7 @@ function parseSheet(
 
     for (const column of columns) {
       const sourceValue = sourceRow[column.sourceIndex];
-      const cell = ws[XLSX.utils.encode_cell({ r: rowIndex, c: column.sourceIndex })];
+      const cell = worksheetCell(ws, rowIndex, column.sourceIndex);
       const value = (config.textHeaders as readonly string[]).includes(column.label)
         ? serializeTextCell(cell, sourceValue)
         : serializeCell(sourceValue);
@@ -250,7 +256,16 @@ function missingOptionalSheet(config: (typeof RAW_SHEET_CONFIGS)[number]): Parse
 }
 
 export function parseRawWorkbook(buffer: Buffer): ParsedRawWorkbook {
-  const workbook = readWorkbook(buffer, { type: "buffer", cellDates: true });
+  const workbook = readWorkbook(buffer, {
+    type: "buffer",
+    cellDates: true,
+    dense: true,
+    cellFormula: false,
+    cellHTML: false,
+    // Auxiliary workbook tabs are not imported. Avoid materializing their cells
+    // inside the serverless process alongside the five saved source tables.
+    sheets: RAW_SHEET_CONFIGS.map(config => config.name),
+  });
   const sheets: ParsedRawSheet[] = [];
   const warnings: string[] = [];
   let totalRows = 0;
@@ -273,18 +288,14 @@ export function parseRawWorkbook(buffer: Buffer): ParsedRawWorkbook {
     totalRows += parsed.rows.length;
     assertDriveRowLimit(totalRows);
     sheets.push(parsed);
+    delete workbook.Sheets[config.name];
   }
 
   return { sheets, totalRows, warnings };
 }
 
 export function kyivBusinessDate(now: Date): Date {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: DATA_SOURCE_TIMEZONE,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(now);
+  const parts = businessDateFormatter.formatToParts(now);
   const getPart = (type: Intl.DateTimeFormatPartTypes) =>
     parts.find((part) => part.type === type)?.value;
   const year = getPart("year");
