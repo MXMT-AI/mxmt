@@ -22,6 +22,7 @@ import {
 } from "@/lib/client/sheets-reporting";
 import { apiFetch } from "@/lib/fetch";
 import { rawImportIsLive } from "@/lib/data-import-policy";
+import { scheduleRawImportStatusCheck } from "@/lib/client/raw-import-status";
 import Link from "next/link";
 import ReportTable from "./ReportTable";
 import { useLang } from "@/components/LanguageProvider";
@@ -248,18 +249,20 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
   const canImport = ["ADMIN", "SUPER_ADMIN"].includes(userRole.toUpperCase());
   const canCalculate = ["ANALYST", "ADMIN", "SUPER_ADMIN"].includes(userRole.toUpperCase());
 
-  const loadStatus = useCallback(async (signal?: AbortSignal) => {
-    setStatusLoading(true);
+  const loadStatus = useCallback(async (signal?: AbortSignal, quiet = false) => {
+    if (!quiet) setStatusLoading(true);
     try {
       const response = await fetch("/api/data/status", { cache: "no-store", signal });
       if (!response.ok) throw new Error(await responseMessage(response));
-      setStatus(await response.json() as DataStatus);
+      const nextStatus = await response.json() as DataStatus;
+      if (!signal?.aborted) setStatus(nextStatus);
     } catch (loadError) {
-      if (!(loadError instanceof DOMException && loadError.name === "AbortError")) {
+      if (!signal?.aborted && !(loadError instanceof DOMException && loadError.name === "AbortError")) {
         setActionError(loadError instanceof Error ? loadError.message : "Could not load status");
+        if (quiet) setStatus(current => current ? { ...current } : current);
       }
     } finally {
-      if (!signal?.aborted) setStatusLoading(false);
+      if (!quiet && !signal?.aborted) setStatusLoading(false);
     }
   }, []);
 
@@ -270,10 +273,18 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
   }, [loadStatus, reloadVersion]);
 
   useEffect(() => {
-    if (status?.latestImport?.status !== "RUNNING" || action !== null) return;
-    const timer = setInterval(() => setReloadVersion(value => value + 1), 10000);
-    return () => clearInterval(timer);
-  }, [status?.latestImport?.status, action]);
+    if (action !== null) return;
+    const controller = new AbortController();
+    const cancel = scheduleRawImportStatusCheck(
+      status?.latestImport ?? null,
+      () => { void loadStatus(controller.signal, true); },
+      () => setStatus(current => current ? { ...current } : current),
+    );
+    return () => {
+      cancel();
+      controller.abort();
+    };
+  }, [status, action, loadStatus]);
 
   useEffect(() => {
     if (!canImport) return;
