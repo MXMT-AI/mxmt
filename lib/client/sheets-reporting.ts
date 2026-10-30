@@ -62,6 +62,10 @@ export async function refreshSelectedSheetsReports(
 }
 export function sheetsRefreshMessage(code: string, lang: "uk" | "en") {
   const uk = lang === "uk";
+  if (code === "SHEETS_CATALOG_IDENTITY_CONFLICT")
+    return uk
+      ? "Імпорт збережено. У каталозі є суперечливі прив’язки товарів. Перевірте ID товарів і SKU перед оновленням MVP-звітів."
+      : "Import saved. The catalogue has conflicting product identities. Review product IDs and SKU mappings before refreshing MVP reports.";
   if (code === "SHEETS_REFRESH_TIMEOUT")
     return uk
       ? "Перенесення у MVP-звіти перевищило час очікування. Імпорт збережено. Перевірте стан перед повтором; повторно завантажувати таблицю не потрібно."
