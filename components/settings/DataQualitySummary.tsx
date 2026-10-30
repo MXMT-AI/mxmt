@@ -77,8 +77,8 @@ export default function DataQualitySummary({
         {!affectedStock.length && (
           <p className="text-sm">
             {uk
-              ? "Проблемного товарного залишку немає."
-              : "No affected merchandise stock."}
+              ? "Підтвердженого товарного залишку з оцінкою проблем немає. Перевірте типи позицій і наявність датованих залишків у групах нижче."
+              : "No verified merchandise stock is available for an affected-stock total. Check product types and dated stock observations in the groups below."}
           </p>
         )}
       </div>

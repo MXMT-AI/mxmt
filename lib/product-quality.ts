@@ -1,4 +1,4 @@
-import { selectedConnection } from "./connectors/source";
+import { readSelectedSource } from "./connectors/source";
 import "server-only";
 import { readClientSettings } from "./merchandising-settings-store";
 import { defaultClientSettings } from "./merchandising-settings";
@@ -14,16 +14,16 @@ import {
 } from "@/lib/data-normalization";
 
 /** Current-connection observations and explicit per-product exceptions, retaining input lineage. */
-function qualityBase(tenantId: string, monoBrandId: string | null) {
+function qualityBase(tenantId: string, monoBrandId: string | null, sourceId: string | null) {
   const sourceBrand = Prisma.sql`CASE WHEN s."catalogAttributes" ? 'normalization' THEN s."catalogAttributes"->'normalization'->>'brandKey' ELSE NULLIF(btrim(s."catalogAttributes"->>'vendor'),'') END`;
   return Prisma.sql`WITH latest AS (
- SELECT DISTINCT ON (i."skuId") i.* FROM "InventorySnapshot" i JOIN "ConnectorConnection" c ON c."sourceId"=i."sourceId" AND c."tenantId"=i."tenantId" WHERE i."tenantId"=${tenantId} AND ${selectedConnection()} ORDER BY i."skuId",i."observedAt" DESC,i."snapshotDate" DESC,i.id DESC
+ SELECT DISTINCT ON (i."skuId") i.* FROM "InventorySnapshot" i WHERE i."tenantId"=${tenantId} AND i."sourceId"=${sourceId} ORDER BY i."skuId",i."observedAt" DESC,i."snapshotDate" DESC,i.id DESC
 ), base AS (
  SELECT s.id,s.sku,s.name,s."productKind",s."brandId",s."categoryId",s."firstReceiptAt",i.quantity,i."retailPrice",i."costPrice",
  CASE WHEN i.quantity>=0 AND i."costPrice">0 THEN COALESCE(i."costValue",i.quantity*i."costPrice") END "costValue",i."retailValue",
- COALESCE(s."ownershipOverride",b.ownership,'UNKNOWN') ownership,COALESCE(s."supplierId",b."supplierId") "supplierId",i.currency,i."observedAt",i."importRunId",i."sourceRecordKey",i."sourceId",
+ COALESCE(s."ownershipOverride",b.ownership,'UNKNOWN') ownership,COALESCE(s."supplierId",b."supplierId") "supplierId",CASE WHEN i.id IS NOT NULL THEN i.currency ELSE price.currency END currency,i."observedAt",COALESCE(i."importRunId",s."catalogAttributes"->>'importRunId') "importRunId",COALESCE(i."sourceRecordKey",s."catalogAttributes"->>'sourceRecordKey') "sourceRecordKey",${sourceId}::text "sourceId",
    COALESCE(b."normalizationKey",NULLIF(upper(btrim(b.name)),''),'UNBRANDED') "brandKey",
-   (SELECT MIN(l."paidAt") FROM "OrderLine" l WHERE l."tenantId"=s."tenantId" AND l."skuId"=s.id AND l."sourceId"=i."sourceId" AND l.kind='SALE' AND l.quantity>0 AND l."netAmount" IS NOT NULL) "firstSaleAt",
+   (SELECT MIN(l."paidAt") FROM "OrderLine" l WHERE l."tenantId"=s."tenantId" AND l."skuId"=s.id AND l."sourceId"=${sourceId} AND l.kind='SALE' AND l.quantity>0 AND l."netAmount" IS NOT NULL) "firstSaleAt",
    array_remove(ARRAY[
     CASE WHEN b.id IS NULL AND (${sourceBrand}) IS NULL AND s."productKind" NOT IN ('SERVICE','GIFT_CARD') THEN 'MISSING_BRAND' END,
     CASE WHEN (${sourceBrand}) IS NOT NULL AND b.id IS NULL THEN 'BRAND_IDENTITY_CONFLICT' END,
@@ -44,7 +44,10 @@ function qualityBase(tenantId: string, monoBrandId: string | null) {
     CASE WHEN EXISTS (SELECT 1 FROM (SELECT d."velocityPerWeek",d."weeksOnHand" FROM "SkuDaily" d WHERE d."tenantId"=s."tenantId" AND d."skuId"=s.id ORDER BY d."businessDate" DESC,d."calculatedAt" DESC LIMIT 1) d WHERE d."velocityPerWeek"<0 OR d."weeksOnHand"<0) THEN 'NEGATIVE_METRIC' END,
     CASE WHEN i.quantity IS NULL THEN 'STOCK_QUANTITY_UNAVAILABLE' END
    ],NULL) issues
- FROM "Sku" s JOIN latest i ON i."skuId"=s.id AND i."tenantId"=s."tenantId" LEFT JOIN "Brand" b ON b.id=COALESCE(s."brandId",${monoBrandId}) AND b."tenantId"=s."tenantId" LEFT JOIN "Supplier" sup ON sup.id=COALESCE(s."supplierId",b."supplierId") AND sup."tenantId"=s."tenantId" WHERE s."tenantId"=${tenantId}
+ FROM "Sku" s LEFT JOIN latest i ON i."skuId"=s.id AND i."tenantId"=s."tenantId"
+ LEFT JOIN LATERAL (SELECT p.currency FROM "PriceHistory" p WHERE p."tenantId"=s."tenantId" AND p."skuId"=s.id AND p."sourceId"=${sourceId} ORDER BY p."observedAt" DESC,p.id DESC LIMIT 1) price ON true
+ LEFT JOIN "Brand" b ON b.id=COALESCE(s."brandId",${monoBrandId}) AND b."tenantId"=s."tenantId" LEFT JOIN "Supplier" sup ON sup.id=COALESCE(s."supplierId",b."supplierId") AND sup."tenantId"=s."tenantId" WHERE s."tenantId"=${tenantId}
+ AND (i.id IS NOT NULL OR EXISTS(SELECT 1 FROM "SkuAlias" a WHERE a."tenantId"=s."tenantId" AND a."skuId"=s.id AND a."sourceId"=${sourceId}))
 )`;
 }
 
@@ -55,6 +58,8 @@ async function readProductQuality(
   db: SqlClient = prisma,
 ) {
   const currentClient = await readClientSettings(tenantId, db);
+  const source = await readSelectedSource(tenantId, db);
+  const sourceId = source?.id ?? null;
   const currentFilter = clientOrderFilterFingerprint(currentClient.values),
     defaultFilter = clientOrderFilterFingerprint(defaultClientSettings());
   const page = options.page ?? 1,
@@ -64,6 +69,7 @@ async function readProductQuality(
       currentClient.values.profileMode === "MONOBRAND"
         ? currentClient.values.monoBrandId
         : null,
+      sourceId,
     ),
     filter = Prisma.sql`(${options.code ?? ""}='' OR ${options.code ?? ""}=ANY(issues)) AND (${search}='' OR sku ILIKE ${`%${search}%`} OR name ILIKE ${`%${search}%`})`;
   const [
@@ -87,7 +93,7 @@ async function readProductQuality(
           productKind: string;
           firstReceiptAt: Date | null;
           firstSaleAt: Date | null;
-          observedAt: Date;
+          observedAt: Date | null;
           issues: string[];
         } & Record<string, unknown>
       >
@@ -142,8 +148,8 @@ async function readProductQuality(
     >(Prisma.sql`SELECT
    CASE WHEN s."productKind"='GIFT_CARD' THEN 'GIFT_CARD' WHEN s."productKind"='SERVICE' THEN 'SERVICE' WHEN l.normalization->>'movement'='CORRECTION' OR l.kind='RETURN' THEN 'RETURNS_CORRECTIONS' WHEN s."productKind"='MERCHANDISE' THEN 'MERCHANDISE' ELSE 'UNKNOWN' END component,
    l.currency,count(*)::int "lineCount",sum(l."signedRevenue")::text revenue,sum(l."signedCost")::text cost,count(*) FILTER(WHERE l."signedRevenue" IS NULL)::int "missingAmountCount"
-   FROM "OrderLine" l JOIN "ConnectorConnection" c ON c."sourceId"=l."sourceId" AND c."tenantId"=l."tenantId" LEFT JOIN "Sku" s ON s.id=l."skuId" AND s."tenantId"=l."tenantId"
-   WHERE l."tenantId"=${tenantId} AND ${selectedConnection()} AND l."eventKey"='current' AND COALESCE((l.normalization->>'excluded')::boolean,false)=false AND l.kind IN ('SALE','RETURN','CORRECTION') GROUP BY component,l.currency ORDER BY component,l.currency`),
+   FROM "OrderLine" l LEFT JOIN "Sku" s ON s.id=l."skuId" AND s."tenantId"=l."tenantId"
+   WHERE l."tenantId"=${tenantId} AND l."sourceId"=${sourceId} AND l."eventKey"='current' AND COALESCE((l.normalization->>'excluded')::boolean,false)=false AND l.kind IN ('SALE','RETURN','CORRECTION') GROUP BY component,l.currency ORDER BY component,l.currency`),
     db.$queryRaw<
       Array<{
         brandKey: string;
@@ -155,7 +161,7 @@ async function readProductQuality(
       Prisma.sql`${base} SELECT "brandKey",currency,sum(CASE WHEN quantity>=0 THEN quantity END)::text quantity,sum("costValue")::text "costValue" FROM base WHERE "productKind"='MERCHANDISE' GROUP BY "brandKey",currency ORDER BY "brandKey",currency`,
     ),
     db.$queryRaw<Array<{ n: number }>>(
-      Prisma.sql`SELECT count(*)::int n FROM "OrderLine" l JOIN "ConnectorConnection" c ON c."sourceId"=l."sourceId" AND c."tenantId"=l."tenantId" WHERE l."tenantId"=${tenantId} AND ${selectedConnection()} AND (l.normalization='{}'::jsonb OR COALESCE(l.normalization->>'filterFingerprint',${defaultFilter})<>${currentFilter})`,
+      Prisma.sql`SELECT count(*)::int n FROM "OrderLine" l WHERE l."tenantId"=${tenantId} AND l."sourceId"=${sourceId} AND (l.normalization='{}'::jsonb OR COALESCE(l.normalization->>'filterFingerprint',${defaultFilter})<>${currentFilter})`,
     ),
     db.$queryRaw<
       Array<{
@@ -166,7 +172,7 @@ async function readProductQuality(
       }>
     >(Prisma.sql`SELECT q.code,l."sourceSku",l."externalOrderId" "orderId",l."externalLineId" "lineId" FROM "ImportIssue" q
     JOIN "OrderLine" l ON l."tenantId"=q."tenantId" AND l."importRunId"=q."importRunId" AND q."entityKey"='order:'||l."externalOrderId"||':'||l."externalLineId"
-    JOIN "ConnectorConnection" c ON c."sourceId"=l."sourceId" AND c."tenantId"=l."tenantId" WHERE q."tenantId"=${tenantId} AND ${selectedConnection()} AND l."eventKey"='current' ORDER BY q."createdAt" DESC,q.id LIMIT 25`),
+    WHERE q."tenantId"=${tenantId} AND l."sourceId"=${sourceId} AND l."eventKey"='current' ORDER BY q."createdAt" DESC,q.id LIMIT 25`),
   ]);
   return {
     rows: rows.map((row) => ({
@@ -180,11 +186,9 @@ async function readProductQuality(
           row.quantity != null &&
           Number(row.quantity) > 0,
       },
-      ageReference: productAgeReference(
-        row.firstReceiptAt,
-        row.firstSaleAt,
-        row.observedAt,
-      ),
+      ageReference: row.observedAt
+        ? productAgeReference(row.firstReceiptAt, row.firstSaleAt, row.observedAt)
+        : { date: null, basis: "UNAVAILABLE", inferred: false, issue: "STOCK_OBSERVATION_UNVERIFIED" },
     })),
     pagination: { page, pageSize: 25, totalRows: total[0].n },
     summary,

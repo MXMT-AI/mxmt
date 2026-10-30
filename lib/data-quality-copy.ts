@@ -1,6 +1,16 @@
 import type { Lang } from "./translations";
 /** Shared labels and corrective guidance for catalog groups and import lineage warnings. */
 const issues: Record<string, [string, string, string, string]> = {
+  PRODUCT_KIND_UNVERIFIED: [
+    "Unverified product type", "Тип товару не підтверджено",
+    "These movements are excluded from headline sales and stock classification. Approve category types in the source mapping or verify individual SKU types in Data Quality, then refresh reports.",
+    "Ці рухи не входять до основних продажів і класифікації стоку. Погодьте типи категорій у зіставленні джерела або тип окремого SKU в Якості даних, потім оновіть звіти.",
+  ],
+  STOCK_QUANTITY_UNAVAILABLE: [
+    "Unknown stock", "Невідомий залишок",
+    "The catalogue is present but a verified dated stock observation is missing. Approve the observation policy against source evidence and import a current observation; do not relabel an old import as current.",
+    "Каталог є, але немає підтвердженого датованого залишку. Погодьте правило спостереження за даними джерела й імпортуйте поточний залишок; старий імпорт не можна позначати поточним.",
+  ],
   MISSING_BRAND: [
     "Missing brand",
     "Не заповнено бренд",
@@ -112,4 +122,4 @@ export const qualityFixHref = (code: string) =>
     "SUPPLIER_LEAD_TIME_MISSING",
   ].includes(code)
     ? "/settings?tab=merchandising"
-    : "/settings?tab=general#salesdrive";
+    : "/settings?tab=general#data-quality-title";
