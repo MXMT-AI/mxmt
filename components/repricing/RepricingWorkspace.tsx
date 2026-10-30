@@ -1,5 +1,6 @@
 "use client";
 import ReportingError from "@/components/merchandising/ReportingError";
+import ReportReadiness from "@/components/merchandising/ReportReadiness";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useLang } from "@/components/LanguageProvider";
@@ -20,6 +21,7 @@ export default function RepricingWorkspace() {
   );
   return (
     <div className="space-y-5">
+      {data && !busy && !error ? <ReportReadiness data={data.readiness} lang={lang}/> : null}
       <header className="flex flex-wrap justify-between items-start gap-4">
         <div>
           <Link

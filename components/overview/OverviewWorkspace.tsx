@@ -1,5 +1,6 @@
 "use client";
 import ReportingError from "@/components/merchandising/ReportingError";
+import ReportReadiness from "@/components/merchandising/ReportReadiness";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useState } from "react";
@@ -35,6 +36,7 @@ export default function OverviewWorkspace() {
   const topicValue=params.get("chatTopic"),initialTopic=CHAT_TOPICS.includes(topicValue as ChatTopic)?topicValue as ChatTopic:undefined;
   const chatScope=JSON.stringify([data.context.snapshotId,chatFilters,initialTopic,params.get("chatExportId")]);
   return <div className="space-y-6">
+    <ReportReadiness data={data.readiness} lang={lang}/>
     <OverviewContent
       data={data}
       lang={lang}

@@ -1,5 +1,6 @@
 "use client";
 import ReportingError from "@/components/merchandising/ReportingError";
+import ReportReadiness from "@/components/merchandising/ReportReadiness";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLang } from "@/components/LanguageProvider";
 import { useMerchandisingFilters } from "@/components/merchandising/MerchandisingShell";
@@ -45,6 +46,8 @@ export default function StockWorkspace() {
       </div>
     );
   return (
+    <div className="space-y-5">
+    <ReportReadiness data={data.readiness} lang={lang}/>
     <StockContent
       data={data}
       lang={lang}
@@ -52,5 +55,6 @@ export default function StockWorkspace() {
       onRefresh={refresh}
       onNavigate={(url) => router.push(url, { scroll: false })}
     />
+    </div>
   );
 }

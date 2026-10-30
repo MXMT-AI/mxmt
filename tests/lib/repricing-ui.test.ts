@@ -29,6 +29,11 @@ const data = {
   historyUnavailableReason: null,
 } as unknown as RepricingPreview;
 describe("localized accessible Repricing workspace", () => {
+  it("does not display zero cash outcomes as calculated benefits when no SKU is eligible", () => {
+    const html = renderToStaticMarkup(createElement(Summary, { data: { ...data, counts: { ...data.counts, eligibleSkuCount: 0 } }, current: true, copy: repricingCopy.en, locale: "en-US" }));
+    expect(html).not.toContain('<small class="ml-1 text-xs">UAH</small>');
+    expect(html).toContain("—");
+  });
   it.each(["uk", "en"] as const)(
     "renders R1–R4 controls and server totals in %s",
     (lang) => {

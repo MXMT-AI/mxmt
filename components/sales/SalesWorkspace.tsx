@@ -1,5 +1,6 @@
 "use client";
 import ReportingError from "@/components/merchandising/ReportingError";
+import ReportReadiness from "@/components/merchandising/ReportReadiness";
 import { useSearchParams } from "next/navigation";
 import { useLang } from "@/components/LanguageProvider";
 import {
@@ -41,11 +42,14 @@ export default function SalesWorkspace() {
       </div>
     );
   return (
+    <div className="space-y-5">
+    <ReportReadiness data={data.readiness} lang={lang}/>
     <SalesContent
       data={data}
       lang={lang}
       query={params.toString()}
       onRefresh={refresh}
     />
+    </div>
   );
 }
