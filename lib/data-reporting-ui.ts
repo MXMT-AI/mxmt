@@ -62,7 +62,6 @@ export function formatTableValue(
       : new Intl.DateTimeFormat(locale).format(date);
   }
 
-  // Format long decimal strings without converting financial values through a binary float.
   if (
     (type === "money" || type === "quantity" || type === "number") &&
     typeof value === "string" &&

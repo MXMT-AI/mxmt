@@ -31,7 +31,6 @@ const array = (value: unknown): Record<string, unknown>[] => {
 };
 const unit = (value: unknown): "percentage" | "amount" | "unknown" => value === 1 || value === "1" ? "percentage" : value === 0 || value === "0" ? "amount" : "unknown";
 
-/** Bound response memory before parsing; discard remote errors rather than echoing them. */
 async function responseText(response: Response, maxBytes: number): Promise<string> {
   if (response.status === 401 || response.status === 403) throw new ConnectorReadError("AUTH_FAILED");
   if (response.status === 429) throw new ConnectorReadError("RATE_LIMITED");
@@ -51,7 +50,6 @@ async function responseText(response: Response, maxBytes: number): Promise<strin
   } finally { reader.releaseLock(); }
 }
 
-/** Read-only transport and source DTO projection; no sale, cost or ownership policy. */
 export class SalesDriveConnector implements MerchandisingConnector {
   readonly provider = "salesdrive" as const;
   readonly capabilities: ConnectorCapabilities;
@@ -135,7 +133,6 @@ export class SalesDriveConnector implements MerchandisingConnector {
     return { records, observedAt, nextPage: currentPage < pagination.pageCount ? currentPage + 1 : null };
   }
 
-  /** Project source lines without inventing line IDs or interpreting discount/commission flags as rates. */
   async getOrders(request: PageRequest = {}): Promise<ConnectorPage<OrderDto>> {
     const result = await this.api("/api/order/list/", request);
     const observedAt = new Date().toISOString();
@@ -152,7 +149,6 @@ export class SalesDriveConnector implements MerchandisingConnector {
     return { ...this.page(result, records, observedAt, request), rawResponse: result.originalResponse as string };
   }
 
-  /** All movement types remain distinct; posting and supplier mappings stay unverified. */
   async getReceipts(request: PageRequest = {}): Promise<ConnectorPage<ReceiptDto>> {
     const result = await this.api("/api/arrival-product/list/", request);
     const observedAt = new Date().toISOString();
@@ -212,20 +208,17 @@ export class SalesDriveConnector implements MerchandisingConnector {
     return { records: records.slice((page - 1) * limit, page * limit), observedAt, nextPage: page * limit < records.length ? page + 1 : null };
   }
 
-  /** One validated feed observation supplies products and stock together; never refetch per page. */
   async getCatalogSnapshot(): Promise<CatalogSnapshot> {
     const catalog = await this.loadCatalog();
     return { products: catalog.records, stock: catalog.records.map((product, index) => ({ externalId: product.externalId, productId: product.externalId,
       observedAt: catalog.observedAt, updatedAt: null, onHand: catalog.quantities[index], inTransit: null })), observedAt: catalog.observedAt, rawResponse: catalog.rawResponse };
   }
 
-  /** Read catalog values as exact strings; missing cost is null, never zero. */
   async getProducts(request: PageRequest = {}): Promise<ConnectorPage<ProductDto>> {
     const catalog = await this.loadCatalog();
     return this.catalogPage(catalog.records, catalog.observedAt, request);
   }
 
-  /** A current feed observation cannot supply historical or in-transit stock. */
   async getStock(request: PageRequest = {}): Promise<ConnectorPage<StockDto>> {
     const catalog = await this.loadCatalog();
     const page = this.catalogPage(catalog.records, catalog.observedAt, request);
@@ -240,7 +233,6 @@ export class SalesDriveConnector implements MerchandisingConnector {
     return tokens.reduce<string>((result, token) => token ? result.split(token).join("[redacted]") : result, value).slice(0, 200);
   }
 
-  /** Status names are fetched read-only; status IDs carry no built-in business meaning. */
   async getStatuses(): Promise<Dictionary> {
     const result = await this.api("/api/statuses/");
     const rows = array(result.data);
@@ -250,17 +242,13 @@ export class SalesDriveConnector implements MerchandisingConnector {
 
   private channelsFrom(result: Record<string, unknown>): Dictionary {
     const options = object(object(object(result.meta).fields).sajt).options;
-    // The public schema leaves meta.fields opaque. Expose only recognizable options,
-    // and keep customer verification explicit even when those options are present.
     const entries = (Array.isArray(options) ? array(options) : []).filter((row) => /^\d+$/.test(id(row.id) ?? "") && text(row.name)).slice(0, 1000)
       .map((row) => ({ id: id(row.id)!, name: this.safeName(text(row.name)!) }));
     return { entries, complete: false, reason: entries.length ? "CUSTOMER_METADATA_UNVERIFIED" : "CHANNEL_DICTIONARY_UNAVAILABLE" };
   }
 
-  /** No undocumented channel endpoint or guessed ID-to-name mapping is used. */
   async getChannels(): Promise<Dictionary> { return this.channelsFrom(await this.api("/api/order/list/", { limit: 1 })); }
 
-  /** Probe each configured read scope independently; never include remote error bodies. */
   async checkConnection(): Promise<ConnectionCheck> {
     const result: ConnectionCheck = { checkedAt: new Date().toISOString(), ok: false, checks: [],
       statuses: emptyDictionary("NOT_CHECKED"), channels: emptyDictionary("NOT_CHECKED") };

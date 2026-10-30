@@ -50,7 +50,6 @@ export async function POST(req: NextRequest) {
       marketerOutput: marketerRun?.output,
     });
 
-    // Attach raw data for context
     output.calendarEventCount = calendarEvents.length;
     output.weeksAnalyzed = weekKeys;
 

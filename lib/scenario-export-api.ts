@@ -3,7 +3,6 @@ import { ScenarioExportError } from "./scenario-csv";
 import { RepricingError } from "./repricing";
 import { ReorderingError } from "./reorder-calc";
 import { merchandisingApiError } from "./merchandising-api-error";
-/** Preserve typed validation/conflict errors without exposing database or connector exceptions. */
 export function scenarioExportApiError(error: unknown) {
   return error instanceof ScenarioExportError ||
     error instanceof RepricingError ||

@@ -22,7 +22,6 @@ import {
   parseStoredAgentPeriod,
 } from "@/lib/agent-period";
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function agentStatusIcon(s: AgentStatus) {
   if (s === "running") return <RefreshCw size={12} className="animate-spin text-accent-yellow" aria-hidden="true" />;
@@ -59,7 +58,6 @@ function campaignMetricLabel(campaign: any) {
   return `${campaign.days_running}д · ${campaign.performance_score}/10`;
 }
 
-// ─── Full analysis modal ──────────────────────────────────────────────────────
 
 function AnalysisModal({
   agentId,
@@ -119,7 +117,6 @@ function AnalysisModal({
         className="relative w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-2xl border border-(--border) bg-(--surface)"
         style={{ boxShadow: "0 24px 64px rgba(0,0,0,0.5)" }}
       >
-        {/* Header */}
         <div className="sticky top-0 bg-(--surface) border-b border-(--border) px-6 py-4 flex items-center justify-between z-10">
           <div>
             <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-0.5">
@@ -138,7 +135,6 @@ function AnalysisModal({
         </div>
 
         <div className="px-6 py-5 space-y-5">
-          {/* Summary */}
           {output.summary && (
             <div className="bg-(--surface2) border border-(--border) rounded-xl p-4">
               <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-2">
@@ -148,7 +144,6 @@ function AnalysisModal({
             </div>
           )}
 
-          {/* Action */}
           {output.action && (
             <div className="bg-accent-cyan/5 border border-accent-cyan/20 rounded-xl p-4">
               <div className="text-[9px] font-mono uppercase tracking-widest text-accent-cyan/70 mb-2">
@@ -158,7 +153,6 @@ function AnalysisModal({
             </div>
           )}
 
-          {/* Inventory Analyst — brands */}
           {agentId === "inventory_analyst" && Array.isArray(output.brands) && output.brands.length > 0 && (
             <div>
               <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-3">
@@ -189,7 +183,6 @@ function AnalysisModal({
             </div>
           )}
 
-          {/* Channel Analytics — channels */}
           {agentId === "channel_analytics" && Array.isArray(output.channels) && output.channels.length > 0 && (
             <div>
               <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-3">
@@ -214,7 +207,6 @@ function AnalysisModal({
             </div>
           )}
 
-          {/* Product Attributes — categories */}
           {agentId === "product_attributes" && Array.isArray(output.by_category) && output.by_category.length > 0 && (
             <div>
               <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-3">
@@ -239,7 +231,6 @@ function AnalysisModal({
             </div>
           )}
 
-          {/* Bestsellers / Dead stock tags (product_attributes) */}
           {agentId === "product_attributes" && (
             <div className="flex gap-4 flex-wrap">
               {Array.isArray(output.bestsellers) && output.bestsellers.length > 0 && (
@@ -264,7 +255,6 @@ function AnalysisModal({
               )}
             </div>
           )}
-          {/* Repricing — options per brand */}
           {agentId === "repricing" && Array.isArray(output.brands) && output.brands.length > 0 && (
             <div className="space-y-5">
               <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle)">
@@ -345,7 +335,6 @@ function AnalysisModal({
             </div>
           )}
 
-          {/* Reordering — scenarios per brand */}
           {agentId === "reordering" && Array.isArray(output.brands) && output.brands.length > 0 && (
             <div className="space-y-5">
               <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle)">
@@ -415,7 +404,6 @@ function AnalysisModal({
               ))}
             </div>
           )}
-          {/* Commercial Marketer — channel briefs */}
           {agentId === "commercial_marketer" && Array.isArray(output.brands) && output.brands.length > 0 && (
             <div className="space-y-5">
               <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle)">
@@ -455,7 +443,6 @@ function AnalysisModal({
             </div>
           )}
 
-          {/* Campaign Analysis — campaigns */}
           {agentId === "campaign_analysis" && (
             <div className="space-y-3">
               {output.overall_health && (
@@ -494,7 +481,6 @@ function AnalysisModal({
             </div>
           )}
 
-          {/* Weekly Report */}
           {agentId === "weekly_report" && (
             <div className="space-y-4">
               {output.pm_brief && (
@@ -560,7 +546,6 @@ function AnalysisModal({
             </div>
           )}
 
-          {/* Calendar Agent — annotations */}
           {agentId === "calendar_agent" && (
             <div className="space-y-3">
               {output.health_score && (
@@ -606,12 +591,10 @@ function AnalysisModal({
         </div>
       </div>
 
-      {/* Promo simulation table */}
       {simParams && (
         <PromoTableModal params={simParams} onClose={() => setSimParams(null)} />
       )}
 
-      {/* Reorder simulation table */}
       {reorderParams && (
         <ReorderTableModal params={reorderParams} onClose={() => setReorderParams(null)} />
       )}
@@ -619,7 +602,6 @@ function AnalysisModal({
   );
 }
 
-// ─── Info modal ──────────────────────────────────────────────────────────────
 
 function InfoModal({ onClose }: { onClose: () => void }) {
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -644,7 +626,6 @@ function InfoModal({ onClose }: { onClose: () => void }) {
         className="relative w-full max-w-2xl max-h-[88vh] overflow-y-auto rounded-2xl border border-(--border) bg-(--surface)"
         style={{ boxShadow: "0 24px 64px rgba(0,0,0,0.5)" }}
       >
-        {/* Header */}
         <div className="sticky top-0 bg-(--surface) border-b border-(--border) px-6 py-4 flex items-center justify-between z-10">
           <div className="flex items-center gap-3">
             <div className="w-7 h-7 rounded-lg bg-accent-cyan/10 flex items-center justify-center">
@@ -664,7 +645,6 @@ function InfoModal({ onClose }: { onClose: () => void }) {
 
         <div className="px-6 py-5 space-y-5 text-[12px] text-(--muted) leading-relaxed">
 
-          {/* Section 1 — 30-day window */}
           <div className="bg-accent-cyan/5 border border-accent-cyan/20 rounded-xl p-4">
             <div className="text-[9px] font-mono uppercase tracking-widest text-accent-cyan/80 mb-2">Захист від старих даних</div>
             <p className="text-(--text) mb-2">
@@ -683,7 +663,6 @@ function InfoModal({ onClose }: { onClose: () => void }) {
             </p>
           </div>
 
-          {/* Section 2 — період даних (від/до) */}
           <div className="bg-(--surface2) border border-(--border) rounded-xl p-4">
             <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-2">Період даних «від — до» (поля вище)</div>
             <p className="mb-2">
@@ -706,7 +685,6 @@ function InfoModal({ onClose }: { onClose: () => void }) {
             </ul>
           </div>
 
-          {/* Section 3 — Caveats per block */}
           <div className="border border-(--border) rounded-xl overflow-hidden">
             <div className="px-4 py-3 bg-(--surface2) border-b border-(--border)">
               <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle)">Застереження при аналізі минулих дат</div>
@@ -736,7 +714,6 @@ function InfoModal({ onClose }: { onClose: () => void }) {
             </div>
           </div>
 
-          {/* Section 4 — нюанси власного періоду */}
           <div className="bg-accent-purple/5 border border-accent-purple/20 rounded-xl p-4">
             <div className="text-[9px] font-mono uppercase tracking-widest text-accent-purple/80 mb-2">Нюанси власного періоду «від»</div>
             <ul className="space-y-1.5 list-none pl-0">
@@ -753,7 +730,6 @@ function InfoModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-// ─── Debug / Trace modal ──────────────────────────────────────────────────────
 
 function DebugModal({
   agentLabel,
@@ -793,7 +769,6 @@ function DebugModal({
         className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-(--border) bg-(--surface)"
         style={{ boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}
       >
-        {/* Header */}
         <div className="sticky top-0 bg-(--surface) border-b border-(--border) px-6 py-4 flex items-center justify-between z-10">
           <div>
             <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-0.5">
@@ -812,7 +787,6 @@ function DebugModal({
         </div>
 
         <div className="px-6 py-5 space-y-4">
-          {/* Metadata */}
           <div className="bg-(--surface2) border border-(--border) rounded-xl p-4">
             <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-3">Метадані запуску</div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -842,7 +816,6 @@ function DebugModal({
             </div>
           </div>
 
-          {/* Weeks analyzed (Calendar Agent) */}
           {Array.isArray(debug.weeksAnalyzed) && debug.weeksAnalyzed.length > 0 && (
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-[9px] font-mono text-(--subtle) uppercase tracking-wide">Тижні:</span>
@@ -852,7 +825,6 @@ function DebugModal({
             </div>
           )}
 
-          {/* System Prompt */}
           {debug.systemPrompt && (
             <DebugSection
               title="Системний промт (роль + правила + схема JSON)"
@@ -861,7 +833,6 @@ function DebugModal({
             />
           )}
 
-          {/* User Prompt */}
           {debug.userPrompt && (
             <DebugSection
               title="Дані для аналізу (те що відправлено в AI)"
@@ -870,7 +841,6 @@ function DebugModal({
             />
           )}
 
-          {/* Raw AI Response */}
           {debug.rawResponse && (
             <DebugSection
               title="Сирий відповідь AI (до парсингу JSON)"
@@ -894,7 +864,6 @@ function DebugModal({
   );
 }
 
-// ─── Brand status card ────────────────────────────────────────────────────────
 
 function BrandCard({ b }: { b: BrandResult }) {
   const [open, setOpen] = useState(false);
@@ -976,7 +945,6 @@ function BrandCard({ b }: { b: BrandResult }) {
   );
 }
 
-// ─── Agent card ───────────────────────────────────────────────────────────────
 
 function AgentCard({
   agent,
@@ -1003,23 +971,17 @@ function AgentCard({
   const s = isStale ? "idle" : (run?.status ?? "idle");
   const output = isStale ? {} : (run?.output ?? {});
 
-  // Inventory analyst
-  // Only inventory_analyst returns BrandResult[] — repricing/reordering also use output.brands
-  // but with a different shape; keep them separate to avoid BrandCard crash on missing fields
   const brands: BrandResult[] = agent.id === "inventory_analyst" ? (output.brands ?? []) : [];
   const criticalCount = brands.filter((b) => b.status === "critical").length;
   const warningCount = brands.filter((b) => b.status === "warning").length;
 
-  // Channel analytics
   const channels: any[] = output.channels ?? output.metrics?.channels ?? [];
   const topChannel: string = output.top_channel ?? "";
 
-  // Product attributes
   const byCategory: any[] = output.by_category ?? output.metrics?.byCategory ?? [];
   const bestsellers: string[] = output.bestsellers ?? output.metrics?.topCategories ?? [];
   const deadStock: string[] = output.dead_stock ?? output.metrics?.deadCategories ?? [];
 
-  // Repricing / Reordering (Block 2) — both return output.brands
   const decisionBrands: any[] = agent.id === "repricing" || agent.id === "reordering"
     ? (output.brands ?? [])
     : [];
@@ -1028,10 +990,8 @@ function AgentCard({
     return items.some((i: any) => i.evaluation?.recommended);
   }).length;
 
-  // Commercial Marketer
   const marketerBrands: any[] = agent.id === "commercial_marketer" ? (output.brands ?? []) : [];
 
-  // Calendar Agent
   const annotations: any[] = agent.id === "calendar_agent" ? (output.annotations ?? []) : [];
   const planningRecommendations: ApprovalRecommendation[] = agent.id === "calendar_agent"
     ? (output.planning_recommendations ?? [])
@@ -1039,7 +999,6 @@ function AgentCard({
   const healthScore: any = output.health_score ?? null;
   const criticalAnnotations = annotations.filter((a: any) => a.priority === "critical").length;
 
-  // Campaign Analysis
   const campaigns: any[] = agent.id === "campaign_analysis" ? (output.campaigns ?? []) : [];
   const campaignOverallHealth: string = output.overall_health ?? "";
   const campaignsBehind = campaigns.filter((c: any) => c.status === "behind" || c.status === "stalled").length;
@@ -1047,7 +1006,6 @@ function AgentCard({
   const scheduledCampaignCount = output.scheduled_campaign_count ?? campaigns.length;
   const pendingRecommendations = output.pending_recommendations ?? 0;
 
-  // Weekly Report
   const isWeeklyReport = agent.id === "weekly_report";
   const weeklyPriorities: any[] = isWeeklyReport ? (output.top_priorities ?? []) : [];
   const weeklyDecisions: string[] = isWeeklyReport ? (output.decisions_needed ?? []) : [];
@@ -1117,7 +1075,6 @@ function AgentCard({
           </div>
         </div>
 
-        {/* Status row */}
         <div className="flex items-center gap-3 mt-3 text-[10px] font-mono text-(--subtle)">
           <span>
             Статус:{" "}
@@ -1143,7 +1100,6 @@ function AgentCard({
           )}
         </div>
 
-        {/* Summary badges — Inventory Analyst */}
         {s === "done" && brands.length > 0 && (
           <div className="flex items-center gap-2 mt-3 flex-wrap">
             {criticalCount > 0 && (
@@ -1167,7 +1123,6 @@ function AgentCard({
           </div>
         )}
 
-        {/* Summary badges — Channel Analytics */}
         {s === "done" && channels.length > 0 && brands.length === 0 && byCategory.length === 0 && (
           <div className="flex items-center gap-2 mt-3 flex-wrap">
             {topChannel && (
@@ -1184,7 +1139,6 @@ function AgentCard({
           </div>
         )}
 
-        {/* Summary badges — Product Attributes */}
         {s === "done" && byCategory.length > 0 && (
           <div className="flex items-center gap-2 mt-3 flex-wrap">
             {bestsellers.length > 0 && (
@@ -1203,7 +1157,6 @@ function AgentCard({
           </div>
         )}
 
-        {/* Summary badges — Repricing / Reordering */}
         {s === "done" && decisionBrands.length > 0 && (
           <div className="flex items-center gap-2 mt-3 flex-wrap">
             <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-accent-purple/10 border border-accent-purple/20 text-accent-purple">
@@ -1220,7 +1173,6 @@ function AgentCard({
           </div>
         )}
 
-        {/* Summary badges — Commercial Marketer */}
         {s === "done" && marketerBrands.length > 0 && (
           <div className="flex items-center gap-2 mt-3 flex-wrap">
             <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-accent-yellow/10 border border-accent-yellow/20 text-accent-yellow">
@@ -1237,7 +1189,6 @@ function AgentCard({
           </div>
         )}
 
-        {/* Summary badges — Calendar Agent */}
         {s === "done" && (annotations.length > 0 || healthScore) && (
           <div className="flex items-center gap-2 mt-3 flex-wrap">
             {healthScore?.coverage_percent != null && (
@@ -1266,7 +1217,6 @@ function AgentCard({
           </div>
         )}
 
-        {/* Summary badges — Campaign Analysis */}
         {s === "done" && agent.id === "campaign_analysis" && campaignOverallHealth && (
           <div className="flex items-center gap-2 mt-3 flex-wrap">
             {campaignOverallHealth && (
@@ -1298,7 +1248,6 @@ function AgentCard({
           </div>
         )}
 
-        {/* Summary badges — Weekly Report */}
         {s === "done" && isWeeklyReport && (output.pm_brief || output.summary) && (
           <div className="flex items-center gap-2 mt-3 flex-wrap">
             {output.week && (
@@ -1322,12 +1271,10 @@ function AgentCard({
           </div>
         )}
 
-        {/* Error */}
         {s === "error" && run?.errorMsg && (
           <p className="mt-2 text-[11px] text-[#ef4444] font-mono">{run.errorMsg}</p>
         )}
 
-        {/* No data message */}
         {s === "done" && brands.length === 0 && decisionBrands.length === 0 && marketerBrands.length === 0 && annotations.length === 0 && campaigns.length === 0 && !isWeeklyReport && run?.output?.message && (
           <p className="mt-2 text-[11px] text-(--muted)">{run.output.message}</p>
         )}
@@ -1335,7 +1282,6 @@ function AgentCard({
           <p className="mt-2 text-[11px] text-(--muted)">{run.output.message}</p>
         )}
 
-        {/* Action buttons row */}
         {s === "done" && (output.summary || output.brands?.length || output.channels?.length || output.by_category?.length || decisionBrands.length > 0 || marketerBrands.length > 0 || annotations.length > 0 || campaigns.length > 0 || (isWeeklyReport && output.pm_brief)) && (
           <div className="mt-3 flex items-center gap-2 flex-wrap">
             <button
@@ -1361,7 +1307,6 @@ function AgentCard({
         )}
       </div>
 
-      {/* Expanded — Inventory Analyst */}
       {expanded && brands.length > 0 && (
         <div className="border-t border-(--border) px-4 py-3 space-y-2">
           {brands.map((b) => (
@@ -1370,7 +1315,6 @@ function AgentCard({
         </div>
       )}
 
-      {/* Expanded — Channel Analytics */}
       {expanded && channels.length > 0 && brands.length === 0 && (
         <div className="border-t border-(--border) px-4 py-3 space-y-2">
           {output.summary && (
@@ -1403,7 +1347,6 @@ function AgentCard({
         </div>
       )}
 
-      {/* Expanded — Product Attributes */}
       {expanded && byCategory.length > 0 && (
         <div className="border-t border-(--border) px-4 py-3 space-y-2">
           {output.summary && (
@@ -1437,7 +1380,6 @@ function AgentCard({
         </div>
       )}
 
-      {/* Expanded — Repricing / Reordering */}
       {expanded && decisionBrands.length > 0 && (
         <div className="border-t border-(--border) px-4 py-4 space-y-4">
           {decisionBrands.map((brand: any) => {
@@ -1540,7 +1482,6 @@ function AgentCard({
         </div>
       )}
 
-      {/* Expanded — Commercial Marketer */}
       {expanded && marketerBrands.length > 0 && (
         <div className="border-t border-(--border) px-4 py-4 space-y-4">
           {output.summary && <p className="text-sm text-(--muted)">{output.summary}</p>}
@@ -1581,7 +1522,6 @@ function AgentCard({
         </div>
       )}
 
-      {/* Expanded — Calendar Agent */}
       {expanded && (annotations.length > 0 || healthScore) && (
         <div className="border-t border-(--border) px-4 py-4 space-y-3">
           {healthScore?.summary && <p className="text-sm text-(--muted)">{healthScore.summary}</p>}
@@ -1628,7 +1568,6 @@ function AgentCard({
         </div>
       )}
 
-      {/* Expanded — Campaign Analysis */}
       {expanded && agent.id === "campaign_analysis" && (campaigns.length > 0 || output.summary) && (
         <div className="border-t border-(--border) px-4 py-4 space-y-3">
           {output.summary && <p className="text-sm text-(--muted)">{output.summary}</p>}
@@ -1651,7 +1590,6 @@ function AgentCard({
         </div>
       )}
 
-      {/* Expanded — Weekly Report */}
       {expanded && isWeeklyReport && (output.pm_brief || output.marketing_brief) && (
         <div className="border-t border-(--border) px-4 py-4 space-y-4">
           {output.summary && (
@@ -1703,7 +1641,6 @@ function AgentCard({
         </div>
       )}
 
-      {/* Full analysis modal */}
       {showModal && run?.output && (
         <AnalysisModal
           agentId={agent.id}
@@ -1713,7 +1650,6 @@ function AgentCard({
         />
       )}
 
-      {/* Debug / trace modal */}
       {showDebug && run?.output?._debug && (
         <DebugModal
           agentLabel={agent.label}
@@ -1724,12 +1660,10 @@ function AgentCard({
         />
       )}
 
-      {/* Promo simulation table (Repricing) */}
       {simParams && (
         <PromoTableModal params={simParams} onClose={() => setSimParams(null)} />
       )}
 
-      {/* Reorder simulation table (Reordering) */}
       {reorderParams && (
         <ReorderTableModal params={reorderParams} onClose={() => setReorderParams(null)} />
       )}
@@ -1748,7 +1682,6 @@ function AgentCard({
   );
 }
 
-// ─── Pipeline diagram ─────────────────────────────────────────────────────────
 
 function PipelineDiagram({ runs }: { runs: Record<string, AgentRunInfo> }) {
   return (
@@ -1759,7 +1692,6 @@ function PipelineDiagram({ runs }: { runs: Record<string, AgentRunInfo> }) {
           const blockAgents = AGENTS.filter((a) => a.block === block.id);
           return (
             <div key={block.id} className="flex items-center gap-2">
-              {/* Block */}
               <div className="flex flex-col gap-1.5">
                 <div
                   className="text-[9px] font-mono uppercase tracking-wider mb-1 px-1"
@@ -1800,7 +1732,6 @@ function PipelineDiagram({ runs }: { runs: Record<string, AgentRunInfo> }) {
                   );
                 })}
               </div>
-              {/* Arrow between blocks */}
               {bi < BLOCKS.length - 1 && (
                 <div className="flex items-center self-center pb-1">
                   <div className="w-6 h-px bg-(--border)" />
@@ -1822,12 +1753,11 @@ function PipelineDiagram({ runs }: { runs: Record<string, AgentRunInfo> }) {
   );
 }
 
-// ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function AgentsPage() {
   const todayStr = new Date().toISOString().slice(0, 10);
   const [analysisDate, setAnalysisDate] = useState(todayStr);
-  const [dateFrom, setDateFrom] = useState(""); // "" = стандартне вікно 30 днів
+  const [dateFrom, setDateFrom] = useState("");
   const [periodRestored, setPeriodRestored] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
 
@@ -1842,7 +1772,6 @@ export default function AgentsPage() {
         setDateFrom(stored.dateFrom);
       }
     } catch {
-      // Continue with the default period when browser storage is unavailable.
     } finally {
       setPeriodRestored(true);
     }
@@ -1856,7 +1785,6 @@ export default function AgentsPage() {
         JSON.stringify({ analysisDate, dateFrom })
       );
     } catch {
-      // Private browsing or storage policies must not break the agents page.
     }
   }, [analysisDate, dateFrom, periodRestored]);
 
@@ -1868,7 +1796,6 @@ export default function AgentsPage() {
   });
   const isHistoricalDate = analysisDate !== todayStr;
   const hasDateFrom = dateFrom !== "";
-  // "Від" має бути щонайменше на день раніше за "До"
   const maxFromStr = new Date(new Date(analysisDate).getTime() - 86400000).toISOString().slice(0, 10);
   const periodDays = hasDateFrom
     ? Math.max(1, Math.round((new Date(analysisDate).getTime() - new Date(dateFrom).getTime()) / 86400000))
@@ -1879,7 +1806,6 @@ export default function AgentsPage() {
 
   return (
     <div className="p-6 max-w-4xl">
-      {/* Header */}
       <div className="mb-6">
         <div className="text-[10px] font-mono uppercase tracking-widest text-(--subtle) mb-2">AI Pipeline</div>
         <div className="flex items-center justify-between flex-wrap gap-3">
@@ -1915,7 +1841,6 @@ export default function AgentsPage() {
         </div>
       )}
 
-      {/* Date range picker */}
       <div className="mb-4 bg-(--surface2) border border-(--border) rounded-xl p-4">
         <div className="flex items-center gap-4 flex-wrap">
           <div className="flex items-center gap-3">
@@ -1948,7 +1873,6 @@ export default function AgentsPage() {
               onChange={(e) => {
                 const v = e.target.value || todayStr;
                 setAnalysisDate(v);
-                // якщо "до" стала раніше за "від" — скидаємо "від"
                 if (dateFrom && v <= dateFrom) setDateFrom("");
               }}
               className="text-[11px] font-mono px-3 py-1.5 rounded-lg border border-(--border) bg-(--input-bg) text-(--text) focus:outline-hidden focus:border-accent-cyan/50"
@@ -1979,7 +1903,6 @@ export default function AgentsPage() {
           </button>
         </div>
 
-        {/* Warning for custom period */}
         {hasDateFrom && (
           <div className="mt-3 flex items-start gap-2 bg-accent-purple/5 border border-accent-purple/20 rounded-lg px-3 py-2.5">
             <Info size={12} className="text-accent-purple shrink-0 mt-0.5" aria-hidden="true" />
@@ -1989,7 +1912,6 @@ export default function AgentsPage() {
           </div>
         )}
 
-        {/* Warnings for historical date */}
         {isHistoricalDate && (
           <div className="mt-3 space-y-2">
             <div className="flex items-start gap-2 bg-accent-yellow/5 border border-accent-yellow/20 rounded-lg px-3 py-2.5">
@@ -2014,10 +1936,8 @@ export default function AgentsPage() {
         )}
       </div>
 
-      {/* Pipeline diagram */}
       <PipelineDiagram runs={runs} />
 
-      {/* Agent cards grouped by block */}
       <div className="space-y-6">
         {BLOCKS.map((block) => {
           const blockAgents = AGENTS.filter((a) => a.block === block.id);
@@ -2051,10 +1971,8 @@ export default function AgentsPage() {
         })}
       </div>
 
-      {/* Info modal */}
       {showInfo && <InfoModal onClose={() => setShowInfo(false)} />}
 
-      {/* Legend */}
       <div className="mt-8 pt-4 border-t border-(--border) flex items-center gap-6 flex-wrap">
         {[
           { color: "var(--subtle)", label: "Очікування" },

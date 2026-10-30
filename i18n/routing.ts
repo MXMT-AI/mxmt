@@ -4,7 +4,6 @@ export const routing = defineRouting({
   locales: ["uk", "en"],
   defaultLocale: "uk",
   localePrefix: "always",
-  // Unprefixed links use the saved preference, then Ukrainian (not browser language).
   localeDetection: false,
   localeCookie: { name: "lang", maxAge: 31536000, sameSite: "lax" },
 });
@@ -19,7 +18,6 @@ export function localeFromPath(pathname: string): Locale | undefined {
   return isLocale(segment) ? segment : undefined;
 }
 
-/** Localize only application pages; API, files, fragments and external URLs stay intact. */
 export function localizeHref(href: string, locale: Locale): string {
   if (!href.startsWith("/") || href.startsWith("//") || /^\/(?:api|_next)(?:\/|$)/.test(href)) return href;
   const current = localeFromPath(href.split(/[?#]/)[0]);

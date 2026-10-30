@@ -13,7 +13,6 @@ import type { DataColumnMetadata } from "@/lib/data-table-api";
 import type { ReorderingPreview } from "./ReorderingEditor";
 import styles from "@/components/merchandising/report.module.css";
 type Row = ReorderingPreview["rows"][number];
-/** Render frozen server recommendations and transient confirmations without deriving order quantities. */
 export default function ReorderingTable({
   monobrand = false,
   data,

@@ -4,7 +4,6 @@ import { NextIntlClientProvider } from "next-intl";
 import uk from "@/messages/uk.json";
 import en from "@/messages/en.json";
 
-/** Render components inside the same locale context as the application layout. */
 export function renderToStaticMarkup(element: ReactNode): string {
   const props = (element as ReactElement<{ lang?: string }> | null)?.props;
   const locale = props?.lang === "en" ? "en" : "uk";

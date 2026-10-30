@@ -541,5 +541,4 @@ export async function calculateArticleReport(
   }
 }
 
-/** SalesDrive article rows use the shared financial engine; legacy Sheets version 2 stays unchanged. */
 export function calculateSalesArticleRows(facts:import('./sales-metrics').SalesFact[],context:import('./sales-metrics').SalesMetricContext){return calculateSalesGroupedRows(facts,'sku',context);}

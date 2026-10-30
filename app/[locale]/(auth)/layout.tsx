@@ -2,7 +2,6 @@ import { cookies } from "next/headers";
 import { redirect } from "@/i18n/navigation";
 import { getLocale } from "next-intl/server";
 
-// If already authenticated, skip the auth pages
 export default async function AuthLayout({
   children,
 }: {

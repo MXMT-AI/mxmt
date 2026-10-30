@@ -2,13 +2,10 @@ import { Prisma } from "@prisma/client";
 import type { SqlClient } from "./database";
 import type { OrderScope } from "./order-storage";
 
-/** Resolve each retained fact once; conflicting ID/SKU matches stay unlinked. */
 export async function linkRetainedCatalogFacts(tx: SqlClient, scope: OrderScope) {
   const { tenantId, sourceId } = scope;
   await tx.$executeRaw(Prisma.sql`CREATE TEMP TABLE mxmt_catalog_pending (id text PRIMARY KEY,"externalProductId" text,"sourceSku" text) ON COMMIT DROP`);
   await tx.$executeRaw(Prisma.sql`CREATE TEMP TABLE mxmt_catalog_resolved (id text PRIMARY KEY,"skuId" text NOT NULL) ON COMMIT DROP`);
-  // Separate equality joins let PostgreSQL hash the complete observation instead
-  // of rescanning the catalogue in a correlated OR/NOT EXISTS for every line.
   for (const relation of ["OrderLine", "ReceiptLine"] as const) {
     const table = Prisma.raw(`"${relation}"`);
     const sourceScope = relation === "OrderLine"
@@ -18,8 +15,6 @@ export async function linkRetainedCatalogFacts(tx: SqlClient, scope: OrderScope)
     await tx.$executeRaw(Prisma.sql`TRUNCATE mxmt_catalog_resolved`);
     await tx.$executeRaw(Prisma.sql`INSERT INTO mxmt_catalog_pending SELECT l.id,l."externalProductId",l."sourceSku" FROM ${table} l
       WHERE l."tenantId"=${tenantId} AND ${sourceScope} AND l."skuId" IS NULL`);
-    // The source facts may have been inserted in this very transaction. Table
-    // statistics still describe the pre-import population (often zero rows).
     await tx.$executeRaw(Prisma.sql`ANALYZE mxmt_catalog_pending`);
     await tx.$executeRaw(Prisma.sql`
       WITH candidates AS (
@@ -34,6 +29,5 @@ export async function linkRetainedCatalogFacts(tx: SqlClient, scope: OrderScope)
       WHERE l.id=r.id AND l."tenantId"=${tenantId} AND l."skuId" IS NULL
     `);
   }
-  // CSV can activate several dated observations in the same transaction.
   await tx.$executeRaw(Prisma.sql`DROP TABLE mxmt_catalog_resolved, mxmt_catalog_pending`);
 }

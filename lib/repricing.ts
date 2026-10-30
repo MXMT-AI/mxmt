@@ -26,7 +26,6 @@ export class RepricingError extends Error {
     this.name = "RepricingError";
   }
 }
-/** Reject client facts, ambiguous numeric coercion, unknown keys and unbounded editing payloads. */
 export function parseRepricingRequest(value: unknown): RepricingRequest {
   const issues: string[] = [];
   const record = (v: unknown, keys: string[], path: string) => {
@@ -310,7 +309,6 @@ export function parseRepricingRequest(value: unknown): RepricingRequest {
 const compareId = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 const knownPositive = (value: string | null) =>
   value !== null && D(value).isFinite() && D(value).gt(0);
-/** Canonical status and persisted effective ownership define eligibility, independently of checkbox input. */
 export function repricingEligibility(row: RepricingSku) {
   const reasons: string[] = [];
   if (row.productKind !== "MERCHANDISE") reasons.push("NOT_MERCHANDISE");
@@ -326,7 +324,6 @@ export function repricingEligibility(row: RepricingSku) {
   if (!knownPositive(row.unitCost)) reasons.push("COST_UNVERIFIED");
   return reasons;
 }
-/** One reset fence binds edits to their frozen inputs and normalized filter/parameter values. */
 export const repricingEditContext = (
   inputSetId: string,
   parameters: RepricingParameters,
@@ -371,7 +368,6 @@ function matches(row: RepricingSku, f: RepricingFilters) {
       D(row.sold[f.soldMonths]!).lte(f.soldMax))
   );
 }
-/** R1–R4 price only the validated final selection; no forecast of units sold is invented. */
 export function calculateRepricing(
   inputs: RepricingInputs,
   request: RepricingRequest,

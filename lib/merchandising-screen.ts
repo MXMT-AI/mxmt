@@ -53,7 +53,6 @@ export function screenSnapshotContext(snapshot: ScreenSnapshot) {
     createdAt: snapshot.createdAt,
   };
 }
-/** All reads use pinned immutable rows. Current source progress can only change freshness metadata. */
 export async function getMerchandisingScreen(
   tenantId: string,
   screen: ScreenName,
@@ -114,7 +113,6 @@ export async function getMerchandisingScreen(
     const orderAge = Number.isFinite(through)
       ? Math.max(0, Math.floor((now.getTime() - through) / 1000))
       : null;
-    // Import observation time is not a promise of historical sales coverage.
     const freshnessBasis = live?.sheetsInput ? "SHEETS_IMPORT" : "ORDER_WATERMARK";
     const sourceObservedAt = freshnessBasis === "SHEETS_IMPORT"
       ? live?.sheetsImportedAt ?? null

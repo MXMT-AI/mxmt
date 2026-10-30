@@ -12,14 +12,6 @@
   --color-accent-yellow: #fbbf24;
 }
 
-/*
-  The default border color has changed to `currentcolor` in Tailwind CSS v4,
-  so we've added these compatibility styles to make sure everything still
-  looks the same as it did with Tailwind CSS v3.
-
-  If we ever want to remove these styles, we need to add an explicit border
-  color utility to any element that depends on these defaults.
-*/
 @layer base {
   *,
   ::after,
@@ -30,7 +22,6 @@
   }
 }
 
-/* ── Theme tokens ─────────────────────────────────────────── */
 :root {
   --bg:           #080c10;
   --surface:      #0f1419;
@@ -94,7 +85,6 @@ html, body {
   transform: translateY(0);
 }
 
-/* ── Light-mode overrides for Tailwind utilities ─────────── */
 html.light .text-white { color: var(--text); }
 html.light .hover\:text-white:hover { color: var(--text); }
 
@@ -103,7 +93,6 @@ html.light .bg-white\/\[0\.08\] { background-color: var(--input-hover); }
 html.light .hover\:bg-white\/\[0\.04\]:hover { background-color: var(--input-bg); }
 html.light .hover\:bg-white\/\[0\.08\]:hover { background-color: var(--input-hover); }
 
-/* Scrollbar */
 * {
   scrollbar-width: thin;
   scrollbar-color: rgba(255,255,255,0.1) transparent;
@@ -121,7 +110,6 @@ html.light ::-webkit-scrollbar-thumb {
   background: rgba(0,0,0,0.15);
 }
 
-/* Mono helper */
 .font-mono {
   font-family: "JetBrains Mono", ui-monospace, monospace;
 }

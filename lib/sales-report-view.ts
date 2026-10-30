@@ -37,7 +37,6 @@ export const SALES_COLUMNS: DataColumnMetadata[] = [
   { key: "coverage", label: "Profit coverage", type: "text" },
   { key: "comparisonReason", label: "LY availability", type: "text" },
 ];
-/** Sorting/search/pagination only project persisted numbers; financial arithmetic stays in the engine. */
 export function salesReportView(
   report: PublishedSalesReport,
   options: {

@@ -2,7 +2,6 @@ import type { PublicConnection } from "./contract";
 const record = (v: unknown): v is Record<string, unknown> =>
   Boolean(v) && typeof v === "object" && !Array.isArray(v);
 const optionalText = (v: unknown) => v === null || typeof v === "string";
-/** Reject proxy/empty/malformed successful JSON before it enters connection UI state. */
 export function isPublicConnection(v: unknown): v is PublicConnection {
   if (
     !record(v) ||

@@ -49,7 +49,6 @@ it("links only unique candidates, preserves conflicts and existing links, and is
       expect(row.skuId, `${relation}/${row.id}`).toBe(expected);
     }
   }
-  // Repeated execution does not change resolved or deliberately unlinked facts.
   const before = await f.db.$queryRaw(Prisma.sql`SELECT id,"skuId" FROM "OrderLine" ORDER BY id`);
   await link();
   expect(await f.db.$queryRaw(Prisma.sql`SELECT id,"skuId" FROM "OrderLine" ORDER BY id`)).toEqual(before);

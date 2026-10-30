@@ -17,7 +17,7 @@ import { getCurrentDependencyRun, resolveAgentRunContext } from "@/lib/agent-dep
 export const runtime = "nodejs";
 export const maxDuration = 180;
 
-const WOH_REORDER_THRESHOLD = 30; // trigger reorder analysis when WOH < 30 days
+const WOH_REORDER_THRESHOLD = 30;
 
 const SYSTEM_PROMPT = `Ти стратег із закупівель у fashion retail. Відповідай українською мовою.
 
@@ -100,10 +100,9 @@ export async function POST(req: NextRequest) {
   try {
     const allBrands = await getBrandMetrics(tenantId, asOf, dateFrom);
 
-    // Candidates: low days of inventory (DOH) — risk of stockout
     const candidates = allBrands
       .filter((b) => b.skuCount > 0 && b.wohDays < WOH_REORDER_THRESHOLD && b.wohDays > 0)
-      .sort((a, b) => a.wohDays - b.wohDays) // most urgent first
+      .sort((a, b) => a.wohDays - b.wohDays)
       .slice(0, 8);
 
     if (candidates.length === 0) {

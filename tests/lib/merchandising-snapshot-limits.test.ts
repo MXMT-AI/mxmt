@@ -35,7 +35,6 @@ vi.mock("@/lib/sales-report", async (original) => {
         period,
         tx,
         (facts, context) => {
-          // Each individual input remains within its own bound; only the union exceeds it.
           const selected =
             trend && m.mode === "merged-limit"
               ? Array.from({ length: 100000 }, (_, i) => ({

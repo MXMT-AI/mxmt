@@ -2,7 +2,6 @@
 import { useCallback, useState, useEffect } from "react";
 import DataQualityCard from "./DataQualityCard";
 import SalesDriveImportCard from "./SalesDriveImportCard";
-/** Import and calculation completion invalidate the existing diagnostics without duplicating sync controls. */
 export default function DataHealthSection({
   lang,
   canManage,

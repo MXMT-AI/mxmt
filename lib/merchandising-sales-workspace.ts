@@ -53,7 +53,6 @@ interface RawRow {
   month?: string;
 }
 
-/** One finalizer governs zero/unknown/covered margin for table cells and chart values. */
 function cell(
   input: SalesTotalsInput,
   metric: SalesDisplayMetric,
@@ -88,7 +87,6 @@ function cell(
             : "NEUTRAL",
   };
 }
-/** Total and ranked LY rows share exact delta/null/coverage semantics. */
 function comparisonValues(
   row: Pick<
     SalesMetricRow,
@@ -123,7 +121,6 @@ function comparisonValues(
           : "RED",
   };
 }
-/** SQL ranks/paginates groups before serializing monthly Top N, Others and Total buckets. */
 async function pivot(
   tenantId: string,
   snapshot: ScreenSnapshot,
@@ -213,7 +210,6 @@ async function pivot(
   };
 }
 
-/** S1–S4 are read-only projections of the same immutable period and supporting contexts. */
 export async function readSalesWorkspace(
   tenantId: string,
   snapshot: ScreenSnapshot,

@@ -36,7 +36,6 @@ export default async function SettingsPage() {
 
   const generalContent = (
     <>
-      {/* Onboarding section */}
       <section className="mb-10">
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -84,7 +83,6 @@ export default async function SettingsPage() {
         />
       </section>
 
-      {/* Google Drive sync */}
       <ConnectorSourceCard lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
       <SheetsMappingCard lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
       <SalesDriveConnectionCard initial={salesDrive} lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
@@ -111,7 +109,6 @@ export default async function SettingsPage() {
         <DriveSyncCard lastSync={driveSync ?? null} lang={lang} driveMode={getDriveMode()} />
       </section>
 
-      {/* AI Provider */}
       <section className="mb-10">
         <div className="mb-4">
           <h2 className="text-(--text) font-semibold">

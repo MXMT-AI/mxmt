@@ -11,7 +11,6 @@ const text=(v:unknown):v is string=>typeof v==="string"&&!!v.trim()&&v.length<=1
 export const retrospectiveInstant=(v:unknown):v is string=>typeof v==="string"&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/.test(v)&&Number.isFinite(Date.parse(v))&&new Date(v).toISOString().replace(".000Z","Z")===v.replace(".000Z","Z");
 export type ExecutionEvent="APPLIED"|"SENT"|"ACCEPTED"|"RECEIVED";
 export interface ExecutionCommand {requestKey:string;exportId:string;kind:"reprice"|"reorder";event:ExecutionEvent;occurredAt:string;evidenceReference:string;skuIds:string[];previousExecutionId:string|null;receiptIds:string[]}
-/** Confirm only an exact export subset. No caller may supply replacement prices, outcomes or financial quantities. */
 export function parseExecutionCommand(v:unknown):ExecutionCommand {
  const bad=():never=>{throw new RetrospectiveExecutionError("INVALID_EXECUTION_CONFIRMATION");};
  if(!isRecord(v)||!exact(v,["requestKey","exportId","kind","event","occurredAt","evidenceReference","skuIds","previousExecutionId","receiptIds"])||!uuid(v.requestKey)||!uuid(v.exportId)||!["reprice","reorder"].includes(String(v.kind))||!["APPLIED","SENT","ACCEPTED","RECEIVED"].includes(String(v.event))||!retrospectiveInstant(v.occurredAt)||!text(v.evidenceReference)||!Array.isArray(v.skuIds)||!v.skuIds.length||v.skuIds.length>RETROSPECTIVE_SKU_LIMIT||new Set(v.skuIds).size!==v.skuIds.length||!Array.isArray(v.receiptIds)||v.receiptIds.length>25||new Set(v.receiptIds).size!==v.receiptIds.length)return bad();
@@ -19,14 +18,12 @@ export function parseExecutionCommand(v:unknown):ExecutionCommand {
  if(v.kind==="reprice"&&(v.event!=="APPLIED"||v.previousExecutionId!==null||v.receiptIds.length)||v.kind==="reorder"&&(v.event==="APPLIED"||v.event==="SENT"&&v.previousExecutionId!==null||v.event!=="SENT"&&!uuid(v.previousExecutionId)||v.event!=="RECEIVED"&&v.receiptIds.length||v.event==="RECEIVED"&&!v.receiptIds.length))return bad();
  return {...structuredClone(v) as unknown as ExecutionCommand,requestKey:v.requestKey.toLowerCase(),exportId:v.exportId.toLowerCase(),occurredAt:new Date(v.occurredAt).toISOString(),skuIds:(v.skuIds as string[]).slice().sort(),receiptIds:(v.receiptIds as string[]).slice().sort()};
 }
-/** Exclude the launch day and compare equal completed calendar windows in the source timezone. */
 export function retrospectiveWindows(occurredAt:string,timezone:string,days:number){
  if(!retrospectiveInstant(occurredAt)||!Number.isInteger(days)||days<1||days>90)throw new RetrospectiveExecutionError("INVALID_RETROSPECTIVE_WINDOW");
  const launch=Temporal.Instant.from(occurredAt).toZonedDateTimeISO(timezone).toPlainDate();
  return {launchDate:launch.toString(),before:{from:launch.subtract({days}).toString(),to:launch.subtract({days:1}).toString()},after:{from:launch.add({days:1}).toString(),to:launch.add({days}).toString()},days,timezone};
 }
 export interface DailyInventoryValue {date:string;stockCost:string|null;complete:boolean}
-/** Approved daily-observation approximation, not a reconstructed continuous time-weighted inventory balance. */
 export function observedGmroi(grossProfit:string|null,salesComplete:boolean,from:string,to:string,inventory:DailyInventoryValue[]){
  const days=Temporal.PlainDate.from(from).until(Temporal.PlainDate.from(to)).days+1;
  const unavailable=(reason:string)=>({state:"UNAVAILABLE" as const,reason,value:null,averageObservedInventoryCost:null,annualized:false,basis:"DAILY_OBSERVATION_APPROXIMATION" as const});

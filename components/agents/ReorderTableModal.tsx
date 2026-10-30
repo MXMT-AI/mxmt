@@ -9,8 +9,8 @@ import ExportButtons from "@/components/agents/ExportButtons";
 export interface ReorderSimParams {
   brandId: string;
   brandName: string;
-  type: string; // PESSIMISTIC | REALISTIC | OPTIMISTIC
-  label: string; // "Минимальный дозаказ"
+  type: string;
+  label: string;
   qtyMultiplier: number;
   asOf?: string | null;
   dateFrom?: string | null;
@@ -74,7 +74,6 @@ export default function ReorderTableModal({
         className="relative w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl border border-(--border) bg-(--surface)"
         style={{ boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}
       >
-        {/* Header */}
         <div className="sticky top-0 bg-(--surface) border-b border-(--border) px-6 py-4 flex items-center justify-between z-10 gap-3">
           <div className="min-w-0">
             <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-0.5">
@@ -93,7 +92,6 @@ export default function ReorderTableModal({
         </div>
 
         <div className="px-6 py-5 space-y-4">
-          {/* Export */}
           {sim && (
             <ExportButtons
               title={title}
@@ -105,7 +103,6 @@ export default function ReorderTableModal({
             />
           )}
 
-          {/* Loading / error */}
           {!sim && !error && (
             <div className="flex items-center justify-center gap-2 py-12 text-(--muted) text-sm">
               <RefreshCw size={14} className="animate-spin" /> Розрахунок…
@@ -120,7 +117,6 @@ export default function ReorderTableModal({
 
           {sim && (
             <>
-              {/* Summary cards */}
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
                 {[
                   { label: "Позицій", value: String(sim.totals.skuCount) },
@@ -136,7 +132,6 @@ export default function ReorderTableModal({
                 ))}
               </div>
 
-              {/* Model note */}
               <p className="text-[10px] font-mono text-(--subtle)">
                 Сценарій перевірено сервером; розрахунок детермінований: замовлення = чиста швидкість × {sim.coverDays} дн × {sim.qtyMultiplier} − залишок.
                 {sim.leadTimeDays != null ? ` Lead time бренда: ${sim.leadTimeDays} дн.` : ""}
@@ -145,7 +140,6 @@ export default function ReorderTableModal({
                 В експорті покриття в B2 і множник в E2 — формули перерахуються автоматично.
               </p>
 
-              {/* Table */}
               {sim.rows.length === 0 ? (
                 <p className="text-sm text-(--muted) py-6 text-center">
                   Немає SKU з продажами або залишком для цього бренда.

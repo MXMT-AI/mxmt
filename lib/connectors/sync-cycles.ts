@@ -12,7 +12,6 @@ import { enqueueInventoryImport } from "./inventory-jobs";
 export type SyncResource = "orders" | "inventory" | "both";
 interface Cycle { id: string; tenantId: string; sourceId: string; resource: SyncResource; reason: string; requestedAt: Date }
 
-/** Persist an intent before dispatching remote work; schedule keys make repeats harmless. */
 export async function requestSyncCycle(tenantId: string, resource: SyncResource, db: SqlDatabase = prisma, options: { key?: string; reason?: "MANUAL" | "CRON"; now?: Date } = {}) {
   return db.$transaction(async (tx) => {
     const [connection] = await tx.$queryRaw<Array<{sourceId: string; hasYmlUrl: boolean;provider:string;capabilities:ConnectorCapabilities|null}>>(Prisma.sql`SELECT "sourceId","hasYmlUrl",provider,capabilities FROM "ConnectorConnection" WHERE "tenantId"=${tenantId} AND ${selectedConnection("ConnectorConnection")} FOR UPDATE`);
@@ -20,7 +19,6 @@ export async function requestSyncCycle(tenantId: string, resource: SyncResource,
     if(resource!=="inventory" && connection.provider!=="salesdrive" && !connection.capabilities?.orders) throw new Error("NOT_CONFIGURED");
     if (resource !== "orders" && !(connection.provider==="salesdrive"?connection.hasYmlUrl:connection.capabilities?.products&&connection.capabilities.stock)) throw new Error("CATALOG_NOT_CONFIGURED");
     const key = options.key ?? `manual:${randomUUID()}`;
-    // A double-click/retry joins the current manual cycle instead of queuing unbounded refreshes.
     if (!options.key) {
       const [pending] = await tx.$queryRaw<Array<{id:string}>>(Prisma.sql`SELECT c.id FROM "ConnectorSyncCycle" c
         WHERE c."tenantId"=${tenantId} AND c."sourceId"=${connection.sourceId} AND c.reason='MANUAL' AND c.resource=${resource}
@@ -34,7 +32,6 @@ export async function requestSyncCycle(tenantId: string, resource: SyncResource,
   });
 }
 
-/** Recover partially dispatched intents using stable per-cycle job identities. */
 export async function dispatchSyncCycle(db: SqlDatabase = prisma, tenantId?: string) {
   const [cycle] = await db.$queryRaw<Cycle[]>(Prisma.sql`SELECT c.* FROM "ConnectorSyncCycle" c JOIN "ConnectorConnection" cfg ON cfg."sourceId"=c."sourceId" AND cfg."tenantId"=c."tenantId"
     WHERE ${selectedConnection("cfg")} AND c."dispatchedAt" IS NULL AND c."availableAt"<=now() AND (${tenantId ?? null}::text IS NULL OR c."tenantId"=${tenantId ?? null})
@@ -52,7 +49,6 @@ export async function dispatchSyncCycle(db: SqlDatabase = prisma, tenantId?: str
   }
 }
 
-/** Reconcile completed cycles and expose durable completion IDs plus input readiness. */
 export async function getSyncProgress(tenantId: string, db: SqlClient = prisma) {
   await db.$executeRaw(Prisma.sql`UPDATE "ConnectorSyncCycle" c SET "completedAt"=GREATEST(
     (SELECT "updatedAt" FROM "ConnectorSyncJob" WHERE id=c."ordersJobId"),
@@ -80,7 +76,6 @@ export async function getSyncProgress(tenantId: string, db: SqlClient = prisma) 
   return { lastTickAt: heartbeat?.lastTickAt ?? null, backfill: backfill ?? null, cycle: cycle ?? null, resources: resources.map((r) => ({...r,lagSeconds:(r.through || r.lastSuccess) ? Math.max(0,Math.floor((Date.now()-new Date(r.through ?? r.lastSuccess!).getTime())/1000)) : null})), calculation: calculation ?? null };
 }
 
-/** Resume only failed jobs belonging to the cycle displayed to this tenant. */
 export async function resumeSyncCycle(tenantId: string, db: SqlDatabase = prisma) {
   const progress=await getSyncProgress(tenantId,db), id=progress.cycle?.id;
   if (!id) return 0;
@@ -92,7 +87,6 @@ export async function resumeSyncCycle(tenantId: string, db: SqlDatabase = prisma
   return count;
 }
 
-/** Recover historical progress independently from newer routine jobs. */
 export async function resumeSyncBackfill(tenantId: string, db: SqlDatabase = prisma) {
   return resumeConnectorJob(tenantId,"orders",db,undefined,"BACKFILL");
 }

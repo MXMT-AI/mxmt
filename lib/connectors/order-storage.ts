@@ -11,12 +11,10 @@ function canonical(value: unknown): unknown {
   if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([key, entry]) => [key, canonical(entry)]));
   return value;
 }
-/** Hash recursively ordered source content independently of host locale and ICU versions. */
 export const payloadHash = (value: unknown): string => createHash("sha256").update(JSON.stringify(canonical(value))).digest("hex");
 export interface OrderScope {
   observationRevisions?:boolean; provider?: string; tenantId: string; sourceId: string; importRunId: string; timezone: string }
 
-/** Called inside the checkpoint transaction. Current projections are replaced as an order, never appended per replay. */
 export async function storeOrder(tx: SqlClient, scope: OrderScope, order: OrderDto, policy: OrderPolicy = {}) {
   if (!order.raw) throw new Error("RAW_PAYLOAD_MISSING");
   const { tenantId, sourceId, importRunId, timezone } = scope;
@@ -38,7 +36,6 @@ export async function storeOrder(tx: SqlClient, scope: OrderScope, order: OrderD
       ON CONFLICT ("importRunId",code,"entityKey") DO NOTHING`);
     return {outcome:"quarantined",issues:[code]};
   }
-  // A source has a single fenced job; the order row lock also guards direct consumers.
   const [previous] = await tx.$queryRaw<Array<{ payloadHash: string; projectionHash: string; sourceVersion: number | null; sourceUpdatedAt: Date | null; observedAt:Date }>>(Prisma.sql`
     SELECT "payloadHash","projectionHash","sourceVersion","sourceUpdatedAt","observedAt" FROM "OrderImportState"
     WHERE "tenantId"=${tenantId} AND "sourceId"=${sourceId} AND "externalOrderId"=${order.externalId} FOR UPDATE`);
@@ -64,7 +61,6 @@ export async function storeOrder(tx: SqlClient, scope: OrderScope, order: OrderD
       ${line.orderedAt},${line.paidAt},${line.returnedAt},${line.dateInferred},${line.quantity!.toString()}::numeric,${line.netAmount?.toFixed(4) ?? null}::numeric,${line.costAmount?.toFixed(4) ?? null}::numeric,${line.currency},
       ${JSON.stringify(line.sourceAmounts)}::jsonb,${JSON.stringify(line.datePrecision)}::jsonb,${line.identityDerived},${rawKey},${normalized.updatedAt},${observedAt},now(),${line.signedQuantity?.toString() ?? null}::numeric,${line.signedRevenue?.toFixed(4) ?? null}::numeric,${line.signedCost?.toFixed(4) ?? null}::numeric,${JSON.stringify(line.normalization)}::jsonb)`;
   });
-  // Bound each statement's parameter count while keeping the whole order atomic.
   for (let offset = 0; offset < rows.length; offset += 500) {
     await tx.$executeRaw(Prisma.sql`INSERT INTO "OrderLine" (id,"tenantId","sourceId","importRunId","externalOrderId","externalLineId","eventKey",
       "skuId","externalProductId","sourceSku","statusId","channelId",kind,"orderedAt","paidAt","returnedAt","dateInferred",quantity,"netAmount","costAmount",currency,

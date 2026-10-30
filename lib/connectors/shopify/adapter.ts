@@ -56,7 +56,6 @@ const empty = (): Dictionary => ({
   complete: false,
   reason: "UNSUPPORTED",
 });
-/** Read-only pinned Shopify GraphQL queries; all nested pages are durable before facts can be emitted. */
 export class ShopifyConnector implements MerchandisingConnector {
   readonly provider = "shopify" as const;
   readonly capabilities: ConnectorCapabilities;
@@ -100,7 +99,6 @@ export class ShopifyConnector implements MerchandisingConnector {
       pageSize: { orders: 100, catalog: 1 },
     };
   }
-  /** Audit copies mask the token; source values mapped to typed facts remain immutable. */
   private audit = (row: Row): Row => {
     const redact = (v: unknown): unknown =>
       typeof v === "string"
@@ -117,7 +115,6 @@ export class ShopifyConnector implements MerchandisingConnector {
             : v;
     return object(redact(row));
   };
-  /** HTTP success is insufficient: version fallback, partial GraphQL errors and malformed envelopes fail closed. */
   private async query(name: QueryName, variables: Row = {}): Promise<Saved> {
     let response: Response;
     try {
@@ -222,7 +219,6 @@ export class ShopifyConnector implements MerchandisingConnector {
       invalid();
     return { data: object(body!.data), observedAt: new Date().toISOString() };
   }
-  /** Verify permanent shop/app identity, timezone, currency and granted scopes before every read invocation. */
   private async identity() {
     const r = await this.query("Identity"),
       shop = object(r.data.shop),
@@ -274,7 +270,6 @@ export class ShopifyConnector implements MerchandisingConnector {
       sort: field === "updated_at" ? "UPDATED_AT" : "CREATED_AT",
     };
   }
-  /** Continuations bind the provider cursor and durable query pages to exact query/filter/source/version/revision. */
   private position(
     r: PageRequest,
     resource: string,
@@ -320,7 +315,6 @@ export class ShopifyConnector implements MerchandisingConnector {
       cursor: Buffer.from(JSON.stringify(p)).toString("base64url"),
     };
   }
-  /** Read at most three new queries, persisting each validated page for resume and idempotent replay. */
   private session(p: Position) {
     if (!this.journal) throw new ConnectorReadError("NOT_CONFIGURED");
     let remaining = 3;
@@ -594,7 +588,6 @@ export class ShopifyConnector implements MerchandisingConnector {
   async getChannels() {
     return empty();
   }
-  /** Scope grants, API/shop identity and resource access are checks; they are not proof of historical coverage. */
   async checkConnection(): Promise<ConnectionCheck> {
     const checks: ConnectionCheck["checks"] = [];
     const check = async (

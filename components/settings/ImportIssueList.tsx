@@ -18,7 +18,6 @@ interface Result extends Record<string, unknown> {
   rows: Issue[];
   pagination: { totalRows: number; totalPages: number };
 }
-/** Fetch warning history only when opened; expose safe source identifiers, never raw order payloads. */
 export default function ImportIssueList({
   lang,
   revision,

@@ -16,7 +16,6 @@ export interface JournalScope {
   importRunId: string;
   db: SqlDatabase;
 }
-/** Immutable nested-query pages share the import's tenant/source/revision boundary and retention lifecycle. */
 export function shopifyJournal(scope: JournalScope): ReadJournal {
   const { tenantId, sourceId, revision, importRunId, db } = scope;
   return {
@@ -37,7 +36,6 @@ export function shopifyJournal(scope: JournalScope): ReadJournal {
         );
         if (connection?.revision !== revision)
           throw new Error("CONNECTOR_CONFIG_CHANGED");
-        // Serialize inserts on the import row, including duplicate-key retries.
         const [run] = await tx.$queryRaw<Array<{ bytes: number; n: number }>>(
           Prisma.sql`SELECT "connectorJournalBytes" bytes,"connectorJournalPages" n FROM "DataImportRun"
             WHERE id=${importRunId} AND "tenantId"=${tenantId} AND "sourceId"=${sourceId} FOR UPDATE`,
@@ -48,7 +46,6 @@ export function shopifyJournal(scope: JournalScope): ReadJournal {
             AND "importRunId"=${importRunId} AND resource='shopify-query' AND "externalId"=${`${revision}:${key}`}`,
         );
         if (existing) return;
-        // Count only the incoming JSONB text once. Never rescan/decompress earlier payloads.
         const [incoming] = await tx.$queryRaw<Array<{ bytes: number }>>(
           Prisma.sql`SELECT octet_length(${payload}::jsonb::text)::int bytes`,
         );

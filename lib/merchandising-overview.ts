@@ -40,7 +40,6 @@ const zero: SalesTotalsInput = {
   returnOrderCount: 0,
 };
 
-/** One frozen financial subset supplies the O1 contributors and full-month LY outlier notes. */
 export async function readSalesComparisons(
   tenantId: string,
   snapshot: ScreenSnapshot,
@@ -86,7 +85,6 @@ export async function readSalesComparisons(
   }));
 }
 
-/** YTD and same-date LY bars use supporting facts, never zero-fill unproven history. */
 async function overviewTrend(
   tenantId: string,
   snapshot: ScreenSnapshot,
@@ -113,7 +111,6 @@ async function overviewTrend(
   return { period, history: context.history, monthly };
 }
 
-/** Group saved daily metrics in SQL and reuse the stock finalizer for every Overview subtotal. */
 async function overviewStock(
   tenantId: string,
   snapshot: ScreenSnapshot,
@@ -169,7 +166,6 @@ export interface RevenueContributor {
   delta: string | null;
   oneOffLy: boolean;
 }
-/** O1 names at most three contributors only at an absolute LY change of at least 5%. */
 export function overviewContributors(
   change: string | null | undefined,
   brands: RevenueContributor[],
@@ -189,7 +185,6 @@ export function overviewContributors(
     .slice(0, 3)
     .map((b) => ({ ...b, delta: b.delta! }));
 }
-/** Absence claims require a classified stock population, not merely zero matches. */
 export function overviewClassificationCoverage(rows: Array<{ status: string; skuCount: number }>) {
   const reviewed = rows.filter((r) => r.status !== "SERVICE");
   const reviewSkuCount = reviewed.filter((r) => r.status === "DATA_ERROR")
@@ -203,7 +198,6 @@ export function overviewClassificationCoverage(rows: Array<{ status: string; sku
 export type OverviewSalesSummary = ReturnType<typeof salesAggregateMetric> & {
   plan: ReturnType<typeof salesPlan> & { targetScope: string };
 };
-/** O1–O8 consume the same pinned KPI inputs; all monetary/threshold decisions stay server-side. */
 export async function readOverview(
   tenantId: string,
   snapshot: ScreenSnapshot,

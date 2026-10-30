@@ -13,7 +13,6 @@ import type { ReorderingDraft } from "@/lib/reordering-workspace";
 import type { ReorderingCopy } from "@/lib/reordering-copy";
 import type { ScenarioFailure } from "@/components/merchandising/useScenarioPreview";
 import type { ReorderingPreview } from "./ReorderingEditor";
-/** Empty term controls inherit supplier policy instead of overriding it with a global default. */
 export default function ReorderingControls({
   monobrand = false,
   draft,

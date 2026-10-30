@@ -2,14 +2,6 @@ import { createSign } from "crypto";
 import * as XLSX from "xlsx";
 import { fetchWithTimeout } from "@/lib/server-fetch";
 
-// Створення Google-таблиці через service account — БЕЗ Google Sheets API.
-// Будуємо .xlsx на сервері і вантажимо в Drive з автоконвертацією в Google Sheets
-// (формули виживають при конвертації). Потрібен тільки Google Drive API,
-// який вже ввімкнений для Drive sync.
-//
-// Куди створюється файл:
-//   1. GOOGLE_DRIVE_EXPORT_FOLDER_ID — папка, розшарена на email сервіс-акаунта (рекомендовано);
-//   2. без папки — файл у Drive сервіс-акаунта + доступ для користувача (email або за посиланням).
 
 interface ServiceAccount {
   client_email: string;
@@ -28,7 +20,6 @@ function loadServiceAccount(): ServiceAccount {
   return JSON.parse(Buffer.from(raw, "base64").toString("utf-8"));
 }
 
-// Користувач міг вставити повний URL папки замість ID
 function normalizeFolderId(raw: string): string {
   const m = raw.match(/\/folders\/([a-zA-Z0-9_-]+)/);
   return m ? m[1] : raw.trim();
@@ -75,7 +66,6 @@ async function getAccessToken(sa: ServiceAccount): Promise<string> {
   return (await res.json()).access_token as string;
 }
 
-// Перетворює зрозумілі Google-помилки на дієві підказки
 function translateDriveError(text: string, sa: ServiceAccount, folderId: string | null): string {
   if (/accessNotConfigured|SERVICE_DISABLED|has not been used in project/i.test(text)) {
     return `У Google Cloud проєкті не ввімкнено Google Drive API. Відкрий console.cloud.google.com → APIs & Services → Library → Google Drive API → Enable. (${sa.client_email})`;
@@ -92,7 +82,6 @@ function translateDriveError(text: string, sa: ServiceAccount, folderId: string 
   return `Google Drive API: ${text.slice(0, 400)}`;
 }
 
-// 2D-масив → xlsx buffer; рядки що починаються з "=" стають живими формулами
 export function valuesToXlsxBuffer(values: (string | number)[][], sheetName: string): Buffer {
   const ws = XLSX.utils.aoa_to_sheet(values);
   for (const addr of Object.keys(ws)) {
@@ -101,7 +90,7 @@ export function valuesToXlsxBuffer(values: (string | number)[][], sheetName: str
     if (cell && typeof cell.v === "string" && cell.v.startsWith("=")) {
       cell.f = cell.v.slice(1);
       cell.t = "n";
-      cell.v = 0; // placeholder: Excel/Sheets перерахують при відкритті
+      cell.v = 0;
     }
   }
   const wb = XLSX.utils.book_new();
@@ -126,7 +115,6 @@ export async function createSpreadsheet(
   const rawFolder = process.env.GOOGLE_DRIVE_EXPORT_FOLDER_ID || null;
   const folderId = rawFolder ? normalizeFolderId(rawFolder) : null;
 
-  // 1. Будуємо xlsx і вантажимо в Drive з конвертацією в Google Sheets (multipart upload)
   const xlsxBuffer = valuesToXlsxBuffer(values, sheetName);
   const boundary = "mxmt_boundary_" + Date.now().toString(36);
   const metadata = {
@@ -160,8 +148,6 @@ export async function createSpreadsheet(
   }
   const fileId: string = (await uploadRes.json()).id;
 
-  // 2. Якщо файл не в розшареній папці — дати доступ користувачу.
-  //    Спершу email напряму; якщо це не Google-акаунт — доступ "writer" за посиланням.
   let sharedWith: string | null = null;
   if (!folderId) {
     const share = async (perm: Record<string, string>) => {
@@ -180,7 +166,6 @@ export async function createSpreadsheet(
         await share({ role: "writer", type: "user", emailAddress: shareWithEmail });
         sharedWith = shareWithEmail;
       } catch {
-        // email не привʼязаний до Google — підемо через посилання
       }
     }
     if (!sharedWith) {
@@ -188,7 +173,6 @@ export async function createSpreadsheet(
         await share({ role: "writer", type: "anyone" });
         sharedWith = "anyone_with_link";
       } catch {
-        // навіть якщо share не вдався — повертаємо URL, файл існує
       }
     }
   }

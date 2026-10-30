@@ -16,7 +16,6 @@ import {financialDecimal as D} from "./financial-decimal.mjs";
 import {readRetrospectiveExecution,type ExecutionReceipt} from "./retrospective-execution-store";
 import {retrospectiveId,retrospectiveWindows,observedGmroi,RETROSPECTIVE_POLICY_VERSION,RetrospectiveExecutionError as E} from "./retrospective-contract";
 interface ReportCommand {executionId:string;beforeSnapshotId:string;afterSnapshotId:string;days:number}
-/** Accept only saved evidence selectors and a bounded duration; dates and numerical results are server-derived. */
 export function parseRetrospectiveReport(v:unknown):ReportCommand {
  if(!isRecord(v)||Object.keys(v).sort().join()!=="afterSnapshotId,beforeSnapshotId,days,executionId"||!Number.isInteger(v.days)||Number(v.days)<1||Number(v.days)>90)throw new E("INVALID_RETROSPECTIVE_REPORT");
  for(const id of [v.executionId,v.beforeSnapshotId,v.afterSnapshotId])retrospectiveId(id);return v as unknown as ReportCommand;
@@ -24,7 +23,6 @@ export function parseRetrospectiveReport(v:unknown):ReportCommand {
 interface CohortRow {skuId:string;currency:string|null;ownership:string;productKind:string}
 interface SalesAggregate {currency:string|null;units:string;revenue:string;profit:string;lines:number;missing:number;returnLines:number;factHash:string}
 interface InventoryAggregate {date:string;currency:string|null;stockCost:string;completeCount:number;cohortCount:number;observations:unknown[]}
-/** A fixed export subset is evaluated using saved sales facts and actual daily stock, all channels and separate currencies. */
 async function periodEvidence(p:AiPrincipal,s:ScreenSnapshot,origin:ScreenSnapshot,e:ExecutionReceipt,period:{from:string;to:string},tx:SqlClient){
  if(!await savedMvpPublicationsMatch(p,s,e.sourceId,tx))throw new E("RETROSPECTIVE_PUBLICATION_MISMATCH",409);
  if(s.sourceId!==e.sourceId||s.sourceState.timezone!==e.timezone||s.sourceState.selectionRevision!==origin.sourceState.selectionRevision||s.sales.context.period.from!==period.from||s.sales.context.period.to!==period.to||payloadHash(s.settings)!==payloadHash(origin.settings)||s.sales.calculationVersion!==origin.sales.calculationVersion||s.stock.calculationVersion!==origin.stock.calculationVersion)throw new E("RETROSPECTIVE_SNAPSHOT_SCOPE_MISMATCH",409);
@@ -51,7 +49,6 @@ async function periodEvidence(p:AiPrincipal,s:ScreenSnapshot,origin:ScreenSnapsh
  });
  return {period,results,exclusions,provenance:{snapshotId:s.snapshotId,sourceId:s.sourceId,settings:s.settings,sales:s.sales,stock:s.stock,channelScope:"ALL_CHANNELS",factHashes:sales.map(r=>({currency:r.currency,hash:r.factHash})),inventory}};
 }
-/** Freeze a reproducible read-only comparison; negative profit is retained and no causal uplift or external action is generated. */
 export async function calculateScenarioRetrospective(p:AiPrincipal,value:unknown,db:SqlDatabase=prisma,now=new Date()){
  const q=parseRetrospectiveReport(value);
  return withCalculationSnapshot(db,async tx=>{

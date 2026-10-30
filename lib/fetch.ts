@@ -1,8 +1,5 @@
 import { localeFromPath, localizeHref, routing } from "@/i18n/routing";
 
-// Thin fetch wrapper for client-side API calls.
-// On 401, attempts one silent token refresh then retries the request.
-// If refresh also fails, preserve the locale and page when returning to login.
 
 async function tryRefresh(): Promise<boolean> {
   try {
@@ -30,6 +27,5 @@ export async function apiFetch(
     return res;
   }
 
-  // Retry original request with refreshed token (cookies updated server-side)
   return fetch(input, init);
 }

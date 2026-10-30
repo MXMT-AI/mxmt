@@ -127,7 +127,6 @@ export function stockGroupValues(row: StockGroup, norm: number) {
     statusCounts: a.statusCounts,
   };
 }
-/** One saved status grouping supplies Overview O4 and Stock K1 without reclassification. */
 export async function readStockStatusGroups(
   tenantId: string,
   snapshot: ScreenSnapshot,
@@ -199,7 +198,6 @@ export async function readScreenStock(
   const byCurrency = summaries.map((r) =>
     stockGroupValues(r, snapshot.sales.context.settings.turnoverMonths),
   );
-  // Availability counts combine across currencies; no money conversion is performed.
   const counts = summaries.reduce(
     (a, r) => ({
       active: a.active + r.stats.active,

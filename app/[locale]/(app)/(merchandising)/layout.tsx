@@ -26,7 +26,6 @@ export default async function MerchandisingLayout({
   );
 }
 
-/** Stream the loading state while tenant-scoped settings and channel choices resolve. */
 async function NavigationContent({
   tenantId,
   children,

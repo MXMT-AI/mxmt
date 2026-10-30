@@ -63,7 +63,6 @@ const unavailable = (reason = "UNSUPPORTED"): Dictionary => ({
   complete: false,
   reason,
 });
-/** Read-only JSON POST transport; tokens live only on this tenant/source/revision-bound runtime instance. */
 export class HoroshopConnector implements MerchandisingConnector {
   readonly provider = "horoshop" as const;
   readonly capabilities: ConnectorCapabilities;
@@ -98,7 +97,6 @@ export class HoroshopConnector implements MerchandisingConnector {
       pageSize: { orders: 100, catalog: 100 },
     };
   }
-  /** Redact credential echoes only in audit copies, never in the payload mapped to facts. */
   private audit(value: unknown, token?: string): unknown {
     const secrets = [this.config.password, this.config.login, token].filter(
       (v): v is string => Boolean(v),
@@ -187,7 +185,6 @@ export class HoroshopConnector implements MerchandisingConnector {
         Buffer.concat(chunks),
       );
       const body = object(parseSourceJson(raw));
-      // Source facts are immutable. Mask only independent audit copies.
       const auditRecord = (value: Row) => object(this.audit(value, secret));
       if (path !== "auth") raw = JSON.stringify(auditRecord(body));
       if (path === "auth" && body.status !== "OK")
@@ -318,7 +315,6 @@ export class HoroshopConnector implements MerchandisingConnector {
   async getOrders(request: PageRequest = {}): Promise<ConnectorPage<OrderDto>> {
     if (request.updatedFrom || request.updatedTo)
       throw new ConnectorReadError("NOT_CONFIGURED");
-    // Every refresh rescans the entire accessible account. Creation filters would skip older modifications.
     const data: Row = request.orderId ? { ids: [id(request.orderId)] } : {},
       r = await this.page("orders/get", request, data);
     if (
@@ -337,7 +333,6 @@ export class HoroshopConnector implements MerchandisingConnector {
             error.code !== "INVALID_RESPONSE"
           )
             throw error;
-          // Retain a quarantined slot so offset advancement counts every source row.
           return {
             externalId,
             observedAt: r.observedAt,
@@ -382,7 +377,6 @@ export class HoroshopConnector implements MerchandisingConnector {
       const article = id(p.article),
         quantity = decimal(p.quantity);
       if (quantity === null) invalid();
-      // Bundles/order-level discounts lack a verified allocation. Do not double-count them.
       const plain =
         p.type == null ||
         p.type === "" ||
@@ -551,7 +545,6 @@ export class HoroshopConnector implements MerchandisingConnector {
       p.values.length !== Math.min(p.limit, Math.max(0, count - p.offset))
     )
       invalid();
-    // Independently approved population count + explicit empty terminal probe, never presence labels.
     const next = p.values.length
       ? { kind: "offset" as const, offset: p.offset + p.values.length }
       : null;

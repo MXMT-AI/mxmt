@@ -5,7 +5,6 @@ import {approveMarketSource} from "@/lib/market-source-store";
 import {marketEvidenceApiError} from "@/lib/market-evidence-api";
 import {MarketEvidenceError} from "@/lib/market-evidence";
 export const runtime="nodejs";export const dynamic="force-dynamic";
-/** Future owner action pins actual source rights, commercial/access limits and the relevance rubric. */
 export async function POST(request:NextRequest,{params}:{params:Promise<{profileId:string}>}){
  const {user,response}=await requireApiUser("ADMIN");if(response)return response;
  const {data,response:invalid}=await parseJsonBody(request);if(invalid)return invalid;

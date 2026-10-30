@@ -119,7 +119,6 @@ it("imports through durable workers, resolves offer identities, preserves unknow
     { resource: "inventory", state: "COMPLETE" },
     { resource: "orders", state: "COMPLETE" },
   ]);
-  // Explicit synthetic product/ownership approval; the adapter must not infer it.
   await f.pg.exec(
     `UPDATE "Sku" SET "productKind"='MERCHANDISE',"ownershipOverride"='OWN' WHERE "tenantId"='a' AND sku='001-A'`,
   );
@@ -171,7 +170,6 @@ it("replays reordered/deleted native lines idempotently, rejects stale versions 
     ],
   };
   await run();
-  // Same version, only ordering changed: retain the same facts without a conflict.
   order = { ...order, products: [...order.products].reverse() };
   await run();
   expect(

@@ -17,7 +17,6 @@ export interface MarketingGenerated {
 }
 export const MARKETING_OUTPUT_GUARD = `Return JSON with exactly drafts: an object keyed by paid_social, smm, website (only requested channels). Each channel has exactly objective, message, cta (Ukrainian text), assets (array of text suggestions), evidenceRefs (nonempty array of supplied JSON pointers). Never write numbers, prices, discounts, dates or budgets in prose; these are displayed separately from server facts. Do not claim a discount is approved, delivery received, stock available, guaranteed outcomes, scarcity or a superlative. Missing values stay unknown. No other fields.`;
 
-/** Validate channels independently so a bad channel never discards another valid, paid-for draft. */
 export function parseMarketingOutput(raw: string, refs: ReadonlySet<string>): MarketingGenerated {
   const invalid = (): never => { throw new AiExecutionError("AI_INVALID_OUTPUT", 502); };
   if (raw.length > 128000) return invalid();

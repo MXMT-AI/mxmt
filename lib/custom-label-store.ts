@@ -14,14 +14,12 @@ import { CustomLabelError,LABEL_CONTRACT_VERSION,LABEL_EXPORTS_PER_DAY,parseLabe
 interface ProfileRecord {id:string;revision:number;values:LabelProfile;approvedById:string;approvedAt:string;approvalReference:string}
 const key=(id:string)=>`custom-labels:${id}`;
 const uuid=(value:unknown):string=>{if(typeof value!=="string"||!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value))throw new CustomLabelError("INVALID_LABEL_EXPORT_ID");return value.toLowerCase();};
-/** Read only an explicitly owner-approved revision; label profiles never activate financial settings. */
 async function profileInTx(p:AiPrincipal,profileId:string,tx:SqlClient):Promise<ProfileRecord>{
   const [row]=await tx.$queryRaw<ProfileRecord[]>(Prisma.sql`SELECT id,revision,values,"approvedById","approvedAt","approvalReference" FROM "MerchandisingConfig"
     WHERE "tenantId"=${p.tenantId} AND "configType"='GENERAL' AND key=${key(profileId)} AND "approvedAt" IS NOT NULL ORDER BY revision DESC LIMIT 1`);
   if(!row)throw new CustomLabelError("LABEL_PROFILE_NOT_FOUND",404);
   row.values=parseLabelProfile(row.values);row.approvedAt=new Date(row.approvedAt).toISOString();return row;
 }
-/** Approve the exact rules, ownership/omission policy and owner-attested target mappings under an optimistic revision. */
 export async function approveCustomLabelProfile(p:AiPrincipal,profileId:string,value:unknown,db:SqlDatabase=prisma,now=new Date()){
   labelIdentifier(profileId);
   if(!isRecord(value)||Object.keys(value).sort().join()!=="approvalReference,expectedRevision,profile"||!Number.isSafeInteger(value.expectedRevision)||Number(value.expectedRevision)<0||Number(value.expectedRevision)>10000||typeof value.approvalReference!=="string"||!value.approvalReference.trim()||value.approvalReference.length>1000)throw new CustomLabelError("INVALID_LABEL_APPROVAL");
@@ -50,11 +48,9 @@ export async function approveCustomLabelProfile(p:AiPrincipal,profileId:string,v
     return {profileId,configId:id,revision,profile,approvedBy:p.userId,approvedAt:now.toISOString(),approvalReference,contractVersion:LABEL_CONTRACT_VERSION};
   },true);
 }
-/** Return the approved configuration inside the authenticated tenant without enabling any provider action. */
 export async function readCustomLabelProfile(p:AiPrincipal,profileId:string,db:SqlDatabase=prisma){
   labelIdentifier(profileId);return aiTransaction(p,db,async tx=>({profileId,...await profileInTx(p,profileId,tx)}));
 }
-/** Resolve pinned MVP provenance and batch-load saved classifications with no raw-source or LLM fallback. */
 async function previewInTx(p:AiPrincipal,scope:LabelScope,tx:SqlClient){
   const profile=await profileInTx(p,scope.profileId,tx);
   const evidence=await resolveCustomLabelEvidence(p,scope,profile.values.sourceId,tx),rows=evidence.rows;
@@ -74,19 +70,16 @@ async function previewInTx(p:AiPrincipal,scope:LabelScope,tx:SqlClient){
     canExport:result.assignments.length>0&&!quotaExceeded,blockers:quotaExceeded?["GOOGLE_UNIQUE_LABEL_LIMIT"]:[],
     file:{content:file,byteLength:Buffer.byteLength(file,"utf8"),sha256}};
 }
-/** Preview returns exact assignments and diagnostics, retaining server-only file bytes until explicit export. */
 export async function previewCustomLabels(p:AiPrincipal,value:unknown,db:SqlDatabase=prisma){
   const scope=parseLabelScope(value);
   return aiTransaction(p,db,async tx=>{const {file,...preview}=await previewInTx(p,scope,tx);return {...preview,file:{byteLength:file.byteLength,sha256:file.sha256}};});
 }
 interface LabelReceipt {exportId:string;actionId:string;previewId:string;createdAt:string;actorId:string;profileId:string;ruleRevision:number;target:LabelProfile["target"];warnings:string[];file:{name:string;byteLength:number;sha256:string;rowCount:number;url:string};provenance:Awaited<ReturnType<typeof previewInTx>>["provenance"]}
 interface LabelExportRecord {actorId:string;context:{kind:string;requestHash:string};after:{receipt:LabelReceipt;content:string;assignments:ReturnType<typeof assignCustomLabels>["assignments"];rejected:ReturnType<typeof assignCustomLabels>["rejected"]}}
-/** Read only this feature's audited artifacts; scenario export history/files remain a separate contract. */
 async function exportInTx(p:AiPrincipal,id:string,tx:SqlClient){
   const [row]=await tx.$queryRaw<LabelExportRecord[]>(Prisma.sql`SELECT "actorId",context,after FROM "MerchandisingAction" WHERE "tenantId"=${p.tenantId} AND "idempotencyKey"=${`label-export:${id}`} AND "entityType"='CUSTOM_LABEL_EXPORT' AND context->>'kind'='CUSTOM_LABEL_EXPORT_V1'`);
   return row;
 }
-/** Atomically compare preview, apply the tenant/day quota and persist exact bytes and actor provenance. */
 export async function createCustomLabelExport(p:AiPrincipal,value:unknown,db:SqlDatabase=prisma,now=new Date()):Promise<LabelReceipt>{
   if(!isRecord(value)||Object.keys(value).sort().join()!=="exportId,previewId,scope"||typeof value.previewId!=="string"||!/^[a-f0-9]{64}$/.test(value.previewId))throw new CustomLabelError("INVALID_LABEL_EXPORT");
   const id=uuid(value.exportId),scope=parseLabelScope(value.scope),previewId=value.previewId,requestHash=payloadHash({scope,previewId});
@@ -109,14 +102,12 @@ export async function createCustomLabelExport(p:AiPrincipal,value:unknown,db:Sql
     return receipt;
   });
 }
-/** Downloads return audited bytes without recalculation, quota consumption or provider actions. */
 export async function readCustomLabelFile(p:AiPrincipal,exportId:string,db:SqlDatabase=prisma){
   const id=uuid(exportId);return aiTransaction(p,db,async tx=>{
     const row=await exportInTx(p,id,tx);if(!row)throw new CustomLabelError("LABEL_EXPORT_NOT_FOUND",404);
     return {content:row.after.content,...row.after.receipt.file};
   });
 }
-/** Bounded metadata history never loads full files or assignment payloads. */
 export async function readCustomLabelHistory(p:AiPrincipal,db:SqlDatabase=prisma){
   return aiTransaction(p,db,async tx=>({rows:(await tx.$queryRaw<Array<{receipt:LabelReceipt}>>(Prisma.sql`SELECT context->'receipt' receipt FROM "MerchandisingAction"
     WHERE "tenantId"=${p.tenantId} AND "entityType"='CUSTOM_LABEL_EXPORT' AND context->>'kind'='CUSTOM_LABEL_EXPORT_V1' ORDER BY "createdAt" DESC,id DESC LIMIT 50`)).map(r=>r.receipt)}));

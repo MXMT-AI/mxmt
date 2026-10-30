@@ -7,7 +7,6 @@ datasource db {
   provider  = "postgresql"
 }
 
-// ─── TENANT ───────────────────────────────────────────────────────────────────
 model Tenant {
   id        String   @id @default(cuid())
   name      String
@@ -65,7 +64,6 @@ model Tenant {
   connectorCatalogPages   ConnectorCatalogPage[]
 }
 
-// ─── USER ─────────────────────────────────────────────────────────────────────
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -93,7 +91,6 @@ enum Role {
   VIEWER
 }
 
-// ─── ONBOARDING ───────────────────────────────────────────────────────────────
 model OnboardingBrief {
   id            String        @id @default(cuid())
   tenantId      String        @unique
@@ -109,7 +106,6 @@ enum BusinessModel {
   HYBRID
 }
 
-// ─── BRAND / SUPPLIER ─────────────────────────────────────────────────────────
 model Brand {
   id             String         @id @default(cuid())
   tenantId       String
@@ -120,10 +116,8 @@ model Brand {
   currency       String         @default("EUR")
   country        String?
   contact        String?
-  // Planner-specific
   budget         Float          @default(0)
   paymentDays    Int            @default(30)
-  // New MVP values are explicit; legacy planner defaults above are unchanged.
   ownership      StockOwnership @default(UNKNOWN)
   commissionRate Decimal?       @db.Decimal(9, 8)
   supplierId     String?
@@ -140,7 +134,6 @@ model Brand {
   @@index([tenantId])
 }
 
-// ─── INVENTORY SKU ────────────────────────────────────────────────────────────
 model Sku {
   id                     String                 @id @default(cuid())
   tenantId               String
@@ -163,12 +156,10 @@ model Sku {
   merchandisingCategory  Category?              @relation(fields: [categoryId, tenantId], references: [id, tenantId], onDelete: NoAction, onUpdate: NoAction)
   supplierId             String?
   supplier               Supplier?              @relation(fields: [supplierId, tenantId], references: [id, tenantId], onDelete: NoAction, onUpdate: NoAction)
-  // Null means inherit the brand policy; UNKNOWN explicitly overrides it.
   ownershipOverride      StockOwnership?
   commissionRateOverride Decimal?               @db.Decimal(9, 8)
   productKind            MerchandiseProductKind @default(UNKNOWN)
   barcode                String?
-  // Only verified external supplier receipts may populate this timestamp.
   firstReceiptAt         DateTime?              @db.Timestamptz(3)
 
   salesRecords       SalesRecord[]
@@ -193,7 +184,6 @@ enum SkuStatus {
   EOL
 }
 
-// ─── SALES ────────────────────────────────────────────────────────────────────
 model SalesRecord {
   id       String   @id @default(cuid())
   tenantId String
@@ -212,7 +202,6 @@ model SalesRecord {
   @@index([skuId])
 }
 
-// ─── INVENTORY ────────────────────────────────────────────────────────────────
 model InventorySnapshot {
   id                  String         @id @default(cuid())
   tenantId            String
@@ -228,7 +217,6 @@ model InventorySnapshot {
   qtyReserved         Int            @default(0)
   qtyInTransit        Int            @default(0)
   snapshotDate        DateTime       @db.Date
-  // Null provenance on legacy rows is intentional: a date is not an observation time.
   observedAt          DateTime?      @db.Timestamptz(3)
   timezone            String?
   costPrice           Decimal?       @db.Decimal(18, 4)
@@ -246,7 +234,6 @@ model InventorySnapshot {
   @@index([skuId])
 }
 
-// ─── PROMO ────────────────────────────────────────────────────────────────────
 model PromoEvent {
   id          String   @id @default(cuid())
   tenantId    String
@@ -262,7 +249,6 @@ model PromoEvent {
   @@index([tenantId])
 }
 
-// ─── GOOGLE DRIVE ─────────────────────────────────────────────────────────────
 model GoogleDriveSync {
   id           String    @id @default(cuid())
   tenantId     String
@@ -277,9 +263,6 @@ model GoogleDriveSync {
   @@index([tenantId])
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// SOURCE DATA IMPORTS AND CALCULATED REPORTS
-// ══════════════════════════════════════════════════════════════════════════════
 
 enum DataImportTrigger {
   MANUAL
@@ -314,7 +297,6 @@ model DataSource {
   name              String         @default("ZAVOD Google Sheets")
   kind              DataSourceKind @default(GOOGLE_SHEETS)
   driveFileId       String?
-  // Stable account/feed identity for non-Sheets connectors; never credentials.
   sourceKey         String?
   timezone          String         @default("Europe/Kyiv")
   allowedSheets     Json           @default("[]")
@@ -649,18 +631,14 @@ model DataTablePreference {
   @@index([tenantId, sheetKey])
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// ASSORTMENT PLANNER
-// ══════════════════════════════════════════════════════════════════════════════
 
-// ─── CATALOG UPLOAD (one per brand per season) ────────────────────────────────
 model CatalogUpload {
   id         String   @id @default(cuid())
   tenantId   String
   tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   brandId    String
   brand      Brand    @relation(fields: [brandId, tenantId], references: [id, tenantId], onDelete: Cascade)
-  season     String // e.g. "SS25", "AW25"
+  season     String
   fileName   String?
   itemCount  Int      @default(0)
   uploadedAt DateTime @default(now())
@@ -673,7 +651,6 @@ model CatalogUpload {
   @@index([brandId])
 }
 
-// ─── CATALOG ITEM (individual line in a brand's wholesale catalog) ─────────────
 model CatalogItem {
   id             String        @id @default(cuid())
   tenantId       String
@@ -700,16 +677,15 @@ model CatalogItem {
   @@index([tenantId, category])
 }
 
-// ─── MARKETING CALENDAR EVENTS ────────────────────────────────────────────────
 model MarketingEvent {
   id                String    @id @default(cuid())
   tenantId          String
   tenant            Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  weekKey           String // "w14", "w15", ...
-  rowKey            String // "accent", "promo", "ban1", ...
-  type              String // promo | holiday | agent | warn | sale | event | stock
+  weekKey           String
+  rowKey            String
+  type              String
   label             String
-  source            String    @default("user") // user | agent | system
+  source            String    @default("user")
   sourceAgentRunId  String?
   recommendationKey String?
   brandId           String?
@@ -724,14 +700,13 @@ model MarketingEvent {
   @@index([tenantId, brandId])
 }
 
-// ─── AGENT RUNS ──────────────────────────────────────────────────────────────
 model AgentRun {
   id         String    @id @default(cuid())
   tenantId   String
   tenant     Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  agentType  String // "inventory_analyst" | "repricing" | "reordering" | ...
-  entityId   String    @default("all") // brandId or "all"
-  status     String    @default("idle") // "running" | "done" | "error"
+  agentType  String
+  entityId   String    @default("all")
+  status     String    @default("idle")
   input      Json      @default("{}")
   output     Json?
   errorMsg   String?
@@ -744,7 +719,6 @@ model AgentRun {
   @@index([tenantId])
 }
 
-// V2 execution is opt-in; old AgentRun rows and routes keep their existing contract.
 model AiBudgetPeriod {
   id                String @id
   tenantId          String
@@ -808,18 +782,14 @@ model AiUsageAttempt {
   @@index([tenantId, state, createdAt])
 }
 
-// ─── PLANNER CART (draft purchase order — one per tenant) ─────────────────────
 model PlannerCart {
   id        String   @id @default(cuid())
   tenantId  String   @unique
   tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  items     Json     @default("[]") // CartItem[]
+  items     Json     @default("[]")
   updatedAt DateTime @updatedAt
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// MERCHANDISING MVP — additive, versioned separately from legacy calculations
-// ══════════════════════════════════════════════════════════════════════════════
 
 enum DataSourceKind {
   GOOGLE_SHEETS
@@ -883,7 +853,6 @@ model Category {
   tenant           Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   key              String
   name             String
-  // Calendar months in Europe/Kyiv, not wholesale collection labels like SS25.
   seasonMonths     Int[]     @default([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
   seasonVerifiedAt DateTime? @db.Timestamptz(3)
   createdAt        DateTime  @default(now())
@@ -930,8 +899,6 @@ model SkuAlias {
   @@index([tenantId, skuId])
 }
 
-// Generic API/YML payloads share the existing DataSource/DataImportRun lifecycle.
-// Immutable per run; normalized facts below retain source identity across runs.
 model DataSourceRecord {
   id              String        @id @default(cuid())
   tenantId        String
@@ -962,7 +929,6 @@ model OrderLine {
   importRun         DataImportRun @relation(fields: [importRunId, sourceId, tenantId], references: [id, sourceId, tenantId], onDelete: NoAction, onUpdate: NoAction)
   externalOrderId   String
   externalLineId    String
-  // Stable source event identity (e.g. partial refund ID); never the import run.
   eventKey          String        @default("current")
   skuId             String?
   sku               Sku?          @relation(fields: [skuId, tenantId], references: [id, tenantId], onDelete: NoAction, onUpdate: NoAction)
@@ -975,7 +941,6 @@ model OrderLine {
   returnedAt        DateTime?     @db.Timestamptz(3)
   dateInferred      Boolean       @default(false)
   quantity          Decimal       @db.Decimal(18, 4)
-  // Retain source facts independently of unverified financial formulas.
   sourceSku         String?
   sourceAmounts     Json          @default("{}")
   datePrecision     Json          @default("{}")
@@ -1063,7 +1028,6 @@ model PriceHistory {
   source          DataSource    @relation(fields: [sourceId, tenantId], references: [id, tenantId], onDelete: NoAction, onUpdate: NoAction)
   importRunId     String
   importRun       DataImportRun @relation(fields: [importRunId, sourceId, tenantId], references: [id, sourceId, tenantId], onDelete: NoAction, onUpdate: NoAction)
-  // Stable source revision/observation key deduplicates retries across runs.
   sourceRecordKey String
   effectiveAt     DateTime?     @db.Timestamptz(3)
   observedAt      DateTime      @db.Timestamptz(3)
@@ -1087,7 +1051,6 @@ model MerchandisingConfig {
   key               String                    @default("default")
   revision          Int
   values            Json
-  // Approved values are not automatically activated. Active revision is unique in SQL.
   isActive          Boolean                   @default(false)
   approvedById      String?
   approvedBy        User?                     @relation(fields: [approvedById, tenantId], references: [id, tenantId], onDelete: NoAction, onUpdate: NoAction)
@@ -1103,7 +1066,6 @@ model MerchandisingConfig {
   @@unique([tenantId, configType, key, revision], map: "MerchandisingConfig_revision_key")
 }
 
-// Versioned derived daily results, not another raw inventory/product system.
 model SkuDaily {
   screenRows         MerchandisingScreenSku[]
   id                 String                   @id @default(cuid())
@@ -1115,7 +1077,6 @@ model SkuDaily {
   configId           String
   config             MerchandisingConfig      @relation(fields: [configId, tenantId], references: [id, tenantId], onDelete: NoAction, onUpdate: NoAction)
   calculationVersion Int
-  // Input run IDs/checksums, snapshot timestamps and coverage belong here.
   inputProvenance    Json
   salesQuantity      Decimal?                 @db.Decimal(18, 4)
   netRevenue         Decimal?                 @db.Decimal(18, 4)
@@ -1169,7 +1130,6 @@ model SyncCursor {
   sourceId            String
   source              DataSource    @relation(fields: [sourceId, tenantId], references: [id, tenantId], onDelete: Cascade)
   resource            String
-  // Only commit after a successful import; run status is checked by the sync worker.
   checkpoint          Json
   lastSuccessfulRunId String
   lastSuccessfulRun   DataImportRun @relation(fields: [lastSuccessfulRunId, sourceId, tenantId], references: [id, sourceId, tenantId], onDelete: NoAction, onUpdate: NoAction)
@@ -1178,7 +1138,6 @@ model SyncCursor {
   @@unique([tenantId, sourceId, resource])
 }
 
-// Write-only connector credentials; only explicit public projections leave the server.
 model ConnectorConnection {
   id              String     @id @default(cuid())
   tenantId        String
@@ -1202,7 +1161,6 @@ model ConnectorConnection {
   @@unique([sourceId, tenantId])
 }
 
-// One durable job per source at a time; leases fence interrupted workers.
 model ConnectorSyncJob {
   id                 String               @id @default(cuid())
   tenantId           String
@@ -1234,7 +1192,6 @@ model ConnectorSyncJob {
 
 }
 
-// Order-level version guard also covers orders with zero lines.
 model OrderImportState {
   id              String        @id @default(cuid())
   tenantId        String
@@ -1253,7 +1210,6 @@ model OrderImportState {
   @@unique([tenantId, sourceId, externalOrderId])
 }
 
-// Account-scoped, shared by probes, backfill, increments and webhook reads.
 model ConnectorRequestBudget {
   accountKey   String                    @id
   blockedUntil DateTime?                 @db.Timestamptz(3)
@@ -1270,7 +1226,6 @@ model ConnectorRequestAttempt {
   @@index([accountKey, at])
 }
 
-// Durable sync intents survive worker restarts and deduplicate schedule slots.
 model ConnectorSyncCycle {
   availableAt    DateTime          @default(now()) @db.Timestamptz(3)
   attempts       Int               @default(0)
@@ -1296,7 +1251,6 @@ model ConnectorSyncCycle {
   @@index([dispatchedAt, availableAt])
 }
 
-// Durable phased SalesDrive recalculation; RUNNING source uniqueness is enforced in SQL.
 model ConnectorRecalculation {
   importRunId     String        @id
   tenantId        String
@@ -1312,7 +1266,6 @@ model ConnectorRecalculation {
   @@index([tenantId, sourceId, requestedAt])
 }
 
-// Explicit tenant mappings resolve source spellings without merging supplier terms.
 model BrandAlias {
   id        String   @id @default(cuid())
   tenantId  String
@@ -1326,7 +1279,6 @@ model BrandAlias {
   @@unique([tenantId, value])
 }
 
-// Immutable, filterable screen facts; source events are never reread during navigation.
 model MerchandisingScreenFact {
   snapshotId   String
   tenantId     String
@@ -1394,7 +1346,6 @@ model ConnectorCatalogPage {
   @@id([jobId,sequence])
 }
 
-// Frozen manual upload and preview; exact bytes live in the scoped raw record store.
 model CsvImport {
   id String @id
   tenantId String

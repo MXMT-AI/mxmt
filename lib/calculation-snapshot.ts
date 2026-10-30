@@ -1,6 +1,5 @@
 import { Prisma } from "@prisma/client";
 import type { SqlDatabase, SqlClient } from "./connectors/database";
-/** Publish a consistent calculation atomically; concurrent serialization conflicts retry once. */
 export async function withCalculationSnapshot<T>(
   db: SqlDatabase,
   callback: (tx: SqlClient) => Promise<T>,

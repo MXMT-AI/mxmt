@@ -68,7 +68,6 @@ interface Quality extends Record<string, unknown> {
   }>;
   normalizationReplayRequired: number;
 }
-/** Tenant diagnostics and explicit corrections reuse Settings tokens and the authenticated API. */
 export default function DataQualityCard({
   lang,
   canManage,
@@ -116,7 +115,6 @@ export default function DataQualityCard({
     window.addEventListener("popstate", read);
     return () => window.removeEventListener("popstate", read);
   }, []);
-  /** Apply diagnostic navigation without replacing unrelated Settings URL state. */
   function select(nextCode: string, nextPage = 1, nextSearch = search) {
     setCode(nextCode);
     setPage(nextPage);
@@ -178,7 +176,6 @@ export default function DataQualityCard({
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
   }, [dirty]);
-  /** Persist an administrative change, then distinguish save failure from refresh failure. */
   async function save(body: Record<string, unknown>) {
     setBusy(true);
     setError("");

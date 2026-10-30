@@ -34,7 +34,6 @@ export async function POST(request: NextRequest) {
       return withRequestId(apiError("Refresh token mismatch", 401, "REFRESH_TOKEN_MISMATCH", undefined, context.requestId), context.requestId);
     }
 
-    // Rotate both tokens
     const tokenPayload = { sub: user.id, tenantId: user.tenantId, role: user.role };
     const [newAccessToken, newRefreshToken] = await Promise.all([
       signAccessToken(tokenPayload),

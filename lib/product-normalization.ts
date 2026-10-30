@@ -5,13 +5,11 @@ import { prisma } from "@/lib/prisma";
 import { normalizedBrandKey } from "@/lib/data-normalization";
 import type { SqlDatabase, SqlClient } from "@/lib/connectors/database";
 
-/** Audit metadata changes in the existing tenant action log, inside their transaction. */
 async function audit(tx: SqlClient, tenantId:string, actorId:string, action:string, entityId:string, before:unknown, after:unknown) {
  const id=randomUUID();
  await tx.$executeRaw(Prisma.sql`INSERT INTO "MerchandisingAction" (id,"tenantId","actorId",action,"entityType","entityId","idempotencyKey",before,after) VALUES (${id},${tenantId},${actorId},${action},'NORMALIZATION',${entityId},${id},${JSON.stringify(before)}::jsonb,${JSON.stringify(after)}::jsonb)`);
 }
 
-/** An explicit alias points at one existing tenant brand; no names or financial terms are merged. */
 export async function saveBrandAlias(tenantId:string,actorId:string,alias:string,brandId:string|null,db:SqlDatabase=prisma) {
  const key=normalizedBrandKey(alias); if(!key || key.length>200)throw new Error('INVALID_ALIAS');
  return db.$transaction(async tx=>{
@@ -27,7 +25,6 @@ export async function saveBrandAlias(tenantId:string,actorId:string,alias:string
  });
 }
 
-/** Explicit product-kind overrides control exclusions; imports never overwrite this field. */
 export async function saveProductKind(tenantId:string,actorId:string,skuId:string,kind:string,db:SqlDatabase=prisma) {
  if(!['UNKNOWN','MERCHANDISE','SERVICE','GIFT_CARD'].includes(kind))throw new Error('INVALID_PRODUCT_KIND');
  return db.$transaction(async tx=>{

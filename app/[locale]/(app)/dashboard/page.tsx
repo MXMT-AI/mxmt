@@ -82,13 +82,11 @@ export default async function DashboardPage() {
   const totalHits = classified.filter((s) => s.flag === "hit").length;
   const totalItems = Math.max(skus.length, catalogItemCount);
 
-  // Sales trend data for sparkline
   const sparkData = dailySales.map((d) => ({
     date: d.date instanceof Date ? d.date.toISOString().slice(0, 10) : String(d.date),
     qty: d._sum.qtySold ?? 0,
   }));
 
-  // Week-over-week comparison
   const thisWeekTotal = dailySales
     .filter((d) => new Date(d.date) >= since7)
     .reduce((sum, d) => sum + (d._sum.qtySold ?? 0), 0);
@@ -136,7 +134,6 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      {/* KPI cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {kpis.map(({ label, value, color, sub }) => (
           <div key={label} className="bg-(--surface) border border-(--border) rounded-xl p-5">
@@ -147,7 +144,6 @@ export default async function DashboardPage() {
         ))}
       </div>
 
-      {/* Sales trend chart */}
       {sparkData.length >= 3 && (
         <div className="bg-(--surface) border border-(--border) rounded-xl p-5 mb-6">
           <div className="flex items-start justify-between mb-3">
@@ -174,7 +170,6 @@ export default async function DashboardPage() {
       )}
 
       <div className="space-y-4">
-        {/* Critical stockouts */}
         {stockouts.length > 0 && (
           <div className="bg-(--surface) border border-accent-orange/20 rounded-xl p-6">
             <div className="flex items-center justify-between mb-4">
@@ -222,7 +217,6 @@ export default async function DashboardPage() {
           </div>
         )}
 
-        {/* Top hits */}
         {hits.length > 0 && (
           <div className="bg-(--surface) border border-accent-cyan/20 rounded-xl p-6">
             <div className="flex items-center justify-between mb-4">
@@ -270,7 +264,6 @@ export default async function DashboardPage() {
           </div>
         )}
 
-        {/* Setup prompts */}
         {!onboarding && (
           <div className="bg-(--surface) border border-accent-yellow/20 rounded-xl p-6 flex items-start justify-between gap-4">
             <div>

@@ -1,8 +1,6 @@
 import type { ReorderSimulation } from "@/lib/legacy-reorder-calc";
 import type { SheetCell } from "@/lib/promo-sheet";
 
-// Будує 2D-масив для експорту симуляції дозамовлення.
-// formulas=true → живі формули: покриття в B2, множник в E2 — можна міняти прямо в таблиці.
 
 export const REORDER_SHEET_HEADERS = [
   "SKU", "Назва", "Категорія", "Залишок, шт", "Чиста швидкість, шт/д", "DOH зараз, дн",

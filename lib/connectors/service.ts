@@ -17,12 +17,10 @@ function publicConnection(row: PublicRow | null): PublicConnection {
     hasYmlUrl: row?.hasYmlUrl ?? false, revision: row?.revision ?? null, lastCheck: row?.lastCheck as unknown as ConnectionCheck ?? null };
 }
 
-/** Scope every configuration lookup by the authenticated tenant, never request fields. */
 export async function getProviderConnection(tenantId: string, provider:SourceProvider="salesdrive"): Promise<PublicConnection> {
   return publicConnection(await prisma.connectorConnection.findUnique({ where: { tenantId_provider: { tenantId, provider } }, select: publicSelect }));
 }
 
-/** Replace credentials atomically and invalidate checks for the previous revision. */
 export async function saveProviderConnection(tenantId: string, value:unknown, provider:SourceProvider="salesdrive",actorId?:string): Promise<PublicConnection> {
   const registration=PROVIDER_ADAPTERS[provider];
   if(!registration) throw new Error("CONNECTOR_PROVIDER_UNAVAILABLE");
@@ -38,8 +36,6 @@ export async function saveProviderConnection(tenantId: string, value:unknown, pr
       where: { tenantId_kind_sourceKey: { tenantId, kind, sourceKey: credentials.sourceKey } },
       create: { tenantId, kind, sourceKey: credentials.sourceKey, name: provider, timezone: credentials.timezone }, update: {}, select: { id: true, timezone:true },
     });
-    // Pin the old legacy default if credentials are saved for a different account.
-    // Saving/checking a connection must not implicitly switch the financial source.
     if(provider==="salesdrive"&&previous?.sourceId&&previous.sourceId!==source.id) {
       await tx.$executeRaw(Prisma.sql`INSERT INTO "ConnectorSelection" ("tenantId","sourceId") VALUES (${tenantId},${previous.sourceId}) ON CONFLICT("tenantId") DO NOTHING`);
       await tx.$executeRaw(Prisma.sql`UPDATE "Tenant" SET "updatedAt"=now() WHERE id=${tenantId}`);
@@ -69,7 +65,6 @@ export async function saveProviderConnection(tenantId: string, value:unknown, pr
   });
 }
 
-/** Store only sanitized check output, and reject stale results after credential rotation. */
 export async function checkProviderConnection(tenantId: string,provider:SourceProvider="salesdrive"): Promise<PublicConnection | null> {
   const row = await prisma.connectorConnection.findUnique({
     where: { tenantId_provider: { tenantId, provider } },
@@ -86,7 +81,6 @@ export async function checkProviderConnection(tenantId: string,provider:SourcePr
   return publicConnection({ ...row, lastCheck: result as unknown as Prisma.JsonValue });
 }
 
-/** Load secrets only inside the server; source identity and timezone travel with the adapter. */
 export async function loadSalesDriveRuntime(tenantId: string, backfill = false) {
   const row = await prisma.connectorConnection.findUnique({
     where: { tenantId_provider: { tenantId, provider:"salesdrive" } },

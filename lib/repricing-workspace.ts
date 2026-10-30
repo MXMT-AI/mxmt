@@ -33,7 +33,6 @@ const parameterKeys = [
   "liquidation",
   "liquidationReason",
 ] as const;
-/** Restore shareable controls without duplicating the server's pricing or validation formulas. */
 export function readRepricingDraft(query: URLSearchParams): RepricingDraft {
   const parameters: RepricingParameters = { ...REPRICING_DEFAULTS };
   for (const key of parameterKeys) {
@@ -63,7 +62,6 @@ export function readRepricingDraft(query: URLSearchParams): RepricingDraft {
   }
   return { parameters, filters };
 }
-/** Preserve global dates, channel and snapshot; omit defaults and reset table pagination. */
 export function writeRepricingDraft(
   query: URLSearchParams,
   draft: RepricingDraft,
@@ -121,7 +119,6 @@ export const initialRepricingState = (
   edits: { selection: [], manualPrices: [] },
   page: 1,
 });
-/** A filter/parameter change resets both override kinds; paging preserves the selected scenario. */
 export function repricingWorkspaceReducer(
   state: RepricingWorkspaceState,
   action: RepricingWorkspaceAction,

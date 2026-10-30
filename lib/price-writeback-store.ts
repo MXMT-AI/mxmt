@@ -24,7 +24,6 @@ async function operationInTx(p:AiPrincipal,id:string,tx:SqlClient){
  if(!r||r.after.actorId!==p.userId)throw new E("PRICE_OPERATION_NOT_FOUND",404);return r.after;
 }
 async function saveOperation(p:AiPrincipal,op:PriceOperation,tx:SqlClient){await tx.$executeRaw(Prisma.sql`UPDATE "MerchandisingAction" SET after=${JSON.stringify(op)}::jsonb WHERE "tenantId"=${p.tenantId} AND id=${op.id} AND "entityType"='PRICE_WRITEBACK'`);}
-/** Verify current source, original financial publication, credentials revision and exact one-to-one source product mapping. */
 async function bindingInTx(p:AiPrincipal,snapshotId:string,items:Array<{skuId:string;productId?:string}>,access:PriceAccessPolicy,tx:SqlClient):Promise<Binding>{
  const {snapshot,selected}=await resolveAiSnapshot(p,snapshotId,tx);
  const [connection]=await tx.$queryRaw<Array<{revision:number;accountHost:string}>>(Prisma.sql`SELECT revision,"accountHost" FROM "ConnectorConnection" WHERE "tenantId"=${p.tenantId} AND "sourceId"=${selected.id} AND provider='salesdrive'`);
@@ -38,12 +37,10 @@ async function assertLive(p:AiPrincipal,op:PriceOperation,access:PriceAccessPoli
  const live=await bindingInTx(p,op.binding.snapshotId,op.items,access,tx);
  if(payloadHash(live)!==payloadHash(op.binding))throw new E("PRICE_CONTEXT_CHANGED",409);
 }
-/** Recovery targets the original account/product IDs even after source refresh, mapping changes or credential rotation. */
 async function assertReconciliationIdentity(p:AiPrincipal,op:PriceOperation,r:ReturnType<typeof runtime>,tx:SqlClient){
  const [connection]=await tx.$queryRaw<Array<{accountHost:string;revision:number}>>(Prisma.sql`SELECT "accountHost",revision FROM "ConnectorConnection" WHERE "tenantId"=${p.tenantId} AND "sourceId"=${op.binding.sourceId} AND provider='salesdrive'`);
  if(r.access.sourceId!==op.binding.sourceId||!connection||connection.accountHost!==op.binding.accountHost||connection.revision!==r.access.connectionRevision)throw new E("PRICE_RECONCILIATION_ACCOUNT_CHANGED",409);
 }
-/** Reserve every external read/write before network access; shared account windows count failures and unknown outcomes too. */
 async function reserveCall(p:AiPrincipal,kind:"READ"|"WRITE",r:ReturnType<typeof runtime>,operationId:string|null,tx:SqlClient){
  validatePriceAccess(r.access,r.clock());
  return reserveExternalActionAttempt(p,tx,{entityType:"PRICE_TRANSPORT_ATTEMPT",prefix:"price-attempt",kind,operationId,quotaKey:r.access.quotaKey,from:r.access.from,to:r.access.to,limit:kind==="READ"?r.access.maxReads:r.access.maxWrites,policy:r.access,now:r.clock(),quotaError:()=>new E("PRICE_ACCOUNT_QUOTA_EXCEEDED",429)});
@@ -55,7 +52,6 @@ async function readRemote(p:AiPrincipal,ids:string[],attempts:string[],r:ReturnT
  try{const result=await timed(o,signal=>r.transport.read({productIds:ids,attemptIds:attempts,signal}));const products=parseRemotePrices(result.products,ids,r.clock());if(attempts.some(id=>!result.attempts||!["APPLIED","NOT_APPLIED","UNKNOWN"].includes(result.attempts[id])))throw new E("PRICE_ATTEMPT_EVIDENCE_MISSING",502);await settleCall(p,attempt,"DONE",r);return {products,attempts:result.attempts??{}};}
  catch(error){await settleCall(p,attempt,"FAILED_OR_UNKNOWN",r);throw error instanceof E?error:new E("PRICE_REMOTE_READ_FAILED",502);}
 }
-/** Create a read-only diff from immutable repricing rows. Production supplies no transport/access policy, so it cannot dispatch. */
 export async function previewPriceWriteback(p:AiPrincipal,value:unknown,o:Options={}){
  if(!isRecord(value)||(!exactKeys(value,["exportId","skuIds","compensatesId"])&&!exactKeys(value,["exportId","skuIds","compensatesId","currentSnapshotId"]))||!Array.isArray(value.skuIds)||!value.skuIds.length||value.skuIds.length>PRICE_WRITEBACK_MAX_ITEMS||new Set(value.skuIds).size!==value.skuIds.length||value.compensatesId!==null&&typeof value.compensatesId!=="string")throw new E("INVALID_PRICE_PREVIEW");
  if(value.currentSnapshotId!==undefined&&(value.compensatesId===null||typeof value.currentSnapshotId!=="string"))throw new E("INVALID_PRICE_PREVIEW");
@@ -84,7 +80,6 @@ export async function previewPriceWriteback(p:AiPrincipal,value:unknown,o:Option
   await tx.$executeRaw(Prisma.sql`INSERT INTO "MerchandisingAction" (id,"tenantId","actorId","configId",action,"entityType","entityId","idempotencyKey",after,context,"createdAt") VALUES (${id},${p.tenantId},${p.userId},${op.binding.snapshotId},'PRICE_DIFF_PREVIEW','PRICE_WRITEBACK',${exportId},${`price-operation:${id}`},${JSON.stringify(op)}::jsonb,${JSON.stringify({kind:"PRICE_WRITEBACK_V1",version:1})}::jsonb,${r.clock()})`);return op;
  },true);
 }
-/** Approval pins a hash and expiry but performs no remote mutation. */
 export async function approvePriceWriteback(p:AiPrincipal,value:unknown,o:Options={}){
  if(!isRecord(value)||!exactKeys(value,["operationId","previewHash","reference"])||!priceReference(value.reference)||typeof value.previewHash!=="string")throw new E("INVALID_PRICE_APPROVAL");
  const id=priceId(value.operationId),reference=value.reference,hash=value.previewHash,r=runtime(o);
@@ -93,7 +88,6 @@ export async function approvePriceWriteback(p:AiPrincipal,value:unknown,o:Option
   op.state="APPROVED";op.approval={by:p.userId,at:r.clock().toISOString(),expiresAt:new Date(r.clock().getTime()+PRICE_APPROVAL_TTL_MS).toISOString(),reference};await saveOperation(p,op,tx);return op;
  },true);
 }
-/** Execute exactly once: reserve each item before dispatch and never retry an uncertain transport outcome. */
 export async function executePriceWriteback(p:AiPrincipal,value:unknown,o:Options={}){
  if(!isRecord(value)||!exactKeys(value,["operationId","previewHash"])||typeof value.previewHash!=="string")throw new E("INVALID_PRICE_EXECUTION");
  const id=priceId(value.operationId),hash=value.previewHash,r=runtime(o);
@@ -101,7 +95,6 @@ export async function executePriceWriteback(p:AiPrincipal,value:unknown,o:Option
   const op=await operationInTx(p,id,tx);if(op.previewHash!==hash)throw new E("PRICE_PREVIEW_CHANGED",409);
   if(op.state!=="APPROVED")return {op,dispatch:false};await assertLive(p,op,r.access,tx);
   if(!op.approval||op.approval.by!==p.userId||Date.parse(op.approval.expiresAt)<=r.clock().getTime())throw new E("PRICE_APPROVAL_EXPIRED",409);
-  // This preflight claim serializes duplicate execute requests without holding a DB transaction across network I/O.
   op.state="PREFLIGHT";op.startedAt=r.clock().toISOString();await saveOperation(p,op,tx);return {op,dispatch:true};
  },true);
  if(!prepared.dispatch)return prepared.op;
@@ -140,7 +133,6 @@ export async function executePriceWriteback(p:AiPrincipal,value:unknown,o:Option
  }
  return aiTransaction(p,r.db,async tx=>{const op=await operationInTx(p,id,tx);op.items=op.items.map(i=>i.state==="PENDING"?{...i,state:"FAILED",reason:"BATCH_STOPPED_BEFORE_DISPATCH"}:i);op.state=priceOperationState(op.items);await saveOperation(p,op,tx);return op;},true);
 }
-/** An authoritative terminal-attempt lookup is mandatory; matching current price alone never proves a timed-out write finished. */
 export async function reconcilePriceWriteback(p:AiPrincipal,value:unknown,o:Options={}){
  if(!isRecord(value)||!exactKeys(value,["operationId"]))throw new E("INVALID_PRICE_RECONCILIATION");
  const id=priceId(value.operationId),r=runtime(o),op=await aiTransaction(p,r.db,async tx=>{const op=await operationInTx(p,id,tx);await assertReconciliationIdentity(p,op,r,tx);return op;},true);
@@ -163,5 +155,4 @@ export async function reconcilePriceWriteback(p:AiPrincipal,value:unknown,o:Opti
   current.reconciliation={by:p.userId,at:r.clock().toISOString(),policyHash:payloadHash(r.access),accessPolicy:structuredClone(r.access)};current.state=priceOperationState(current.items);await saveOperation(p,current,tx);return current;
  },true);
 }
-/** Bounded actor-scoped history is available without a transport; reading history never enables or retries an external action. */
 export async function readPriceWriteback(p:AiPrincipal,id:string,db:SqlDatabase=prisma){return aiTransaction(p,db,tx=>operationInTx(p,id,tx),true);}

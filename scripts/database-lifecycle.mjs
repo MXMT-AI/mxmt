@@ -6,7 +6,6 @@ import {databaseSchemaPolicy} from "../lib/database-schema-policy.mjs";
 
 const require=createRequire(import.meta.url);
 
-/** Never check a different Neon database from the one the application will read. */
 export function validateDatabaseTarget(env){
   let runtime,direct;
   try{runtime=new URL(env.DATABASE_URL);direct=new URL(env.DIRECT_URL);}
@@ -15,7 +14,6 @@ export function validateDatabaseTarget(env){
     throw new Error("DATABASE_URL and DIRECT_URL must use PostgreSQL.");
   const host=url=>url.hostname.endsWith(".neon.tech")?url.hostname.replace(/-pooler(?=\.)/,""):url.hostname;
   const schema=url=>url.searchParams.get("schema")??"public";
-  // Prisma uses the host query parameter for Unix sockets; reject ambiguous repeats.
   const socket=url=>url.searchParams.get("host");
   if([runtime,direct].some(url=>url.searchParams.getAll("host").length>1)||socket(runtime)!==socket(direct)||host(runtime)!==host(direct)||(runtime.port||"5432")!==(direct.port||"5432")||runtime.pathname!==direct.pathname||schema(runtime)!==schema(direct))
     throw new Error("DATABASE_URL and DIRECT_URL must target the same database and schema.");
@@ -25,11 +23,6 @@ export function validateDatabaseTarget(env){
   databaseSchemaPolicy(direct);
 }
 
-/**
- * Startup/deployment only inspect migration history; applying migrations is a separate release step.
- * @param {string} mode
- * @param {{env?: Record<string, string|undefined>, run?: (tool: "prisma"|"next", args: string[]) => number, log?: (message: string) => void}} [options]
- */
 export function runDatabaseLifecycle(mode,{env=process.env,run,log=console.error}={}){
   if(!["check","vercel"].includes(mode)){log("Usage: node scripts/database-lifecycle.mjs <check|vercel>");return 1;}
   try{validateDatabaseTarget(env);}catch(error){log(error.message);return 1;}

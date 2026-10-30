@@ -5,7 +5,6 @@ import { getProductQuality } from "@/lib/product-quality";
 import { saveBrandAlias, saveProductKind } from "@/lib/product-normalization";
 export const dynamic = "force-dynamic";
 const headers = { "Cache-Control": "no-store" };
-/** Current tenant diagnostics only; source secrets/raw customer payloads are never returned. */
 export async function GET(request: NextRequest) {
   const { user, response } = await requireApiUser();
   if (response) return response;
@@ -35,7 +34,6 @@ export async function GET(request: NextRequest) {
     return apiError("Data quality is unavailable", 503, "QUALITY_UNAVAILABLE");
   }
 }
-/** Administrative normalization overrides are validated, tenant-scoped and audited atomically. */
 export async function POST(request: NextRequest) {
   const { user, response } = await requireApiUser("ADMIN");
   if (response) return response;

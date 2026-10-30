@@ -4,7 +4,6 @@ import { apiFetch } from "@/lib/fetch";
 import { readApiJson } from "@/lib/api-response";
 import { LatestScenarioRequest } from "@/lib/scenario-preview";
 export type ScenarioFailure = { code: string; details: string[] };
-/** Post scenario intent through the shared authenticated fetch wrapper and JSON error contract. */
 export async function postScenario<T extends Record<string, unknown>>(
   path: string,
   body: unknown,
@@ -27,7 +26,6 @@ export async function postScenario<T extends Record<string, unknown>>(
     };
   return data;
 }
-/** Normalize transport failures without exposing raw exceptions or malformed field details. */
 export function scenarioFailure(error: unknown): ScenarioFailure {
   if (
     typeof error !== "object" ||
@@ -43,7 +41,6 @@ export function scenarioFailure(error: unknown): ScenarioFailure {
   return { code: error.code, details };
 }
 
-/** Shared live scenario transport: debounce, abort, identity checks and stale-response fencing. */
 export function useScenarioPreview<T extends Record<string, unknown>>(
   endpoint: string,
   request: object | null,

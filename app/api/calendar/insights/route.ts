@@ -12,8 +12,8 @@ export interface CalendarInsight {
   title: string;
   desc: string;
   impact: string;
-  weekKey?: string;   // ISO week key e.g. "w18" — for placing chip in calendar grid
-  rowKey?: string;    // calendar row e.g. "supply", "accent", "promo"
+  weekKey?: string;
+  rowKey?: string;
 }
 
 function currentISOWeek(): number {
@@ -25,7 +25,6 @@ function currentISOWeek(): number {
   return Math.ceil((((date.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
 }
 
-/** Build calendar signals from eligible products without fabricating stock observations. */
 export async function GET() {
   const { user, response } = await requireApiUser();
   if (response) return response;
@@ -79,7 +78,6 @@ export async function GET() {
     return { name: s.name, brand: s.brand?.name ?? null, stock, sold7, sold30, avgDaily30: Math.round(avg30 * 10) / 10, daysOfStock: days, leadTime, flag: classify(stock, sold7, sold30, leadTime, thresholds) };
   });
 
-  // Group by brand, pick worst flag per brand
   const brandMap = new Map<string, Row>();
   for (const row of classified) {
     const key = row.brand ?? row.name;
@@ -93,7 +91,6 @@ export async function GET() {
   const insights: CalendarInsight[] = [];
   const baseWeek = currentISOWeek();
 
-  // Stockouts → warnings in "supply" row
   const stockouts = [...brandMap.values()]
     .filter((r) => r.flag === "stockout")
     .sort((a, b) => a.daysOfStock - b.daysOfStock)
@@ -115,7 +112,6 @@ export async function GET() {
     });
   }
 
-  // Hits → agent chips in "accent" row (current week)
   const hits = [...brandMap.values()]
     .filter((r) => r.flag === "hit")
     .sort((a, b) => b.sold7 - a.sold7)
@@ -136,7 +132,6 @@ export async function GET() {
     });
   }
 
-  // Dead stock → clearance in "promo" row (current week)
   const dead = [...brandMap.values()]
     .filter((r) => r.flag === "dead" && r.stock > 0)
     .sort((a, b) => b.stock - a.stock)

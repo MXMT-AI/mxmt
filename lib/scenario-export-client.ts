@@ -1,5 +1,4 @@
 import type { ExportKind } from "./scenario-export-contract";
-/** Reuse the same idempotency key after an uncertain response; a completed click starts a new export. */
 export class ExportAttempt {
   private pending = new Map<string, string>();
   id(key: string, create: () => string) {

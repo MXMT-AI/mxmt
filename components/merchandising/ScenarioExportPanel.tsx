@@ -68,7 +68,6 @@ function Files({
     </div>
   );
 }
-/** Show prepared artifacts and their audit history without recomputing prices or exposing VIEWER download actions. */
 export default function ScenarioExportPanel({
   state,
   previewId,

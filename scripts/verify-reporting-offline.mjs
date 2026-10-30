@@ -7,7 +7,6 @@ if (!workbook || extra.length) {
   );
   process.exit(1);
 }
-// Never load .env or connect to configured databases. The suite mocks the SQL singleton.
 const result = spawnSync(
   process.execPath,
   [

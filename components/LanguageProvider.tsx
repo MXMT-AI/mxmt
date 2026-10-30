@@ -4,7 +4,6 @@ import { useLocale, useMessages } from "next-intl";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import type { Lang, Translations } from "@/lib/translations";
 
-/** Compatibility hook for existing typed copy. Locale belongs to the route. */
 export function useLang() {
   const lang = useLocale();
   const t = useMessages() as Translations;

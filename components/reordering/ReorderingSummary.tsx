@@ -10,7 +10,6 @@ import { formatTableValue as format } from "@/lib/data-reporting-ui";
 import type { DataColumnMetadata } from "@/lib/data-table-api";
 import type { ReorderingCopy } from "@/lib/reordering-copy";
 import type { ReorderingPreview } from "./ReorderingEditor";
-/** Suppress outdated cash claims until the newest server scenario succeeds. */
 export default function ReorderingSummary({
   data,
   current,
@@ -90,7 +89,6 @@ export default function ReorderingSummary({
     </section>
   );
 }
-/** Groups use server totals over the complete scenario, never sums of the visible SKU page. */
 export function SupplierGroups({
   data,
   copy,

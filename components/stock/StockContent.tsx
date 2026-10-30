@@ -27,7 +27,6 @@ type Href = (values: Record<string, string | null>) => string;
 const primary = ["DEAD", "RISK", "HEALTHY"] as const;
 const statusName = (copy: StockCopy, status: string) =>
   copy.statuses[status as keyof StockCopy["statuses"]] ?? status;
-/** Render exact known values and disclose partial valuation instead of formatting it as zero. */
 function Cost({
   value,
   covered,
@@ -55,7 +54,6 @@ function Cost({
     </>
   );
 }
-/** Legend links are the keyboard alternative to selecting graphical status segments. */
 function QualityRing({
   block,
   selected,
@@ -241,7 +239,6 @@ function QualityRing({
     </div>
   );
 }
-/** A category bar uses the full category's monetary denominator, including the gray remainder. */
 function Structure({
   row,
   copy,
@@ -280,7 +277,6 @@ function Structure({
     </span>
   );
 }
-/** K1–K4 preserve the saved calculation and expose SKU/action navigation without running actions. */
 export default function StockContent({
   data,
   lang,

@@ -72,7 +72,6 @@ export async function POST(request: NextRequest) {
       return withRequestId(validationError(issues, context.requestId), context.requestId);
     }
 
-    // Allow per-session override via cookie (set by Settings page)
     const cookieStore = await cookies();
     const providerOverride = cookieStore.get("ai_provider")?.value;
 

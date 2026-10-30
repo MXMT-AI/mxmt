@@ -70,7 +70,6 @@ export function pageRequest(state: ContinuationState): PageRequest {
       ? { offset: p.offset }
       : { cursor: p.cursor };
 }
-/** A cursor/offset can never be mistaken for the old nextPage=null completion signal. */
 export function advancePage<T>(
   state: ContinuationState,
   page: ConnectorPage<T>,

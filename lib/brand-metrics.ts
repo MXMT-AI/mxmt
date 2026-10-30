@@ -8,7 +8,6 @@ import {
   type MerchandisingPolicy,
 } from "./classify";
 
-/** Shared K4 precedence for in-memory daily publication and SQL screen aggregates. */
 export function dailyBrandSignal(
   input: {
     brandId: string | null;
@@ -38,7 +37,6 @@ export function dailyBrandSignal(
               : "UNAVAILABLE";
 }
 
-/** K4 consumes the frozen SKU version. Ratios use sums, never an average of SKU ratios. */
 export function summarizeDailyBrands(
   rows: ClassifiedDailySku[],
   policy: MerchandisingPolicy,
@@ -137,24 +135,24 @@ export interface BrandMetric {
   skuCount: number;
   totalStock: number;
   salesLast7d: number;
-  salesLast30d: number; // sales within the analysis window (default: last 30d)
-  salesPrev7d: number; // previous trend window (7-14d ago, or first half of custom range)
-  avgDailyVelocity: number; // units/day over the analysis window
-  wohDays: number; // weeks on hand → in days
-  strPercent: number; // stock turn ratio %
-  trend7dPct: number; // % change recent vs previous trend window
-  gmPercent: number; // gross margin %
-  safeDiscountCapPercent?: number; // brand-wide cap that keeps stocked SKUs at >=10% margin
-  frozenCapital: number; // stock * purchase price
-  periodDays: number; // length of the analysis window in days
+  salesLast30d: number;
+  salesPrev7d: number;
+  avgDailyVelocity: number;
+  wohDays: number;
+  strPercent: number;
+  trend7dPct: number;
+  gmPercent: number;
+  safeDiscountCapPercent?: number;
+  frozenCapital: number;
+  periodDays: number;
 }
 
 interface Windows {
-  windowStart: Date; // start of the analysis window (dateFrom or now-30d)
-  strFrom: Date; // start of the STR window (last 7d of the window)
+  windowStart: Date;
+  strFrom: Date;
   trendMode: "weeks" | "halves";
-  trendRecentFrom: Date; // recent trend window start
-  trendPrevFrom: Date; // previous trend window start
+  trendRecentFrom: Date;
+  trendPrevFrom: Date;
   periodDays: number;
 }
 
@@ -165,11 +163,9 @@ function buildWindows(now: Date, from?: Date): Windows {
   const strFrom = new Date(Math.max(now.getTime() - 7 * day, windowStart.getTime()));
 
   if (from) {
-    // Custom range: trend = second half of the window vs first half
     const mid = new Date(windowStart.getTime() + (periodDays / 2) * day);
     return { windowStart, strFrom, trendMode: "halves", trendRecentFrom: mid, trendPrevFrom: windowStart, periodDays };
   }
-  // Default: trend = last 7d vs 7-14d ago
   return {
     windowStart,
     strFrom,

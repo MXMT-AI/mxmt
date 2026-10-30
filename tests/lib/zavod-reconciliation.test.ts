@@ -18,7 +18,6 @@ const provisional = JSON.parse(
     "utf8",
   ),
 );
-// Contract-test aggregates and signatures only. These are NOT customer source fixtures or actual approvals.
 function fixture() {
   const reference = structuredClone(provisional);
   reference.authority = "CONFIRMED";
@@ -26,7 +25,7 @@ function fixture() {
   reference.channels.forEach((c: any, i: number) => {
     c.id = `channel-${i}`;
   });
-  reference.channels[3].revenue = "61294"; // a private confirmed target must explain/replace the public rounded discrepancy
+  reference.channels[3].revenue = "61294";
   const totals = (revenue: string, profit: string) => ({
     revenue,
     coveredGrossProfit: profit,

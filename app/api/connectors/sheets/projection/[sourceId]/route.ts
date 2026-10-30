@@ -11,7 +11,6 @@ import { sheetsMappingApiError } from "@/lib/connectors/sheets-mapping-api";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
-/** Explicit projection intent; never fetches the workbook or changes source selection/approval. */
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ sourceId: string }> },

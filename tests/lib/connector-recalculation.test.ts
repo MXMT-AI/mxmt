@@ -63,8 +63,6 @@ describe("durable classification consumer", () => {
     await pg.exec(`INSERT INTO "DataImportRun" (id,"tenantId","sourceId",trigger,status,"idempotencyKey","businessDate","updatedAt") VALUES ('second-intent','stale-selection','stale-selection','MANUAL','SUCCESS','second',now(),now());
       INSERT INTO "ConnectorRecalculation" ("importRunId","tenantId","sourceId","inputProvenance") VALUES ('second-intent','stale-selection','stale-selection','{}');`);
     let injected = false;
-    // PGlite is single-connection: expose the competing committed claim between
-    // production SQL statements to model a stale source-selection snapshot.
     const staleDb: SqlDatabase = {
       ...db,
       $transaction: (callback) =>

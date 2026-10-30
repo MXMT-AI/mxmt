@@ -27,10 +27,8 @@ export interface OrderJob {
   availableAt: Date; leaseToken: string | null; leaseExpiresAt: Date | null; errorCode: string | null;
 }
 const emptyStats = (): Stats => ({ pages: 0, orders: 0, imported: 0, duplicate: 0, stale: 0, quarantined: 0, warnings: 0 });
-// Failed jobs require explicit recovery before any newer job can hide their checkpoint.
 const active = Prisma.sql`('PENDING','RUNNING','RETRY','PAUSED','FAILED')`;
 
-/** Serialize enqueue with credential changes; incremental cannot skip the initial history. */
 export async function enqueueOrderImport(tenantId: string, mode: ImportMode, options: { orderId?: string; eventKey?: string; payload?: Record<string, unknown>; requestKey?: string; expectedSourceId?: string; trigger?: "MANUAL" | "CRON" } = {}, db: SqlDatabase = prisma, now = new Date()) {
   return db.$transaction(async (tx) => {
     const [connection] = await tx.$queryRaw<Array<{ sourceId: string; revision: number; timezone: string; provider:string;capabilities:MerchandisingConnector["capabilities"]|null }>>(Prisma.sql`
@@ -67,17 +65,13 @@ export async function enqueueOrderImport(tenantId: string, mode: ImportMode, opt
   });
 }
 
-/** Claim only order jobs; other resources share the same source admission lock. */
 export async function claimOrderJob(db: SqlDatabase = prisma, tenantId?: string, now = new Date()) {
   return claimConnectorJob<OrderJob>("orders", db, tenantId, now);
 }
-/** Resume the latest recoverable order job without discarding its checkpoint. */
 export async function resumeOrderImport(tenantId: string, db: SqlDatabase = prisma) { return resumeConnectorJob(tenantId, "orders", db); }
-/** Read tenant-scoped order progress through the shared sanitized projection. */
 export async function getOrderImportProgress(tenantId: string, db: SqlClient = prisma) { return getConnectorProgress(tenantId, "orders", db); }
 
 type RuntimeLoader = (tenantId: string, backfill?: boolean, sourceId?:string,importRunId?:string) => Promise<{ sourceId: string; revision: number; timezone: string; connector: MerchandisingConnector }>;
-/** One bounded remote page per invocation. No sleeping, recursive drains or request-lifetime backfills. */
 export async function processOrderJob(tenantId?: string, db: SqlDatabase = prisma, loadRuntime: RuntimeLoader = (id,backfill,sourceId,runId)=>loadConnectorRuntime(id,backfill,db,undefined,sourceId,runId), claimed?: OrderJob) {
   const job = claimed ?? await claimOrderJob(db, tenantId);
   if (!job) return { processed: false };
@@ -100,7 +94,6 @@ export async function processOrderJob(tenantId?: string, db: SqlDatabase = prism
         ...(checkpoint.orderId?{orderId:checkpoint.orderId}:{}) });
       const next=advancePage(position,page,limit);
       checkpoint.continuation=next??position;
-      // The next-state result, not nextPage alone, determines completion for cursor/offset providers.
       page={...page,next:next?.position??null};
       if(runtime.connector.provider!=="salesdrive") {
         const coverage=page.historyCoverage;
@@ -145,14 +138,11 @@ export async function processOrderJob(tenantId?: string, db: SqlDatabase = prism
       stats.warnings += codes.size;
       await recordIssues(tx, job, codes);
       const complete = Boolean(page && page.next === null);
-      // A fixed source window plus overlap is not an API snapshot; make that limitation visible.
       if (complete && job.mode !== "WEBHOOK") {
         await recordIssues(tx, job, new Set(["SOURCE_PAGINATION_NOT_SNAPSHOT"])); stats.warnings++;
       }
-      // The lease yields after this page; keep unfinished runs queued so sibling resources can progress.
       await tx.$executeRaw(Prisma.sql`UPDATE "DataImportRun" SET status=${complete ? stats.warnings ? "WARNING" : "SUCCESS" : "PENDING"}::"DataRunStatus",stats=${JSON.stringify(stats)}::jsonb,"completedAt"=${complete ? new Date() : null},"errorMessage"=NULL,"updatedAt"=now() WHERE id=${job.importRunId} AND "tenantId"=${job.tenantId}`);
       if (complete && job.mode !== "WEBHOOK") {
-        // Never move an existing watermark backwards when replaying a historical baseline.
         await tx.$executeRaw(Prisma.sql`INSERT INTO "SyncCursor" (id,"tenantId","sourceId",resource,checkpoint,"lastSuccessfulRunId","updatedAt")
           VALUES (${randomUUID()},${job.tenantId},${job.sourceId},'orders',${JSON.stringify({ through: checkpoint.to })}::jsonb,${job.importRunId},now())
           ON CONFLICT ("tenantId","sourceId",resource) DO UPDATE SET checkpoint=EXCLUDED.checkpoint,"lastSuccessfulRunId"=EXCLUDED."lastSuccessfulRunId","updatedAt"=now()

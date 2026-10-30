@@ -72,7 +72,6 @@ const reasons: Record<string, [string, string]> = {
   MISSING_COST: ["Невідома собівартість", "Cost unavailable"],
   COMMISSION_UNVERIFIED: ["Невідома комісія", "Commission unavailable"],
 };
-/** A single server snapshot feeds every financial view; client code only formats and navigates it. */
 export default function SalesReportingWorkspace() {
   const { lang } = useLang(),
     uk = lang === "uk",

@@ -37,8 +37,6 @@ export async function runDataPipeline({
   return { import: importResult, calculation: calculationResult };
 }
 
-// SalesDrive inputs share the import lifecycle; their new financial engine is separate.
-/** Commit an idempotent recalculation intent alongside the successful import inputs. */
 export async function completeConnectorInputs(tx: SqlClient, job: Pick<ConnectorJob, "tenantId" | "sourceId" | "importRunId" | "resource">) {
   await tx.$executeRaw(Prisma.sql`INSERT INTO "ConnectorRecalculation" ("importRunId","tenantId","sourceId","inputProvenance")
     SELECT ${job.importRunId},${job.tenantId},${job.sourceId},jsonb_build_object('resource',${job.resource}::text,'importRunId',${job.importRunId}::text,'activeCatalogRunId',s."activeImportRunId",'orderWatermark',c.checkpoint,'engine','salesdrive-v2','inputConsistency','trigger-watermarks-not-frozen-calculation-inputs')

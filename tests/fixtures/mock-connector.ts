@@ -1,7 +1,6 @@
 import type { ConnectionCheck, ConnectorCapabilities, ConnectorPage, Dictionary, MerchandisingConnector, OrderDto, PageRequest, ProductDto, ReceiptDto, StockDto } from "@/lib/connectors/contract";
 import { utcWatermark } from "@/lib/connectors/requests";
 
-/** In-memory adapter used by the same consumer contract suite as SalesDrive. */
 export class MockConnector implements MerchandisingConnector {
   readonly provider = "mock" as const;
   readonly capabilities: ConnectorCapabilities = { orders: true, products: true, stock: true, receipts: true, statuses: true,

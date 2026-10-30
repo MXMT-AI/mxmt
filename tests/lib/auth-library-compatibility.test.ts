@@ -4,7 +4,6 @@ import { errors, jwtVerify } from "jose";
 import { NextRequest } from "next/server";
 import fixture from "../fixtures/auth-library-compatibility.json";
 
-// Fixed outputs from bcryptjs 2.4.3 / jose 5.10.0: detect cross-version regressions.
 const secret = new TextEncoder().encode(fixture.secret);
 const verificationTime = { currentDate: new Date("2026-10-29T12:00:00Z") };
 

@@ -70,7 +70,6 @@ function Value({ children }: { children: ReactNode }) {
   );
 }
 
-/** Paired bars only position server values; accessible table retains exact/null amounts. */
 function Trend({
   rows,
   history,
@@ -193,7 +192,6 @@ function Trend({
   );
 }
 
-/** Render only API values and server-decided thresholds, with one currency per panel. */
 export default function OverviewContent({
   data,
   lang,

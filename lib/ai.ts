@@ -37,7 +37,6 @@ export class AiConfigurationError extends Error {
   }
 }
 
-/** Resolve the explicit/session provider or retain the established OpenAI fallback. */
 export function resolveAiProvider(providerOverride?: string): AiProvider {
   const rawProvider = (providerOverride ?? process.env.AI_PROVIDER ?? DEFAULT_PROVIDER).toLowerCase();
   if (PROVIDERS.has(rawProvider as AiProvider)) {
@@ -51,14 +50,12 @@ export function getAiModel(provider: AiProvider): string {
   return MODEL_BY_PROVIDER[provider];
 }
 
-/** Clamp the configured SDK timeout to the existing serverless execution bounds. */
 export function resolveAiTimeoutMs(): number {
   const configured = Number.parseInt(process.env.AI_TIMEOUT_MS ?? "", 10);
   if (!Number.isFinite(configured)) return DEFAULT_AI_TIMEOUT_MS;
   return Math.min(MAX_AI_TIMEOUT_MS, Math.max(MIN_AI_TIMEOUT_MS, configured));
 }
 
-/** Read the selected provider's server key, failing before SDK dispatch when absent. */
 function requireApiKey(provider: AiProvider): string {
   const key = provider === "openai" ? process.env.OPENAI_API_KEY : process.env.ANTHROPIC_API_KEY;
   if (!key) {
@@ -72,11 +69,6 @@ export function assertAiProviderConfigured(provider: AiProvider): void {
   requireApiKey(provider);
 }
 
-/**
- * Unified AI chat function.
- * Switch provider via env var: AI_PROVIDER=openai (default) | anthropic
- * API keys are read server-side only — never exposed to the client.
- */
 export async function chat({
   systemPrompt,
   messages,
@@ -88,12 +80,10 @@ export async function chat({
   return (await performChat({systemPrompt, messages, maxTokens, provider, model}, 1)).text;
 }
 
-/** V2 transport: exactly one SDK attempt; the durable execution layer owns every retry and reservation. */
 export async function chatWithUsage(options: Omit<ChatOptions, "providerOverride"> & {provider: AiProvider; model: string}): Promise<AttemptResult> {
   return performChat(options, 0);
 }
 
-/** Adapt one SDK call to text and disjoint token usage; retry ownership is chosen by the caller. */
 async function performChat({systemPrompt, messages, maxTokens = 2000, provider, model}:
   Omit<ChatOptions, "providerOverride"> & {provider: AiProvider; model: string}, maxRetries: number): Promise<AttemptResult> {
   const timeout = resolveAiTimeoutMs();
@@ -116,7 +106,6 @@ async function performChat({systemPrompt, messages, maxTokens = 2000, provider, 
       ...(res.usage ? {usage: {input: res.usage.prompt_tokens-cached, output: res.usage.completion_tokens, cacheRead: cached, cacheWrite: 0}} : {})};
   }
 
-  // Anthropic remains available as an explicit override.
   const client = new Anthropic({ apiKey: requireApiKey(provider), timeout, maxRetries });
   const anthropicMessages = messages.filter(
     (message): message is AnthropicChatMessage => message.role !== "system"

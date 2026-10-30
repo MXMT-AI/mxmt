@@ -7,7 +7,6 @@ import { isRecord, parseJsonBody, serverError, stringField, validationError } fr
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-// Універсальний експорт 2D-масиву в нову Google-таблицю.
 
 export async function POST(req: NextRequest) {
   const { user: currentUser, response } = await requireApiUser("ANALYST");
@@ -37,7 +36,6 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    // email користувача — щоб розшарити файл, якщо експорт-папка не налаштована
     let email: string | null = null;
     if (userId) {
       const user = await prisma.user.findFirst({

@@ -6,7 +6,6 @@ import {RetrospectiveError} from "@/lib/scenario-retrospective";
 import {AiExecutionError} from "@/lib/ai-execution/contracts";
 import {logError} from "@/lib/observability";
 export const runtime="nodejs";export const dynamic="force-dynamic";
-/** Read an actor-owned immutable export as preparation; no launch, financial result or external delivery is inferred. */
 export async function POST(request:NextRequest){
  const {user,response}=await requireApiUser("ANALYST");if(response)return response;
  const {data,response:invalid}=await parseJsonBody(request);if(invalid)return invalid;

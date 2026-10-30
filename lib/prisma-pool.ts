@@ -2,9 +2,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { Client, Pool, escapeIdentifier, type ClientConfig } from "pg";
 import { databaseSchemaPolicy } from "./database-schema-policy.mjs";
 
-/** Translate Prisma URL settings without merging connection and acquisition deadlines. */
 export function prismaPoolOptions(connectionString?: string) {
-  // Builds must never fall back to pg's ambient localhost credentials.
   const url = new URL(connectionString ?? "postgresql://unconfigured.invalid/mxmt");
   const integer = (name: string, fallback: number, minimum: number) => {
     const raw = url.searchParams.get(name);
@@ -29,12 +27,6 @@ export function prismaPoolOptions(connectionString?: string) {
     acquisitionTimeoutMillis, schema, useSessionSearchPath, idleTimeoutMillis: 300_000 };
 }
 
-/**
- * pg's pool deadline bounds checkout (including a new connection); its Client has
- * a separate physical connection deadline. Zero disables only the named deadline.
- * Direct sessions scope raw SQL with search_path; pooled public connections never
- * issue session SET. Custom schemas over transaction pooling fail before connect.
- */
 export function createPrismaPool(options: ReturnType<typeof prismaPoolOptions>) {
   const { connectionTimeoutMillis, acquisitionTimeoutMillis, schema, useSessionSearchPath, ...config } = options;
   class ConnectionClient extends Client {
@@ -52,7 +44,6 @@ export function createPrismaPool(options: ReturnType<typeof prismaPoolOptions>) 
   });
 }
 
-/** Keep ORM qualification, raw SQL sessions and pool disposal on the same target. */
 export function prismaPgAdapter(connectionString?: string) {
   const options = prismaPoolOptions(connectionString);
   return new PrismaPg(createPrismaPool(options), { schema: options.schema, disposeExternalPool: true });

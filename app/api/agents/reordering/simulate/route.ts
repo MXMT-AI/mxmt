@@ -3,8 +3,6 @@ import { simulateReorder } from "@/lib/legacy-reorder-calc";
 import { requireApiUser } from "@/lib/server-auth";
 import { isRecord, numberField, optionalDate, parseJsonBody, serverError, stringField, validationError } from "@/lib/api-contracts";
 
-// Детермінований розрахунок дозамовлення по SKU бренда — без AI.
-// Параметри сценарію (множник обʼєму) приходять з виводу Reordering-агента.
 
 export async function POST(req: NextRequest) {
   const { user, response } = await requireApiUser("ANALYST");

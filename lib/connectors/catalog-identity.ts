@@ -4,7 +4,6 @@ import { Prisma } from "@prisma/client";
 import type { SqlClient } from "./database";
 import type { OrderScope } from "./order-storage";
 
-/** Keep an established Sheets fallback identity; never merge its facts into a legacy SKU. */
 export async function retainSheetsSourceIdentity(tx: SqlClient, scope: OrderScope, rawKey: string) {
   if (scope.provider !== "sheets") return 0;
   const { tenantId, sourceId, importRunId } = scope;

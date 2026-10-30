@@ -1,7 +1,6 @@
 import { createHash } from "node:crypto";
 import type { ClientMerchandisingSettings } from "./merchandising-settings";
 import type { OrderPolicy } from "./connectors/order-normalization";
-/** Explicitly confirmed client status lists override sale mappings; source amount evidence remains separate. */
 export function applyClientOrderSettings(
   source: OrderPolicy,
   client: ClientMerchandisingSettings,
@@ -27,7 +26,6 @@ export function applyClientOrderSettings(
   };
 }
 
-/** Plan/threshold edits do not invalidate order projections; only effective ingestion filters do. */
 export function clientOrderFilterFingerprint(
   client: ClientMerchandisingSettings,
 ) {

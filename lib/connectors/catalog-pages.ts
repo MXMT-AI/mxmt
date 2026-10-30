@@ -52,7 +52,6 @@ export async function readCatalogPage(
   )
     throw new ConnectorReadError("INVALID_RESPONSE");
   const next = advancePage(state, page, limit);
-  // Bind subsequent page positions to the observation established by the first response.
   const nextState = next
     ? {
         ...next,
@@ -77,7 +76,6 @@ export async function readCatalogPage(
     done: next === null,
   };
 }
-/** Stage pages under the import's tenant/source; only the last complete validated observation activates stock. */
 export async function stageCatalogPage(
   tx: SqlClient,
   job: ConnectorJob,

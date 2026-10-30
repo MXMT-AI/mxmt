@@ -18,7 +18,6 @@ export const capabilities: ConnectorCapabilities = {
   historicalStock: false,
   writes: false,
 };
-/** Complete contract doubles; an unsupported resource remains explicitly unavailable. */
 export function fixtureConnector(
   overrides: Partial<MerchandisingConnector> = {},
 ): MerchandisingConnector {

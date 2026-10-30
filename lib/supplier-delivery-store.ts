@@ -22,7 +22,6 @@ function runtime(o:Options){
 }
 async function operation(p:AiPrincipal,operationId:string,tx:SqlClient){const [row]=await tx.$queryRaw<Array<{after:DeliveryOperation}>>(Prisma.sql`SELECT after FROM "MerchandisingAction" WHERE "tenantId"=${p.tenantId} AND id=${id(operationId)} AND "entityType"='SUPPLIER_DELIVERY'`);if(!row||row.after.actorId!==p.userId)throw new E("SUPPLIER_DELIVERY_NOT_FOUND",404);return row.after;}
 async function save(p:AiPrincipal,op:DeliveryOperation,tx:SqlClient){await tx.$executeRaw(Prisma.sql`UPDATE "MerchandisingAction" SET after=${JSON.stringify(op)}::jsonb WHERE "tenantId"=${p.tenantId} AND id=${op.id} AND "entityType"='SUPPLIER_DELIVERY'`);}
-/** Select exactly one immutable supplier/currency file and verify the originally audited UTF-8 bytes. */
 async function exportGroup(p:AiPrincipal,exportId:string,fileId:string,tx:SqlClient){
  const [row]=await tx.$queryRaw<Array<{snapshotId:string;file:GroupFile;rows:Array<Record<string,unknown>>;totals:unknown}>>(Prisma.sql`
   SELECT context->'dataVersion'->>'snapshotId' "snapshotId",f file,
@@ -33,7 +32,6 @@ async function exportGroup(p:AiPrincipal,exportId:string,fileId:string,tx:SqlCli
  const {file}=row;if(typeof file.content!=="string"||Buffer.byteLength(file.content,"utf8")!==file.byteLength||file.byteLength>4*1024*1024||file.rowCount!==row.rows.length||createHash("sha256").update(file.content,"utf8").digest("hex")!==file.sha256)throw new E("SUPPLIER_EXPORT_INTEGRITY_FAILED",409);
  return {...row,groupHash:payloadHash({rows:row.rows,totals:row.totals,file:{id:file.id,sha256:file.sha256,byteLength:file.byteLength,rowCount:file.rowCount,supplierId:file.supplierId,currency:file.currency}})};
 }
-/** Verify live source/config/terms and approved catalog identity before every new external action. */
 async function bind(p:AiPrincipal,exportId:string,fileId:string,recipientId:string,access:DeliveryAccessPolicy,tx:SqlClient,now:Date){
  const group=await exportGroup(p,exportId,fileId,tx),recipient=await recipientInTx(p,recipientId,tx),v=recipient.values;
  if(!recipient.approvedAt||v.supplierId!==group.file.supplierId||v.channelId!==access.channelId||!v.currencies.includes(group.file.currency)||Date.parse(v.validUntil)<=now.getTime())throw new E("SUPPLIER_RECIPIENT_NOT_APPROVED_FOR_GROUP",409);
@@ -52,7 +50,6 @@ async function fresh(p:AiPrincipal,op:DeliveryOperation,r:ReturnType<typeof runt
 async function reserve(p:AiPrincipal,r:ReturnType<typeof runtime>,kind:"SEND"|"LOOKUP"|"CANCEL",operationId:string,tx:SqlClient){validateDeliveryAccess(r.access,r.clock());return reserveExternalActionAttempt(p,tx,{entityType:"SUPPLIER_DELIVERY_ATTEMPT",prefix:"supplier-attempt",kind,operationId,quotaKey:r.access.quotaKey,from:r.access.from,to:r.access.to,limit:kind==="SEND"?r.access.maxSends:kind==="LOOKUP"?r.access.maxLookups:r.access.maxCancellations,policy:r.access,now:r.clock(),quotaError:()=>new E("SUPPLIER_DELIVERY_QUOTA_EXCEEDED",429)});}
 async function settle(p:AiPrincipal,r:ReturnType<typeof runtime>,attemptId:string,state:string,evidence:unknown=null){return settleExternalActionAttempt(p,r.db,attemptId,"SUPPLIER_DELIVERY_ATTEMPT",state,evidence);}
 async function external<T>(o:Options,fn:(signal:AbortSignal)=>Promise<T>){return withExternalActionTimeout(o.timeoutMs,()=>new E("SUPPLIER_TRANSPORT_TIMEOUT",502),fn);}
-/** Preview one exact file group, not a newly recomputed order; no transport call or message is made. */
 export async function previewSupplierDelivery(p:AiPrincipal,value:unknown,o:Options={}){
  if(!isRecord(value)||!keys(value,["exportId","fileId","recipientId"]))throw new E("INVALID_SUPPLIER_DELIVERY_PREVIEW");const exportId=id(value.exportId),fileId=id(value.fileId),recipientId=id(value.recipientId),r=runtime(o);
  return aiTransaction(p,r.db,async tx=>{
@@ -66,12 +63,10 @@ export async function previewSupplierDelivery(p:AiPrincipal,value:unknown,o:Opti
   await tx.$executeRaw(Prisma.sql`INSERT INTO "MerchandisingAction" (id,"tenantId","actorId","configId",action,"entityType","entityId","idempotencyKey",after,context,"createdAt") VALUES (${operationId},${p.tenantId},${p.userId},${binding.snapshotId},'SUPPLIER_DELIVERY_PREVIEW','SUPPLIER_DELIVERY',${exportId},${`supplier-delivery:${operationId}`},${JSON.stringify(op)}::jsonb,'{"kind":"SUPPLIER_DELIVERY_V1"}',${r.clock()})`);return op;
  },true);
 }
-/** Approval pins recipient, attachment, rows, terms, message and context; approval itself never sends. */
 export async function approveSupplierDelivery(p:AiPrincipal,value:unknown,o:Options={}){
  if(!isRecord(value)||!keys(value,["operationId","previewHash","reference"])||!supplierText(value.reference)||typeof value.previewHash!=="string")throw new E("INVALID_SUPPLIER_DELIVERY_APPROVAL");const operationId=id(value.operationId),hash=value.previewHash,reference=value.reference,r=runtime(o);
  return aiTransaction(p,r.db,async tx=>{const op=await operation(p,operationId,tx);await fresh(p,op,r,tx);if(op.previewHash!==hash)throw new E("SUPPLIER_PREVIEW_CHANGED",409);if(op.state==="APPROVED"){if(op.approval?.reference!==reference)throw new E("SUPPLIER_APPROVAL_CONFLICT",409);return op;}if(op.state!=="DRAFT"||r.clock().getTime()-Date.parse(op.createdAt)>SUPPLIER_APPROVAL_TTL_MS)throw new E("SUPPLIER_PREVIEW_EXPIRED_OR_TERMINAL",409);op.state="APPROVED";op.approval={by:p.userId,reference,at:r.clock().toISOString(),expiresAt:new Date(r.clock().getTime()+SUPPLIER_APPROVAL_TTL_MS).toISOString()};await save(p,op,tx);return op;},true);
 }
-/** One durable claim per supplier/currency group, before any send. Duplicate requests never invoke the transport twice. */
 export async function sendSupplierDelivery(p:AiPrincipal,value:unknown,o:Options={}){
  if(!isRecord(value)||!keys(value,["operationId","previewHash"])||typeof value.previewHash!=="string")throw new E("INVALID_SUPPLIER_DELIVERY_SEND");const operationId=id(value.operationId),hash=value.previewHash,r=runtime(o);
  const prepared=await aiTransaction(p,r.db,async tx=>{
@@ -83,11 +78,10 @@ export async function sendSupplierDelivery(p:AiPrincipal,value:unknown,o:Options
  },true);
  if(!prepared.file)return prepared.op;
  let outcome:DeliveryOutcome={state:"UNKNOWN",destinationId:prepared.op.recipient.values.destinationId,payloadHash:prepared.op.payloadHash};
- try{const response=await external(o,signal=>r.transport.send({attemptId:prepared.op.attemptId!,destinationId:prepared.op.recipient.values.destinationId,recipientRevision:prepared.op.recipient.revision,payloadHash:prepared.op.payloadHash,subject:prepared.op.message.subject,body:prepared.op.message.body,attachment:{name:prepared.file!.name,content:prepared.file!.content,sha256:prepared.file!.sha256},approvedUntil:prepared.op.approval!.expiresAt,signal}));const parsed=parseDeliveryOutcome(response,outcome.destinationId,outcome.payloadHash);if(parsed.state!=="CANCELLED")outcome=parsed;}catch{/* Unknown is conservative; a failed transport does not prove non-delivery. */}
+ try{const response=await external(o,signal=>r.transport.send({attemptId:prepared.op.attemptId!,destinationId:prepared.op.recipient.values.destinationId,recipientRevision:prepared.op.recipient.revision,payloadHash:prepared.op.payloadHash,subject:prepared.op.message.subject,body:prepared.op.message.body,attachment:{name:prepared.file!.name,content:prepared.file!.content,sha256:prepared.file!.sha256},approvedUntil:prepared.op.approval!.expiresAt,signal}));const parsed=parseDeliveryOutcome(response,outcome.destinationId,outcome.payloadHash);if(parsed.state!=="CANCELLED")outcome=parsed;}catch{ }
  await settle(p,r,prepared.op.attemptId!,outcome.state,outcome);
  return aiTransaction(p,r.db,async tx=>{const op=await operation(p,operationId,tx);if(op.state!=="DISPATCHING"||op.attemptId!==prepared.op.attemptId)return op;op.lastOutcome=outcome;op.deliveryId=outcome.deliveryId;op.state=outcome.state==="NOT_SENT"?"FAILED":outcome.state==="UNKNOWN"?"DELIVERY_UNKNOWN":outcome.state as "SENT"|"ACKNOWLEDGED";await save(p,op,tx);return op;},true);
 }
-/** Reconciliation uses the original delivery account and destination, even if the catalog/source has since changed. */
 function recoveryAccount(op:DeliveryOperation,r:ReturnType<typeof runtime>){if(op.accessPolicy.accountId!==r.access.accountId||op.accessPolicy.channelId!==r.access.channelId||op.binding.sourceId!==r.access.sourceId)throw new E("SUPPLIER_RECOVERY_ACCOUNT_CHANGED",409);}
 export async function reconcileSupplierDelivery(p:AiPrincipal,value:unknown,o:Options={}){
  if(!isRecord(value)||!keys(value,["operationId"]))throw new E("INVALID_SUPPLIER_DELIVERY_RECOVERY");const operationId=id(value.operationId),r=runtime(o),op=await aiTransaction(p,r.db,async tx=>operation(p,operationId,tx),true);recoveryAccount(op,r);
@@ -100,7 +94,6 @@ export async function reconcileSupplierDelivery(p:AiPrincipal,value:unknown,o:Op
  return aiTransaction(p,r.db,async tx=>{const current=await operation(p,operationId,tx);recoveryAccount(current,r);
   if(cancellation){if(current.cancellation?.attemptId!==target||!["DISPATCHING","UNKNOWN"].includes(current.cancellation.state))return current;current.cancellation.outcome=outcome;current.cancellation.state=outcome.state==="CANCELLED"?"CANCELLED":outcome.state==="UNKNOWN"?"UNKNOWN":"REJECTED";if(outcome.state==="CANCELLED"&&current.state!=="RECEIVED")current.state="CANCELLED";}
   else if(current.attemptId===target&&!["CANCELLED","RECEIVED"].includes(current.state)){
-   // Known sent/acknowledged evidence never regresses to not-sent/unknown on an inconsistent later lookup.
    if(["SENT","ACKNOWLEDGED"].includes(current.state)&&["NOT_SENT","UNKNOWN"].includes(outcome.state))throw new E("SUPPLIER_DELIVERY_STATUS_CONFLICT",409);
    current.lastOutcome=outcome;if(outcome.deliveryId)current.deliveryId=outcome.deliveryId;
    current.state=outcome.state==="NOT_SENT"?"FAILED":outcome.state==="UNKNOWN"?"DELIVERY_UNKNOWN":outcome.state==="CANCELLED"?"CANCELLED":current.state==="ACKNOWLEDGED"&&outcome.state==="SENT"?"ACKNOWLEDGED":outcome.state;
@@ -108,7 +101,6 @@ export async function reconcileSupplierDelivery(p:AiPrincipal,value:unknown,o:Op
   current.reconciliation={by:p.userId,at:r.clock().toISOString(),accessPolicy:r.access,lookupAttemptId:lookupId,targetAttemptId:target};await save(p,current,tx);return current;
  },true);
 }
-/** A cancellation is new intent with its own reason, hash, approval and transport attempt; sending cannot be undone by a DB rollback. */
 export async function previewSupplierCancellation(p:AiPrincipal,value:unknown,o:Options={}){
  if(!isRecord(value)||!keys(value,["operationId","reason"])||!supplierText(value.reason))throw new E("INVALID_SUPPLIER_CANCELLATION");const operationId=id(value.operationId),reason=value.reason,r=runtime(o);
  return aiTransaction(p,r.db,async tx=>{const op=await operation(p,operationId,tx);recoveryAccount(op,r);if(!["SENT","ACKNOWLEDGED"].includes(op.state)||!op.deliveryId)throw new E("SUPPLIER_CANCELLATION_NOT_ELIGIBLE",409);if(op.cancellation)throw new E("SUPPLIER_CANCELLATION_ALREADY_EXISTS",409);const cancellationId=randomUUID();op.cancellation={id:cancellationId,policyHash:payloadHash(r.access),reason,state:"DRAFT",createdAt:r.clock().toISOString(),previewHash:payloadHash({cancellationId,operationId,deliveryId:op.deliveryId,payloadHash:op.payloadHash,binding:op.binding,policyHash:payloadHash(r.access),reason})};await save(p,op,tx);return op;},true);
@@ -122,14 +114,12 @@ export async function cancelSupplierDelivery(p:AiPrincipal,value:unknown,o:Optio
  const prepared=await aiTransaction(p,r.db,async tx=>{const op=await operation(p,operationId,tx);const c=op.cancellation;if(!c||c.previewHash!==hash||c.policyHash!==payloadHash(r.access))throw new E("SUPPLIER_CANCELLATION_PREVIEW_CHANGED",409);if(c.state!=="APPROVED")return {op,dispatch:false};recoveryAccount(op,r);if(!["SENT","ACKNOWLEDGED"].includes(op.state)||!op.deliveryId||!c.approval||c.approval.by!==p.userId||Date.parse(c.approval.expiresAt)<=r.clock().getTime())throw new E("SUPPLIER_CANCELLATION_APPROVAL_EXPIRED",409);c.attemptId=await reserve(p,r,"CANCEL",op.id,tx);c.attemptAt=r.clock().toISOString();c.state="DISPATCHING";await save(p,op,tx);return {op,dispatch:true};},true);
  if(!prepared.dispatch)return prepared.op;const c=prepared.op.cancellation!;
  let outcome:DeliveryOutcome={state:"UNKNOWN",destinationId:prepared.op.recipient.values.destinationId,payloadHash:prepared.op.payloadHash};
- try{outcome=parseDeliveryOutcome(await external(o,signal=>r.transport.cancel({attemptId:c.attemptId!,originalAttemptId:prepared.op.attemptId!,deliveryId:prepared.op.deliveryId!,destinationId:prepared.op.recipient.values.destinationId,payloadHash:prepared.op.payloadHash,reason:c.reason,approvedUntil:c.approval!.expiresAt,signal})),outcome.destinationId,outcome.payloadHash);if(outcome.deliveryId&&outcome.deliveryId!==prepared.op.deliveryId)throw new E("SUPPLIER_DELIVERY_STATUS_CONFLICT",409);}catch{outcome={state:"UNKNOWN",destinationId:prepared.op.recipient.values.destinationId,payloadHash:prepared.op.payloadHash};/* No automatic cancellation retry after an uncertain result. */}
+ try{outcome=parseDeliveryOutcome(await external(o,signal=>r.transport.cancel({attemptId:c.attemptId!,originalAttemptId:prepared.op.attemptId!,deliveryId:prepared.op.deliveryId!,destinationId:prepared.op.recipient.values.destinationId,payloadHash:prepared.op.payloadHash,reason:c.reason,approvedUntil:c.approval!.expiresAt,signal})),outcome.destinationId,outcome.payloadHash);if(outcome.deliveryId&&outcome.deliveryId!==prepared.op.deliveryId)throw new E("SUPPLIER_DELIVERY_STATUS_CONFLICT",409);}catch{outcome={state:"UNKNOWN",destinationId:prepared.op.recipient.values.destinationId,payloadHash:prepared.op.payloadHash}; }
  await settle(p,r,c.attemptId!,outcome.state,outcome);
  return aiTransaction(p,r.db,async tx=>{const op=await operation(p,operationId,tx),current=op.cancellation!;if(current.attemptId!==c.attemptId||current.state!=="DISPATCHING")return op;current.outcome=outcome;current.state=outcome.state==="CANCELLED"?"CANCELLED":outcome.state==="UNKNOWN"?"UNKNOWN":"REJECTED";if(outcome.state==="CANCELLED"&&op.state!=="RECEIVED")op.state="CANCELLED";await save(p,op,tx);return op;},true);
 }
-/** Supplier acknowledgment is not goods receipt. Reuse #108's validated posted-receipt evidence instead of duplicating receipt rules. */
 export async function recordSupplierGoodsReceipt(p:AiPrincipal,value:unknown,db:SqlDatabase=prisma){
  if(!isRecord(value)||!keys(value,["operationId","executionId"]))throw new E("INVALID_SUPPLIER_GOODS_RECEIPT");const operationId=id(value.operationId),executionId=id(value.executionId);
  return aiTransaction(p,db,async tx=>{const op=await operation(p,operationId,tx),e=await readRetrospectiveExecution(p,executionId,tx);if(op.state==="RECEIVED"){if((op.receiptEvidence as {executionId:string})?.executionId!==executionId)throw new E("SUPPLIER_RECEIPT_ALREADY_RECORDED",409);return op;}if(!["SENT","ACKNOWLEDGED"].includes(op.state)||op.cancellation&&["DISPATCHING","UNKNOWN","CANCELLED"].includes(op.cancellation.state)||e.command.kind!=="reorder"||e.command.event!=="RECEIVED"||e.command.exportId!==op.exportId||e.sourceId!==op.binding.sourceId||payloadHash(e.command.skuIds.slice().sort())!==payloadHash(op.rows.map(r=>String(r.skuId)).sort())||e.exportRows.some(r=>r.supplierId!==op.file.supplierId||r.currency!==op.file.currency))throw new E("SUPPLIER_GOODS_RECEIPT_UNVERIFIED",409);op.state="RECEIVED";op.receiptEvidence={executionId,policyVersion:e.policyVersion,receiptCoverage:e.receiptCoverage,receiptEvidence:e.receiptEvidence,confirmedBy:p.userId};await save(p,op,tx);return op;},true);
 }
-/** Reading an actor-owned audit never invokes a transport or resends an order. */
 export async function readSupplierDelivery(p:AiPrincipal,operationId:string,db:SqlDatabase=prisma){return aiTransaction(p,db,tx=>operation(p,operationId,tx),true);}

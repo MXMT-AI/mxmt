@@ -40,7 +40,7 @@ function workbook(
     ["refusal", "refusal", serial(2026, 9, 15), 6, 38, 1, 500, 100, 0, 0],
     ["return", "return", serial(2026, 9, 15), 7, 38, 1, 50, 25, 0, 0],
   ]);
-  api.G2.z = "dd.mm.yyyy"; // real-world source money cells can carry the wrong date format
+  api.G2.z = "dd.mm.yyyy";
   const catalog = XLSX.utils.aoa_to_sheet([
     ["ID", "Stock Qty", "Vendor Price", "Stock Amount"],
     ["SKU", 5, 40, 200],

@@ -43,7 +43,6 @@ const inputClass =
   "mt-1 block w-full min-w-0 rounded-lg border border-(--border) bg-(--surface) px-3 py-2 text-sm text-(--text) focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--text)";
 const buttonClass =
   "touch-manipulation rounded-lg border border-(--border) px-3 py-2 text-sm text-(--text) hover:bg-(--bg) focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--text) disabled:cursor-not-allowed disabled:opacity-50";
-/** Shared labelled control keeps server field errors adjacent to their input. */
 function Field({
   name,
   label,
@@ -69,7 +68,6 @@ function Field({
     </div>
   );
 }
-/** Browse existing tenant entities and edit one versioned settings record at a time. */
 export default function MerchandisingSettingsCard({
   lang,
   canManage,
@@ -371,7 +369,6 @@ export default function MerchandisingSettingsCard({
     </section>
   );
 }
-/** One explicit save publishes a revision; drafts never change the active server policy. */
 function SettingsEditor({
   lang,
   canManage,
@@ -1063,7 +1060,6 @@ function SettingsEditor({
     </>
   );
 }
-/** Test numbers are evaluated on the server against saved inheritance, never draft browser rules. */
 function PolicyPreview({
   lang,
   skuId,

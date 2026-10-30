@@ -9,7 +9,6 @@ import type {
 import type { CsvBundle } from "./compile";
 import { ConnectorReadError } from "../read-error";
 import { isRecord } from "@/lib/api-contracts";
-/** Offline metadata configuration; uploads are frozen separately, never in credential envelopes. */
 export function parseCsvConfig(v: unknown) {
   const valid =
     isRecord(v) &&

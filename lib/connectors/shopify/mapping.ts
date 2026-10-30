@@ -15,7 +15,6 @@ import {
   invalid,
   type Row,
 } from "./values";
-/** Only successful, non-test money movements with complete positive amounts establish an event time. */
 function paid(
   transactions: Row[],
   currency: string,
@@ -44,7 +43,6 @@ export interface FullOrder {
   lines: Row[];
   refunds: Array<{ refund: Row; lines: Row[]; transactions: Row[] }>;
 }
-/** Original merchandise sales and distinct refund events avoid double-subtracting current net totals. */
 export function mapOrders(
   c: ShopifyConfig,
   full: FullOrder,
@@ -211,7 +209,6 @@ export function mapOrders(
   }
   return result;
 }
-/** Current inventory cost is deliberately absent from sale COGS and catalog cost provenance. */
 export function mapVariant(
   c: ShopifyConfig,
   v: Row,

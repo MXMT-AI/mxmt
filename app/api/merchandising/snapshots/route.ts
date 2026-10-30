@@ -7,7 +7,6 @@ import { merchandisingApiError } from "@/lib/merchandising-api-error";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const maxDuration = 300;
-/** Derived snapshots follow #35's reader contract; this cannot activate source/settings or execute actions. */
 export async function POST(request: NextRequest) {
   const { user, response } = await requireApiUser("VIEWER");
   if (response) return response;

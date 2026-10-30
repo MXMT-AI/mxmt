@@ -23,21 +23,18 @@ const selection=(r:MarketingBriefRequest)=>({exportId:r.scenarioExportId,kind:r.
 const executionKey=(id:string)=>`marketing:${id}`;
 const channelMap:Record<MarketingChannel,RecommendationChannel>={paid_social:"ads",smm:"smm",website:"website"};
 const recoverable=new Set(["AI_POLICY_REQUIRED","AI_CAPABILITY_NOT_ENABLED","AI_BUDGET_EXCEEDED","AI_CAPABILITY_BUDGET_EXCEEDED","AI_CONFIGURATION_ERROR","AI_PROVIDER_UNAVAILABLE","AI_INVALID_OUTPUT","AI_OUTPUT_TRUNCATED","AI_INVALID_USAGE","AI_USAGE_OVERRUN","AI_INPUT_LIMIT"]);
-/** Read only the tenant's latest revision, independently of timestamps or input ordering. */
 async function head(p:AiPrincipal,briefId:string,tx:SqlClient) {
   const [row]=await tx.$queryRaw<DraftRecord[]>(Prisma.sql`SELECT id,"actorId",context,after FROM "MerchandisingAction"
     WHERE "tenantId"=${p.tenantId} AND "entityType"='MARKETING_BRIEF' AND "entityId"=${briefId}
       AND context->>'kind'='MARKETING_BRIEF_V1' ORDER BY (context->>'revision')::int DESC LIMIT 1`);
   return row;
 }
-/** Check saved scope against the same actor's frozen scenario and current screen provenance. */
 async function current(p:AiPrincipal,request:MarketingBriefRequest,tx:SqlClient){
   const evidence=await resolveAiEvidence(p,request.snapshotId,{brandId:request.brandId},tx,selection(request));
   const [brand]=await tx.$queryRaw<Array<{id:string;name:string}>>(Prisma.sql`SELECT id,name FROM "Brand" WHERE "tenantId"=${p.tenantId} AND id=${request.brandId}`);
   if(!brand)throw new AiExecutionError("AI_MARKETING_BRAND_NOT_FOUND",404);
   return {evidence,brand};
 }
-/** Build safe internal preparation text using the existing commercial fallback; offers stay structured server facts. */
 function factualDraft(request:MarketingBriefRequest,evidence:AiEvidence,brand:{id:string;name:string},id:string,generated?:AiExecutionResult<"marketing-briefs-v1">,reason?:string):MarketingDraft {
   const decision:CommercialDecision={brand_id:brand.id,brand_name:brand.name,type:request.kind==="reorder"?"reorder":"visibility",action:request.kind==="reorder"?"REORDER":"VISIBILITY",label:request.kind==="reorder"?"Підготовка до можливого поповнення":"Підготовка маркетингової пропозиції"};
   const fallback=buildCommercialFallback(decision,request.campaign.from);
@@ -58,7 +55,6 @@ function factualDraft(request:MarketingBriefRequest,evidence:AiEvidence,brand:{i
     })};
 }
 
-/** Claim an immutable brief revision, reserve its whole multi-channel request, then save validated drafts. */
 async function generate(p:AiPrincipal,value:unknown,options:{db?:SqlDatabase;now?:()=>Date;transport?:AiAttemptTransport}={}):Promise<MarketingDraft>{
   const request=parseMarketingBrief(value),db=options.db??prisma,requestHash=payloadHash(request);
   const prepared=await aiTransaction(p,db,async tx=>{
@@ -104,10 +100,8 @@ async function generate(p:AiPrincipal,value:unknown,options:{db?:SqlDatabase;now
     throw failure;
   }
 }
-/** Stable public service boundary; no database error text is returned to the caller. */
 export async function generateMarketingBrief(...args:Parameters<typeof generate>){try{return await generate(...args);}catch(error){throw aiExecutionFailure(error);}}
 
-/** Owner approval is bound to a latest revision/context; scheduling is an idempotent internal task handoff only. */
 export async function approveMarketingBrief(p:AiPrincipal,value:unknown,db:SqlDatabase=prisma,now=new Date()){
   const v=value as {briefId?:unknown;draftId?:unknown;phase?:unknown};
   if(!v||typeof v!=="object"||Object.keys(v).sort().join()!=="briefId,draftId,phase"||!["offer","calendar"].includes(String(v.phase)))throw new AiExecutionError("AI_INVALID_MARKETING_APPROVAL",400);
@@ -141,7 +135,6 @@ export async function approveMarketingBrief(p:AiPrincipal,value:unknown,db:SqlDa
     const calendarKey=`marketing-calendar:${draftId}`;
     await tx.$executeRaw(Prisma.sql`INSERT INTO "MerchandisingAction" (id,"tenantId","actorId",action,"entityType","entityId","idempotencyKey",after,context)
       VALUES (${randomUUID()},${p.tenantId},${p.userId},'MARKETING_CALENDAR_APPROVED','MARKETING_APPROVAL',${draftId},${calendarKey},${JSON.stringify({draftId,events,year:date.getUTCFullYear(),approvedBy:p.userId,approvedAt:now.toISOString()})}::jsonb,'{"kind":"MARKETING_CALENDAR_V1"}') ON CONFLICT ("tenantId","idempotencyKey") DO NOTHING`);
-    // Read the charged record for traceability; fallback-only preparation has no paid execution.
     const execution=await executionByKey({tenantId:p.tenantId,userId:row.actorId},executionKey(draftId),tx);
     return {draftId,created,events,usage:execution?{executionId:execution.id,state:execution.state,charged:execution.charged,currency:execution.metadata.policy.currency}:null};
   },true);

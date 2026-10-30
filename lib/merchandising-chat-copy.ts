@@ -1,5 +1,4 @@
 export const chatCopy={
- // Field names are resolved by the server; never display model-provided metric labels.
  uk:{required:"Напишіть запитання.",title:"Запитати про ці дані",intro:"Числа надходять зі збереженого звіту. AI пояснює їх, але не змінює ціни, замовлення чи календар.",
    topic:"Тема",topics:{overview:"Загальна картина",sales:"Продажі",stock:"Залишки",repricing:"Збережена уцінка",reordering:"Збережене дозамовлення"},
    question:"Ваше запитання",placeholder:"Наприклад: які показники потребують уваги?…",send:"Отримати пояснення",sending:"Пояснюю…",reset:"Нова розмова",retry:"Повторити перевірку",you:"Ваше запитання",answer:"Пояснення AI",facts:"Показники зі звіту",source:"Перевірити дані",sources:"Джерела пояснення",period:"Продажі за період",stockDate:"Дата залишків",partial:"Лише покрита частина",incomplete:"Неповні дані",unavailable:"Немає підтверджених даних",units:"од.",unknownCurrency:"Валюта не підтверджена",readOnly:"Для запиту пояснення потрібен доступ аналітика або адміністратора.",empty:"Оберіть тему й поставте запитання. Ціни й закупівлі залишаться без змін.",limit:"Ліміт цієї розмови досягнуто. Почніть нову, щоб поставити наступне запитання.",network:"Не вдалося перевірити відповідь. Повторна перевірка використає той самий запит.",changed:"Дані або фільтри змінилися. Оновіть звіт і почніть нову розмову.",scope:"Пояснення стосується вибраного періоду й фільтрів. Фільтр каналу застосовується до продажів; залишки є спільними.",warning:"Пояснення є рекомендацією. Точні значення й обмеження наведено в показниках і джерелах.",
@@ -15,7 +14,6 @@ export const citationCopy={
  uk:{current:"Вибраний період",priorYear:"Попередній рік",stock:"Залишки",scenario:"Збережений сценарій",metric:"Показник",fields:{revenue:"Дохід",coveredGrossProfit:"Покритий валовий прибуток",coveredRevenue:"Покритий дохід",stockCost:"Залишок за собівартістю",quantity:"Кількість",units:"Продано одиниць",orderCount:"Кількість замовлень",sum:"Сума",purchaseAmount:"Сума закупівлі"}},
  en:{current:"Selected period",priorYear:"Prior year",stock:"Stock",scenario:"Saved scenario",metric:"Metric",fields:{revenue:"Revenue",coveredGrossProfit:"Covered gross profit",coveredRevenue:"Covered revenue",stockCost:"Stock at cost",quantity:"Quantity",units:"Units sold",orderCount:"Order count",sum:"Amount",purchaseAmount:"Purchase amount"}}
 };
-/** Map stable API codes to user actions without showing provider/database details. */
 export function chatNotice(code:string|undefined,copy:typeof chatCopy.uk|typeof chatCopy.en):string {
  if(!code)return copy.provider;
  if(code==="AI_CHAT_EMPTY_QUESTION")return copy.required;

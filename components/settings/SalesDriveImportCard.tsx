@@ -38,10 +38,8 @@ interface ImportResponse extends Record<string, unknown> {
   code?: string;
   error?: string;
 }
-/** Poll jobs that are queued, leased or waiting for an automatic retry. */
 const running = (job: Progress | null) =>
   Boolean(job && ["PENDING", "RUNNING", "RETRY"].includes(job.state));
-/** Share import progress and recovery controls across order and inventory resources. */
 export default function SalesDriveImportCard({
   lang,
   canManage,
@@ -525,7 +523,6 @@ export default function SalesDriveImportCard({
   );
 }
 
-/** Explain sanitized data-quality codes without displaying private source payloads. */
 function issueLabel(code: string, uk: boolean,generic=false) {
   if(generic&&code==="SOURCE_PAGINATION_NOT_SNAPSHOT")return uk?"Сторінки джерела можуть змінюватися під час читання. Звірте дані перед активацією.":"Source pages may change while reading. Reconcile the account before activation.";
   if(generic&&code==="INVALID_RECEIPT_LINE")return uk?"Некоректні надходження пропущено. Виправте кількості або собівартість у джерелі й повторіть імпорт.":"Invalid receipts were skipped. Correct quantities or costs in the source and import again.";
@@ -661,7 +658,6 @@ function issueLabel(code: string, uk: boolean,generic=false) {
   );
 }
 
-/** Translate recoverable import failures into a concrete next action. */
 function errorLabel(code: string, uk: boolean,generic=false) {
   if(generic&&["AUTH_FAILED","NOT_CONFIGURED","CONNECTOR_PROVIDER_UNAVAILABLE","CONNECTOR_BUDGET_UNVERIFIED"].includes(code))return uk?"Завершіть налаштування з’єднання й перевірте доступ перед відновленням.":"Complete connection setup and check access before resuming.";
   if(generic&&["TIMEOUT","NETWORK_ERROR","INVALID_RESPONSE"].includes(code))return uk?"Джерело не надало коректної відповіді. Перевірте доступ і повторіть імпорт.":"The source did not return a valid response. Check access and retry the import.";

@@ -2,7 +2,6 @@ import { parseAgentJson } from "../agent-output";
 import { isRecord } from "../api-contracts";
 import { AiExecutionError } from "./contracts";
 
-/** Evidence references are JSON pointers into the immutable facts, never arbitrary model-provided IDs. */
 export function evidenceReferences(facts: unknown): string[] {
   const refs: string[] = [];
   const visit = (value: unknown, path: string) => {
@@ -17,7 +16,6 @@ export interface AiAdvice {
   recommendations: Array<{text: string; evidenceRefs: string[]}>;
 }
 export const AI_ADVICE_SCHEMA_VERSION = "evidence-advice-v1";
-/** Enforce the bounded text-only schema and reject unknown fact fields or evidence pointers. */
 export function parseAiAdvice(raw: string, allowed: ReadonlySet<string>): AiAdvice {
   const invalid = (): never => { throw new AiExecutionError("AI_INVALID_OUTPUT", 502); };
   if (raw.length > 128000) return invalid();

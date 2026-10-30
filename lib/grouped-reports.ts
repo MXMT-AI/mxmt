@@ -95,7 +95,6 @@ export function calculateGroupedReportRows(
 }
 
 export type SalesGroupDimension='sku'|'brand'|'category'|'channel';
-/** Financial views group the same eligible facts, never averages of rounded row margins. */
 export function calculateSalesGroupedRows(facts:import('./sales-metrics').SalesFact[],dimension:SalesGroupDimension,context:import('./sales-metrics').SalesMetricContext){
  const groups=new Map<string,{id:string;name:string;currency:string|null;facts:import('./sales-metrics').SalesFact[]}>();
  for(const f of facts){

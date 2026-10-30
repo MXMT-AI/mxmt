@@ -19,7 +19,6 @@ export interface PolicyInputs {
   seasonMonths?: number[] | null;
   supplierTermsVerified?: boolean;
 }
-/** Resolve explicit SKU overrides before brand terms; UNKNOWN is never confirmed own stock. */
 export function resolveMerchandisingPolicy(
   input: PolicyInputs,
   client: ClientMerchandisingSettings = defaultClientSettings(),
@@ -65,7 +64,6 @@ export function resolveMerchandisingPolicy(
     newProductWeeks: client.newProductWeeks,
   };
 }
-/** Shared own-stock/consignment formula; zero ordinary-product cost remains unverified. */
 export function grossProfitForPolicy(
   policy: { ownership: Ownership; commissionRate: string | null },
   revenue: string,
@@ -82,7 +80,6 @@ export function grossProfitForPolicy(
     return amount.mul(policy.commissionRate);
   return null;
 }
-/** Deterministic preview consumes persisted policy, with unknown-profit/transit coverage explicit. */
 export function previewMerchandisingCalculations(
   policy: ReturnType<typeof resolveMerchandisingPolicy>,
   input: {
@@ -129,7 +126,6 @@ export function previewMerchandisingCalculations(
   };
 }
 
-/** Missing or zero targets never become a fabricated attainment percentage. */
 export function evaluateMonthlyPlan(
   client: ClientMerchandisingSettings,
   month: string,

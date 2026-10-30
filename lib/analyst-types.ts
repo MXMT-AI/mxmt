@@ -1,10 +1,10 @@
 export type SkuFlag = "hit" | "stockout" | "slow" | "dead" | "ok";
 
 export interface ClassifyThresholds {
-  hitMultiplier: number;    // avg7 > avg30 * hitMultiplier → hit
-  slowMultiplier: number;   // avg7 < avg30 * slowMultiplier → slow
-  stockoutMultiplier: number; // days < leadTime * stockoutMultiplier → stockout
-  deadDays: number;         // days > deadDays → dead
+  hitMultiplier: number;
+  slowMultiplier: number;
+  stockoutMultiplier: number;
+  deadDays: number;
 }
 
 export interface ClassifiedSku {

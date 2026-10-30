@@ -113,7 +113,6 @@ ${metrics.channels
       action: "Перевірити дані за каналами",
     };
 
-    // Attach raw metrics
     output.metrics = metrics;
     output._debug = {
       systemPrompt: SYSTEM_PROMPT,

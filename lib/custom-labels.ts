@@ -29,7 +29,6 @@ export interface LabelInputRow {
 }
 export interface LabelAssignment {skuId:string;itemId:string;labels:Record<string,string>;ruleIds:Record<string,string>}
 export interface LabelRejection {skuId:string;reasons:string[]}
-/** Owner-approved initial policy: slot zero carries the saved class verbatim; unavailable/error classes are omitted. */
 export function classificationLabelRules():LabelRule[]{
   return SKU_STATUSES.filter(c=>c!=="SERVICE"&&c!=="DATA_ERROR").map(c=>({id:`class-${c}`,slot:0,value:c,when:{classifications:[c]}}));
 }
@@ -39,7 +38,6 @@ const text=(v:unknown,max:number):v is string=>typeof v==="string"&&!!v.trim()&&
 export const labelIdentifier=(v:unknown):string=>{
   if(typeof v!=="string"||!/^[A-Za-z0-9][A-Za-z0-9_.:-]{0,159}$/.test(v))throw new CustomLabelError("INVALID_LABEL_ID");return v;
 };
-/** Validate bounded versioned policy; imported mapping/label defects remain visible in preview. */
 export function parseLabelProfile(value:unknown):LabelProfile {
   if(!isRecord(value)||Object.keys(value).sort().join()!=="emptyPolicy,mappings,ownedSlots,precedence,rules,sourceId,target,version"||value.version!==1||value.precedence!=="first_match"||value.emptyPolicy!=="omit_item")return invalid("unsupported profile policy");
   labelIdentifier(value.sourceId);
@@ -62,11 +60,9 @@ export function parseLabelProfile(value:unknown):LabelProfile {
   }
   const profile=structuredClone(value) as unknown as LabelProfile;
   profile.ownedSlots.sort((a,b)=>a-b);
-  // Rule order is meaningful; mapping order is not. Keep duplicates for explicit preview rejection.
   profile.mappings.sort((a,b)=>a.skuId<b.skuId?-1:a.skuId>b.skuId?1:a.itemId<b.itemId?-1:a.itemId>b.itemId?1:0);
   return profile;
 }
-/** Never normalize or prefix provider identity; reject cells that spreadsheets could execute. */
 export function labelCellIssue(value:string,max:number):string|null {
   if(!value.length)return "EMPTY_VALUE";
   if(value.length>max)return "VALUE_TOO_LONG";
@@ -75,7 +71,6 @@ export function labelCellIssue(value:string,max:number):string|null {
   return null;
 }
 const targetKey=(id:string,provider:LabelProvider)=>provider==="google"?id.normalize("NFC").toLowerCase():id;
-/** Assign first matching rules per owned slot using only saved daily states, never reclassifying. */
 export function assignCustomLabels(profile:LabelProfile,rows:LabelInputRow[]):{assignments:LabelAssignment[];rejected:LabelRejection[]} {
   if(rows.length>LABEL_MAX_ROWS)throw new CustomLabelError("LABEL_ROW_LIMIT",422);
   const bySku=new Map<string,LabelProfile["mappings"]>(),byItem=new Map<string,Set<string>>();
@@ -107,7 +102,6 @@ export function assignCustomLabels(profile:LabelProfile,rows:LabelInputRow[]):{a
         if(shortage===null||stock===null){missing=true;return false;}
         return true;
       });
-      // An earlier rule with unknown inputs must not be bypassed by a later one.
       if(missing){reasons.push(`SLOT_${slot}_INPUT_UNAVAILABLE`);continue;}
       if(!rule){reasons.push(`SLOT_${slot}_NO_MATCH`);continue;}
       const issue=labelCellIssue(rule.value,100);if(issue){reasons.push(`SLOT_${slot}_${issue}`);continue;}
@@ -119,7 +113,6 @@ export function assignCustomLabels(profile:LabelProfile,rows:LabelInputRow[]):{a
   const compare=(a:{skuId:string},b:{skuId:string})=>a.skuId<b.skuId?-1:a.skuId>b.skuId?1:0;
   return {assignments:assignments.sort(compare),rejected:rejected.sort(compare)};
 }
-/** Reuse safe CSV quoting while retaining the target's comma/no-BOM dialect and exact ID bytes. */
 export function customLabelCsv(profile:LabelProfile,assignments:LabelAssignment[]):string {
   const fields=profile.ownedSlots.map(s=>`custom_label_${s}`),headers=["id",...fields];
   const quote=(value:string,max:number)=>{const issue=labelCellIssue(value,max);if(issue)throw new CustomLabelError("INVALID_LABEL_EXPORT_CELL",422,[issue]);return csvCell({type:"text",value});};
@@ -127,7 +120,6 @@ export function customLabelCsv(profile:LabelProfile,assignments:LabelAssignment[
   if(Buffer.byteLength(content,"utf8")>LABEL_MAX_BYTES)throw new CustomLabelError("LABEL_FILE_LIMIT",422);
   return content;
 }
-/** Explicit scope parsing forbids client assignments, provider IDs or rule overrides at export time. */
 export function parseLabelScope(value:unknown):LabelScope {
   if(!isRecord(value)||!keys(value,["profileId","snapshotId","filters"]))throw new CustomLabelError("INVALID_LABEL_SCOPE");
   labelIdentifier(value.profileId);labelIdentifier(value.snapshotId);

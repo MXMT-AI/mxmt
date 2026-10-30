@@ -1,4 +1,3 @@
-/** Source column proposals only: preview never establishes posting, currency, cost or history coverage. */
 export const ZAVOD_RECEIPT_COLUMNS = {
   documentId: "ID документа", date: "Дата", movementType: "Тип",
   quantity: "Позиція: Кількість", unitPrice: "Позиція: Ціна",
@@ -8,7 +7,6 @@ export const ZAVOD_RECEIPT_COLUMNS = {
 export const RECEIPT_PREVIEW_MAX_ROWS = 100000;
 export const RECEIPT_PREVIEW_MAX_COLUMNS = 256;
 
-/** Inspect a bounded frozen receipt table without copying personal fields or inventing line IDs. */
 export function previewZavodReceipts(headers: string[], rows: unknown[][]) {
   if (rows.length > RECEIPT_PREVIEW_MAX_ROWS || headers.length > RECEIPT_PREVIEW_MAX_COLUMNS) throw new Error("RECEIPT_PREVIEW_LIMIT");
   const index = (name: string) => headers.indexOf(name);
@@ -31,7 +29,6 @@ export function previewZavodReceipts(headers: string[], rows: unknown[][]) {
     if (!read(row, "supplierId")) missingSupplier++;
     if (!read(row, "quantity") || !Number.isFinite(Number(read(row, "quantity"))) || Number(read(row, "quantity")) <= 0) invalidQuantity++;
     if (!read(row, "unitPrice") || !Number.isFinite(Number(read(row, "unitPrice"))) || Number(read(row, "unitPrice")) <= 0) invalidPrice++;
-    // Repeated document/product rows need an explicit stable line identity, not aggregation or first-row wins.
     if (document && (sku || read(row, "productId"))) {
       const productId = read(row, "productId");
       const key = JSON.stringify([document, productId ? "productId" : "sku", productId || sku]);

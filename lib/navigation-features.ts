@@ -1,4 +1,3 @@
-/** Deployment flags only affect menu visibility; they are not authorization controls. */
 export function navigationFeatures(
   env: Record<string, string | undefined> = process.env,
 ) {

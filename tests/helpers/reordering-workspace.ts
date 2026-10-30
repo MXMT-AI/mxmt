@@ -3,7 +3,6 @@ import { calculateDailySku } from "@/lib/sku-daily-metrics";
 import { classifyDailySku } from "@/lib/classify";
 import { resolveMerchandisingPolicy } from "@/lib/merchandising-policy";
 import { skuInput, context } from "./daily-sku";
-/** Synthetic rows use the actual daily/classification contracts, without customer benchmark claims. */
 export const reorderingUiSkus: ReorderingSku[] = Array.from(
   { length: 36 },
   (_, i) => {

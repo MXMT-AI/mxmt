@@ -34,7 +34,6 @@ export function isCompilableSheetsProduct(id: unknown, name: unknown) {
 }
 import { sheetsOrderPolicy } from "./sheets-order-policy";
 export { sheetsOrderPolicy } from "./sheets-order-policy";
-/** Compile selected immutable columns only. No status, date, history or ownership inference. */
 export function compileSheetsProjection(
   input: SheetsMappingInput,
   mapping: SheetsFieldMapping,
@@ -82,7 +81,6 @@ export function compileSheetsProjection(
       sku = sourceSku && skuCounts.get(sourceSku) === 1 ? sourceSku : null;
     if (sourceSku && !sku) issues.add("PRODUCT_SKU_AMBIGUOUS");
     const category = bounded(read(row, "products", "category"), 200);
-    // Hash only the category identity; retain its real human-readable name separately.
     const product: ProductDto = {
       externalId: id,
       observedAt: input.importedAt,
@@ -123,8 +121,6 @@ export function compileSheetsProjection(
       onHand: money(read(row, "products", "quantity")),
       inTransit: money(read(row, "products", "inTransit")),
     });
-    // An unverified source default must not erase an existing manual classification.
-    // Explicit category overrides (including UNKNOWN) and an approved merchandise default apply.
     if (category && Object.hasOwn(mapping.policy.productKinds, category))
       kinds[id] = mapping.policy.productKinds[category];
     else if (mapping.policy.defaultProductKind !== "UNKNOWN")
@@ -243,7 +239,6 @@ export function compileSheetsProjection(
       )
     )
       invalid = true;
-    // An invalid or ambiguous whole order cannot replace only some of its lines.
     if (invalid) {
       quarantinedOrders++;
       quarantinedRows += group.length;

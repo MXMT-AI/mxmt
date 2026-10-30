@@ -26,7 +26,6 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  // The server cannot read browser preferences. Keep the first client render identical.
   const value = mounted ? theme ?? "system" : "";
   const Icon = !mounted || value === "system" ? Monitor : resolvedTheme === "light" ? Sun : Moon;
   const actualTheme = resolvedTheme === "light" ? t.theme_light : t.theme_dark;

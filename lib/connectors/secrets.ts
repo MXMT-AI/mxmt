@@ -16,7 +16,6 @@ function credentialContext(tenantId: string, provider: ConnectorProvider): Buffe
   return Buffer.from(`connector:v1:${tenantId}:${provider}`);
 }
 
-/** Bind credentials to both tenant and provider; the default preserves existing SalesDrive ciphertext. */
 export function encryptCredentials(value: unknown, tenantId: string, provider: ConnectorProvider = "salesdrive"): string {
   const nonce = randomBytes(12);
   const cipher = createCipheriv("aes-256-gcm", encryptionKey(), nonce, { authTagLength: 16 });
@@ -25,7 +24,6 @@ export function encryptCredentials(value: unknown, tenantId: string, provider: C
   return ["v1", nonce.toString("base64"), cipher.getAuthTag().toString("base64"), encrypted.toString("base64")].join(".");
 }
 
-/** Decryption errors have a fixed message and never include ciphertext or keys. */
 export function decryptCredentials(value: string, tenantId: string, provider: ConnectorProvider = "salesdrive"): unknown {
   try {
     const [version, nonce, tag, payload, extra] = value.split(".");

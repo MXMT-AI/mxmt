@@ -43,7 +43,6 @@ it("reads the pre-v2 SalesDrive encryption envelope unchanged", () => {
   const cipher = createCipheriv("aes-256-gcm", key, nonce, {
     authTagLength: 16,
   });
-  // Independently build the exact old AAD/envelope rather than using the updated writer.
   cipher.setAAD(Buffer.from("connector:v1:client-a:salesdrive"));
   const payload = Buffer.concat([
     cipher.update('{"ordersApiKey":"old-synthetic-key"}'),

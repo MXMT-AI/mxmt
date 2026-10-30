@@ -10,7 +10,6 @@ import { button } from "@/components/merchandising/ReportPrimitives";
 import { merchandisingHref } from "@/lib/merchandising-navigation";
 import { reorderingCopy } from "@/lib/reordering-copy";
 import ReorderingEditor from "./ReorderingEditor";
-/** Pin one stock snapshot independently of the shared sales-channel selection. */
 export default function ReorderingWorkspace() {
   const filters = useMerchandisingFilters()!,
     params = useSearchParams(),

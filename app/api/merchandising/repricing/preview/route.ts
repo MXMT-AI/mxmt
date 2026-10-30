@@ -6,7 +6,6 @@ import { repricingApiError } from "@/lib/repricing-api-error";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const maxDuration = 300;
-/** Validate and price a bounded scenario from frozen server inputs, without persisting slider state. */
 export async function POST(request: NextRequest) {
   const { user, response } = await requireApiUser("VIEWER");
   if (response) return response;

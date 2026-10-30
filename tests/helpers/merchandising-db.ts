@@ -2,7 +2,6 @@ import { readFile, readdir } from "node:fs/promises";
 import { PGlite } from "@electric-sql/pglite";
 import { Prisma } from "@prisma/client";
 import type { SqlClient, SqlDatabase } from "@/lib/connectors/database";
-/** Isolated production migrations and the shared SQL boundary; never connects to configured databases. */
 export async function createMerchandisingDb() {
   const pg = new PGlite(),
     root = new URL("../../prisma/migrations/", import.meta.url);

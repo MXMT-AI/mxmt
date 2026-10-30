@@ -3,10 +3,6 @@ import {Prisma} from "@prisma/client";
 import type {SqlClient} from "./database";
 import type {ReportingSourceChoice} from "../reporting-source-contract";
 
-/**
- * Reuse the original Sheets DataSource ID; never create a fake remote connection.
- * A successful legacy import alone cannot authorize the new financial projection.
- */
 export async function readSheetsSources(tenantId:string,tx:SqlClient,sourceId?:string):Promise<ReportingSourceChoice[]>{
   const rows=await tx.$queryRaw<Array<{
     id:string;name:string;mappingRevision:number|null;projectionReady:boolean;
@@ -34,7 +30,6 @@ export async function readSheetsSources(tenantId:string,tx:SqlClient,sourceId?:s
     ORDER BY s.id`);
   return rows.map(row=>({
     sourceId:row.id,provider:"sheets",accountHost:row.name,revision:row.mappingRevision??0,
-    // Mapping approval is not a remote connection check; keep the old shape for callers.
     lastCheck:null,selectable:row.mappingRevision!==null,
     readiness:row.mappingRevision===null?"MAPPING_REQUIRED":row.projectionReady?"READY":"IMPORT_REQUIRED",
   }));

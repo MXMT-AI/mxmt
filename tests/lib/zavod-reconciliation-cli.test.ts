@@ -52,7 +52,7 @@ describe("private offline reconciliation CLI", () => {
     expect(JSON.parse(readFileSync(path, "utf8")).approvals).toEqual(
       manifest.approvals,
     );
-    expect(run(path).status).toBe(2); // absent customer artifacts remain blocked
+    expect(run(path).status).toBe(2);
   });
   it("refuses customer reports in tracked repository directories", () => {
     const output = resolve(root, "prisma/verification/38-must-not-write.json");

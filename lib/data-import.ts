@@ -119,7 +119,6 @@ async function pruneInactiveImportRuns(
       tenantId,
       sourceId,
       status: { in: PRUNABLE_IMPORT_STATUSES },
-      // Retain provenance while any merchandising fact/checkpoint uses the run.
       orderLines: { none: {} },
       receipts: { none: {} },
       priceHistory: { none: {} },
@@ -146,10 +145,6 @@ async function cleanupImportPayload(
   ]);
 }
 
-/**
- * Google exports may change ZIP metadata between downloads. Hash normalized
- * sheet contents so identical cell data can reuse the same business-day import.
- */
 export function sourceWorkbookChecksum(parsed: ParsedRawWorkbook): string {
   return sha256(JSON.stringify(
     parsed.sheets.map((sheet) => ({ key: sheet.key, checksum: sheet.checksum }))
@@ -322,8 +317,6 @@ export async function importRawWorkbookBuffer(
       },
       select: { id: true },
     }).catch((error: unknown) => {
-      // Only a claim collision represents a concurrent import. Later unique
-      // failures are data errors and must not be reported as a running job.
       if (isUniqueConstraintError(error)) throw new RawImportInProgressError();
       throw error;
     });
@@ -402,7 +395,6 @@ export async function importRawWorkbookBuffer(
       throw new RawImportExpiredError();
     await db.$transaction([
       db.dataImportRun.update({
-        // A reclaimed run can never activate after its replacement has started.
         where: { id: importRun.id, tenantId, sourceId: source.id, status: DataRunStatus.RUNNING },
         data: {
           status,

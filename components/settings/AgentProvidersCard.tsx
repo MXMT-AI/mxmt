@@ -159,7 +159,6 @@ export default function AgentProvidersCard() {
                     className="bg-(--surface) border border-(--border) rounded-xl p-4 flex items-center gap-4"
                     style={{ borderLeft: `3px solid ${agent.color}` }}
                   >
-                    {/* Icon + info */}
                     <div
                       className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
                       style={{ background: agent.color + "15" }}
@@ -174,7 +173,6 @@ export default function AgentProvidersCard() {
                       </div>
                     </div>
 
-                    {/* Provider toggle */}
                     <div className="flex items-center gap-1 bg-(--row) border border-(--border) rounded-lg p-1 shrink-0">
                       {(["anthropic", "openai"] as AgentProvider[]).map((p) => (
                         <button

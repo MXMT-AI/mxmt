@@ -82,7 +82,6 @@ export function salesFactProfit(f: SalesFact) {
 export function salesFactDate(f: SalesFact) {
   return f.kind === "PREORDER" ? f.paidDate : f.date;
 }
-/** Keep unknown-type and gift-card movements visible, outside the merchandise/service headline. */
 export function isHeadlineFact(f: SalesFact) {
   return f.productKind === "MERCHANDISE" || f.productKind === "SERVICE";
 }
@@ -98,7 +97,6 @@ export function isEligibleSalesFact(f: SalesFact) {
 export function inSalesPeriod(date: string | null, from: string, to: string) {
   return date !== null && date >= from && date <= to;
 }
-/** Decimal sums and distinct orders are calculated once per slice; covered GM uses its own denominator. */
 export function aggregateSalesFacts(
   facts: SalesFact[],
   currency: string | null,
@@ -158,7 +156,6 @@ export interface SalesTotalsInput {
   orderCount: number;
   returnOrderCount: number;
 }
-/** The fact engine and SQL read models share coverage, null and margin semantics. */
 export function finalizeSalesTotals(
   input: SalesTotalsInput,
   currency: string | null,
@@ -265,7 +262,6 @@ export function compareSalesTotals(
     comparisonReason: reason,
   };
 }
-/** Client targets span whole months; pace uses the selected calendar-day fraction of each target. */
 export function salesPlan(
   context: SalesMetricContext,
   currency: string | null,

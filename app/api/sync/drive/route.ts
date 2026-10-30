@@ -41,7 +41,6 @@ export async function POST() {
     const result = await syncFromDrive(tenantId);
     const total = result.skus + result.inventory + result.sales;
 
-    // If 0 records imported — mark as warning, not success
     const status = result.warning ? "error" : "success";
     const errorMessage = result.warning ?? null;
 

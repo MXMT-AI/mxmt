@@ -21,7 +21,6 @@ export async function POST(request: NextRequest) {
       include: { tenant: { select: { id: true, name: true } } },
     });
 
-    // Constant-time check to prevent user enumeration
     if (!user || !(await compare(password, user.passwordHash))) {
       return withRequestId(apiError("Invalid credentials", 401, "INVALID_CREDENTIALS", undefined, context.requestId), context.requestId);
     }

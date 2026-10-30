@@ -16,7 +16,6 @@ export interface ShopifyConfig {
     history: null | { from: string; to: string; reference: string };
   };
 }
-/** Only a canonical permanent Shopify host is eligible for token forwarding. */
 export function shopHost(v: unknown): string | null {
   return typeof v === "string" &&
     /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.myshopify\.com$/.test(v)
@@ -25,7 +24,6 @@ export function shopHost(v: unknown): string | null {
 }
 const keys = (v: Record<string, unknown>, allow: string[]) =>
   Object.keys(v).every((k) => allow.includes(k));
-/** Parse secrets and independently approved money, warehouse and history evidence. */
 export function parseShopifyConfig(v: unknown): {
   credentials: ShopifyConfig | null;
   issues: string[];
@@ -108,7 +106,6 @@ export function parseShopifyConfig(v: unknown): {
     return bad();
   return { credentials: v as unknown as ShopifyConfig, issues: [] };
 }
-/** Stable numeric event codes reuse existing source mapping and financial formulas. */
 export function shopifyMapping(c: ShopifyConfig) {
   return {
     revision: c.mappingRevision,

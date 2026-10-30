@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-// Optional external host runner. Credentials are supplied only through its secret environment.
 if(process.argv.includes('--help')) {
   process.stdout.write('SALESDRIVE_SYNC_ORIGIN=https://your-app.example CRON_SECRET=<secret> node scripts/salesdrive-sync-worker.mjs [--once]\n');
   process.exit(0);

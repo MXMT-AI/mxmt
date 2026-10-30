@@ -40,7 +40,6 @@ interface PageRows {
 const physical = Prisma.sql`d.metrics->>'productKind'='MERCHANDISE'`;
 const otherStatuses = ["NEW", "OFF_SEASON", "DATA_ERROR", "OOS"] as const;
 
-/** Sum saved costs per status, preserving missing physical valuation and unverified products. */
 function statusCostsSql() {
   const count = (where: Prisma.Sql) =>
     Prisma.sql`count(*) FILTER(WHERE ${where})::int`;
@@ -53,7 +52,6 @@ function statusCostsSql() {
     }),
   )})`;
 }
-/** Categorized exceptions are outside the ring but remain in physical category totals. */
 function otherCostSql() {
   const bad = otherStatuses.map(
     (s) =>
@@ -67,7 +65,6 @@ function otherCostSql() {
     " + ",
   )} END`;
 }
-/** Aggregate all group members before selecting status matches, ranking and per-currency paging. */
 async function groupPages(
   tenantId: string,
   snapshot: ScreenSnapshot,
@@ -112,7 +109,6 @@ async function groupPages(
  ranked AS (SELECT g.*,row_number() OVER(PARTITION BY g.currency ORDER BY ${order} ${Prisma.raw(direction)} NULLS LAST,g.id ASC NULLS LAST) rank FROM g WHERE ${q.classification ? Prisma.sql`COALESCE((g.stats->'statusCounts'->>${q.classification})::int,0)>0` : Prisma.sql`true`})
  SELECT currency,count(*)::int "totalRows",COALESCE(jsonb_agg(to_jsonb(ranked) ORDER BY rank) FILTER(WHERE rank>${offset} AND rank<=${offset + size}),'[]'::jsonb) rows FROM ranked GROUP BY currency ORDER BY currency NULLS LAST`);
 }
-/** K1–K4 read the published status version; channel filters never change physical stock. */
 export async function readStockWorkspace(
   tenantId: string,
   snapshot: ScreenSnapshot,

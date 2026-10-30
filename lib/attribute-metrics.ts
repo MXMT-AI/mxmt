@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { getActiveAgentImportRunId } from "@/lib/agent-data-source";
 
 export interface AttributeMetric {
-  attribute: string; // category or subcategory value
+  attribute: string;
   attributeType: "category" | "subcategory";
   skuCount: number;
   totalStock: number;
@@ -23,7 +23,7 @@ export interface AttributeMetrics {
   deadCategories: string[];
 }
 
-const STR_BESTSELLER = 25; // % per week
+const STR_BESTSELLER = 25;
 const STR_SLOW = 5;
 
 const CATEGORY_ALIASES = new Map<string, string>([
@@ -106,7 +106,6 @@ export async function getAttributeMetrics(
     salesByProduct.set(sale.resolvedProductId, current);
   }
 
-  // Group by category
   type Aggregate = {
     stock: number;
     grossSold7: number;
@@ -134,7 +133,6 @@ export async function getAttributeMetrics(
     const stock = Number(product.stockUnits);
     const productSales = salesByProduct.get(product.productId) ?? emptyAggregate();
 
-    // Category
     const cat = normalizeCategory(product.category);
     const existing = catMap.get(cat) ?? emptyAggregate();
     catMap.set(cat, {

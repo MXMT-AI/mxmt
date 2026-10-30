@@ -131,7 +131,6 @@ export async function runScheduledDataPipelines(
   return results;
 }
 
-/** Kyiv stock intent is due at/after 03:00; daily keys deduplicate repeated DST hours. */
 export function salesDriveScheduleDecision(now = new Date()) {
   const local = new Intl.DateTimeFormat("en-CA", { timeZone: DATA_SCHEDULE_TIMEZONE, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", hourCycle: "h23" }).formatToParts(now);
   const value = (type: Intl.DateTimeFormatPartTypes) => local.find((part) => part.type === type)?.value ?? "";

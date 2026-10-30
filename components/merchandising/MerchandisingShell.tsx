@@ -31,7 +31,6 @@ export const useMerchandisingOptions = () => useContext(Options);
 const control =
   "rounded-lg border border-(--border) bg-(--surface) px-3 py-2 text-sm text-(--text) min-h-11 disabled:opacity-50 touch-manipulation";
 
-/** URL state is shared across the screen family; invalid links never silently select different dates. */
 export default function MerchandisingShell({
   options,
   now,
@@ -49,8 +48,6 @@ export default function MerchandisingShell({
   const { lang } = useLang(),
     copy = merchandisingCopy[lang];
   const [appliedAt, setAppliedAt] = useState<string | null>(null);
-  // Initial rendering uses the server clock for hydration. Apply advances it so
-  // a new URL is not rejected by the persistent layout's older timestamp.
   const readingClock = new Date(
     Math.max(Date.parse(now), Date.parse(appliedAt ?? now)),
   );
@@ -61,7 +58,6 @@ export default function MerchandisingShell({
       readingClock,
     );
   } catch {
-    /* Show a recoverable invalid-link state. */
   }
   return (
     <ExportPermission.Provider value={exportAllowed}>
@@ -111,7 +107,6 @@ export default function MerchandisingShell({
   );
 }
 
-/** Apply one validated filter draft in a single URL navigation, including browser history. */
 function FilterForm({
   filters,
   options,

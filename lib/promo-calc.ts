@@ -1,17 +1,15 @@
 import { prisma } from "@/lib/prisma";
 import { brandValueFromAgentId, getActiveAgentImportRunId } from "@/lib/agent-data-source";
 
-// Детермінований калькулятор акції (уцінки).
-// AI обирає параметри (знижка, строк, прогноз % продажу) — вся математика тут.
 
-const ELASTICITY = 2; // fallback: +2% попиту на кожен -1% ціни, якщо AI не дав прогноз
+const ELASTICITY = 2;
 
 export interface PromoSimulationInput {
   tenantId: string;
-  brandId: string; // "brand:null" → товари без бренда
+  brandId: string;
   discountPercent: number;
   durationDays: number;
-  unitsToSellPercent?: number | null; // прогноз AI: % залишку, що продасться за акцію
+  unitsToSellPercent?: number | null;
   asOf?: Date;
   dateFrom?: Date;
 }
@@ -26,12 +24,12 @@ export interface PromoSkuRow {
   newPrice: number;
   marginBeforePct: number | null;
   marginAfterPct: number | null;
-  velocityPerDay: number; // шт/день за вікно аналізу
-  baselineUnits: number; // прогноз продажу без акції за строк
-  promoUnits: number; // прогноз продажу з акцією
+  velocityPerDay: number;
+  baselineUnits: number;
+  promoUnits: number;
   promoRevenue: number;
   promoMarginUah: number;
-  capitalReleased: number; // звільнений заморожений капітал (закупівельна вартість проданого)
+  capitalReleased: number;
   stockAfter: number;
   wohAfterDays: number | null;
 }
@@ -114,7 +112,7 @@ export async function simulatePromo(input: PromoSimulationInput): Promise<PromoS
   const rows: PromoSkuRow[] = [];
   for (const product of products) {
     const stock = Number(product.stockUnits);
-    if (stock <= 0) continue; // нема чого уцінювати
+    if (stock <= 0) continue;
 
     const soldPeriod = soldByProduct.get(product.productId) ?? 0;
     const velocity = soldPeriod / periodDays;
@@ -155,7 +153,6 @@ export async function simulatePromo(input: PromoSimulationInput): Promise<PromoS
     });
   }
 
-  // Найбільший залишок зверху — найцікавіші для уцінки позиції
   rows.sort((a, b) => b.stock - a.stock);
 
   const totals = rows.reduce(

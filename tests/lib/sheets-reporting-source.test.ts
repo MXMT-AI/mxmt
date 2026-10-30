@@ -74,7 +74,6 @@ it("marks checked remote connections with no completed import as import-required
 });
 it("uses the same calculators and channels for equivalent synthetic projected Sheets facts",async()=>{
  const sales=await getSalesReport("a",screenSelection,f.db),daily=await calculateSkuDaily("a",screenSelection,f.db),navigation=await readNavigationOptions("a",f.db);
- // Change only this isolated fixture's source identity; never relabel a live source.
  await f.pg.exec(`UPDATE "DataSource" SET kind='GOOGLE_SHEETS',"sourceKey"=NULL,"driveFileId"='fixture-sheet',"activeImportRunId"='inventory-run' WHERE id='source';UPDATE "MerchandisingConfig" SET key='sheets:source',values=values||'{"sheets":{"version":1,"fileId":"fixture-sheet"}}'::jsonb WHERE id='mapping';UPDATE "DataImportRun" SET stats='{"merchandisingProjection":{"version":1,"sourceId":"source","importRunId":"inventory-run","mappingId":"mapping"}}' WHERE id='inventory-run';`);
  expect(await readSelectedSource("a",f.db)).toBeNull();await selectConnectorSource("a","owner","source",0,f.db);
  expect(await readSelectedSource("a",f.db)).toMatchObject({provider:"sheets",id:"source"});

@@ -110,13 +110,11 @@ export async function POST(request: NextRequest) {
       return apiError("File must be between 1 byte and 4 MB", 400, "VALIDATION_ERROR");
     }
 
-    // Verify brand belongs to tenant
     const brand = await prisma.brand.findFirst({ where: { id: brandId, tenantId } });
     if (!brand) {
       return apiError("Brand not found", 404, "NOT_FOUND");
     }
 
-    // Parse Excel / CSV
     const buffer = await file.arrayBuffer();
     const wb = readWorkbook(buffer, { type: "buffer" });
     const firstSheetName = wb.SheetNames[0];
@@ -174,7 +172,6 @@ export async function POST(request: NextRequest) {
       return apiError("No valid catalog rows found", 400, "VALIDATION_ERROR");
     }
 
-    // Create catalog upload record + items, and upsert Sku records for analytics
     const upload = await prisma.$transaction(async (tx) => {
       const upload = await tx.catalogUpload.upsert({
         where: { tenantId_brandId_season: { tenantId, brandId, season } },

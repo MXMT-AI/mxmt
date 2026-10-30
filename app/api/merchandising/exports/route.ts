@@ -10,7 +10,6 @@ import { scenarioExportApiError } from "@/lib/scenario-export-api";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const maxDuration = 300;
-/** Generate and audit files only for an authenticated analyst in the signed tenant. */
 export async function POST(request: NextRequest) {
   const { user, response } = await requireApiUser("ANALYST");
   if (response) return response;
@@ -29,7 +28,6 @@ export async function POST(request: NextRequest) {
     return scenarioExportApiError(error);
   }
 }
-/** View the latest audit metadata without loading file bodies or full scenario rows. */
 export async function GET(request: NextRequest) {
   const { user, response } = await requireApiUser("VIEWER");
   if (response) return response;

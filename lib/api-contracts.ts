@@ -37,7 +37,6 @@ export function serverError(message = "Internal server error", requestId?: strin
   return apiError(message, 500, "INTERNAL_SERVER_ERROR", undefined, requestId);
 }
 
-/** Bound body bytes before decoding; optionally preserve source-specific JSON numeric precision. */
 export async function parseJsonBody<T = unknown>(
   request: NextRequest,
   requestId?: string,

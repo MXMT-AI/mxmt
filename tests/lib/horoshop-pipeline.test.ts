@@ -109,7 +109,7 @@ it("durably stages a complete catalog, then reads every old order into unchanged
         `SELECT count(*)::int n FROM "InventorySnapshot" WHERE "sourceId"='horoshop'`,
       )
     ).rows,
-  ).toEqual([{ n: 0 }]); // Terminal probe has not run: no partial activation.
+  ).toEqual([{ n: 0 }]);
   await processInventoryJob("a", f.db, runtime);
   expect(
     (

@@ -41,7 +41,6 @@ function generateWeekDates(count: number): { weekKey: string; start: string; end
   return result;
 }
 
-// Ukrainian national holidays/events relevant for fashion retail
 const UA_EVENTS = [
   { month: 2, day: 14, label: "14.02 День Валентина", retail: "подарунки, аксесуари" },
   { month: 3, day: 8,  label: "08.03 Жіночий день", retail: "подарунки, жіночий одяг" },
@@ -61,7 +60,6 @@ const UA_EVENTS = [
 ];
 
 function getHolidaysForWeek(weekKey: string, year: number): typeof UA_EVENTS {
-  // Find which holidays fall in this ISO week
   const isoWeek = parseInt(weekKey.replace("w", ""), 10);
   return UA_EVENTS.filter(({ month, day }) => {
     const d = new Date(year, month - 1, day);
@@ -76,7 +74,6 @@ export interface AiPlanChip {
   label: string;
 }
 
-/** Generate the tenant’s calendar plan from eligible inventory and sales signals. */
 export async function POST() {
   const { user, response } = await requireApiUser("ANALYST");
   if (response) return response;
@@ -133,16 +130,14 @@ export async function POST() {
     };
   });
 
-  const weeks = generateWeekDates(8); // plan for 8 weeks ahead
+  const weeks = generateWeekDates(8);
   const year = new Date().getFullYear();
 
-  // Build holidays list for these weeks
   const holidaysByWeek = weeks.map((w) => ({
     ...w,
     holidays: getHolidaysForWeek(w.weekKey, year),
   }));
 
-  // Top products by flag for the prompt
   const hits = classified.filter((s) => s.flag === "hit").slice(0, 5);
   const stockouts = classified.filter((s) => s.flag === "stockout").slice(0, 5);
   const dead = classified.filter((s) => s.flag === "dead" && s.stock > 0).slice(0, 5);

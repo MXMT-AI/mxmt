@@ -26,13 +26,11 @@ export async function proxy(request: NextRequest) {
   const locale = pathLocale ?? (isLocale(savedLocale) ? savedLocale : routing.defaultLocale);
   const pagePath = pathLocale ? pathname.slice(pathLocale.length + 1) || "/" : pathname;
 
-  // API routes keep their existing authentication contracts and never enter i18n.
   const publicApi = ["/api/auth", "/api/health", "/api/cron"].some(p => matchesPath(pathname, p));
   const salesDriveReceiver = /^\/api\/webhooks\/salesdrive\/[^/]+\/?$/.test(pathname);
   if (api && (publicApi || salesDriveReceiver)) return NextResponse.next();
 
   if (!api) {
-    // Let the locale layout reject unsupported explicit locale prefixes with a 404.
     if (!pathLocale && /^\/[a-z]{2}(?:-[A-Za-z]{2})?(?:\/|$)/.test(pathname)) return NextResponse.next();
     if (!pathLocale) {
       const url = request.nextUrl.clone();
@@ -58,7 +56,6 @@ export async function proxy(request: NextRequest) {
     requestHeaders.set("x-tenant-id", (payload as Record<string, string>).tenantId);
     requestHeaders.set("x-user-role", (payload as Record<string, string>).role);
     if (api) return NextResponse.next({ request: { headers: requestHeaders } });
-    // Let next-intl forward both its locale header and the verified identity headers.
     return intlMiddleware(new NextRequest(request, { headers: requestHeaders }));
   } catch (err) {
     if (err instanceof errors.JWTExpired && !api && request.cookies.has("refresh_token")) {

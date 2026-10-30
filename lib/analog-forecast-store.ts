@@ -15,13 +15,11 @@ import {attributeDictionaryInTx,readAttributeEvidenceBatch} from "./product-attr
 import {normalizeProductAttribute} from "./product-attributes";
 import {ANALOG_EVALUATION_CASE_LIMIT,AnalogForecastError,forecastId,parseAnalogPolicy,forecastPeriod,estimateAnalogs,scoreAnalogCases,type AnalogPolicy,type AnalogRow,type ForecastScoreCase} from "./analog-forecast";
 interface PolicyRecord {id:string;revision:number;values:AnalogPolicy}
-/** Resolve the latest tenant draft so a previous revision cannot silently replace current policy. */
 async function policyInTx(p:AiPrincipal,profileId:string,tx:SqlClient){
  forecastId(profileId);
  const [row]=await tx.$queryRaw<PolicyRecord[]>(Prisma.sql`SELECT id,revision,values FROM "MerchandisingConfig" WHERE "tenantId"=${p.tenantId} AND "configType"='GENERAL' AND key=${`analog-policy:${profileId}`} ORDER BY revision DESC LIMIT 1`);
  if(!row)throw new AnalogForecastError("ANALOG_POLICY_NOT_CONFIGURED",404);row.values=parseAnalogPolicy(row.values);return row;
 }
-/** Owner drafts stay inactive. This delivery deliberately exposes no business-rule activation operation. */
 export async function saveAnalogPolicy(p:AiPrincipal,profileId:string,value:unknown,db:SqlDatabase=prisma){
  forecastId(profileId);
  if(!isRecord(value)||Object.keys(value).sort().join()!=="expectedRevision,policy"||!Number.isInteger(value.expectedRevision)||Number(value.expectedRevision)<0||Number(value.expectedRevision)>10000)throw new AnalogForecastError("INVALID_ANALOG_REVISION");
@@ -39,7 +37,6 @@ export async function saveAnalogPolicy(p:AiPrincipal,profileId:string,value:unkn
 }
 export async function readAnalogPolicy(p:AiPrincipal,profileId:string,db:SqlDatabase=prisma){return aiTransaction(p,db,async tx=>({profileId,...await policyInTx(p,profileId,tx),state:"draft",businessRulesApproved:false}));}
 export interface AnalogPreviewRequest {profileId:string;snapshotId:string;targetId:string;preview:true}
-/** Accept server-evidence selectors only and reject activation or caller-authored forecast inputs. */
 export function parseAnalogPreview(v:unknown):AnalogPreviewRequest {
  if(!isRecord(v)||Object.keys(v).sort().join()!=="preview,profileId,snapshotId,targetId"||v.preview!==true)throw new AnalogForecastError("ANALOG_PREVIEW_ONLY");
  for(const id of [v.profileId,v.snapshotId,v.targetId])forecastId(id);return structuredClone(v) as unknown as AnalogPreviewRequest;
@@ -49,7 +46,6 @@ interface FrozenForecast {
  policy:AnalogPolicy;origin:{snapshotId:string;asOf:string;from:string;to:string;sourceId:string;targetId:string;categoryId:string|null;currency:string|null;price:string|null;timezone:string};
  provenance:unknown;inputHash:string;result:ReturnType<typeof estimateAnalogs>;
 }
-/** Freeze server-resolved evidence before the forecast horizon. Never reconstruct a historical origin using today's corrected data. */
 export async function createAnalogPreview(p:AiPrincipal,value:unknown,db:SqlDatabase=prisma,now=new Date()){
  const q=parseAnalogPreview(value);
  return aiTransaction(p,db,async tx=>{
@@ -62,7 +58,6 @@ export async function createAnalogPreview(p:AiPrincipal,value:unknown,db:SqlData
   const [target]=await tx.$queryRaw<Array<{categoryId:string|null}>>(Prisma.sql`SELECT d.metrics->>'categoryId' "categoryId" FROM "MerchandisingScreenSku" s JOIN "SkuDaily" d ON d.id=s."dailyId" AND d."tenantId"=s."tenantId" AND d."skuId"=s."skuId" WHERE s."tenantId"=${p.tenantId} AND s."snapshotId"=${q.snapshotId} AND s."skuId"=${q.targetId}`);
   if(!target?.categoryId)throw new AnalogForecastError("ANALOG_TARGET_NOT_FOUND",404);
   const base=await resolveCustomLabelEvidence(p,{profileId:q.profileId,snapshotId:q.snapshotId,filters:{categoryId:target.categoryId}},policy.sourceId,tx);
-  // Bound all category candidates before fetching attribute bodies. No pagination can silently omit a better analog.
   const records=await tx.$queryRaw<Array<{metrics:Record<string,unknown>;dailyId:string;seasonMonths:number[];price:string|null;priceEvidence:unknown;priceHistoryComplete:boolean}>>(Prisma.sql`
    SELECT d.metrics,d.id "dailyId",s.details->'policy'->'seasonMonths' "seasonMonths",i."retailPrice"::text price,
     jsonb_build_object('snapshotId',i.id,'sourceRecordKey',i."sourceRecordKey",'historyHash',h.hash) "priceEvidence",
@@ -92,7 +87,6 @@ export async function createAnalogPreview(p:AiPrincipal,value:unknown,db:SqlData
  });
 }
 
-/** Score only forecasts frozen before their outcome window, using later saved sales rather than caller-authored actuals. */
 export async function evaluateAnalogForecasts(p:AiPrincipal,value:unknown,db:SqlDatabase=prisma,now=new Date()){
  if(!isRecord(value)||Object.keys(value).sort().join()!=="cases,profileId"||!Array.isArray(value.cases)||!value.cases.length||value.cases.length>ANALOG_EVALUATION_CASE_LIMIT)throw new AnalogForecastError("INVALID_FORECAST_EVALUATION");
  const profileId=forecastId(value.profileId),cases=value.cases.map(c=>{

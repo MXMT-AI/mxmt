@@ -73,7 +73,6 @@ export default function DriveSyncCard({
   return (
     <div className="space-y-3">
 
-      {/* Mode indicator */}
       {driveMode === "service_account" && (
         <div className="flex items-start gap-3 bg-[#86efac]/8 border border-[#86efac]/20 rounded-xl p-4">
           <ShieldCheck size={15} className="text-[#86efac] mt-0.5 shrink-0" />
@@ -138,7 +137,6 @@ export default function DriveSyncCard({
         </div>
       )}
 
-      {/* Sync status + button */}
       {driveMode !== "none" && (
         <div className="bg-(--surface) border border-(--border) rounded-xl p-5">
           <div className="flex items-start justify-between gap-4">

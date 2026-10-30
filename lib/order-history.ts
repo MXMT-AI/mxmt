@@ -1,6 +1,5 @@
 import { Temporal } from "@js-temporal/polyfill";
 import type { SalesPeriod } from "./sales-period";
-/** Coverage describes imported order-creation windows, not a provider-side financial snapshot. */
 export function createOrderHistoryCoverage(
   windows: Array<{ from: string; to: string }>,
   through: string | null,

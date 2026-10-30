@@ -63,7 +63,6 @@ export interface PublishedSalesReport extends SalesReport {
     sourceBusy: boolean;
   };
 }
-/** Freeze inputs in one database snapshot and publish all financial views atomically. */
 export async function getSalesReport(
   tenantId: string,
   input: { dateFrom?: string; dateTo?: string; now?: Date } = {},
@@ -74,7 +73,6 @@ export async function getSalesReport(
     getSalesReportInSnapshot(tenantId, period, tx),
   );
 }
-/** Reuse an existing calculation transaction; the caller owns snapshot isolation. */
 export async function getSalesReportInSnapshot(
   tenantId: string,
   period: SalesPeriod,
@@ -263,7 +261,6 @@ export async function getSalesReportInSnapshot(
   return published.financialResult;
 }
 
-/** Historical result lookup never falls back across tenants or recomputes another user's selection. */
 export async function readPublishedSalesReport(
   tenantId: string,
   id: string,

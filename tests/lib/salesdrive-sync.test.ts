@@ -86,7 +86,6 @@ describe('durable sync orchestration',()=>{
   expect(await resumeSyncCycle('recovery',db)).toBe(2);
   expect((await getSyncProgress('recovery',db)).cycle).toMatchObject({id,state:'RUNNING'});
   for(let i=0;i<4;i++)await processSalesDriveSync('recovery',db,runtime('recovery'));
-  // Starting again must work even before a GET has reconciled completedAt.
   expect(await requestSyncCycle('recovery','both',db)).not.toBe(id);
  });
  it('rejects cross-tenant cycle and recalculation references at the database boundary',async()=>{

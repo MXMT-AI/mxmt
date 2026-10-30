@@ -46,7 +46,7 @@ describe("URL-owned MVP navigation", () => {
           channelId: "2",
         });
         const draft = readMerchandisingFilters(params, opened);
-        vi.setSystemTime(new Date("2026-10-25T22:00:00Z")); // October 26 in Kyiv (after DST ends).
+        vi.setSystemTime(new Date("2026-10-25T22:00:00Z"));
         const applied = applyMerchandisingSelection(
           params,
           draft,

@@ -10,7 +10,6 @@ import type { DataTableKey } from "@/lib/data-table-api";
 const SalesReportingWorkspace = dynamic(
   () => import("./SalesReportingWorkspace"),
 );
-/** Explicit source selection preserves the approved legacy reporting contract. */
 export default function DataReportingHub(props: {
   userRole: string;
   initialPreferences: Partial<Record<DataTableKey, InitialTablePreference>>;

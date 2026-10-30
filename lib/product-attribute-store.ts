@@ -12,13 +12,11 @@ import {ProductAttributeError,parseAttributeDictionary,normalizeProductAttribute
 export interface DictionaryRecord {id:string;revision:number;values:AttributeDictionary;approvedAt:Date|string|null;approvedById:string|null;approvalReference:string|null}
 export interface AttributeEvidenceRecord {recordId:string;productId:string;observedAt:string;payloadHash:string;state:string;data:Record<string,unknown>|null}
 const identifier=(v:unknown):string=>{if(typeof v!=="string"||!/^[A-Za-z0-9][A-Za-z0-9_.:-]{0,159}$/.test(v))throw new ProductAttributeError("INVALID_ATTRIBUTE_ID");return v;};
-/** Select a specific latest revision; a newer draft cannot be mistaken for an approved dictionary. */
 export async function attributeDictionaryInTx(p:AiPrincipal,dictionaryId:string,tx:SqlClient){
   identifier(dictionaryId);
   const [row]=await tx.$queryRaw<DictionaryRecord[]>(Prisma.sql`SELECT id,revision,values,"approvedAt","approvedById","approvalReference" FROM "MerchandisingConfig" WHERE "tenantId"=${p.tenantId} AND "configType"='GENERAL' AND key=${`attributes:${dictionaryId}`} ORDER BY revision DESC LIMIT 1`);
   if(!row)throw new ProductAttributeError("ATTRIBUTE_DICTIONARY_NOT_FOUND",404);row.values=parseAttributeDictionary(row.values);return row;
 }
-/** Prepare an immutable draft definition. Real sample/rubric approval is a separate operation. */
 export async function saveAttributeDictionary(p:AiPrincipal,dictionaryId:string,value:unknown,db:SqlDatabase=prisma){
   identifier(dictionaryId);
   if(!isRecord(value)||Object.keys(value).sort().join()!=="dictionary,expectedRevision"||!Number.isSafeInteger(value.expectedRevision)||Number(value.expectedRevision)<0||Number(value.expectedRevision)>10000)throw new ProductAttributeError("INVALID_ATTRIBUTE_REVISION");
@@ -33,14 +31,11 @@ export async function saveAttributeDictionary(p:AiPrincipal,dictionaryId:string,
     return {dictionaryId,configId:id,revision,state:"draft",dictionary};
   },true);
 }
-/** Read a tenant's dictionary draft without activating it. */
 export async function readAttributeDictionary(p:AiPrincipal,dictionaryId:string,db:SqlDatabase=prisma){return aiTransaction(p,db,async tx=>({dictionaryId,...await attributeDictionaryInTx(p,dictionaryId,tx)}));}
 
-/** Bound indexed as-of reads by canonical SKU; ambiguous source identities or simultaneous conflicting observations stay unavailable. */
 export async function readSkuAttributeEvidence(p:AiPrincipal,sourceId:string,skuId:string,cutoff:string,tx:SqlClient):Promise<AttributeEvidenceRecord|null>{
   return (await readAttributeEvidenceBatch(p,sourceId,[skuId],cutoff,tx)).get(skuId)??null;
 }
-/** Batch bounded identity/observation headers first, reject oversized evidence, then fetch only selected data bodies. */
 export async function readAttributeEvidenceBatch(p:AiPrincipal,sourceId:string,skuIds:string[],cutoff:string,tx:SqlClient){
   if(skuIds.length>500)throw new ProductAttributeError("ATTRIBUTE_SKU_LIMIT",422);
   type Header={id:string;observedAt:string;payloadHash:string;state:string;bytes:number;kind:string;conflicted:boolean};
@@ -63,7 +58,6 @@ export async function readAttributeEvidenceBatch(p:AiPrincipal,sourceId:string,s
   const byId=new Map(bodies.map(b=>[b.id,b.data]));
   return new Map(chosen.map(r=>[r.skuId,{recordId:r.header.id,productId:r.productId,observedAt:new Date(r.header.observedAt).toISOString(),payloadHash:r.header.payloadHash,state:r.header.kind==="PRODUCT_ATTRIBUTE_EVIDENCE_V1"?r.header.state:"UNSUPPORTED_VERSION",data:r.header.kind==="PRODUCT_ATTRIBUTE_EVIDENCE_V1"&&r.header.state==="AVAILABLE"?byId.get(r.header.id)??null:null} satisfies AttributeEvidenceRecord]));
 }
-/** Project only explicitly selected fields for up to five owner-selected canonical SKUs; raw feeds never enter responses. */
 export async function sampleProductAttributes(p:AiPrincipal,value:unknown,db:SqlDatabase=prisma){
   if(!isRecord(value)||Object.keys(value).sort().join()!=="dictionaryId,skuIds"||!Array.isArray(value.skuIds)||!value.skuIds.length||value.skuIds.length>5)throw new ProductAttributeError("INVALID_ATTRIBUTE_SAMPLES");
   const dictionaryId=identifier(value.dictionaryId),skuIds=[...new Set(value.skuIds.map(identifier))];
@@ -73,7 +67,6 @@ export async function sampleProductAttributes(p:AiPrincipal,value:unknown,db:Sql
     return {dictionaryId,revision:dictionary.revision,samples};
   },true);
 }
-/** Activate only after recorded real source-sample checks and explicit attribution/status-rubric approval. */
 export async function approveAttributeDictionary(p:AiPrincipal,dictionaryId:string,value:unknown,db:SqlDatabase=prisma,now=new Date()){
   if(!isRecord(value)||Object.keys(value).sort().join()!=="approvalReference,configId,rubricApprovalReference,samples"||typeof value.approvalReference!=="string"||!value.approvalReference.trim()||value.approvalReference.length>1000||typeof value.rubricApprovalReference!=="string"||!value.rubricApprovalReference.trim()||value.rubricApprovalReference.length>1000||!Array.isArray(value.samples)||!value.samples.length||value.samples.length>25)throw new ProductAttributeError("ATTRIBUTE_SAMPLE_APPROVAL_REQUIRED",409);
   const configId=identifier(value.configId),checks=value.samples;

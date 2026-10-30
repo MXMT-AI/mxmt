@@ -45,7 +45,6 @@ export interface DailySkuContext {
 }
 const age = (from: string, to: string) =>
   Temporal.PlainDate.from(from).until(Temporal.PlainDate.from(to)).days;
-/** Availability is classified before presentation rounding; no active denominator means unavailable. */
 export function availabilityTone(ratio: string | null) {
   return ratio === null
     ? "UNAVAILABLE"
@@ -55,7 +54,6 @@ export function availabilityTone(ratio: string | null) {
         ? "AMBER"
         : "RED";
 }
-/** A daily observation is evidence for its calendar date, never a fabricated end-of-day snapshot. */
 export function calculateDailySku(
   input: DailySkuInput,
   context: DailySkuContext,
@@ -256,7 +254,6 @@ export function calculateDailySku(
   };
 }
 export type DailySkuMetrics = ReturnType<typeof calculateDailySku>;
-/** Aggregate the same materialized rows; unknown activity or active stock cannot inflate availability. */
 export function summarizeDailySkus(
   rows: DailySkuMetrics[],
   turnoverNormMonths: number,
@@ -342,7 +339,6 @@ export interface StockCurrencyInput {
   missingQuantity: number;
   missingCogs: number;
 }
-/** Finalize SQL or in-memory stock sums with identical null/turnover semantics. */
 export function finalizeStockCurrency(a: StockCurrencyInput, norm: number) {
   const turnover =
     !a.missingCost && !a.missingCogs && a.currency !== null && D(a.cogs).gt(0)

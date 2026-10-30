@@ -57,7 +57,6 @@ interface InputManifest {
 }
 const inputKey = (snapshotId: string) =>
   `calculation:repricing-inputs:${payloadHash({ snapshotId, version: REPRICING_VERSION })}`;
-/** Read frozen names, quantities, prices and effective ownership without joining the live catalog. */
 async function frozenSkus(
   tenantId: string,
   snapshot: ScreenSnapshot,
@@ -75,7 +74,6 @@ async function frozenSkus(
     throw new RepricingError("INCOMPLETE_REPRICING_INPUTS", 409);
   return rows;
 }
-/** Find a published immutable input set, scoped by tenant even when an ID is guessed. */
 async function readManifest(
   tenantId: string,
   tx: SqlClient,
@@ -92,7 +90,6 @@ async function readManifest(
     throw new RepricingError("REPRICING_VERSION_UNSUPPORTED", 409);
   return row.values.inputs;
 }
-/** Publish compact 1/3/7-month unit aggregates only while source/settings still match the stock snapshot. */
 export async function createRepricingInputs(
   tenantId: string,
   snapshotId: string,
@@ -239,7 +236,6 @@ export async function createRepricingInputs(
     return inputResponse(published);
   });
 }
-/** Publish option metadata without sending 20,000 frozen SKU rows to the browser. */
 function inputResponse(inputs: InputManifest) {
   return {
     inputSetId: inputs.id,
@@ -257,7 +253,6 @@ function inputResponse(inputs: InputManifest) {
     capabilities: { preview: true, export: true, execute: false },
   };
 }
-/** Export consumers can reuse this full validated result inside their own atomic audit transaction. */
 export async function calculateRepricingInSnapshot(
   tenantId: string,
   request: RepricingRequest,
@@ -293,7 +288,6 @@ export async function calculateRepricingInSnapshot(
     historyUnavailableReason: inputs.historyUnavailableReason,
   };
 }
-/** Recalculate the full selection before paging its display rows; the browser never supplies input facts. */
 export async function getRepricingPreview(
   tenantId: string,
   value: unknown,

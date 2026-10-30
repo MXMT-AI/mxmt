@@ -1,4 +1,3 @@
-/** CSV v1: explicit delimiter, UTF-8 with optional BOM, RFC-style double quotes. */
 export const CSV_LIMITS = {
   fileBytes: 256 * 1024,
   totalBytes: 1024 * 1024,

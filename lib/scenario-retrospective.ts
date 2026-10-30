@@ -2,7 +2,6 @@ import {Temporal} from "@js-temporal/polyfill";
 import {isRecord} from "./api-contracts";
 export class RetrospectiveError extends Error {constructor(readonly code:string,readonly status=400){super(code);}}
 export interface RetrospectiveRequest {exportId:string;kind:"reprice"|"reorder";period:{from:string;to:string}}
-/** Prepare evaluation intent only; an export is neither a launched promotion nor a sent or received supplier order. */
 export function parseRetrospectiveRequest(v:unknown):RetrospectiveRequest {
  if(!isRecord(v)||Object.keys(v).sort().join()!=="exportId,kind,period"||typeof v.exportId!=="string"||!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v.exportId)||!["reprice","reorder"].includes(String(v.kind))||!isRecord(v.period)||Object.keys(v.period).sort().join()!=="from,to")throw new RetrospectiveError("INVALID_RETROSPECTIVE_REQUEST");
  try{
@@ -11,7 +10,6 @@ export function parseRetrospectiveRequest(v:unknown):RetrospectiveRequest {
  }catch{throw new RetrospectiveError("INVALID_RETROSPECTIVE_PERIOD");}
  return {exportId:v.exportId.toLowerCase(),kind:v.kind as RetrospectiveRequest["kind"],period:v.period as RetrospectiveRequest["period"]};
 }
-/** These unresolved business inputs are a versioned preparation contract, never an inferred performance calculation. */
 export const RETROSPECTIVE_GATES={
  version:1,
  execution:"CONFIRMED_ACTUAL_START_AND_APPLIED_ROWS_REQUIRED",

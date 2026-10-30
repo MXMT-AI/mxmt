@@ -1,4 +1,3 @@
-/** Client profile settings are independent of legacy SEASONAL/CARRYOVER/HYBRID business models. */
 export interface ClientMerchandisingSettings {
   schemaVersion: 1;
   profileMode: "MONOBRAND" | "MULTIBRAND";
@@ -32,7 +31,6 @@ export class SettingsValidationError extends Error {
     super("INVALID_SETTINGS");
   }
 }
-/** Return fresh approved defaults without confirming customer-specific facts. */
 export function defaultClientSettings(): ClientMerchandisingSettings {
   return {
     schemaVersion: 1,
@@ -58,7 +56,6 @@ export function defaultClientSettings(): ClientMerchandisingSettings {
 }
 const record = (v: unknown): v is Record<string, unknown> =>
   Boolean(v && typeof v === "object" && !Array.isArray(v));
-/** Validate only supported settings fields; arbitrary JSON cannot activate a profile. */
 export function validateClientSettings(
   value: unknown,
 ): ClientMerchandisingSettings {
@@ -177,7 +174,6 @@ export function validateClientSettings(
   if (Object.keys(errors).length) throw new SettingsValidationError(errors);
   return result;
 }
-/** Validate typed entity settings with explicit null inheritance and bounded numeric values. */
 export function validateEntitySettings(
   resource: Exclude<SettingsResource, "client">,
   value: unknown,

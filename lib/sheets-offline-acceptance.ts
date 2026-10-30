@@ -10,7 +10,6 @@ import {
 } from "./connectors/sheets-projection-compile";
 import { normalizeOrder } from "./connectors/order-normalization";
 import type { SheetsMappingInput } from "./sheets-mapping-contract";
-/** Read-only workbook diagnosis. No database, provider call, approval or invented business acceptance. */
 export function inspectSheetsOffline(buffer: Buffer, observedAt: string) {
   const workbook = parseRawWorkbook(buffer);
   const sheets = workbook.sheets.filter(
@@ -33,7 +32,6 @@ export function inspectSheetsOffline(buffer: Buffer, observedAt: string) {
     })),
   };
   const suggestion = suggestSheetsMapping(input);
-  // XXX explicitly means no currency; this diagnostic cannot activate a mapping.
   const diagnostic = structuredClone(suggestion);
   diagnostic.policy.currency = "XXX";
   const products = sheets.find((s) => s.key === "product_yml")!.rows,
@@ -153,7 +151,7 @@ export function inspectSheetsOffline(buffer: Buffer, observedAt: string) {
       problemCount: summary.problemCount,
       blockingErrors: summary.blockingErrors,
       warnings: summary.warnings,
-    }, // Reports contain aggregate counts, never product/order values or raw rows.
+    },
     findings: [...findings],
     identity,
     structural,

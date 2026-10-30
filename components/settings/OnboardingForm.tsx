@@ -7,7 +7,6 @@ import { useRouter } from "@/i18n/navigation";
 import { CheckCircle2, ChevronRight, ChevronLeft } from "lucide-react";
 import { useLang } from "@/components/LanguageProvider";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 type Model = "SEASONAL" | "CARRYOVER" | "HYBRID" | "";
 
@@ -29,7 +28,6 @@ interface Answers {
   logisticsRestrictions: string;
 }
 
-// ─── Chip select ─────────────────────────────────────────────────────────────
 
 function Chip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
@@ -94,7 +92,6 @@ function Question({ num, label, hint, children }: {
   );
 }
 
-// ─── Main form ────────────────────────────────────────────────────────────────
 
 export default function OnboardingForm({
   existing,
@@ -136,7 +133,7 @@ export default function OnboardingForm({
     ? answers.seasonsPerYear !== "" && answers.hitReorder !== ""
     : model === "CARRYOVER"
     ? answers.replenishmentModel !== "" && answers.leadTimeType !== ""
-    : true; // HYBRID - no required
+    : true;
   const canSave = answers.minMargin !== "" && answers.currencyRisk !== "";
 
   async function save() {
@@ -165,7 +162,6 @@ export default function OnboardingForm({
 
   return (
     <div className="max-w-2xl">
-      {/* Step indicator */}
       <div className="flex items-center gap-3 mb-8">
         {steps.map((s, i) => (
           <div key={i} className="flex items-center gap-2">
@@ -182,7 +178,6 @@ export default function OnboardingForm({
         ))}
       </div>
 
-      {/* Step 1: Business model */}
       {step === 1 && (
         <div className="bg-(--surface) border border-(--border) rounded-xl p-6">
           <Question num="01" label={uk ? "Яка модель асортименту у вашому бізнесі?" : "What is your assortment model?"} hint={uk ? "⚡ Це питання визначає всю логіку роботи агента" : "⚡ This defines the entire agent logic"}>
@@ -246,7 +241,6 @@ export default function OnboardingForm({
         </div>
       )}
 
-      {/* Step 2: Model-specific */}
       {step === 2 && (
         <div className="bg-(--surface) border border-(--border) rounded-xl p-6">
           {(model === "SEASONAL" || model === "HYBRID") && (
@@ -314,7 +308,6 @@ export default function OnboardingForm({
         </div>
       )}
 
-      {/* Step 3: Financial */}
       {step === 3 && (
         <div className="bg-(--surface) border border-(--border) rounded-xl p-6">
           <div className="text-[9px] font-mono uppercase tracking-widest text-accent-yellow mb-4">

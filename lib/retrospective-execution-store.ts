@@ -9,12 +9,10 @@ import type {AiPrincipal} from "./ai-execution/contracts";
 import {readScreenSnapshot} from "./merchandising-snapshot";
 import {parseExecutionCommand,RetrospectiveExecutionError as E,RETROSPECTIVE_POLICY_VERSION,type ExecutionCommand} from "./retrospective-contract";
 export interface ExecutionReceipt {executionId:string;policyVersion:string;actorId:string;confirmedAt:string;command:ExecutionCommand;sourceId:string;snapshotId:string;timezone:string;selectionRevision:number;exportRows:Array<Record<string,unknown>>;exportReceipt:unknown;exportParameters:unknown;exportProvenance:unknown;receiptCoverage:string|null;evidenceKind:"OWNER_ATTESTATION";receiptEvidence:unknown;inputHash:string}
-/** Tenant-local immutable confirmation record; reads do not require the original exporting actor to still exist as an active approver. */
 export async function readRetrospectiveExecution(p:AiPrincipal,id:string,tx:SqlClient){
  const [r]=await tx.$queryRaw<Array<{after:ExecutionReceipt}>>(Prisma.sql`SELECT after FROM "MerchandisingAction" WHERE "tenantId"=${p.tenantId} AND id=${id} AND "entityType"='RETROSPECTIVE_EXECUTION' AND context->>'kind'='RETROSPECTIVE_EXECUTION_V1'`);
  if(!r)throw new E("EXECUTION_NOT_FOUND",404);return r.after;
 }
-/** Record an ADMIN's evidence without writing prices, sending orders or treating a confirmation as remote API verification. */
 export async function confirmScenarioExecution(p:AiPrincipal,value:unknown,db:SqlDatabase=prisma,now=new Date()){
  const q=parseExecutionCommand(value),requestHash=payloadHash(q);
  return aiTransaction(p,db,async tx=>{

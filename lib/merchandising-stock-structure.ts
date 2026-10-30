@@ -8,7 +8,6 @@ type StatusCost = {
   physicalSkuCount: number;
   missingCostSkuCount: number;
 };
-/** Monetary percentages always declare their population; unknown costs never become zero. */
 export function stockStructure(rows: StatusCost[]) {
   const physical = rows.filter(
     (r) =>

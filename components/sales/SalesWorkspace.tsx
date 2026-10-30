@@ -11,7 +11,6 @@ import { useMerchandisingScreen } from "@/components/merchandising/useMerchandis
 import { merchandisingGroup } from "@/lib/merchandising-navigation";
 import { salesCopy } from "@/lib/sales-copy";
 import SalesContent from "./SalesContent";
-/** Load the Sales projection using shared filters and URL-owned display controls. */
 export default function SalesWorkspace() {
   const filters = useMerchandisingFilters()!,
     options = useMerchandisingOptions(),

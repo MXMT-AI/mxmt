@@ -9,18 +9,15 @@ import type {SqlClient,SqlDatabase} from "./connectors/database";
 import {payloadHash} from "./connectors/order-storage";
 import {parseSupplierRecipient,supplierActionId,supplierKeys,supplierText,SupplierDeliveryError as E,type SupplierRecipient} from "./supplier-delivery";
 export interface RecipientRecord {id:string;revision:number;values:SupplierRecipient;approvedAt:Date|string|null;approvalReference:string|null}
-/** Only the latest catalog revision may authorize delivery; a new draft invalidates previous approval. */
 export async function recipientInTx(p:AiPrincipal,id:string,tx:SqlClient){
  const [row]=await tx.$queryRaw<RecipientRecord[]>(Prisma.sql`SELECT id,revision,values,"approvedAt","approvalReference" FROM "MerchandisingConfig" WHERE "tenantId"=${p.tenantId} AND "configType"='GENERAL' AND key=${`supplier-recipient:${supplierActionId(id)}`} ORDER BY revision DESC LIMIT 1`);
  if(!row)throw new E("SUPPLIER_RECIPIENT_NOT_FOUND",404);row.values=parseSupplierRecipient(row.values);if(row.approvedAt)row.approvedAt=new Date(row.approvedAt).toISOString();return row;
 }
-/** Version the supplier's actual verified purchase terms; a name is never recipient or supplier identity. */
 export async function supplierTermsInTx(p:AiPrincipal,supplierId:string,tx:SqlClient){
  const [supplier]=await tx.$queryRaw<Array<{id:string;leadTimeDays:number|null;coverDays:number|null;moq:number|null;termsVerifiedAt:Date|string|null}>>(Prisma.sql`SELECT id,"leadTimeDays","coverDays",moq,"termsVerifiedAt" FROM "Supplier" WHERE "tenantId"=${p.tenantId} AND id=${supplierActionId(supplierId)}`);
  if(!supplier||!supplier.termsVerifiedAt||supplier.leadTimeDays===null||supplier.coverDays===null||!supplier.moq||supplier.moq<1)throw new E("SUPPLIER_TERMS_UNVERIFIED",409);
  const terms={...supplier,termsVerifiedAt:new Date(supplier.termsVerifiedAt).toISOString()};return {terms,hash:payloadHash(terms)};
 }
-/** Save an inactive recipient draft, without resolving an address, sending a message or treating reference text as approval. */
 export async function saveSupplierRecipient(p:AiPrincipal,id:string,value:unknown,db:SqlDatabase=prisma){
  supplierActionId(id);if(!isRecord(value)||!supplierKeys(value,["expectedRevision","recipient"])||!Number.isInteger(value.expectedRevision)||Number(value.expectedRevision)<0||Number(value.expectedRevision)>10000)throw new E("INVALID_SUPPLIER_RECIPIENT_REVISION");
  const recipient=parseSupplierRecipient(value.recipient);
@@ -31,7 +28,6 @@ export async function saveSupplierRecipient(p:AiPrincipal,id:string,value:unknow
   await tx.$executeRaw(Prisma.sql`INSERT INTO "MerchandisingAction" (id,"tenantId","actorId","configId",action,"entityType","entityId","idempotencyKey",context) VALUES (${randomUUID()},${p.tenantId},${p.userId},${configId},'SUPPLIER_RECIPIENT_DRAFT','SUPPLIER_RECIPIENT',${id},${`recipient-draft:${configId}`},${JSON.stringify({revision,recipientHash:payloadHash(recipient)})}::jsonb)`);return {id,configId,revision,state:"DRAFT"};
  },true);
 }
-/** Owner approval records verification/consent and exact terms; it still cannot activate a transport. */
 export async function approveSupplierRecipient(p:AiPrincipal,id:string,value:unknown,db:SqlDatabase=prisma,now=new Date()){
  if(!isRecord(value)||!supplierKeys(value,["configId","reference"])||!supplierText(value.reference))throw new E("INVALID_SUPPLIER_RECIPIENT_APPROVAL");const configId=supplierActionId(value.configId),reference=value.reference;
  return aiTransaction(p,db,async tx=>{

@@ -1,6 +1,5 @@
 import { isRecord } from "@/lib/api-contracts";
 import type { OrderPolicy } from "./order-normalization";
-/** Validate approved status, channel, amount and event-date mappings before freezing a job. */
 export function parseOrderPolicy(value: unknown): OrderPolicy {
   if (!isRecord(value)) throw new Error("INVALID_SOURCE_MAPPING");
   const policy: OrderPolicy = {};

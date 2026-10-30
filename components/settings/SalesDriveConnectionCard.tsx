@@ -8,7 +8,6 @@ import type { PublicConnection } from "@/lib/connectors/contract";
 
 interface Props { initial: PublicConnection; lang: "uk" | "en"; canManage: boolean }
 
-/** Write-only credential form with public, persisted read-scope diagnostics. */
 export default function SalesDriveConnectionCard({ initial, lang, canManage }: Props) {
   const uk = lang === "uk";
   const [connection, setConnection] = useState(initial);
@@ -52,7 +51,6 @@ export default function SalesDriveConnectionCard({ initial, lang, canManage }: P
       if (action === "save") setDirty(false);
     } catch { setError(uk ? "Помилка мережі. Спробуйте ще раз." : "Network error. Try again."); }
     finally {
-      // Clear write-only fields after every attempt; never store them in local/session storage.
       if (action === "save") for (const name of ["ordersApiKey", "receiptsApiKey", "ymlUrl"]) {
         const field = formRef.current?.elements.namedItem(name);
         if (field instanceof HTMLInputElement) field.value = "";
