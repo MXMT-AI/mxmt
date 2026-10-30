@@ -5,13 +5,16 @@ export const ZAVOD_RECEIPT_COLUMNS = {
   productId: "Товар: ID", sku: "Товар: Артикул (SKU)",
   supplierId: "Контрагент: ID", warehouseId: "ID складу", sourceWarehouseId: "ID складу-джерела",
 } as const;
+export const RECEIPT_PREVIEW_MAX_ROWS = 100000;
+export const RECEIPT_PREVIEW_MAX_COLUMNS = 256;
 
 /** Inspect a bounded frozen receipt table without copying personal fields or inventing line IDs. */
 export function previewZavodReceipts(headers: string[], rows: unknown[][]) {
-  if (rows.length > 100000 || headers.length > 256) throw new Error("RECEIPT_PREVIEW_LIMIT");
+  if (rows.length > RECEIPT_PREVIEW_MAX_ROWS || headers.length > RECEIPT_PREVIEW_MAX_COLUMNS) throw new Error("RECEIPT_PREVIEW_LIMIT");
   const index = (name: string) => headers.indexOf(name);
   const missingColumns = Object.values(ZAVOD_RECEIPT_COLUMNS).filter(name => index(name) < 0);
-  if (new Set(headers).size !== headers.length) throw new Error("AMBIGUOUS_RECEIPT_HEADERS");
+  const namedHeaders = headers.filter(label => label.trim() !== "");
+  if (new Set(namedHeaders).size !== namedHeaders.length) throw new Error("AMBIGUOUS_RECEIPT_HEADERS");
   const read = (row: unknown[], key: keyof typeof ZAVOD_RECEIPT_COLUMNS) => {
     const value = row[index(ZAVOD_RECEIPT_COLUMNS[key])];
     return typeof value === "string" || typeof value === "number" ? String(value).trim() : "";
@@ -30,7 +33,8 @@ export function previewZavodReceipts(headers: string[], rows: unknown[][]) {
     if (!read(row, "unitPrice") || !Number.isFinite(Number(read(row, "unitPrice"))) || Number(read(row, "unitPrice")) <= 0) invalidPrice++;
     // Repeated document/product rows need an explicit stable line identity, not aggregation or first-row wins.
     if (document && (sku || read(row, "productId"))) {
-      const key = JSON.stringify([document, read(row, "productId"), sku]);
+      const productId = read(row, "productId");
+      const key = JSON.stringify([document, productId ? "productId" : "sku", productId || sku]);
       identities.set(key, (identities.get(key) ?? 0) + 1);
     }
   }

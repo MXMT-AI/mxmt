@@ -8,7 +8,7 @@ export async function readReportReadiness(tenantId: string, snapshot: ScreenSnap
     total: number; missingStock: number; missingReceipt: number; missingVelocity: number;
     unknownOwnership: number; unknownKind: number; unclassified: number;
   }>>(Prisma.sql`SELECT count(*)::int total,
-    count(*) FILTER(WHERE d.quantity IS NULL)::int "missingStock",
+    count(*) FILTER(WHERE d.metrics->>'productKind'='MERCHANDISE' AND d.quantity IS NULL)::int "missingStock",
     count(*) FILTER(WHERE COALESCE(d.metrics->'classificationErrors','[]'::jsonb) ? 'RECEIPT_HISTORY_UNVERIFIED')::int "missingReceipt",
     count(*) FILTER(WHERE COALESCE(d.metrics->'classificationErrors','[]'::jsonb) ? 'VELOCITY_UNAVAILABLE')::int "missingVelocity",
     count(*) FILTER(WHERE d.metrics->>'productKind'='MERCHANDISE' AND d.metrics->>'ownership'='UNKNOWN')::int "unknownOwnership",

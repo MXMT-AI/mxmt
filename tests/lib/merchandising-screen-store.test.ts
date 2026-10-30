@@ -1,4 +1,5 @@
-import type { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
+import { readReportReadiness } from "@/lib/report-readiness";
 import { beforeAll, afterAll, describe, it, expect, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/prisma", () => ({ prisma: {} }));
@@ -41,6 +42,18 @@ const read = (screen: ScreenName, filters: Record<string, string> = {}) =>
     screenSelection.now,
   );
 describe("five screens pinned to a single atomic snapshot", () => {
+  it("counts missing stock only for merchandise, independently of service/gift/unknown quantities", async () => {
+    const rollback = new Error("test-only rollback");
+    await expect(db.$transaction(async tx => {
+      await tx.$executeRaw(Prisma.sql`UPDATE "SkuDaily" SET quantity=NULL,metrics=jsonb_set(metrics,'{productKind}','"SERVICE"'::jsonb) WHERE "tenantId"='a' AND "configId"=${snapshot.stock.calculationId}`);
+      expect((await readReportReadiness("a", snapshot, tx)).missingStock).toBe(0);
+      for (const kind of ["GIFT_CARD", "UNKNOWN", "MERCHANDISE"]) {
+        await tx.$executeRaw(Prisma.sql`UPDATE "SkuDaily" SET metrics=jsonb_set(metrics,'{productKind}',to_jsonb(${kind}::text)) WHERE id=(SELECT "dailyId" FROM "MerchandisingScreenSku" WHERE "tenantId"='a' AND "snapshotId"=${snapshot.snapshotId} LIMIT 1)`);
+        expect((await readReportReadiness("a", snapshot, tx)).missingStock).toBe(kind === "MERCHANDISE" ? 1 : 0);
+      }
+      throw rollback;
+    })).rejects.toBe(rollback);
+  });
   it("keeps readiness source-scoped and frozen across filters and screens", async () => {
     const first = (await read("overview")).readiness;
     expect(first.scope).toBe("SOURCE_SNAPSHOT");
