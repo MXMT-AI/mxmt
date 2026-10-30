@@ -5,20 +5,21 @@ import { SHEETS_SOURCE_FILTER } from "@/lib/data-source";
 import { requireApiUser } from "@/lib/server-auth";
 import { ARTICLE_CALCULATION_VERSION } from "@/lib/article-report";
 import { DATA_TABLE_KEYS } from "@/lib/data-table-api";
+import { readDriveConnection } from "@/lib/drive-connection";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   const { user, response } = await requireApiUser();
   if (response) return response;
-  const source = await prisma.dataSource.findFirst({
+  const [connection, source] = await Promise.all([readDriveConnection(user.tenantId), prisma.dataSource.findFirst({
     where: { tenantId: user.tenantId, ...SHEETS_SOURCE_FILTER },
     orderBy: { updatedAt: "desc" },
     include: {
       activeImportRun: true,
       importRuns: { orderBy: { createdAt: "desc" }, take: 1 },
     },
-  });
+  })]);
   const active = source?.activeImportRun ?? null;
   const [calculation, issueCounts] = active
     ? await Promise.all([
@@ -39,6 +40,7 @@ export async function GET() {
       ])
     : [null, []];
   return NextResponse.json({
+    connection,
     configured: Boolean(source),
     source: source ? {
       id: source.id,

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isDriveConfigured } from "@/lib/gdrive";
+import { DriveConnectionError } from "@/lib/drive-connection";
 import { requireApiUser } from "@/lib/server-auth";
 import { apiError, isRecord, parseOptionalJsonBody, serverError, validationError } from "@/lib/api-contracts";
 import { RawImportInProgressError, RawImportExpiredError, TypedProjectionValidationError } from "@/lib/data-import";
@@ -18,9 +18,6 @@ export const maxDuration = 300;
 export async function POST(request: NextRequest) {
   const { user, response } = await requireApiUser("ADMIN");
   if (response) return response;
-  if (!isDriveConfigured()) {
-    return apiError("Google Drive is not configured", 400, "DRIVE_NOT_CONFIGURED");
-  }
   const { data, response: parseResponse } = await parseOptionalJsonBody(request);
   if (parseResponse) return parseResponse;
   if (!isRecord(data)) return validationError(["body must be an object"]);
@@ -41,6 +38,9 @@ export async function POST(request: NextRequest) {
     const result = await runDataPipeline({ tenantId: user.tenantId, calculate: calculate as boolean, ...dates });
     return NextResponse.json({ ok: true, ...result });
   } catch (error) {
+    if (error instanceof DriveConnectionError) {
+      return apiError("Connect Google Sheets for this cabinet in Settings before importing.", error.status, error.code);
+    }
     if (error instanceof RawImportInProgressError) {
       return apiError("An import is still running. Wait for it to finish and refresh status. Interrupted imports become retryable after 10 minutes.", 409, "RAW_IMPORT_IN_PROGRESS");
     }

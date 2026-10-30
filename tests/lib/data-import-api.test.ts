@@ -10,10 +10,17 @@ vi.mock('@/lib/data-pipeline',()=>({runDataPipeline:m.pipeline}));
 import {POST} from '@/app/api/data/import/route';
 import {signAccessToken} from '@/lib/auth';
 import {RawImportInProgressError,RawImportExpiredError} from '@/lib/data-import';
+import {DriveConnectionError} from '@/lib/drive-connection';
 const request=()=>new NextRequest('https://app.test/api/data/import',{method:'POST',headers:{'content-type':'application/json','x-tenant-id':'forged'},body:JSON.stringify({dateFrom:'2026-01-01',dateTo:'2026-10-31'})});
 beforeEach(()=>{vi.stubEnv('JWT_ACCESS_SECRET','synthetic-import-api-secret');vi.clearAllMocks();m.cookies.clear();});afterEach(()=>{vi.unstubAllEnvs();vi.restoreAllMocks();});
 it('requires signed ADMIN before importing',async()=>{
  expect((await POST(request())).status).toBe(401);m.cookies.set('access_token',await signAccessToken({sub:'actor',tenantId:'tenant',role:'ANALYST'}));expect((await POST(request())).status).toBe(403);expect(m.pipeline).not.toHaveBeenCalled();
+});
+it('blocks unbound cabinets before a global source can be imported',async()=>{
+ m.cookies.set('access_token',await signAccessToken({sub:'actor',tenantId:'tenant',role:'ADMIN'}));
+ m.pipeline.mockRejectedValue(new DriveConnectionError('SHEETS_CONNECTION_REQUIRED',409));
+ const response=await POST(request());expect(response.status).toBe(409);
+ expect(await response.json()).toMatchObject({code:'SHEETS_CONNECTION_REQUIRED'});
 });
 it.each([[new RawImportInProgressError(),'RAW_IMPORT_IN_PROGRESS'],[new RawImportExpiredError(),'RAW_IMPORT_EXPIRED']])('returns explicit import-state recovery codes (%s)',async(error,code)=>{
  m.cookies.set('access_token',await signAccessToken({sub:'actor',tenantId:'tenant',role:'ADMIN'}));m.pipeline.mockRejectedValue(error);

@@ -9,6 +9,8 @@ import ConnectorSourceCard from "@/components/settings/ConnectorSourceCard";
 import { prisma } from "@/lib/prisma";
 import { getT } from "@/lib/translations";
 import { getDriveMode } from "@/lib/gdrive";
+import { readDriveConnection } from "@/lib/drive-connection";
+import SheetsConnectionCard from "@/components/settings/SheetsConnectionCard";
 import OnboardingForm from "@/components/settings/OnboardingForm";
 import DriveSyncCard from "@/components/settings/DriveSyncCard";
 import AIProviderCard from "@/components/settings/AIProviderCard";
@@ -24,7 +26,7 @@ export default async function SettingsPage() {
   const lang = await getLocale();
   const t = getT(lang);
 
-  const [onboarding, driveSync, salesDrive, selectedSource, keyCrm, horoshop, shopify] = await Promise.all([
+  const [onboarding, driveSync, salesDrive, selectedSource, keyCrm, horoshop, shopify, sheetsConnection] = await Promise.all([
     prisma.onboardingBrief.findUnique({ where: { tenantId } }),
     prisma.googleDriveSync.findFirst({ where: { tenantId }, orderBy: { createdAt: "desc" } }),
     getSalesDriveConnection(tenantId),
@@ -32,6 +34,7 @@ export default async function SettingsPage() {
     getProviderConnection(tenantId,"keycrm"),
     getProviderConnection(tenantId,"horoshop"),
     getProviderConnection(tenantId,"shopify"),
+    readDriveConnection(tenantId),
   ]);
 
   const generalContent = (
@@ -84,6 +87,7 @@ export default async function SettingsPage() {
       </section>
 
       <ConnectorSourceCard lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
+      <SheetsConnectionCard initial={sheetsConnection} lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
       <SheetsMappingCard lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
       <SalesDriveConnectionCard initial={salesDrive} lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
 
@@ -106,7 +110,7 @@ export default async function SettingsPage() {
             {lang === "uk" ? "Автоматичний імпорт даних з Excel файлу" : "Auto-import data from Excel file"}
           </p>
         </div>
-        <DriveSyncCard lastSync={driveSync ?? null} lang={lang} driveMode={getDriveMode()} />
+        <DriveSyncCard lastSync={driveSync?.driveFileId === sheetsConnection?.fileId ? driveSync : null} lang={lang} driveMode={getDriveMode(sheetsConnection?.fileId ?? null)} />
       </section>
 
       <section className="mb-10">
