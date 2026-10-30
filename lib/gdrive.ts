@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { fetchWithTimeout } from "@/lib/server-fetch";
 import { assertDriveRowLimit } from "@/lib/drive-limits";
 import { dedupeBySku } from "@/lib/drive-import-utils";
+import { requireDriveConnection, parseSpreadsheetId } from "./drive-connection";
 
 
 interface ServiceAccount {
@@ -221,9 +222,17 @@ async function getAccessToken(sa: ServiceAccount): Promise<string> {
 }
 
 async function downloadFile(fileId: string, accessToken: string): Promise<Buffer> {
+  const headers = { Authorization: `Bearer ${accessToken}` };
+  const metadata = await fetchWithTimeout(
+    `https://www.googleapis.com/drive/v3/files/${fileId}?fields=mimeType`, { headers }
+  );
+  if (!metadata.ok) throw new Error(`Drive metadata failed: ${metadata.status}`);
+  const { mimeType } = await metadata.json();
+  const url = mimeType === "application/vnd.google-apps.spreadsheet"
+    ? `https://www.googleapis.com/drive/v3/files/${fileId}/export?mimeType=application%2Fvnd.openxmlformats-officedocument.spreadsheetml.sheet`
+    : `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
   const res = await fetchWithTimeout(
-    `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
-    { headers: { Authorization: `Bearer ${accessToken}` } }
+    url, { headers }
   );
   if (!res.ok) throw new Error(`Drive download failed: ${res.status} ${res.statusText}`);
   return ensureDriveFileSize(Buffer.from(await res.arrayBuffer()));
@@ -542,23 +551,17 @@ async function importSales(tenantId: string, rows: Row[]): Promise<number> {
 }
 
 
-export function isDriveConfigured(): boolean {
-  return !!process.env.GOOGLE_DRIVE_FILE_ID;
-}
-
-export function getDriveMode(): "service_account" | "public_link" | "none" {
-  if (!process.env.GOOGLE_DRIVE_FILE_ID) return "none";
+export function getDriveMode(fileId: string | null): "service_account" | "public_link" | "none" {
+  if (!fileId) return "none";
   if (process.env.GOOGLE_SERVICE_ACCOUNT_KEY) return "service_account";
   return "public_link";
 }
 
-export async function downloadConfiguredDriveWorkbook(): Promise<{
+export async function downloadDriveWorkbook(rawId: string): Promise<{
   fileId: string;
   buffer: Buffer;
 }> {
-  const rawId = process.env.GOOGLE_DRIVE_FILE_ID;
-  if (!rawId) throw new Error("GOOGLE_DRIVE_FILE_ID not set");
-  const fileId = extractDriveFileId(rawId);
+  const fileId = parseSpreadsheetId(rawId);
 
   if (process.env.GOOGLE_SERVICE_ACCOUNT_KEY) {
     const sa: ServiceAccount = JSON.parse(
@@ -570,8 +573,15 @@ export async function downloadConfiguredDriveWorkbook(): Promise<{
   return { fileId, buffer: await downloadPublicFile(fileId) };
 }
 
-export async function syncFromDrive(tenantId: string): Promise<SyncResult> {
-  const { buffer } = await downloadConfiguredDriveWorkbook();
+export async function downloadConfiguredDriveWorkbook(tenantId: string) {
+  const connection = await requireDriveConnection(tenantId);
+  return downloadDriveWorkbook(connection.fileId);
+}
+
+export async function syncFromDrive(tenantId: string, boundFileId?: string): Promise<SyncResult> {
+  const { buffer } = boundFileId
+    ? await downloadDriveWorkbook(boundFileId)
+    : await downloadConfiguredDriveWorkbook(tenantId);
 
   const wb = readWorkbook(buffer, { type: "buffer", cellDates: true });
   const existingBrands = await prisma.brand.findMany({

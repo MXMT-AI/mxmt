@@ -245,6 +245,7 @@ export async function importRawWorkbookBuffer(
     create: {
       tenantId,
       driveFileId: fileId,
+      name: "Google Sheets",
       timezone: DATA_SOURCE_TIMEZONE,
       allowedSheets: asJson(RAW_SHEET_CONFIGS),
     },
@@ -447,6 +448,6 @@ export async function importRawDataFromDrive(
   tenantId: string,
   trigger: DataImportTrigger = DataImportTrigger.MANUAL
 ): Promise<RawImportResult> {
-  const { fileId, buffer } = await downloadConfiguredDriveWorkbook();
+  const { fileId, buffer } = await downloadConfiguredDriveWorkbook(tenantId);
   return importRawWorkbookBuffer({ tenantId, fileId, buffer, trigger });
 }

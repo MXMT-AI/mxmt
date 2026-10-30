@@ -10,9 +10,10 @@ beforeEach(()=>{vi.stubEnv("CRON_SECRET","fixture-cron");vi.clearAllMocks();m.pu
 it("never purges without authenticated cron credentials",async()=>{
  expect((await handleScheduledDataImport(request("wrong"))).status).toBe(401);vi.stubEnv("CRON_SECRET","");expect((await handleScheduledDataImport(request())).status).toBe(503);expect(m.purge).not.toHaveBeenCalled();
 });
-it("purges before skipping an off-window import or checking Google Sheets access",async()=>{
+it("purges before skipping an off-window import and does not require a global workbook for tenant bindings",async()=>{
  expect((await handleScheduledDataImport(request())).status).toBe(200);expect(m.purge).toHaveBeenCalledTimes(1);expect(m.run).not.toHaveBeenCalled();
- m.configured.mockReturnValue(false);expect((await handleScheduledDataImport(request())).status).toBe(503);expect(m.purge).toHaveBeenCalledTimes(2);
+ m.configured.mockReturnValue(false);m.decision.mockReturnValue({shouldRun:true,businessDate:"2026-10-28"});
+ expect((await handleScheduledDataImport(request())).status).toBe(200);expect(m.purge).toHaveBeenCalledTimes(2);expect(m.run).toHaveBeenCalledWith("2026-10-28");
 });
 it("reports retention failures without returning private database details",async()=>{
  m.purge.mockRejectedValue(Error("private DB failure"));const response=await handleScheduledDataImport(request());expect(response.status).toBe(500);expect(await response.text()).not.toContain("private DB");expect(m.run).not.toHaveBeenCalled();

@@ -184,7 +184,7 @@ npm run dev
 | `DIRECT_URL` | Direct endpoint тієї самої БД для Prisma CLI/migrations |
 | `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET` | Незалежні server-only секрети; обов’язкові для production |
 | `CONNECTOR_ENCRYPTION_KEY` | 32 випадкових байти в base64; потрібен для збереження/читання encrypted connector config, включно з CSV metadata |
-| `GOOGLE_DRIVE_FILE_ID` | Файл для Sheets/legacy Drive paths, а не універсальна вимога для всіх провайдерів |
+| `GOOGLE_DRIVE_FILE_ID` | Сумісність лише з раніше погодженим tenant/file mapping. Нові кабінети зберігають своє посилання в Settings; raw-імпорт сам по собі не дозволяє використовувати глобальний файл |
 | `GOOGLE_SERVICE_ACCOUNT_KEY` | Base64 JSON Service Account для приватного файлу; без нього використовується public-read path |
 | `GOOGLE_DRIVE_EXPORT_FOLDER_ID` | Необов’язкова папка legacy exports; не вибирає джерело MVP |
 | `CRON_SECRET` | Bearer-авторизація daily cron і external worker; щонайменше 16 символів, генеруйте випадковий secret |

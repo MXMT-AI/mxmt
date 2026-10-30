@@ -51,8 +51,9 @@ interface Props {
 }
 
 interface DataStatus {
+  connection: { fileId: string; revision: number } | null;
   configured: boolean;
-  source: { name: string; timezone: string; updatedAt: string } | null;
+  source: { name: string; timezone: string; updatedAt: string; driveFileId: string } | null;
   activeImport: { status: string; createdAt?: string; completedAt?: string | null; activatedAt?: string | null; finishedAt?: string | null } | null;
   latestImport: { status: string; createdAt: string; finishedAt?: string | null } | null;
   calculation: {
@@ -498,7 +499,7 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
             {action==="projection"?<LoaderCircle size={14} className="animate-spin"/>:<RefreshCw size={14}/>}{lang==="uk"?"Оновити MVP-звіти":"Refresh MVP reports"}
           </button>}
           {canImport && (
-            <button type="button" onClick={() => void runAction("import")} disabled={action !== null || rawImportIsLive(status?.latestImport ?? null)}
+            <button type="button" onClick={() => void runAction("import")} disabled={action !== null || !status?.connection || rawImportIsLive(status?.latestImport ?? null)}
               className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-accent-cyan text-[#03110f] text-sm font-semibold hover:bg-[#36ecd2] disabled:opacity-50 transition-colors">
               {action === "import" ? <LoaderCircle size={14} className="animate-spin" /> : <UploadCloud size={14} />}
               {action === "import" ? copy.importing : copy.import}
@@ -512,6 +513,14 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
           ? "Оновити перегляд — перечитати збережені дані. Імпортувати — завантажити таблицю з Google. Оновити MVP-звіти — перенести збережений імпорт у п’ять основних екранів."
           : "Refresh view reloads saved data. Import downloads the workbook from Google. Refresh MVP reports projects the saved import into the five main screens."}
       </p>
+      {!statusLoading && status && <p className="mb-4 break-all text-sm text-(--muted)">
+        {status.connection ? <>{lang === "uk" ? "Наступний імпорт: " : "Next import: "}
+          <a href={`https://docs.google.com/spreadsheets/d/${status.connection.fileId}/edit`} target="_blank" rel="noreferrer" className="underline">{status.connection.fileId}</a>
+          {status.source && status.source.driveFileId !== status.connection.fileId && <span className="block mt-1">{lang === "uk"
+            ? "Зараз показано попередній імпорт з іншої таблиці. Збереження нового підключення не змінює вже завантажені дані."
+            : "The previous import from another spreadsheet is displayed. Saving a connection does not replace imported data."}</span>}
+        </> : <>{lang === "uk" ? "Спочатку прив’яжіть Google Sheets до цього кабінету: " : "Connect this cabinet’s Google Sheets first: "}<Link href="/settings" className="underline">{lang === "uk" ? "Налаштування" : "Settings"}</Link></>}
+      </p>}
       {refreshMessage && !loading && !statusLoading && !error && !actionError && <p role="status" className="mb-4 text-sm">{lang === "uk" ? "Перегляд збережених даних оновлено." : "Saved-data view refreshed."}</p>}
       {status?.latestImport?.status === "RUNNING" && <p role="status" className="mb-4 text-sm">{rawImportIsLive(status.latestImport)
         ? (lang === "uk" ? "Імпорт виконується; показано попередні дані. Стан перевіряється кожні 10 секунд." : "Import is running; previous data is shown. Status is checked every 10 seconds.")

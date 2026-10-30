@@ -86,7 +86,7 @@ export default function DriveSyncCard({
                 : "Private access via service account key. File can stay private. Read-only — the Drive file is never modified."}
             </p>
             <p className="text-[11px] font-mono text-(--subtle) mt-1">
-              GOOGLE_DRIVE_FILE_ID + GOOGLE_SERVICE_ACCOUNT_KEY
+              {uk ? "Таблиця цього кабінету + сервісний акаунт платформи" : "This cabinet’s spreadsheet + platform service account"}
             </p>
           </div>
         </div>
@@ -105,7 +105,7 @@ export default function DriveSyncCard({
                 : "The file must be shared with anyone who has the link. Data is accessible to anyone with the link. Read-only — the Drive file is never modified."}
             </p>
             <p className="text-[11px] font-mono text-(--subtle) mt-1">
-              {uk ? "Тільки GOOGLE_DRIVE_FILE_ID (без SERVICE_ACCOUNT_KEY)" : "Only GOOGLE_DRIVE_FILE_ID (no SERVICE_ACCOUNT_KEY)"}
+              {uk ? "Таблиця цього кабінету доступна за посиланням" : "This cabinet’s spreadsheet is accessible by link"}
             </p>
           </div>
         </div>
@@ -116,24 +116,9 @@ export default function DriveSyncCard({
           <p className="text-sm font-medium text-(--muted) mb-3">
             {uk ? "Не налаштовано" : "Not configured"}
           </p>
-          <div className="text-xs bg-accent-yellow/5 border border-accent-yellow/20 rounded-lg p-3 space-y-2">
-            <p className="font-semibold text-accent-yellow">
-              {uk ? "Варіант 1 — Service Account (рекомендовано)" : "Option 1 — Service Account (recommended)"}
-            </p>
-            <p className="font-mono text-(--muted)">GOOGLE_DRIVE_FILE_ID=&lt;id&gt;</p>
-            <p className="font-mono text-(--muted)">GOOGLE_SERVICE_ACCOUNT_KEY=&lt;base64&gt;</p>
-            <div className="border-t border-(--border-faint) pt-2 mt-2">
-              <p className="font-semibold text-accent-yellow">
-                {uk ? "Варіант 2 — Публічне посилання (не рекомендується)" : "Option 2 — Public link (not recommended)"}
-              </p>
-              <p className="font-mono text-(--muted) mt-1">GOOGLE_DRIVE_FILE_ID=&lt;id&gt;</p>
-              <p className="text-(--subtle) mt-1">
-                {uk
-                  ? "Файл: Поділитися → «Всі, хто має посилання — Переглядач»"
-                  : "File: Share → \"Anyone with the link — Viewer\""}
-              </p>
-            </div>
-          </div>
+          <p className="text-xs text-(--muted)">{uk
+            ? "Спочатку збережіть посилання в картці «Google Sheets цього кабінету». Для приватної таблиці надайте сервісному акаунту платформи доступ на читання."
+            : "Save the URL in ‘This cabinet’s Google Sheets’ first. For a private spreadsheet, grant the platform service account read access."}</p>
         </div>
       )}
 

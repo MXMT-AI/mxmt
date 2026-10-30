@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { syncFromDrive, isDriveConfigured, getDriveMode } from "@/lib/gdrive";
+import { syncFromDrive, getDriveMode } from "@/lib/gdrive";
+import { DriveConnectionError, requireDriveConnection } from "@/lib/drive-connection";
 import { requireApiUser } from "@/lib/server-auth";
 import { apiError, serverError } from "@/lib/api-contracts";
 
@@ -12,16 +13,14 @@ export async function POST() {
   if (response) return response;
   const { tenantId } = user;
 
-  if (!isDriveConfigured()) {
-    return apiError(
-      "Google Drive not configured. Set GOOGLE_DRIVE_FILE_ID (and optionally GOOGLE_SERVICE_ACCOUNT_KEY).",
-      400,
-      "DRIVE_NOT_CONFIGURED"
-    );
+  let fileId: string;
+  try { fileId = (await requireDriveConnection(tenantId)).fileId; }
+  catch (error) {
+    if (error instanceof DriveConnectionError)
+      return apiError("Connect Google Sheets for this cabinet in Settings.", error.status, error.code);
+    return serverError("Could not read Google Sheets connection");
   }
-
-  const fileId = process.env.GOOGLE_DRIVE_FILE_ID!;
-  const mode = getDriveMode();
+  const mode = getDriveMode(fileId);
 
   let syncRecord = await prisma.googleDriveSync.findFirst({ where: { tenantId } });
   if (!syncRecord) {
@@ -38,7 +37,7 @@ export async function POST() {
   const id = syncRecord.id;
 
   try {
-    const result = await syncFromDrive(tenantId);
+    const result = await syncFromDrive(tenantId, fileId);
     const total = result.skus + result.inventory + result.sales;
 
     const status = result.warning ? "error" : "success";

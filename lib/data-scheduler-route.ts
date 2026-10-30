@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isDriveConfigured } from "@/lib/gdrive";
 import { purgeExpiredMarketEvidence } from "@/lib/market-source-store";
 import {
   cronSecretMatches,
@@ -20,12 +19,6 @@ export async function handleScheduledDataImport(request: NextRequest) {
   try { await purgeExpiredMarketEvidence(); }
   catch {
     return NextResponse.json({ok:false,error:"Could not enforce market evidence retention"},{status:500,headers:{"Cache-Control":"no-store"}});
-  }
-  if (!isDriveConfigured()) {
-    return NextResponse.json(
-      { ok: false, error: "Google Drive is not configured" },
-      { status: 503 }
-    );
   }
 
   const decision = scheduledImportDecision();
