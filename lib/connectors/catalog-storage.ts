@@ -9,6 +9,7 @@ import type { OrderScope } from "./order-storage";
 import { normalizeCatalog } from "./inventory-normalization";
 import { retainRecord, refreshFirstReceipt } from "./receipt-storage";
 import { payloadHash } from "./order-storage";
+import { linkRetainedCatalogFacts } from "./catalog-linking";
 
 export interface CatalogEvidence {
   /** Explicit source mapping evidence; absent for existing remote catalog paths. */
@@ -72,30 +73,35 @@ export async function storeCatalog(tx: SqlClient, scope: OrderScope, snapshot: C
     SELECT ${randomUUID()} || ':' || t."externalId" || ':id',${tenantId},${sourceId},t."skuId",'SOURCE_PRODUCT_ID'::"SkuAliasType",t."externalId" FROM mxmt_catalog_stage t
     UNION ALL SELECT ${randomUUID()} || ':' || t."externalId" || ':sku',${tenantId},${sourceId},t."skuId",'SKU'::"SkuAliasType",t.article FROM mxmt_catalog_stage t WHERE t.article IS NOT NULL
     ON CONFLICT ("tenantId","sourceId",type,value) DO NOTHING`);
-  // Link retained facts that arrived before their catalogue, using explicit source identities/SKUs.
-  await tx.$executeRaw(Prisma.sql`UPDATE "OrderLine" l SET "skuId"=t."skuId" FROM mxmt_catalog_stage t WHERE l."tenantId"=${tenantId} AND l."sourceId"=${sourceId} AND l."skuId" IS NULL
-    AND (l."externalProductId"=t."externalId" OR l."sourceSku"=t.article)
-    AND NOT EXISTS (SELECT 1 FROM mxmt_catalog_stage other WHERE other."skuId"<>t."skuId" AND (l."externalProductId"=other."externalId" OR l."sourceSku"=other.article))`);
-  await tx.$executeRaw(Prisma.sql`UPDATE "ReceiptLine" l SET "skuId"=t."skuId" FROM mxmt_catalog_stage t,"Receipt" r
-    WHERE l."tenantId"=${tenantId} AND r."tenantId"=l."tenantId" AND r.id=l."receiptId" AND r."sourceId"=${sourceId} AND l."skuId" IS NULL
-    AND (l."externalProductId"=t."externalId" OR l."sourceSku"=t.article)
-    AND NOT EXISTS (SELECT 1 FROM mxmt_catalog_stage other WHERE other."skuId"<>t."skuId" AND (l."externalProductId"=other."externalId" OR l."sourceSku"=other.article))`);
+  // Give the planner statistics for the transaction-local observation.
+  await tx.$executeRaw(Prisma.sql`ANALYZE mxmt_catalog_stage`);
+  await linkRetainedCatalogFacts(tx, scope);
   const skuIds = rows.length ? (await tx.$queryRaw<Array<{ skuId: string }>>(Prisma.sql`SELECT "skuId" FROM mxmt_catalog_stage`)).map((row) => row.skuId) : [];
   await refreshFirstReceipt(tx, tenantId, skuIds);
   // Tied date-only receipts with different prices cannot establish which purchase price was latest.
-  await tx.$executeRaw(Prisma.sql`UPDATE mxmt_catalog_stage t SET "costPrice"=c.price,"costProvenance"=jsonb_build_object('type','receipt','receiptIds',c.ids,'rawKeys',c."rawKeys",'importRunIds',c."runIds",'receivedAt',c."receivedAt") FROM (
-    SELECT l."skuId",MIN(l."unitCost") price,jsonb_agg(DISTINCT r.id) ids,jsonb_agg(DISTINCT r."sourceRecordKey") "rawKeys",jsonb_agg(DISTINCT r."importRunId") "runIds",MAX(r."receivedAt") "receivedAt" FROM "ReceiptLine" l JOIN "Receipt" r ON r.id=l."receiptId" AND r."tenantId"=l."tenantId" JOIN mxmt_catalog_stage t2 ON t2."skuId"=l."skuId"
+  await tx.$executeRaw(Prisma.sql`WITH ranked AS MATERIALIZED (
+    SELECT l."skuId",l."unitCost",l."costVerifiedAt",l.currency,t2.currency AS "catalogCurrency",r.id,r."sourceRecordKey",r."importRunId",r."receivedAt",
+      dense_rank() OVER (PARTITION BY l."skuId" ORDER BY r."receivedAt" DESC) AS position
+    FROM "ReceiptLine" l JOIN "Receipt" r ON r.id=l."receiptId" AND r."tenantId"=l."tenantId" JOIN mxmt_catalog_stage t2 ON t2."skuId"=l."skuId"
     WHERE r."tenantId"=${tenantId} AND r."sourceId"=${sourceId} AND r."movementType"='SUPPLIER_RECEIPT' AND r."postingVerifiedAt" IS NOT NULL AND l.quantity>0 AND r."receivedAt"<=t2."observedAt"
-      AND r."receivedAt"=(SELECT MAX(r2."receivedAt") FROM "Receipt" r2 JOIN "ReceiptLine" l2 ON l2."receiptId"=r2.id AND l2."tenantId"=r2."tenantId" WHERE r2."tenantId"=${tenantId} AND r2."sourceId"=${sourceId} AND l2."skuId"=l."skuId" AND l2.quantity>0 AND r2."movementType"='SUPPLIER_RECEIPT' AND r2."postingVerifiedAt" IS NOT NULL AND r2."receivedAt"<=t2."observedAt")
-    GROUP BY l."skuId" HAVING count(DISTINCT l."unitCost")=1 AND bool_and(l."costVerifiedAt" IS NOT NULL AND l."unitCost">0 AND l.currency IS NOT NULL AND l.currency=t2.currency)) c WHERE t."skuId"=c."skuId"`);
-  await tx.$executeRaw(Prisma.sql`UPDATE mxmt_catalog_stage t SET "costPrice"=s.cost,"costProvenance"=jsonb_build_object('type','sale','orderIds',s.ids,'rawKeys',s."rawKeys",'importRunIds',s."runIds",'paidAt',s."paidAt") FROM (
-    SELECT l."skuId",MIN(CASE WHEN (l."sourceAmounts"->>'unitCost') ~ '^[0-9]{1,14}([.][0-9]{1,4})?$' THEN (l."sourceAmounts"->>'unitCost')::numeric END) cost,
-      jsonb_agg(DISTINCT l."externalOrderId") ids,jsonb_agg(DISTINCT l."sourceRecordKey") "rawKeys",jsonb_agg(DISTINCT l."importRunId") "runIds",MAX(l."paidAt") "paidAt" FROM "OrderLine" l JOIN mxmt_catalog_stage t2 ON t2."skuId"=l."skuId"
-    WHERE l."tenantId"=${tenantId} AND l."sourceId"=${sourceId} AND l.kind='SALE' AND l."eventKey"='current' AND l.quantity>0
-      AND l."paidAt"=(SELECT MAX(l2."paidAt") FROM "OrderLine" l2 WHERE l2."tenantId"=${tenantId} AND l2."sourceId"=${sourceId} AND l2."skuId"=l."skuId" AND l2.kind='SALE' AND l2."eventKey"='current' AND l2.quantity>0 AND l2."paidAt"<=t2."observedAt")
-    GROUP BY l."skuId" HAVING bool_and(l."costAmount" IS NOT NULL AND l.currency IS NOT NULL AND l.currency=t2.currency AND
-      CASE WHEN (l."sourceAmounts"->>'unitCost') ~ '^[0-9]{1,14}([.][0-9]{1,4})?$' THEN (l."sourceAmounts"->>'unitCost')::numeric>0 ELSE false END)
-      AND count(DISTINCT l."sourceAmounts"->>'unitCost')=1) s WHERE t."skuId"=s."skuId" AND t."costPrice" IS NULL`);
+  ), latest AS (
+    SELECT "skuId",MIN("unitCost") price,jsonb_agg(DISTINCT id) ids,jsonb_agg(DISTINCT "sourceRecordKey") "rawKeys",jsonb_agg(DISTINCT "importRunId") "runIds",MAX("receivedAt") "receivedAt"
+    FROM ranked WHERE position=1 GROUP BY "skuId"
+    HAVING count(DISTINCT "unitCost")=1 AND bool_and("costVerifiedAt" IS NOT NULL AND "unitCost">0 AND currency IS NOT NULL AND currency="catalogCurrency")
+  ) UPDATE mxmt_catalog_stage t SET "costPrice"=c.price,"costProvenance"=jsonb_build_object('type','receipt','receiptIds',c.ids,'rawKeys',c."rawKeys",'importRunIds',c."runIds",'receivedAt',c."receivedAt") FROM latest c WHERE t."skuId"=c."skuId"`);
+  await tx.$executeRaw(Prisma.sql`WITH ranked AS MATERIALIZED (
+    SELECT l."skuId",l."sourceAmounts",l."costAmount",l.currency,t2.currency AS "catalogCurrency",l."externalOrderId",l."sourceRecordKey",l."importRunId",l."paidAt",
+      dense_rank() OVER (PARTITION BY l."skuId" ORDER BY l."paidAt" DESC) AS position
+    FROM "OrderLine" l JOIN mxmt_catalog_stage t2 ON t2."skuId"=l."skuId"
+    WHERE l."tenantId"=${tenantId} AND l."sourceId"=${sourceId} AND l.kind='SALE' AND l."eventKey"='current' AND l.quantity>0 AND l."paidAt"<=t2."observedAt"
+  ), latest AS (
+    SELECT "skuId",MIN(CASE WHEN ("sourceAmounts"->>'unitCost') ~ '^[0-9]{1,14}([.][0-9]{1,4})?$' THEN ("sourceAmounts"->>'unitCost')::numeric END) cost,
+      jsonb_agg(DISTINCT "externalOrderId") ids,jsonb_agg(DISTINCT "sourceRecordKey") "rawKeys",jsonb_agg(DISTINCT "importRunId") "runIds",MAX("paidAt") "paidAt"
+    FROM ranked WHERE position=1 GROUP BY "skuId"
+    HAVING bool_and("costAmount" IS NOT NULL AND currency IS NOT NULL AND currency="catalogCurrency" AND
+      CASE WHEN ("sourceAmounts"->>'unitCost') ~ '^[0-9]{1,14}([.][0-9]{1,4})?$' THEN ("sourceAmounts"->>'unitCost')::numeric>0 ELSE false END)
+      AND count(DISTINCT "sourceAmounts"->>'unitCost')=1
+  ) UPDATE mxmt_catalog_stage t SET "costPrice"=s.cost,"costProvenance"=jsonb_build_object('type','sale','orderIds',s.ids,'rawKeys',s."rawKeys",'importRunIds',s."runIds",'paidAt',s."paidAt") FROM latest s WHERE t."skuId"=s."skuId" AND t."costPrice" IS NULL`);
   if (evidence.exportedCost) await tx.$executeRaw(Prisma.sql`UPDATE mxmt_catalog_stage SET "costPrice"="exportedCost","costProvenance"=jsonb_build_object('type','mapped_catalog','mappingId',${evidence.exportedCost.mappingId}::text,'reference',${evidence.exportedCost.reference}::text,'importRunId',${importRunId}::text,'sourceRecordKey',${rawKey}::text) WHERE "exportedCost">0 AND currency IS NOT NULL`);
   const missing = await tx.$queryRaw<Array<{ n: number }>>(Prisma.sql`SELECT count(*)::int n FROM mxmt_catalog_stage WHERE "costPrice" IS NULL`);
   if (missing[0].n) issues.add("COST_UNVERIFIED");

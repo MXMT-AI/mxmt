@@ -157,6 +157,21 @@ it("keeps projection intent scoped to the signed tenant and returns no source ro
   expect(await result.json()).toEqual({ outcome: "projected" });
 });
 
+it("correlates projection failures without exposing database messages or source data", async () => {
+  await login();
+  state.project.mockRejectedValueOnce(Object.assign(new Error("private source row and database password"), { code: "57014" }));
+  const log = vi.spyOn(console, "error").mockImplementation(() => {});
+  try {
+    const failed = await project(req("{}"), context);
+    const body = await failed.json();
+    expect(failed.status).toBe(503);
+    expect(body.requestId).toMatch(/^[a-f0-9-]{36}$/);
+    expect(JSON.stringify(log.mock.calls)).toContain(body.requestId);
+    expect(JSON.stringify(log.mock.calls)).toContain("57014");
+    expect(JSON.stringify([body, log.mock.calls])).not.toMatch(/private source|database password/);
+  } finally { log.mockRestore(); }
+});
+
 it("returns a private projection intent to the signed admin without changing approval or source", async () => {
   await login();
   const result = await intent(req(), context);

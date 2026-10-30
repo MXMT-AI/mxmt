@@ -401,7 +401,10 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
     try {
       const post = async (path:string,body:Record<string,unknown>) => {
         const response=await fetch(path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
-        if(!response.ok)throw new Error(await responseMessage(response));
+        if(!response.ok){
+          if(response.status===504||response.status===408)throw new Error(lang==="uk"?"Сервер перевищив час очікування. Перевірте стан операції перед повтором (HTTP "+response.status+").":"The server timed out. Check the operation status before retrying (HTTP "+response.status+").");
+          throw new Error(await responseMessage(response));
+        }
         return response.json();
       };
       let importedRunId:string|undefined;
@@ -416,7 +419,10 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
           const projected=await refreshSelectedSheetsReports(importedRunId);
           if(projected.state==="READY"){setReportsReady(true);window.dispatchEvent(new Event("connector-connection-changed"));}
           if(projected.state==="NOT_SELECTED"&&kind==="projection")messages.push(lang==="uk"?"Виберіть погоджене джерело Google Sheets у налаштуваннях.":"Select an approved Google Sheets reporting source in Settings.");
-        }catch(error){messages.push(sheetsRefreshMessage(error instanceof SheetsReportingRefreshError?error.code:"SHEETS_REFRESH_FAILED",lang));}
+        }catch(error){
+          const requestId=error instanceof SheetsReportingRefreshError?error.requestId:undefined;
+          messages.push(sheetsRefreshMessage(error instanceof SheetsReportingRefreshError?error.code:"SHEETS_REFRESH_FAILED",lang)+(requestId?` (Request ID: ${requestId})`:""));
+        }
       }
       if(kind!=="projection"){
         try {await post("/api/data/calculate",{dateFrom,dateTo,...(importedRunId?{importRunId:importedRunId}:{})});}

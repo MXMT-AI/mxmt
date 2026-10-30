@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { randomUUID } from "node:crypto";
 import { requireApiUser } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-contracts";
 import {
@@ -17,9 +18,10 @@ export async function POST(
 ) {
   const { user, response } = await requireApiUser("ADMIN");
   if (response) return response;
+  const requestId = randomUUID();
   const { data, response: invalid } = await parseJsonBody(
     request,
-    undefined,
+    requestId,
     4096,
   );
   if (invalid) return invalid;
@@ -35,7 +37,7 @@ export async function POST(
       { headers: { "Cache-Control": "private, no-store" } },
     );
   } catch (error) {
-    return sheetsMappingApiError(error);
+    return sheetsMappingApiError(error, requestId);
   }
 }
 
