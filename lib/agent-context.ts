@@ -5,7 +5,7 @@ export interface AgentRunContext {
 }
 
 function kyivDateKey(date: Date): string {
-  const parts = new Intl.DateTimeFormat("en-US", {
+  const parts = new Intl.DateTimeFormat("en-GB", {
     timeZone: "Europe/Kyiv",
     year: "numeric",
     month: "2-digit",

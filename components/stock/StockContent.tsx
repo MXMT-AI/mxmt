@@ -1,5 +1,5 @@
 "use client";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import StockHistory from "./StockHistory";
 import { useId } from "react";
 import ReportTable from "@/components/data-reporting/ReportTable";
@@ -296,7 +296,7 @@ export default function StockContent({
 }) {
   const model = data.stockWorkspace,
     copy = stockCopy[lang],
-    locale = lang === "uk" ? "uk-UA" : "en-US";
+    locale = lang === "uk" ? "uk-UA" : "en-GB";
   if (!model) return null;
   const params = new URLSearchParams(query);
   params.set("snapshotId", data.context.snapshotId);

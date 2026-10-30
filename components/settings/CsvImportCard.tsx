@@ -6,7 +6,8 @@ import {
   useState,
   type FormEvent,
 } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/i18n/navigation";
+
 import { Field, control } from "@/components/merchandising/FormControls";
 import {
   CSV_FIELDS,

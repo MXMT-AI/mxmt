@@ -1,5 +1,5 @@
 import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
+import { renderToStaticMarkup } from "../helpers/render-localized";
 import { describe, it, expect, vi } from "vitest";
 import { ExportAttempt, exportCopy } from "@/lib/scenario-export-client";
 import Panel from "@/components/merchandising/ScenarioExportPanel";

@@ -1,3 +1,4 @@
+import { isLocale } from "@/i18n/routing";
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { chat, type ChatMessage } from "@/lib/ai";
@@ -24,6 +25,10 @@ export async function POST(request: NextRequest) {
 
     if (!isRecord(data)) {
       return withRequestId(validationError(["body must be an object"], context.requestId), context.requestId);
+    }
+
+    if (data.locale !== undefined && !isLocale(data.locale)) {
+      return withRequestId(validationError(["unsupported locale"], context.requestId), context.requestId);
     }
 
     if (data.mode !== undefined) {
@@ -71,7 +76,8 @@ export async function POST(request: NextRequest) {
     const cookieStore = await cookies();
     const providerOverride = cookieStore.get("ai_provider")?.value;
 
-    const content = await chat({ systemPrompt, messages, providerOverride });
+    const languagePrompt = data.locale === undefined ? systemPrompt : `${systemPrompt ?? ""}\nRespond in ${data.locale === "en" ? "English" : "Ukrainian"}.`;
+    const content = await chat({ systemPrompt: languagePrompt, messages, providerOverride });
 
     return withRequestId(NextResponse.json({ content, requestId: context.requestId }), context.requestId);
   } catch (err) {

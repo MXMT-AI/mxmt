@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, beforeEach, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 vi.mock("server-only", () => ({}));
+vi.mock("next-intl/server", () => ({ getLocale: async () => "en" }));
 const state = vi.hoisted(() => ({ pg: null as any, reads: [] as any[] }));
 vi.mock("next/headers", () => ({
   headers: async () => new Headers({ "x-tenant-id": "a" }),
@@ -54,8 +55,8 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 import { createScreenDb } from "../helpers/screen-db";
-import Analyst from "@/app/(app)/analyst/page";
-import Dashboard from "@/app/(app)/dashboard/page";
+import Analyst from "@/app/[locale]/(app)/analyst/page";
+import Dashboard from "@/app/[locale]/(app)/dashboard/page";
 import { GET as stock } from "@/app/api/calendar/stock/route";
 import { GET as insights } from "@/app/api/calendar/insights/route";
 import { POST as plan } from "@/app/api/calendar/ai-plan/route";

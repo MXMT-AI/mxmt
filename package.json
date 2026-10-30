@@ -41,7 +41,8 @@
     "react-dom": "^19.3.1",
     "server-only": "0.0.1",
     "tailwind-merge": "^3.7.0",
-    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
+    "next-intl": "^4.14.9"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.13",

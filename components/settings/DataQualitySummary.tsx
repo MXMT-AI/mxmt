@@ -1,4 +1,5 @@
 "use client";
+import { Link } from "@/i18n/navigation";
 import {
   qualityLabel,
   qualityGuidance,
@@ -105,12 +106,12 @@ export default function DataQualitySummary({
             <p className="text-sm text-(--muted) max-w-prose">
               {qualityGuidance(s.code, lang)}
             </p>
-            <a
+            <Link
               className="inline-flex min-h-11 items-center text-sm underline underline-offset-4 focus-visible:outline-solid"
               href={qualityFixHref(s.code)}
             >
               {uk ? "Де виправити" : "Where to fix"}
-            </a>
+            </Link>
           </li>
         ))}
       </ul>

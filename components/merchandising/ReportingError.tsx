@@ -1,5 +1,5 @@
 "use client";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { reportingErrorHelp } from "@/lib/reporting-readiness-copy";
 import { button, panel } from "./ReportPrimitives";
 /** One recovery flow for all five screens, without exposing internal error strings. */

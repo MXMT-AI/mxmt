@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import type { Lang } from "@/lib/translations";
 import type { readReportReadiness } from "@/lib/report-readiness";
 import { panel } from "./ReportPrimitives";

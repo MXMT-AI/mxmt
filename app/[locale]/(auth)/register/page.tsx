@@ -1,13 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { useRouter } from "@/i18n/navigation";
+
+import { Link } from "@/i18n/navigation";
+import { safeReturnPath } from "@/i18n/redirect";
 import { useLang, LangToggle } from "@/components/LanguageProvider";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { t } = useLang();
+  const { t, lang } = useLang();
+  const returnTo = useSearchParams().get("next");
+  const authQuery = returnTo ? `?${new URLSearchParams({ next: returnTo })}` : "";
   const [form, setForm] = useState({ businessName: "", name: "", email: "", password: "", confirmPassword: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -29,7 +34,9 @@ export default function RegisterPage() {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error ?? t.auth_err_network); return; }
-      router.push("/dashboard");
+      const destination = safeReturnPath(new URLSearchParams(window.location.search).get("next"), lang);
+      const path = destination.slice(lang.length + 1);
+      router.push(path.startsWith("/") ? path : `/${path}`);
       router.refresh();
     } catch {
       setError(t.auth_err_network);
@@ -72,7 +79,7 @@ export default function RegisterPage() {
         <div className="flex items-center justify-between mt-5">
           <p className="text-(--muted) text-sm">
             {t.auth_have_account}{" "}
-            <Link href="/login" className="text-accent-cyan hover:underline">{t.auth_sign_in}</Link>
+            <Link href={`/login${authQuery}`} className="text-accent-cyan hover:underline">{t.auth_sign_in}</Link>
           </p>
           <LangToggle />
         </div>

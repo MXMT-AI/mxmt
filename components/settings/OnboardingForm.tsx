@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { apiFetch } from "@/lib/fetch";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/i18n/navigation";
+
 import { CheckCircle2, ChevronRight, ChevronLeft } from "lucide-react";
 import { useLang } from "@/components/LanguageProvider";
 

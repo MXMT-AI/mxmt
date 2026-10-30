@@ -90,8 +90,8 @@ Tailwind theme міститься в `app/globals.css`, PostCSS integration — 
 ## Структура репозиторію
 
 ```text
-app/(app)/                 захищені MVP та додаткові сторінки
-app/(auth)/                login / register
+app/[locale]/(app)/        захищені MVP та додаткові сторінки
+app/[locale]/(auth)/       login / register
 app/api/                   auth, connectors, merchandising, legacy API
 components/                повторно використовуваний UI
 lib/connectors/            onboarding, source selection, jobs, adapters, Sheets projection
@@ -105,6 +105,17 @@ proxy.ts                   Next.js 16 auth/redirect proxy
 scripts/                   DB lifecycle, external worker, offline verification
 tests/                     unit, API та SQL integration fixtures
 ```
+
+## Мовні маршрути
+
+Сторінки мають обов’язкову локаль у URL: `/uk/dashboard`, `/en/dashboard`. URL визначає мову серверного рендерингу та клієнтського інтерфейсу. Старі адреси без префікса перенаправляються зі збереженням query: спочатку використовується cookie `lang`, інакше — `uk`. Мова браузера не змінює цей вибір. Непідтримувані локалі, наприклад `/fr/login`, повертають 404.
+
+- Для посилань і переходів між сторінками використовуйте `Link`, `useRouter`, `usePathname` та `redirect` з `@/i18n/navigation`. Передавайте шлях **без** префікса, наприклад `/settings`; обгортка додає поточну локаль.
+- На сервері отримуйте локаль через `getLocale()` з `next-intl/server`; для серверного `redirect` передавайте `{href, locale}`.
+- `useLang()` у `components/LanguageProvider.tsx` — сумісний типізований доступ до локалі й словника `next-intl`, без окремого стану мови або `localStorage`.
+- Перемикач мови зберігає поточну сторінку, query та hash. Cookie `lang` запам’ятовує вибір для адрес без префікса.
+- API, cron, вебхуки та файли не отримують мовного префікса. Мовозалежні AI-запити передають валідоване поле `locale`; CSV звіту продажів — query-параметр `locale`.
+- Валюта і часовий пояс даних задаються незалежно від мови. Форматування інтерфейсу використовує `uk-UA` та `en-GB`.
 
 ## Локальний запуск
 

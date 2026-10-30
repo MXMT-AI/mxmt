@@ -1,5 +1,5 @@
 import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
+import { renderToStaticMarkup } from "../helpers/render-localized";
 import { it, expect } from "vitest";
 import Summary from "@/components/settings/DataQualitySummary";
 import {

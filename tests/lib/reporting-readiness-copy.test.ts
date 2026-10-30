@@ -1,6 +1,6 @@
 import { createElement } from "react";
 import { it, expect } from "vitest";
-import { renderToStaticMarkup } from "react-dom/server";
+import { renderToStaticMarkup } from "../helpers/render-localized";
 import {
   reportingErrorHelp,
   reportingSourceHelp,
@@ -59,7 +59,7 @@ it("keeps unknown infrastructure text out of rendered recovery messages", () => 
   );
   expect(markup).not.toContain("private-key");
   expect(markup).toContain('role="alert"');
-  expect(markup).toContain('href="/settings"');
+  expect(markup).toContain('href="/en/settings"');
   expect(markup).toContain("Retry");
 });
 it("renders actionable Sheets recovery consistently in both languages", () => {

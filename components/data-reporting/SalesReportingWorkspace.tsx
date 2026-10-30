@@ -1,8 +1,10 @@
 "use client";
+import { Link } from "@/i18n/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useLang } from "@/components/LanguageProvider";
 import { apiFetch } from "@/lib/fetch";
 import { readApiJson } from "@/lib/api-response";
+import { ukSalesColumns } from "@/lib/sales-report-labels";
 import { formatTableValue } from "@/lib/data-reporting-ui";
 import type { DataColumnMetadata } from "@/lib/data-table-api";
 import type { PublishedSalesReport } from "@/lib/sales-report";
@@ -23,26 +25,7 @@ type ResponseData = Omit<
 const control =
   "rounded-lg border border-(--border) bg-(--surface) px-3 py-2 text-sm text-(--text) focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50 touch-manipulation aria-pressed:border-(--text) aria-pressed:font-semibold";
 const field = "mt-1 block w-full " + control;
-const ukColumns: Record<string, string> = {
-  name: "Назва",
-  revenueDelta: "Зміна виручки",
-  unitsDelta: "Зміна одиниць",
-  lyCoveredGrossProfit: "Покритий валовий прибуток LY",
-  lyGmPct: "Покрита маржа LY",
-  currency: "Валюта",
-  revenue: "Чиста виручка",
-  units: "Одиниці товару",
-  orderCount: "Замовлення-продажі",
-  returnOrderCount: "Замовлення-повернення",
-  coveredGrossProfit: "Валовий прибуток покритих рядків",
-  coveredRevenue: "Виручка покритих рядків",
-  gmPct: "Маржа покритих рядків",
-  lyRevenue: "Виручка LY за ті самі дати",
-  revenueChangePct: "Виручка проти LY",
-  missingProfitCount: "Рядки без прибутку",
-  coverage: "Покриття прибутку",
-  comparisonReason: "Доступність LY",
-};
+
 const reasons: Record<string, [string, string]> = {
   IMPORT_QUARANTINED: [
     "В імпорті є ізольовані замовлення: перевірте якість даних",
@@ -189,12 +172,13 @@ export default function SalesReportingWorkspace() {
         sort,
         direction,
         format: "csv",
+        locale: lang,
       })
     : null;
   const columns =
     data?.table.columns.map((c) => ({
       ...c,
-      label: uk ? (ukColumns[c.key] ?? c.label) : c.label,
+      label: uk ? (ukSalesColumns[c.key] ?? c.label) : c.label,
     })) ?? [];
   const rows =
     data?.table.rows.map((row) => ({
@@ -296,9 +280,9 @@ export default function SalesReportingWorkspace() {
                 : uk
                   ? "Не вдалося завантажити звіт. Повторіть після синхронізації."
                   : "Could not load the report. Retry after synchronization."}{" "}
-          <a className="underline" href="/settings">
+          <Link className="underline" href="/settings">
             {uk ? "Налаштування" : "Settings"}
-          </a>
+          </Link>
         </p>
       )}
       {data && !busy && !error && (
@@ -396,12 +380,12 @@ export default function SalesReportingWorkspace() {
                 {["PLAN_UNSET", "PLAN_CURRENCY_UNAVAILABLE"].includes(
                   row.plan.reason ?? "",
                 ) && (
-                  <a
+                  <Link
                     className="mt-3 block text-sm text-(--text) underline focus-visible:outline-solid"
                     href="/settings?tab=merchandising"
                   >
                     {uk ? "Задати план і валюту" : "Set plan and currency"}
-                  </a>
+                  </Link>
                 )}
                 {row.current.coverage !== "COMPLETE" && (
                   <p className="mt-3 text-sm text-(--text) font-medium">

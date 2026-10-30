@@ -1,7 +1,8 @@
 import AppSkipLink from "@/components/AppSkipLink";
 import { Suspense } from "react";
 import { navigationFeatures } from "@/lib/navigation-features";
-import { redirect } from "next/navigation";
+import { redirect } from "@/i18n/navigation";
+import { getLocale } from "next-intl/server";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import Sidebar from "@/components/Sidebar";
@@ -16,14 +17,14 @@ export default async function AppLayout({
   const tenantId = h.get("x-tenant-id");
   const role = h.get("x-user-role");
 
-  if (!tenantId) redirect("/login");
+  if (!tenantId) return redirect({href: "/login", locale: await getLocale()});
 
   const tenant = await prisma.tenant.findUnique({
     where: { id: tenantId },
     select: { name: true },
   });
 
-  if (!tenant) redirect("/login");
+  if (!tenant) return redirect({href: "/login", locale: await getLocale()});
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-(--bg)">

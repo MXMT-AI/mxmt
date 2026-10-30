@@ -1,3 +1,4 @@
+import { isLocale } from "@/i18n/routing";
 import "server-only";
 import { Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
@@ -18,7 +19,8 @@ const topic=(value:unknown):value is ChatTopic=>typeof value==="string"&&CHAT_TO
 /** Accept intent only; conversation carries user questions and server execution references, never client facts or assistant text. */
 export function parseMerchandisingChat(value:unknown):MerchandisingChatRequest {
   const bad=():never=>{throw new AiExecutionError("AI_CHAT_INVALID_REQUEST",400);};
-  if(!isRecord(value)||Object.keys(value).some(k=>!["mode","requestKey","snapshotId","topic","question","filters","history","scenarioExportId"].includes(k))||value.mode!=="merchandising")return bad();
+  if(!isRecord(value)||Object.keys(value).some(k=>!["locale","mode","requestKey","snapshotId","topic","question","filters","history","scenarioExportId"].includes(k))||value.mode!=="merchandising")return bad();
+  if(value.locale!==undefined&&!isLocale(value.locale))return bad();
   if(Buffer.byteLength(JSON.stringify(value),"utf8")>64*1024)throw new AiExecutionError("AI_INPUT_LIMIT",413);
   identifier(value.requestKey);boundedText(value.snapshotId,200);boundedText(value.question,2000);
   if(!topic(value.topic))throw new AiExecutionError("AI_CHAT_TOPIC_UNSUPPORTED",400);
@@ -113,7 +115,7 @@ async function answerMerchandisingChat(p:AiPrincipal,value:unknown,options:{db?:
       scenarioExportId:request.scenarioExportId??null,diagnostics:[...evidence.envelope.coverage.sales,...evidence.envelope.coverage.stock]}});
   if(["repricing","reordering"].includes(request.topic)&&!scenario)return reply(prepared.evidence,"clarification","AI_SCENARIO_REQUIRED");
   try{
-    const result=await executeAiCapability(p,MERCHANDISING_CHAT_CAPABILITY,{requestKey:request.requestKey,snapshotId:request.snapshotId,
+    const result=await executeAiCapability(p,request.locale ? {...MERCHANDISING_CHAT_CAPABILITY, systemPrompt: `${MERCHANDISING_CHAT_CAPABILITY.systemPrompt}\nRespond in ${request.locale === "en" ? "English" : "Ukrainian"}.`} : MERCHANDISING_CHAT_CAPABILITY,{requestKey:request.requestKey,snapshotId:request.snapshotId,
       filters:request.filters,scenario,messages:prepared.messages},options);
     return reply(result.evidence,"generated",undefined,result);
   }catch(error){

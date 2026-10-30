@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/i18n/navigation";
+
 
 function getExpCookie(): number | null {
   if (typeof document === "undefined") return null;
@@ -39,7 +40,8 @@ export default function TokenRefreshProvider() {
           schedule(); // schedule next refresh with the new token's expiry
           router.refresh(); // revalidate server components with new token
         } else {
-          router.push("/login");
+          const { pathname, search, hash } = window.location;
+          router.push(`/login?${new URLSearchParams({ next: pathname + search + hash })}`);
         }
       } catch {
         // network error — retry in 30s

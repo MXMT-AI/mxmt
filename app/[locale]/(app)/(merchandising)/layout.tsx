@@ -1,5 +1,6 @@
 import { Suspense } from "react";
-import { redirect } from "next/navigation";
+import { redirect } from "@/i18n/navigation";
+import { getLocale } from "next-intl/server";
 import { requireCurrentUser } from "@/lib/server-auth";
 import { readNavigationOptions } from "@/lib/merchandising-navigation-store";
 import MerchandisingShell from "@/components/merchandising/MerchandisingShell";
@@ -12,7 +13,7 @@ export default async function MerchandisingLayout({
   children: React.ReactNode;
 }) {
   const user = await requireCurrentUser("VIEWER").catch(() => null);
-  if (!user) redirect("/login");
+  if (!user) return redirect({href: "/login", locale: await getLocale()});
   return (
     <Suspense fallback={<MerchandisingLoading />}>
       <NavigationContent

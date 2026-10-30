@@ -1,7 +1,7 @@
 "use client";
 import ReportingError from "@/components/merchandising/ReportingError";
 import ReportReadiness from "@/components/merchandising/ReportReadiness";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useSearchParams } from "next/navigation";
 import { useLang } from "@/components/LanguageProvider";
 import { useMerchandisingFilters } from "@/components/merchandising/MerchandisingShell";

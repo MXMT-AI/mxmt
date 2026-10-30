@@ -1,4 +1,5 @@
-import { redirect } from "next/navigation";
+import { redirect } from "@/i18n/navigation";
+import { getLocale } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { requireCurrentUser } from "@/lib/server-auth";
 import { DATA_TABLE_KEYS, type DataTableKey } from "@/lib/data-table-api";
@@ -11,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 export default async function DataReportingPage() {
   const user = await requireCurrentUser().catch(() => null);
-  if (!user) redirect("/login");
+  if (!user) return redirect({href: "/login", locale: await getLocale()});
 
   const preferences = await prisma.dataTablePreference.findMany({
     where: {

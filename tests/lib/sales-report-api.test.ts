@@ -171,3 +171,13 @@ describe("authenticated deterministic sales report API", () => {
     expect((await GET(req("?q=" + "a".repeat(201)))).status).toBe(400);
   });
 });
+it("localizes CSV headers using the explicitly requested page locale", async () => {
+  await login();
+  const response = await GET(req("?format=csv&view=brands&calculationRunId=report&locale=uk"));
+  expect(response.status).toBe(200);
+  const csv = await response.text();
+  expect(csv).toContain('"Версія формули";"1"');
+  expect(csv).toContain('"Назва"');
+  expect(m.get).not.toHaveBeenCalled();
+  expect((await GET(req("?format=csv&calculationRunId=report&locale=fr"))).status).toBe(400);
+});

@@ -1,3 +1,5 @@
+import { isLocale } from "@/i18n/routing";
+import { ukSalesColumns } from "@/lib/sales-report-labels";
 import { NextRequest, NextResponse } from "next/server";
 import { requireApiUser } from "@/lib/server-auth";
 import { apiError } from "@/lib/api-contracts";
@@ -27,8 +29,10 @@ export async function GET(request: NextRequest) {
     sort = p.get("sort") ?? "name",
     direction = p.get("direction") ?? "asc",
     id = p.get("calculationRunId"),
-    format = p.get("format");
+    format = p.get("format"),
+    locale = p.get("locale") ?? "en";
   if (
+    !isLocale(locale) ||
     !SALES_VIEWS.includes(view as SalesView) ||
     !Number.isSafeInteger(page) ||
     page < 1 ||
@@ -77,10 +81,10 @@ export async function GET(request: NextRequest) {
       const csv =
         "\uFEFF" +
         [
-          ["Calculation ID", report.calculationRunId],
-          ["Formula version", report.calculationVersion],
-          ["From", report.period.from, "To", report.period.to],
-          table.columns.map((c) => c.label),
+          [locale === "uk" ? "ID розрахунку" : "Calculation ID", report.calculationRunId],
+          [locale === "uk" ? "Версія формули" : "Formula version", report.calculationVersion],
+          [locale === "uk" ? "Від" : "From", report.period.from, locale === "uk" ? "До" : "To", report.period.to],
+          table.columns.map((c) => locale === "uk" ? ukSalesColumns[c.key] ?? c.label : c.label),
           ...table.rows.map((row) =>
             table.columns.map((c) => (row as Record<string, unknown>)[c.key]),
           ),

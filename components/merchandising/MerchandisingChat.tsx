@@ -1,4 +1,5 @@
 "use client";
+import { Link } from "@/i18n/navigation";
 import {memo,useEffect,useId,useRef,useState,type FormEvent} from "react";
 import {apiFetch} from "@/lib/fetch";
 import {readApiJson} from "@/lib/api-response";
@@ -9,7 +10,7 @@ import {button} from "./ReportPrimitives";
 
 /** Exact fact strings and server-owned citations are rendered separately from non-authoritative prose. */
 export const ChatReply=memo(function ChatReply({reply,lang}:{reply:MerchandisingChatReply;lang:Lang}){
- const copy=chatCopy[lang],citation=citationCopy[lang],locale=lang==="uk"?"uk-UA":"en-US";
+ const copy=chatCopy[lang],citation=citationCopy[lang],locale=lang==="uk"?"uk-UA":"en-GB";
  const date=(value:string)=>new Intl.DateTimeFormat(locale,{dateStyle:"medium",timeZone:"UTC"}).format(new Date(`${value}T00:00:00Z`));
  return <div className="min-w-0 space-y-4">
    {reply.answer?<div className="space-y-2"><h3 className="font-semibold">{copy.answer}</h3><p className="whitespace-pre-wrap wrap-break-word leading-relaxed">{reply.answer.summary}</p>
@@ -20,14 +21,14 @@ export const ChatReply=memo(function ChatReply({reply,lang}:{reply:Merchandising
      <dl className="grid min-w-0 gap-3 sm:grid-cols-2">{reply.cards.map(card=><div key={card.id} className="min-w-0 border-l-2 border-(--border) pl-3">
        <dt className="text-xs">{copy.labels[card.label]}{card.currency?` (${card.currency})`:""}{card.status==="partial"?` · ${card.label==="grossProfit"?copy.partial:copy.incomplete}`:""}</dt>
        <dd className="mt-1 wrap-break-word text-base tabular-nums" translate="no">{card.value===null?copy.unavailable:<>{card.value} {card.unit==="units"?copy.units:card.currency??copy.unknownCurrency}</>}</dd>
-       <dd><a href={card.href} className="inline-flex min-h-11 items-center text-xs underline underline-offset-4 focus-visible:outline-solid focus-visible:outline-2">{copy.source}<span className="sr-only">: {copy.labels[card.label]} {card.currency}</span></a></dd>
+       <dd><Link href={card.href} className="inline-flex min-h-11 items-center text-xs underline underline-offset-4 focus-visible:outline-solid focus-visible:outline-2">{copy.source}<span className="sr-only">: {copy.labels[card.label]} {card.currency}</span></Link></dd>
      </div>)}</dl>
      <p className="text-xs leading-relaxed opacity-80">{copy.scope}</p>
    </div>
    {reply.citations.length?<details><summary className="min-h-11 cursor-pointer py-2 text-sm font-semibold focus-visible:outline-solid focus-visible:outline-2">{copy.sources} ({reply.citations.length})</summary>
      <ol className="list-decimal space-y-2 pl-5">{reply.citations.map(c=><li className="min-w-0 wrap-break-word text-xs" key={c.ref}>
        <span>{(citation.fields as Record<string,string>)[c.label??""]??citation.metric}{c.scope?` · ${citation[c.scope]}`:""}{c.scope==="priorYear"&&reply.context.period.lyFrom&&reply.context.period.lyTo?` (${date(reply.context.period.lyFrom)} – ${date(reply.context.period.lyTo)})`:""}: </span>
-       <span translate="no">{c.value??copy.unavailable}{c.currency?` ${c.currency}`:""}</span>{" "}<a href={c.href} className="inline-flex min-h-11 items-center underline underline-offset-4 focus-visible:outline-solid focus-visible:outline-2">{copy.source}</a></li>)}</ol>
+       <span translate="no">{c.value??copy.unavailable}{c.currency?` ${c.currency}`:""}</span>{" "}<Link href={c.href} className="inline-flex min-h-11 items-center underline underline-offset-4 focus-visible:outline-solid focus-visible:outline-2">{copy.source}</Link></li>)}</ol>
    </details>:null}
  </div>;
 });
@@ -73,7 +74,7 @@ function ChatThread({snapshotId,filters,lang,allowed,topic,scenarioExportId}:Pro
    finally{lock.current=false;if(!active.signal.aborted)setBusy(false);}
  }
  function submit(event:FormEvent){event.preventDefault();if(!question.trim()){setError("AI_CHAT_EMPTY_QUESTION");return;}if(busy||turns.length>=6)return;
-   const body:MerchandisingChatRequest={mode:"merchandising",requestKey:crypto.randomUUID(),snapshotId,filters,topic,question:question.trim(),history,...(scenarioExportId?{scenarioExportId}:{})};
+   const body:MerchandisingChatRequest={locale:lang,mode:"merchandising",requestKey:crypto.randomUUID(),snapshotId,filters,topic,question:question.trim(),history,...(scenarioExportId?{scenarioExportId}:{})};
    setQuestion("");void send(body);
  }
  return <div className="space-y-4">

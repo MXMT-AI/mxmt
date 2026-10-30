@@ -1,5 +1,5 @@
 "use client";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { stockStatusColors as statusColors } from "@/lib/merchandising-stock-display";
 import { useId, type ReactNode } from "react";
 import type { Lang } from "@/lib/translations";
