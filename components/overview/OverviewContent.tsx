@@ -365,6 +365,7 @@ export default function OverviewContent({
         return (
           <section key={currency} aria-label={currency} className="space-y-6">
             <h2 className="text-sm font-semibold">{currency}</h2>
+            {block.currency === null ? <Small>{lang === "uk" ? "Окрема група без підтвердженої валюти або залишку. Ці записи не скасовують відомі суми UAH нижче; невідомі дані не замінюються нулями." : "Separate records with unverified currency or stock. They do not invalidate the known UAH amounts below; unknown data is not replaced with zero."}</Small> : null}
             <section
               aria-label={copy.summary}
               className="rounded-xl bg-(--text) p-5 md:p-6 text-(--bg) space-y-3 text-sm leading-relaxed wrap-break-word"

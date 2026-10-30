@@ -23,6 +23,7 @@ export default function RepricingSummary({
   exporting?: boolean;
 }) {
   const totals = current ? data?.totals : null;
+  const noEligible = current && data?.counts.eligibleSkuCount === 0;
   const values = [
     [copy.capital, totals?.costCapital, "money"],
     [copy.revenue, totals?.potentialRevenue, "money"],
@@ -57,8 +58,8 @@ export default function RepricingSummary({
           <div key={label}>
             <dt className="text-xs text-(--muted)">{label}</dt>
             <dd className="mt-1 text-lg font-semibold tabular-nums wrap-break-word">
-              {format(value, type, locale)}
-              {value !== undefined && value !== null && type === "money" ? (
+              {format(noEligible && type === "money" ? null : value, type, locale)}
+              {!noEligible && value !== undefined && value !== null && type === "money" ? (
                 <small className="ml-1 text-xs">UAH</small>
               ) : null}
             </dd>

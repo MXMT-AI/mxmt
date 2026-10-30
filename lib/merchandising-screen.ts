@@ -1,4 +1,5 @@
 import "server-only";
+import { readReportReadiness } from "./report-readiness";
 import { profileFilters } from "./merchandising-profile";
 import { readStockWorkspace } from "./merchandising-stock-workspace";
 import { readSalesWorkspace } from "./merchandising-sales-workspace";
@@ -73,7 +74,7 @@ export async function getMerchandisingScreen(
         mode: q.mode === "brand" ? "all" : q.mode,
       };
     const live = await readScreenSourceState(tenantId, snapshot.sourceId, tx);
-    const [sales, stock] = await Promise.all([
+    const [sales, stock, readiness] = await Promise.all([
       screen === "sales" || screen === "overview"
         ? readScreenSales(
             tenantId,
@@ -94,6 +95,7 @@ export async function getMerchandisingScreen(
             q.domain === "stock",
           )
         : Promise.resolve(null),
+      readReportReadiness(tenantId, snapshot, tx),
     ]);
     const workspace =
       screen === "sales"
@@ -171,6 +173,7 @@ export async function getMerchandisingScreen(
     };
     return {
       screen,
+      readiness,
       overview,
       workspace,
       stockWorkspace,

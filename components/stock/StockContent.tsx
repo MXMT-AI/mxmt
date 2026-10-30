@@ -411,8 +411,9 @@ export default function StockContent({
           >
             <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-(--border) pb-3">
               <h2 className="text-lg font-bold">
-                {block.currency ?? copy.unassigned}
+                {block.currency ?? (lang === "uk" ? "Без підтвердженої валюти / залишку" : "Unverified currency / stock")}
               </h2>
+              {block.currency === null ? <Note>{lang === "uk" ? "Окрема група без підтвердженої валюти або залишку на дату знімка. Тут можуть бути історичні товари, відсутні в останньому каталозі. Невідомий залишок не означає нуль." : "Separate records without verified currency or stock on the snapshot date. These may include historical products absent from the latest catalogue. Unknown stock does not mean zero."}</Note> : null}
               <div className="text-sm tabular-nums">
                 {copy.fullStock}:{" "}
                 <strong>

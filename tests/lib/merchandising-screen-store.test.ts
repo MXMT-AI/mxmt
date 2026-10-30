@@ -41,6 +41,13 @@ const read = (screen: ScreenName, filters: Record<string, string> = {}) =>
     screenSelection.now,
   );
 describe("five screens pinned to a single atomic snapshot", () => {
+  it("keeps readiness source-scoped and frozen across filters and screens", async () => {
+    const first = (await read("overview")).readiness;
+    expect(first.scope).toBe("SOURCE_SNAPSHOT");
+    expect(first.total).toBeGreaterThan(0);
+    for (const screen of ["sales", "stock", "repricing", "reordering"] as const)
+      expect((await read(screen, { currency: "EUR" })).readiness).toEqual(first);
+  });
   it("publishes and reuses a context without activating settings or mixing component IDs", async () => {
     expect(await createScreenSnapshot("a", screenSelection, db)).toEqual(
       snapshot,
