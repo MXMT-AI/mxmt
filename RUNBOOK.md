@@ -131,7 +131,7 @@ npm run db:check
 
 ### Connection incident
 
-Перевірте direct/pooled target, TLS, актуальний deployment env, Neon compute, connections і довгі транзакції. Runtime pool options мають явні `max` та acquire/connect timeout; не вимикайте TLS, не перемикайтеся на випадкову branch і не змінюйте limits без аналізу навантаження. Не використовуйте синтетичний local probe як доказ production capacity.
+Перевірте direct/pooled target, TLS, актуальний deployment env, Neon compute, connections і довгі транзакції. Runtime pool має окремі `connect_timeout` (default 5s) і `pool_timeout` (default 10s). Pool checkout deadline включає також отримання нового connection; нуль вимикає лише відповідний deadline. `schema` застосовується і до ORM, і до raw SQL session search_path. Pool options мають явний `max`; не вимикайте TLS, не перемикайтеся на випадкову branch і не змінюйте limits без аналізу навантаження. Не використовуйте синтетичний local probe як доказ production capacity.
 
 ## 6. Три незалежні шляхи імпорту
 

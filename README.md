@@ -77,6 +77,7 @@ flowchart LR
 | Мова | TypeScript 7.0.2, strict |
 | Database | PostgreSQL; production topology — Neon |
 | ORM | Prisma CLI / Client / `@prisma/adapter-pg` 7.10.1 |
+| PostgreSQL driver | pg 8.23.1; окремі physical connect / pool checkout deadlines |
 | CSS | Tailwind 4.3.3, `@tailwindcss/postcss`, tailwind-merge 3.7.0 |
 | Auth | `proxy.ts`, JWT у httpOnly cookies, jose 6.2.14, bcryptjs 3.0.3 |
 | AI SDK | Anthropic 1.3.0, OpenAI 7.45.1 |
@@ -178,7 +179,7 @@ npm run dev
 
 ## Prisma 7, БД і deployment
 
-`prisma/schema.prisma` описує provider/models; URL для CLI задає `prisma.config.ts` через `DIRECT_URL`. Runtime створює `PrismaPg` у `lib/prisma.ts` із `DATABASE_URL`; `lib/prisma-pool.ts` переносить pool-параметри. Не повертайте Prisma 5 `url/directUrl` у schema і не створюйте Client без adapter.
+`prisma/schema.prisma` описує provider/models; URL для CLI задає `prisma.config.ts` через `DIRECT_URL`. Runtime створює `PrismaPg` у `lib/prisma.ts` із `DATABASE_URL`; `lib/prisma-pool.ts` переносить pool-параметри. `schema` задає і ORM qualification, і quoted session search_path для raw SQL. `connect_timeout` (default 5s) обмежує physical connection; `pool_timeout` (default 10s) — checkout, включно з новим connection. Нуль вимикає тільки відповідний deadline. Не повертайте Prisma 5 `url/directUrl` у schema і не створюйте Client без adapter.
 
 Для Neon використовуйте TLS і відповідні pooled/direct endpoints тієї самої branch/database/schema. Не вимикайте перевірку сертифікатів для усунення connection error. `db:check` перевіряє migration history, але не доводить відсутність ручного schema drift. P2022 / відсутня `Sku.catalogAttributes` потребує перевірки повної історії на точному target, а не лише `prisma generate`.
 

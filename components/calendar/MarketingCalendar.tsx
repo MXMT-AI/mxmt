@@ -674,14 +674,15 @@ export default function MarketingCalendar({ initialEvents }: { initialEvents: Db
                                 {chip.l}
                               </span>
                               {isUser && (
-                                <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 shrink-0">
+                                <div className="opacity-100 [@media(hover:hover)]:opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity flex items-center gap-0.5 shrink-0">
                                   <button
                                     onClick={() => chip.id && setEditModal({ id: chip.id, type: chip.t, label: chip.l, row: row.k!, week: w.k })}
+                                    aria-label={lang === "uk" ? "Редагувати подію" : "Edit event"}
                                     className="p-0.5 hover:opacity-70"
                                   >
                                     <Pencil size={9} />
                                   </button>
-                                  <button onClick={() => deleteEvent(chip.id!)} className="p-0.5 hover:opacity-70">
+                                  <button onClick={() => deleteEvent(chip.id!)} aria-label={lang === "uk" ? "Видалити подію" : "Delete event"} className="p-0.5 hover:opacity-70">
                                     <X size={9} />
                                   </button>
                                 </div>

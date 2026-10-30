@@ -318,3 +318,8 @@ Tailwind 4 validation complete: TypeScript, 167 files / 1,651 tests passed / one
 Independent npm ci, build and build:vercel passed. In the clean copy TypeScript passed, then the full suite passed 167 files / 1,651 tests / one existing optional skip, and MVP passed 80 files / 965 tests. Two initial clean runs had intermittent wall-clock timeouts in different PGlite/volume cases. The unchanged final run used transient caffeinate to prevent idle sleep while the command ran; no test timeouts, assertions or skips were changed. Sleep remains a suspected environmental cause, not confirmed telemetry. Full suite took 55.71s; MVP 32.50s.
 
 Final npm audit: zero findings; npm ls --depth=0 passed. Frozen Zavod offline checks again passed 6 files / 84 tests. Native PostgreSQL probe and local production/development login/health/protected redirect passed, including predev migration-status check. Browser tab and both own UI servers were closed; the synthetic visual tenant was removed only from the isolated local DB. See report.md and final-validation.json for package versions and remaining hosting/business-acceptance limitations. No push, deployment, production migration, connector activation or paid AI calls performed.
+
+
+## PR #119 review follow-up
+
+Fixed all four actionable CodeRabbit findings: touch/keyboard calendar actions, connect_timeout=0, independent pool acquisition deadline, and configured schema for ORM plus raw SQL. Added ten pool regressions and native custom-schema/queue proof. Full suite 1,661 passed (167 files, one existing optional skip); MVP 965 passed; TypeScript, clean npm ci and both builds passed; audit zero. See review-follow-up.md for exact behavior and browser limits.
