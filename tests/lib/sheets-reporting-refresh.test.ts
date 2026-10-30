@@ -2,6 +2,12 @@ import { it, expect, vi } from "vitest";
 import { selectedSheetsProjectionIntent, refreshSelectedSheetsReports, sheetsRefreshMessage } from "@/lib/client/sheets-reporting";
 const response = (value: unknown, status = 200) =>
   new Response(JSON.stringify(value), { status });
+it.each([null, [], "upstream unavailable", 0, false])("handles non-object JSON error bodies (%j) without losing timeout guidance", async body => {
+  for (const [status, code] of [[504, "SHEETS_REFRESH_TIMEOUT"], [408, "SHEETS_REFRESH_TIMEOUT"], [503, "SHEETS_REFRESH_FAILED"]] as const) {
+    const fetcher = vi.fn().mockResolvedValue(response(body, status));
+    await expect(selectedSheetsProjectionIntent(fetcher)).rejects.toMatchObject({ code, requestId: undefined });
+  }
+});
 it("distinguishes a non-JSON gateway timeout and keeps a safe server request ID", async () => {
   const fetcher = vi.fn().mockResolvedValue(new Response("Gateway timeout", { status: 504 }));
   await expect(selectedSheetsProjectionIntent(fetcher)).rejects.toMatchObject({ code: "SHEETS_REFRESH_TIMEOUT" });

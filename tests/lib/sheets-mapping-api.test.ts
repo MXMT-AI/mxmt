@@ -157,9 +157,13 @@ it("keeps projection intent scoped to the signed tenant and returns no source ro
   expect(await result.json()).toEqual({ outcome: "projected" });
 });
 
-it("correlates projection failures without exposing database messages or source data", async () => {
+it.each([
+  { code: "57014" },
+  { code: "P2010", meta: { code: "57014", message: "private source row" } },
+  { code: "P2010", meta: { driverAdapterError: { cause: { originalCode: "57014", originalMessage: "private source row" } } } },
+])("correlates projection failures without exposing database messages or source data (%j)", async details => {
   await login();
-  state.project.mockRejectedValueOnce(Object.assign(new Error("private source row and database password"), { code: "57014" }));
+  state.project.mockRejectedValueOnce(Object.assign(new Error("private source row and database password"), details));
   const log = vi.spyOn(console, "error").mockImplementation(() => {});
   try {
     const failed = await project(req("{}"), context);
@@ -168,7 +172,21 @@ it("correlates projection failures without exposing database messages or source 
     expect(body.requestId).toMatch(/^[a-f0-9-]{36}$/);
     expect(JSON.stringify(log.mock.calls)).toContain(body.requestId);
     expect(JSON.stringify(log.mock.calls)).toContain("57014");
+    if (details.code === "P2010") expect(log.mock.calls[0][1]).toMatchObject({ code: "P2010", databaseCode: "57014" });
     expect(JSON.stringify([body, log.mock.calls])).not.toMatch(/private source|database password/);
+  } finally { log.mockRestore(); }
+});
+
+it.each(["private database password", 57014, { code: "57014" }, null])("does not log malformed nested database codes (%j)", async databaseCode => {
+  await login();
+  state.project.mockRejectedValueOnce(Object.assign(new Error("private database password"), {
+    code: "P2010", meta: { code: databaseCode, driverAdapterError: { cause: { originalCode: databaseCode, originalMessage: "private database password" } } },
+  }));
+  const log = vi.spyOn(console, "error").mockImplementation(() => {});
+  try {
+    await project(req("{}"), context);
+    expect(log.mock.calls[0][1]).not.toHaveProperty("databaseCode");
+    expect(JSON.stringify(log.mock.calls)).not.toContain("private database password");
   } finally { log.mockRestore(); }
 });
 

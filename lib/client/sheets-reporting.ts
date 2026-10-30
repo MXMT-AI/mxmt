@@ -6,12 +6,14 @@ export class SheetsReportingRefreshError extends Error {
     super(code);
   }
 }
+/** Read an object-shaped API payload; error bodies may be valid scalar JSON. */
 async function sheetsJson(
   fetcher: typeof apiFetch,
   path: string,
   init?: RequestInit,
 ) {
-  const r = await fetcher(path, init), body = await readApiJson(r);
+  const r = await fetcher(path, init), parsed = await readApiJson(r);
+  const body: Record<string, unknown> = parsed !== null && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
   if (!r.ok)
     throw new SheetsReportingRefreshError(
       responseTimeout(r.status) ? "SHEETS_REFRESH_TIMEOUT"
