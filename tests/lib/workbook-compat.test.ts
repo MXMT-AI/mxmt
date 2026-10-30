@@ -5,6 +5,15 @@ import fixture from "../fixtures/workbook-compatibility.json";
 const buffer = Buffer.from(fixture.base64, "base64");
 
 describe("SheetJS import compatibility", () => {
+  it.each([false, true])("keeps dense values identical to sparse decoding with cellDates=%s", cellDates => {
+    const options = { type: "buffer" as const, cellDates, cellNF: true };
+    const sparse = readWorkbook(buffer, options);
+    const selected = readWorkbook(buffer, { ...options, dense: true, cellFormula: false, cellHTML: false, sheets: ["Synthetic"] });
+    expect(sheetToJson(selected.Sheets.Synthetic, { header: 1, raw: true, defval: null }))
+      .toEqual(sheetToJson(sparse.Sheets.Synthetic, { header: 1, raw: true, defval: null }));
+    expect(selected).not.toHaveProperty("files");
+  });
+
   it("keeps financial numbers raw despite a date number format", () => {
     const workbook = readWorkbook(buffer, { type: "buffer", cellDates: false, cellNF: true });
     const rows = sheetToJson<unknown[]>(workbook.Sheets.Synthetic, { header: 1, raw: true, defval: null });
