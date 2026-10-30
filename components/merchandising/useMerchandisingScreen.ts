@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "@/i18n/navigation";
+import { useSearchParams } from "next/navigation";
 import { apiFetch } from "@/lib/fetch";
 import { readApiJson } from "@/lib/api-response";
 import type { MerchandisingFilters } from "@/lib/merchandising-navigation";

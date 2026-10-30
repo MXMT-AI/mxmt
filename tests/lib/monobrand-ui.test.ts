@@ -1,5 +1,5 @@
 import { createElement } from "react";
-import { renderToStaticMarkup as render } from "react-dom/server";
+import { renderToStaticMarkup as render } from "../helpers/render-localized";
 import { it, expect, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 import { calculateRepricing, parseRepricingRequest } from "@/lib/repricing";

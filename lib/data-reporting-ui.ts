@@ -8,7 +8,7 @@ export interface ReportPeriodValues {
 }
 
 export function currentKyivMonth(now = new Date()): ReportPeriodValues {
-  const parts = new Intl.DateTimeFormat("en-US", {
+  const parts = new Intl.DateTimeFormat("en-GB", {
     timeZone: "Europe/Kyiv",
     year: "numeric",
     month: "2-digit",

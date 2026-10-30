@@ -1,7 +1,8 @@
-import { headers, cookies } from "next/headers";
+import { getLocale } from "next-intl/server";
+import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { getT } from "@/lib/translations";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import type { SkuFlag } from "@/lib/analyst-types";
 import { LEGACY_CLASSIFICATION_FILTER, classify, getThresholds } from "@/lib/classify";
 import SalesSparkline from "@/components/dashboard/SalesSparkline";
@@ -9,8 +10,7 @@ import SalesSparkline from "@/components/dashboard/SalesSparkline";
 export default async function DashboardPage() {
   const h = await headers();
   const tenantId = h.get("x-tenant-id")!;
-  const cookieStore = await cookies();
-  const lang = (cookieStore.get("lang")?.value ?? "uk") as "uk" | "en";
+  const lang = await getLocale();
   const t = getT(lang);
   const uk = lang === "uk";
 

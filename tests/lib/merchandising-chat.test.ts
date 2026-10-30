@@ -128,3 +128,10 @@ it("never reads another tenant's saved scenario even when its context claims the
 it("rejects a scenario from a different snapshot before provider use",async()=>{
  await enable();await saveScenario("owner","different-snapshot");await expect(run({...request(),topic:"repricing",scenarioExportId:exportId})).rejects.toMatchObject({code:"AI_SCENARIO_CONTEXT_CHANGED"});expect(provider).not.toHaveBeenCalled();
 });
+it("includes the explicit page language in the server-owned prompt", async () => {
+ await enable();
+ const result=await run({...request("english-turn"),locale:"en"});
+ expect(result.mode).toBe("generated");
+ expect(provider.mock.calls[0][0].systemPrompt).toContain("Respond in English.");
+ expect(()=>parseMerchandisingChat({...request(),locale:"fr"})).toThrow();
+});

@@ -8,7 +8,7 @@ import {
   vi,
 } from "vitest";
 import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
+import { renderToStaticMarkup } from "../helpers/render-localized";
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/prisma", () => ({ prisma: {} }));
 vi.mock("next/link", () => ({

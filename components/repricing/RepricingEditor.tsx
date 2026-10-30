@@ -34,7 +34,7 @@ export default function RepricingEditor({
   const params = useSearchParams(),
     query = params.toString(),
     copy = repricingCopy[lang],
-    locale = lang === "uk" ? "uk-UA" : "en-US";
+    locale = lang === "uk" ? "uk-UA" : "en-GB";
   const [state, dispatch] = useReducer(
     repricingWorkspaceReducer,
     query,

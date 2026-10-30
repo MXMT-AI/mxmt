@@ -1,10 +1,11 @@
 "use client";
 import ReportingError from "@/components/merchandising/ReportingError";
 import ReportReadiness from "@/components/merchandising/ReportReadiness";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import dynamic from "next/dynamic";
 import { useState } from "react";
-import { useRouter,useSearchParams } from "next/navigation";
+import { useRouter } from "@/i18n/navigation";
+import { useSearchParams } from "next/navigation";
 import { useLang } from "@/components/LanguageProvider";
 import { useMerchandisingFilters,useScenarioExportPermission } from "@/components/merchandising/MerchandisingShell";
 import { CHAT_TOPICS,type ChatTopic,type MerchandisingChatRequest } from "@/lib/merchandising-chat-contract";

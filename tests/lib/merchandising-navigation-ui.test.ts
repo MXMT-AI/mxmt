@@ -8,13 +8,16 @@ const state = vi.hoisted(() => ({
   query:
     "period=month&dateFrom=2026-09-01&dateTo=2026-09-30&channelId=2&snapshotId=frozen",
 }));
-vi.mock("next/navigation", () => ({
+vi.mock("next/navigation", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("next/navigation")>()),
   usePathname: () => state.path,
   useSearchParams: () => new URLSearchParams(state.query),
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
 }));
-vi.mock("next/link", () => ({
-  default: ({ children, ...props }: Record<string, unknown>) =>
+vi.mock("@/i18n/navigation", () => ({
+  usePathname: () => state.path,
+  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
+  Link: ({ children, ...props }: Record<string, unknown>) =>
     createElement("a", props, children as string),
 }));
 vi.mock("@/components/LanguageProvider", () => ({

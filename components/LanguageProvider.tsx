@@ -1,64 +1,24 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  useCallback,
-  type ReactNode,
-} from "react";
-import { type Lang, type Translations, getT } from "@/lib/translations";
+import { useLocale, useMessages } from "next-intl";
+import { usePathname, useRouter } from "@/i18n/navigation";
+import type { Lang, Translations } from "@/lib/translations";
 
-interface LangContext {
-  lang: Lang;
-  t: Translations;
-  setLang: (l: Lang) => void;
-}
-
-const Ctx = createContext<LangContext>({
-  lang: "uk",
-  t: getT("uk"),
-  setLang: () => {},
-});
-
-const COOKIE_NAME = "lang";
-const LS_KEY = "mxmt_lang";
-
-export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [lang, setLangState] = useState<Lang>("uk");
-
-  // Initialise from localStorage on first mount
-  useEffect(() => {
-    const stored = localStorage.getItem(LS_KEY) as Lang | null;
-    if (stored === "uk" || stored === "en") setLangState(stored);
-  }, []);
-
-  useEffect(() => {
-    document.documentElement.lang = lang;
-  }, [lang]);
-
-  const setLang = useCallback((l: Lang) => {
-    setLangState(l);
-    localStorage.setItem(LS_KEY, l);
-    // Also set cookie so server components can read it
-    document.cookie = `${COOKIE_NAME}=${l};path=/;max-age=31536000;samesite=lax`;
-  }, []);
-
-  return (
-    <Ctx.Provider value={{ lang, t: getT(lang), setLang }}>
-      {children}
-    </Ctx.Provider>
-  );
-}
-
+/** Compatibility hook for existing typed copy. Locale belongs to the route. */
 export function useLang() {
-  return useContext(Ctx);
+  const lang = useLocale();
+  const t = useMessages() as Translations;
+  return { lang, t };
 }
 
-// Small toggle component — drop it anywhere
 export function LangToggle({ className = "" }: { className?: string }) {
-  const { lang, setLang } = useLang();
+  const { lang } = useLang();
+  const pathname = usePathname();
+  const router = useRouter();
+  function setLang(locale: Lang) {
+    if (locale === lang) return;
+    router.replace(`${pathname}${window.location.search}${window.location.hash}`, { locale, scroll: false });
+  }
   return (
     <button
       type="button"

@@ -5,6 +5,7 @@ export default defineConfig({
   test: {
     clearMocks: false,
     environment: "node",
+    server: { deps: { inline: ["next-intl"] } },
     include: ["tests/**/*.test.ts"],
     passWithNoTests: true,
   },

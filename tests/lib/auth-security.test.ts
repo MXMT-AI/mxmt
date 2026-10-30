@@ -130,7 +130,7 @@ describe("silent refresh redirects", () => {
     const response = await GET(new NextRequest(`https://mxmt.example/api/auth/silent-refresh?${query}`));
 
     expect(response.status).toBe(307);
-    expect(response.headers.get("location")).toBe("https://mxmt.example/dashboard");
+    expect(response.headers.get("location")).toBe("https://mxmt.example/uk/dashboard");
   });
 
   it.each([
@@ -149,7 +149,7 @@ describe("silent refresh redirects", () => {
 
     const response = await GET(new NextRequest(`https://mxmt.example/api/auth/silent-refresh?${query}`));
 
-    expect(response.headers.get("location")).toBe("https://mxmt.example/dashboard");
+    expect(response.headers.get("location")).toBe("https://mxmt.example/uk/dashboard");
   });
 
   it.each([
@@ -163,13 +163,13 @@ describe("silent refresh redirects", () => {
 
     const response = await GET(new NextRequest(`https://mxmt.example/api/auth/silent-refresh?${query}`));
 
-    expect(response.headers.get("location")).toBe(`https://mxmt.example${next}`);
+    expect(response.headers.get("location")).toBe(`https://mxmt.example/uk${next === "/" ? "" : next}`);
   });
 
   it("uses the dashboard when no destination was provided", async () => {
     const response = await GET(new NextRequest("https://mxmt.example/api/auth/silent-refresh"));
 
-    expect(response.headers.get("location")).toBe("https://mxmt.example/dashboard");
+    expect(response.headers.get("location")).toBe("https://mxmt.example/uk/dashboard");
   });
 
   it("renews a valid session and preserves the request ID", async () => {
@@ -193,7 +193,7 @@ describe("silent refresh redirects", () => {
 
     const response = await GET(new NextRequest("https://mxmt.example/api/auth/silent-refresh?next=%2Fdata-reporting"));
 
-    expect(response.headers.get("location")).toBe("https://mxmt.example/login");
+    expect(response.headers.get("location")).toBe("https://mxmt.example/uk/login?next=%2Fuk%2Fdata-reporting");
     expect(requestContext.cookies.has("access_token")).toBe(false);
   });
 
@@ -203,8 +203,17 @@ describe("silent refresh redirects", () => {
 
     const response = await GET(new NextRequest("https://mxmt.example/api/auth/silent-refresh?next=%2Fdata-reporting"));
 
-    expect(response.headers.get("location")).toBe("https://mxmt.example/login");
+    expect(response.headers.get("location")).toBe("https://mxmt.example/uk/login?next=%2Fuk%2Fdata-reporting");
     expect(response.cookies.get("access_token")).toMatchObject({ value: "", expires: new Date(0) });
     expect(response.cookies.get("refresh_token")).toMatchObject({ value: "", expires: new Date(0) });
+  });
+});
+describe("localized silent refresh", () => {
+  it("preserves English on an expired session failure", async () => {
+    requestContext.cookies.clear();
+    const response = await GET(new NextRequest("https://mxmt.example/api/auth/silent-refresh?next=%2Fen%2Fsales%3Fcurrency%3DEUR"));
+    const destination = new URL(response.headers.get("location")!);
+    expect(destination.pathname).toBe("/en/login");
+    expect(destination.searchParams.get("next")).toBe("/en/sales?currency=EUR");
   });
 });

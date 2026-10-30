@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useState, useEffect, useRef } from "react";
 import {
   Play, RefreshCw, AlertTriangle, CheckCircle2, Clock,

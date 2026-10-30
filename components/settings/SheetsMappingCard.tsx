@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { useRouter } from "@/i18n/navigation";
+
+import { Link } from "@/i18n/navigation";
 import { apiFetch } from "@/lib/fetch";
 import { readApiJson } from "@/lib/api-response";
 import { sheetsMappingMessage } from "@/lib/sheets-mapping-copy";

@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { apiFetch } from "@/lib/fetch";
 import type { ReportingSources } from "@/lib/reporting-source-contract";
 import { reportingSourceHelp } from "@/lib/reporting-readiness-copy";

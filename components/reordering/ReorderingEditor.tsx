@@ -41,7 +41,7 @@ export default function ReorderingEditor({
     query = params.toString(),
     lastUrl = useRef(query),
     copy = reorderingCopy[lang],
-    locale = lang === "uk" ? "uk-UA" : "en-US";
+    locale = lang === "uk" ? "uk-UA" : "en-GB";
   const [state, dispatch] = useReducer(reorderingReducer, query, (q) =>
     initialReorderingState(new URLSearchParams(q)),
   );

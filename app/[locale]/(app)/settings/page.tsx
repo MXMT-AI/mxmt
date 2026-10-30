@@ -1,3 +1,4 @@
+import { getLocale } from "next-intl/server";
 import { readSelectedSource } from "@/lib/connectors/source";
 import ShopifyConnectionCard from "@/components/settings/ShopifyConnectionCard";
 import HoroshopConnectionCard from "@/components/settings/HoroshopConnectionCard";
@@ -5,7 +6,6 @@ import KeyCrmConnectionCard from "@/components/settings/KeyCrmConnectionCard";
 import CsvImportCard from "@/components/settings/CsvImportCard";
 import SheetsMappingCard from "@/components/settings/SheetsMappingCard";
 import ConnectorSourceCard from "@/components/settings/ConnectorSourceCard";
-import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { getT } from "@/lib/translations";
 import { getDriveMode } from "@/lib/gdrive";
@@ -21,8 +21,7 @@ import { getProviderConnection, getSalesDriveConnection } from "@/lib/connectors
 export default async function SettingsPage() {
   const user = await requireCurrentUser();
   const tenantId = user.tenantId;
-  const cookieStore = await cookies();
-  const lang = (cookieStore.get("lang")?.value ?? "uk") as "uk" | "en";
+  const lang = await getLocale();
   const t = getT(lang);
 
   const [onboarding, driveSync, salesDrive, selectedSource, keyCrm, horoshop, shopify] = await Promise.all([

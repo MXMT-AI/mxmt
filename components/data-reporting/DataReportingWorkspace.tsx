@@ -23,7 +23,7 @@ import {
 import { apiFetch } from "@/lib/fetch";
 import { rawImportIsLive } from "@/lib/data-import-policy";
 import { scheduleRawImportStatusCheck } from "@/lib/client/raw-import-status";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import ReportTable from "./ReportTable";
 import { useLang } from "@/components/LanguageProvider";
 import type {

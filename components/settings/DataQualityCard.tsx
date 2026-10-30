@@ -1,4 +1,5 @@
 "use client";
+import { Link } from "@/i18n/navigation";
 import {
   useCallback,
   useEffect,
@@ -422,12 +423,12 @@ export default function DataQualityCard({
                       <li key={code}>
                         {label(code)}
                         <p>{qualityGuidance(code, lang)}</p>
-                        <a
+                        <Link
                           className="inline-flex min-h-11 items-center underline focus-visible:outline-solid"
                           href={qualityFixHref(code)}
                         >
                           {uk ? "Де виправити" : "Where to fix"}
-                        </a>
+                        </Link>
                       </li>
                     ))}
                   </ul>

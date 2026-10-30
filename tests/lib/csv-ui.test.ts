@@ -1,7 +1,8 @@
 import React from "react";
-import { renderToStaticMarkup } from "react-dom/server";
+import { renderToStaticMarkup } from "../helpers/render-localized";
 import { expect, it, vi } from "vitest";
-vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
+vi.mock("next/navigation", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("next/navigation")>()), useRouter: () => ({ refresh: vi.fn() }) }));
 import CsvImportCard from "@/components/settings/CsvImportCard";
 it("keeps upload controls administrator-only and separates approval, preview and activation", () => {
   const viewer = renderToStaticMarkup(

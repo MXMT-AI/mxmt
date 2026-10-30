@@ -1,4 +1,5 @@
 "use client";
+import { Link } from "@/i18n/navigation";
 import {
   useCallback,
   useEffect,
@@ -358,14 +359,14 @@ export default function MerchandisingSettingsCard({
         </>
       )}
       <p className="mt-5 text-sm text-(--muted)">
-        <a
+        <Link
           href="/settings?tab=general#data-quality-title"
           className="underline focus-visible:outline-solid"
         >
           {uk
             ? "Аліаси брендів і типи товарів — у «Якість даних»."
             : "Brand aliases and product types are managed in Data quality."}
-        </a>
+        </Link>
       </p>
     </section>
   );

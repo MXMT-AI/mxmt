@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useSearchParams } from "next/navigation";
 import {chatCopy} from "@/lib/merchandising-chat-copy";
 import { panel, button, Note } from "./ReportPrimitives";
@@ -81,7 +81,7 @@ export default function ScenarioExportPanel({
   lang: Lang;
 }) {
   const copy = exportCopy[lang],
-    locale = lang === "uk" ? "uk-UA" : "en-US",params=useSearchParams();
+    locale = lang === "uk" ? "uk-UA" : "en-GB",params=useSearchParams();
   const adviceHref=(receipt:ScenarioExportReceipt)=>{const q=new URLSearchParams(params);q.set("chat","1");q.set("chatTopic",receipt.kind==="reprice"?"repricing":"reordering");q.set("chatExportId",receipt.exportId);return `/overview?${q}`;};
   return (
     <section className={panel + " p-5 space-y-4"} aria-label={copy.history}>

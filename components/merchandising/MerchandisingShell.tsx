@@ -1,6 +1,6 @@
 "use client";
 import ReportingSourceStatus from "./ReportingSourceStatus";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import {
   createContext,
   useContext,
@@ -10,7 +10,8 @@ import {
   type FormEvent,
   type ReactNode,
 } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "@/i18n/navigation";
+import { useSearchParams } from "next/navigation";
 import { useLang } from "@/components/LanguageProvider";
 import { merchandisingCopy } from "@/lib/merchandising-copy";
 import {

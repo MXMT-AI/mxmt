@@ -1,4 +1,5 @@
 "use client";
+import { Link } from "@/i18n/navigation";
 
 import { useState, useEffect, useRef } from "react";
 import { RefreshCw, Sparkles, Send } from "lucide-react";
@@ -91,7 +92,7 @@ ${skus.filter(s => ["hit","stockout"].includes(s.flag)).slice(0,5)
       const res = await fetch("/api/ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ systemPrompt, messages: [...aiMsgs, msg] }),
+        body: JSON.stringify({ locale: lang, systemPrompt, messages: [...aiMsgs, msg] }),
       });
       const data = await res.json();
       if (!res.ok || data.error) {
@@ -132,9 +133,9 @@ ${skus.filter(s => ["hit","stockout"].includes(s.flag)).slice(0,5)
               ? "Імпортуйте товари та дані продажів щоб агент міг класифікувати асортимент"
               : "Import products and sales data so the agent can classify your assortment"}
           </p>
-          <a href="/settings" className="inline-flex px-4 py-2 bg-accent-yellow/10 border border-accent-yellow/20 text-accent-yellow rounded-lg text-sm font-medium hover:bg-accent-yellow/20 transition-colors">
+          <Link href="/settings" className="inline-flex px-4 py-2 bg-accent-yellow/10 border border-accent-yellow/20 text-accent-yellow rounded-lg text-sm font-medium hover:bg-accent-yellow/20 transition-colors">
             {uk ? "Підключити дані →" : "Connect data →"}
-          </a>
+          </Link>
         </div>
       </div>
     );

@@ -56,7 +56,7 @@ describe("middleware with pre-upgrade tokens", () => {
   afterAll(() => vi.unstubAllEnvs());
 
   it("forwards the verified legacy identity", async () => {
-    const response = await middleware(new NextRequest("https://mxmt.example/dashboard", {
+    const response = await middleware(new NextRequest("https://mxmt.example/uk/dashboard", {
       headers: { cookie: `access_token=${fixture.validToken}` },
     }));
     expect(response.headers.get("x-middleware-next")).toBe("1");
@@ -65,12 +65,12 @@ describe("middleware with pre-upgrade tokens", () => {
   });
 
   it("sends expired legacy page sessions to silent refresh with the original destination", async () => {
-    const response = await middleware(new NextRequest("https://mxmt.example/dashboard?period=month", {
+    const response = await middleware(new NextRequest("https://mxmt.example/uk/dashboard?period=month", {
       headers: { cookie: `access_token=${fixture.expiredToken}; refresh_token=synthetic-refresh-cookie` },
     }));
     const destination = new URL(response.headers.get("location")!);
     expect(destination.pathname).toBe("/api/auth/silent-refresh");
-    expect(destination.searchParams.get("next")).toBe("/dashboard?period=month");
+    expect(destination.searchParams.get("next")).toBe("/uk/dashboard?period=month");
   });
 
   it("keeps API expiry failures unauthorized instead of redirecting", async () => {

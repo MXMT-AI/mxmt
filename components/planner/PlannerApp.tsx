@@ -82,6 +82,7 @@ export default function PlannerApp({
   initialCatalogs: CatalogUpload[];
   initialCart: object[];
 }) {
+  const { lang } = useLang();
   const [section, setSection] = useState<Section>("dashboard");
   const [brands, setBrands] = useState<Brand[]>(initialBrands);
   const [catalogs, setCatalogs] = useState<CatalogUpload[]>(initialCatalogs);
@@ -280,6 +281,7 @@ Be concise and data-driven. Respond in the same language as the user's message.`
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          locale: lang,
           systemPrompt,
           messages: [...aiMessages, userMsg],
         }),

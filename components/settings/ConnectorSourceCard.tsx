@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/i18n/navigation";
+
 import { apiFetch } from "@/lib/fetch";
 import { readApiJson } from "@/lib/api-response";
 import { Field, control } from "@/components/merchandising/FormControls";

@@ -1,5 +1,5 @@
 "use client";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import {
   panel,
   button,
@@ -310,7 +310,7 @@ export default function SalesContent({
 }) {
   const model = data.workspace,
     copy = salesCopy[lang],
-    locale = lang === "uk" ? "uk-UA" : "en-US";
+    locale = lang === "uk" ? "uk-UA" : "en-GB";
   if (!model) return null;
   const params = new URLSearchParams(query);
   params.set("snapshotId", data.context.snapshotId);

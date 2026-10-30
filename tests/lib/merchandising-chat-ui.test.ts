@@ -1,5 +1,5 @@
 import {createElement} from "react";
-import {renderToStaticMarkup} from "react-dom/server";
+import {renderToStaticMarkup} from "../helpers/render-localized";
 import {expect,it,vi} from "vitest";
 vi.mock("next/link",()=>({default:({children,...props}:Record<string,unknown>)=>createElement("a",props,children as string)}));
 import MerchandisingChat,{ChatReply} from "@/components/merchandising/MerchandisingChat";

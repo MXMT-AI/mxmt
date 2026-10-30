@@ -40,3 +40,17 @@ it("does not silently route unknown v2 modes into unrestricted legacy chat",asyn
 it("preserves existing planner/analyst request compatibility without opting it into v2",async()=>{
  await login();const legacy={systemPrompt:"existing planner context",messages:[{role:"user",content:"existing question"}]};const response=await POST(req(legacy));expect(response.status).toBe(200);expect((await response.json()).content).toBe("legacy answer");expect(m.legacy).toHaveBeenCalledWith(expect.objectContaining(legacy));expect(m.read).not.toHaveBeenCalled();
 });
+it("passes a validated locale to merchandising chat and rejects unsupported locales", async () => {
+ await login();
+ expect((await POST(req({...body,locale:"en"}))).status).toBe(200);
+ expect(m.read).toHaveBeenCalledWith({tenantId:"a",userId:"user"},expect.objectContaining({locale:"en"}));
+ m.read.mockClear();
+ expect((await POST(req({...body,locale:"fr"}))).status).toBe(400);
+ expect(m.read).not.toHaveBeenCalled();
+});
+it("uses the page locale for legacy AI prose", async () => {
+ await login();
+ const response=await POST(req({locale:"en",systemPrompt:"Context",messages:[{role:"user",content:"Question"}]}));
+ expect(response.status).toBe(200);
+ expect(m.legacy).toHaveBeenCalledWith(expect.objectContaining({systemPrompt:"Context\nRespond in English."}));
+});
