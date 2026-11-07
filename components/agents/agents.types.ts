@@ -50,7 +50,6 @@ export interface AgentDefinition {
   blockLabel: string;
   desc: string;
   icon: LucideIcon;
-  color: string;
   runnable: boolean;
   dependsOn: string[];
 }
@@ -58,6 +57,5 @@ export interface AgentDefinition {
 export interface AgentBlock {
   id: number;
   label: string;
-  color: string;
   desc: string;
 }

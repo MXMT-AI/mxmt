@@ -166,7 +166,7 @@ export default function OnboardingForm({
         {steps.map((s, i) => (
           <div key={i} className="flex items-center gap-2">
             <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold transition-colors ${
-              step > i + 1 ? "bg-accent-cyan text-[#0d1117]"
+              step > i + 1 ? "bg-accent-fill text-[#0d1117]"
               : step === i + 1 ? "bg-accent-cyan/20 border border-accent-cyan/40 text-accent-cyan"
               : "bg-white/5 border border-(--border) text-(--subtle)"
             }`}>
@@ -234,7 +234,7 @@ export default function OnboardingForm({
 
           <div className="mt-6 flex justify-end">
             <button onClick={() => setStep(2)} disabled={!canProceed1}
-              className="flex items-center gap-2 px-5 py-2.5 bg-accent-cyan hover:bg-[#00c9ab] disabled:opacity-40 text-[#0d1117] font-semibold rounded-lg text-sm transition-colors">
+              className="flex items-center gap-2 px-5 py-2.5 bg-accent-fill hover:bg-[#00c9ab] disabled:opacity-40 text-[#0d1117] font-semibold rounded-lg text-sm transition-colors">
               {uk ? "Далі" : "Next"} <ChevronRight size={16} />
             </button>
           </div>
@@ -301,7 +301,7 @@ export default function OnboardingForm({
               <ChevronLeft size={16} /> {uk ? "Назад" : "Back"}
             </button>
             <button onClick={() => setStep(3)} disabled={!canProceed2}
-              className="flex items-center gap-2 px-5 py-2.5 bg-accent-cyan hover:bg-[#00c9ab] disabled:opacity-40 text-[#0d1117] font-semibold rounded-lg text-sm transition-colors">
+              className="flex items-center gap-2 px-5 py-2.5 bg-accent-fill hover:bg-[#00c9ab] disabled:opacity-40 text-[#0d1117] font-semibold rounded-lg text-sm transition-colors">
               {uk ? "Далі" : "Next"} <ChevronRight size={16} />
             </button>
           </div>
@@ -344,7 +344,7 @@ export default function OnboardingForm({
               <ChevronLeft size={16} /> {uk ? "Назад" : "Back"}
             </button>
             <button onClick={save} disabled={!canSave || saving}
-              className="flex items-center gap-2 px-5 py-2.5 bg-accent-cyan hover:bg-[#00c9ab] disabled:opacity-40 text-[#0d1117] font-semibold rounded-lg text-sm transition-colors">
+              className="flex items-center gap-2 px-5 py-2.5 bg-accent-fill hover:bg-[#00c9ab] disabled:opacity-40 text-[#0d1117] font-semibold rounded-lg text-sm transition-colors">
               {saving ? (uk ? "Зберігаємо…" : "Saving…") : (uk ? "✓ Зберегти бриф" : "✓ Save brief")}
             </button>
           </div>

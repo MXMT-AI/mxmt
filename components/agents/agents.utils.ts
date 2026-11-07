@@ -45,10 +45,10 @@ export function buildReorderParams(brand: any, sc: any, debug?: Record<string, a
 }
 
 export function statusColor(status: BrandStatus) {
-  if (status === "critical") return "#ef4444";
-  if (status === "warning") return "#fbbf24";
-  if (status === "excellent") return "#00e5c4";
-  return "#6b7a8d";
+  if (status === "critical") return "var(--danger-ink)";
+  if (status === "warning") return "var(--amber-ink)";
+  if (status === "excellent") return "var(--cyan-ink)";
+  return "var(--muted)";
 }
 
 export function statusLabel(status: BrandStatus) {

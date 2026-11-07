@@ -38,7 +38,7 @@ export default function SheetsConnectionCard({ initial, lang, canManage }: {
       </label>
       {connection ? <p className="break-all text-xs text-(--muted)">{uk ? "Збережений ID: " : "Saved ID: "}{connection.fileId}</p>
         : <p className="text-sm text-(--muted)">{uk ? "Таблицю ще не прив’язано. Імпорт заблоковано." : "No spreadsheet connected. Import is blocked."}</p>}
-      <button type="submit" disabled={!canManage || busy} className="rounded-lg bg-accent-cyan px-4 py-2 text-black disabled:opacity-50">
+      <button type="submit" disabled={!canManage || busy} className="rounded-lg bg-accent-fill px-4 py-2 text-black disabled:opacity-50">
         {busy ? (uk ? "Збереження…" : "Saving…") : (uk ? "Зберегти підключення" : "Save connection")}
       </button>
       <p role="status" aria-live="polite" className="text-sm">{message}</p>

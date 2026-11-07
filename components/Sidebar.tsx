@@ -63,7 +63,7 @@ export default function Sidebar({
         key={href}
         href={merchandisingHref(href, new URLSearchParams(params))}
         aria-current={active ? "page" : undefined}
-        className={`flex items-center gap-3 px-3 py-2.5 min-h-11 rounded-lg text-sm font-medium transition-colors touch-manipulation ${active ? "bg-(--input-hover) text-(--text)" : "text-(--muted) hover:text-(--text) hover:bg-(--input-bg)"}`}
+        className={`flex items-center gap-3 px-3 py-2.5 min-h-11 rounded-lg text-sm font-medium transition-colors touch-manipulation ${active ? "bg-(--nav-current) text-(--nav-ink)" : "text-(--muted) hover:text-(--text) hover:bg-(--input-bg)"}`}
       >
         <Icon size={16} aria-hidden="true" />
         <span>{label}</span>
@@ -109,8 +109,8 @@ export default function Sidebar({
   return (
     <aside className="w-full md:w-56 md:min-h-screen bg-(--surface) border-b md:border-b-0 md:border-r border-(--border) flex flex-col shrink-0">
       <div className="p-4 border-b border-(--border) flex items-center gap-3 min-w-0">
-        <div className="w-8 h-8 rounded-lg bg-(--input-bg) border border-(--border) flex items-center justify-center shrink-0">
-          <span className="text-(--accent) text-xs font-bold">MX</span>
+        <div className="w-8 h-8 rounded-lg bg-(--mark-bg) border border-(--border) flex items-center justify-center shrink-0">
+          <span className="text-(--mark-ink) text-xs font-bold">MX</span>
         </div>
         <div className="min-w-0">
           <div className="text-(--text) text-sm font-semibold truncate">

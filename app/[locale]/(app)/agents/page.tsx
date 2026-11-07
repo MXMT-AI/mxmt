@@ -24,10 +24,18 @@ import {
 
 
 function agentStatusIcon(s: AgentStatus) {
-  if (s === "running") return <RefreshCw size={12} className="animate-spin text-accent-yellow" aria-hidden="true" />;
-  if (s === "done") return <CheckCircle2 size={12} className="text-accent-cyan" aria-hidden="true" />;
-  if (s === "error") return <AlertTriangle size={12} className="text-[#ef4444]" aria-hidden="true" />;
-  return <Clock size={12} className="text-(--subtle)" aria-hidden="true" />;
+  if (s === "running") return <RefreshCw size={12} className="shrink-0 motion-safe:animate-spin text-accent-yellow" aria-hidden="true" />;
+  if (s === "done") return <CheckCircle2 size={12} className="shrink-0 text-accent-cyan" aria-hidden="true" />;
+  if (s === "error") return <AlertTriangle size={12} className="shrink-0 text-accent-danger" aria-hidden="true" />;
+  return <Clock size={12} className="shrink-0 text-(--subtle)" aria-hidden="true" />;
+}
+
+function badgeStyle(color: string) {
+  return {
+    color,
+    background: `color-mix(in srgb, ${color} 10%, transparent)`,
+    border: `1px solid color-mix(in srgb, ${color} 22%, transparent)`,
+  };
 }
 
 function campaignHealthLabel(status: string) {
@@ -40,17 +48,17 @@ function campaignHealthLabel(status: string) {
 
 function campaignHealthClasses(status: string) {
   if (status === "on_track") return "bg-accent-cyan/5 border-accent-cyan/20 text-accent-cyan";
-  if (status === "critical") return "bg-[#ef4444]/5 border-[#ef4444]/20 text-[#ef4444]";
+  if (status === "critical") return "bg-accent-danger/5 border-accent-danger/20 text-accent-danger";
   if (status === "not_started") return "bg-(--input-bg) border-(--border) text-(--muted)";
   return "bg-accent-yellow/5 border-accent-yellow/20 text-accent-yellow";
 }
 
 function campaignStatusColor(status: string) {
-  if (status === "ahead") return "#00e5c4";
-  if (status === "on_track") return "#86efac";
-  if (status === "behind") return "#fbbf24";
-  if (status === "insufficient_data" || status === "scheduled") return "#6b7a8d";
-  return "#ef4444";
+  if (status === "ahead") return "var(--cyan-ink)";
+  if (status === "on_track") return "var(--positive-ink)";
+  if (status === "behind") return "var(--amber-ink)";
+  if (status === "insufficient_data" || status === "scheduled") return "var(--muted)";
+  return "var(--danger-ink)";
 }
 
 function campaignMetricLabel(campaign: any) {
@@ -81,11 +89,11 @@ function AnalysisModal({
   }, [onClose]);
 
   const statusBadge = (status: string, map: Record<string, string>) => {
-    const color = map[status] ?? "#6b7a8d";
+    const color = map[status] ?? "var(--muted)";
     return (
       <span
         className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm ml-2 shrink-0"
-        style={{ background: color + "20", color, border: `1px solid ${color}30` }}
+        style={badgeStyle(color)}
       >
         {status?.toUpperCase()}
       </span>
@@ -93,14 +101,14 @@ function AnalysisModal({
   };
 
   const brandColors: Record<string, string> = {
-    critical: "#ef4444", warning: "#fbbf24", excellent: "#00e5c4", balanced: "#6b7a8d",
+    critical: "var(--danger-ink)", warning: "var(--amber-ink)", excellent: "var(--cyan-ink)", balanced: "var(--muted)",
   };
   const channelColors: Record<string, string> = {
-    best: "#00e5c4", normal: "#6b7a8d", weak: "#fbbf24", inactive: "#fbbf24",
+    best: "var(--cyan-ink)", normal: "var(--muted)", weak: "var(--amber-ink)", inactive: "var(--amber-ink)",
   };
   const catColors: Record<string, string> = {
-    bestseller: "#00e5c4", normal: "#6b7a8d", slow: "#fbbf24", dead: "#ef4444",
-    stockout: "#60a5fa", inactive: "#6b7a8d",
+    bestseller: "var(--cyan-ink)", normal: "var(--muted)", slow: "var(--amber-ink)", dead: "var(--danger-ink)",
+    stockout: "var(--info-ink)", inactive: "var(--muted)",
   };
 
   return (
@@ -146,7 +154,7 @@ function AnalysisModal({
 
           {output.action && (
             <div className="bg-accent-cyan/5 border border-accent-cyan/20 rounded-xl p-4">
-              <div className="text-[9px] font-mono uppercase tracking-widest text-accent-cyan/70 mb-2">
+              <div className="text-[9px] font-mono uppercase tracking-widest text-accent-cyan mb-2">
                 Головна дія
               </div>
               <p className="text-sm text-accent-cyan font-medium leading-relaxed">{output.action}</p>
@@ -248,7 +256,7 @@ function AnalysisModal({
                   <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-2">Dead Stock</div>
                   <div className="flex flex-wrap gap-1.5">
                     {output.dead_stock.map((d: string) => (
-                      <span key={d} className="text-[10px] font-mono px-2 py-0.5 bg-[#ef4444]/10 border border-[#ef4444]/20 rounded-sm text-[#ef4444]">{d}</span>
+                      <span key={d} className="text-[10px] font-mono px-2 py-0.5 bg-accent-danger/10 border border-accent-danger/20 rounded-sm text-accent-danger">{d}</span>
                     ))}
                   </div>
                 </div>
@@ -270,7 +278,7 @@ function AnalysisModal({
                   </div>
                   <div className="divide-y divide-(--border)">
                     {(brand.options ?? []).map((opt: any) => (
-                      <div key={opt.option_id} className="px-4 py-4" style={{ background: opt.evaluation?.recommended ? "#00e5c4" + "07" : undefined }}>
+                      <div key={opt.option_id} className="px-4 py-4" style={{ background: opt.evaluation?.recommended ? "color-mix(in srgb, var(--cyan-ink) 5%, transparent)" : undefined }}>
                         <div className="flex items-center gap-2 mb-2 flex-wrap">
                           <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm bg-accent-purple/15 text-accent-purple">{opt.strategy_type}</span>
                           <span className="font-semibold text-sm text-(--text)">{opt.label}</span>
@@ -290,7 +298,7 @@ function AnalysisModal({
                             </span></span>
                           )}
                           {opt.forecast?.margin_after_percent != null && (
-                            <span>Маржа після <span className={opt.forecast.margin_after_percent < 10 ? "text-[#ef4444]" : "text-accent-cyan"}>
+                            <span>Маржа після <span className={opt.forecast.margin_after_percent < 10 ? "text-accent-danger" : "text-accent-cyan"}>
                               {opt.forecast.margin_after_percent}%
                             </span></span>
                           )}
@@ -298,7 +306,7 @@ function AnalysisModal({
                         {opt.evaluation?.pros?.length > 0 && (
                           <ul className="space-y-0.5 mb-2">
                             {opt.evaluation.pros.map((p: string, i: number) => (
-                              <li key={i} className="text-[11px] text-[#86efac]">+ {p}</li>
+                              <li key={i} className="text-[11px] text-accent-positive">+ {p}</li>
                             ))}
                           </ul>
                         )}
@@ -321,7 +329,7 @@ function AnalysisModal({
                             type="button"
                             onClick={() => setSimParams(buildSimParams(brand, opt, output._debug))}
                             className="mt-3 flex items-center gap-1.5 text-[10px] font-mono px-3 py-1.5 rounded-lg border transition-colors"
-                            style={{ borderColor: "#a78bfa40", background: "#a78bfa12", color: "#a78bfa" }}
+                            style={{ borderColor: "var(--signal-line)", background: "var(--signal-wash)", color: "var(--signal-ink)" }}
                           >
                             <Table2 size={11} aria-hidden="true" />
                             Переглянути в таблиці
@@ -350,13 +358,13 @@ function AnalysisModal({
                   </div>
                   <div className="divide-y divide-(--border)">
                     {(brand.scenarios ?? []).map((sc: any) => {
-                      const riskColor = sc.evaluation?.risk_level === "HIGH" ? "#ef4444" : sc.evaluation?.risk_level === "LOW" ? "#00e5c4" : "#fbbf24";
+                      const riskColor = sc.evaluation?.risk_level === "HIGH" ? "var(--danger-ink)" : sc.evaluation?.risk_level === "LOW" ? "var(--cyan-ink)" : "var(--amber-ink)";
                       return (
-                        <div key={sc.scenario_id} className="px-4 py-4" style={{ background: sc.evaluation?.recommended ? "#00e5c4" + "07" : undefined }}>
+                        <div key={sc.scenario_id} className="px-4 py-4" style={{ background: sc.evaluation?.recommended ? "color-mix(in srgb, var(--cyan-ink) 5%, transparent)" : undefined }}>
                           <div className="flex items-center gap-2 mb-2 flex-wrap">
                             <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm bg-accent-purple/15 text-accent-purple">{sc.type}</span>
                             <span className="font-semibold text-sm text-(--text)">{sc.label}</span>
-                            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm ml-1" style={{ background: riskColor + "20", color: riskColor }}>
+                            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm ml-1" style={badgeStyle(riskColor)}>
                               {sc.evaluation?.risk_level} RISK
                             </span>
                             {sc.evaluation?.recommended && (
@@ -374,7 +382,7 @@ function AnalysisModal({
                           {sc.evaluation?.pros?.length > 0 && (
                             <ul className="space-y-0.5 mb-2">
                               {sc.evaluation.pros.map((p: string, i: number) => (
-                                <li key={i} className="text-[11px] text-[#86efac]">+ {p}</li>
+                                <li key={i} className="text-[11px] text-accent-positive">+ {p}</li>
                               ))}
                             </ul>
                           )}
@@ -390,7 +398,7 @@ function AnalysisModal({
                               type="button"
                               onClick={() => setReorderParams(buildReorderParams(brand, sc, output._debug))}
                               className="mt-3 flex items-center gap-1.5 text-[10px] font-mono px-3 py-1.5 rounded-lg border transition-colors"
-                              style={{ borderColor: "#a78bfa40", background: "#a78bfa12", color: "#a78bfa" }}
+                              style={{ borderColor: "var(--signal-line)", background: "var(--signal-wash)", color: "var(--signal-ink)" }}
                             >
                               <Table2 size={11} aria-hidden="true" />
                               Переглянути в таблиці
@@ -414,7 +422,7 @@ function AnalysisModal({
                   <div className="px-4 py-3 bg-accent-yellow/5 border-b border-(--border)">
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-sm text-(--text)">{brand.brand_name}</span>
-                      <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded-sm ${brand.urgency === "critical" ? "bg-[#ef4444]/10 text-[#ef4444]" : "bg-accent-yellow/10 text-accent-yellow"}`}>
+                      <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded-sm ${brand.urgency === "critical" ? "bg-accent-danger/10 text-accent-danger" : "bg-accent-yellow/10 text-accent-yellow"}`}>
                         {(brand.urgency ?? "").toUpperCase()}
                       </span>
                     </div>
@@ -466,7 +474,7 @@ function AnalysisModal({
                         <div key={camp.campaign_id ?? i} className="border border-(--border) rounded-xl p-4">
                           <div className="flex items-center gap-2 mb-2 flex-wrap">
                             <span className="font-semibold text-sm text-(--text)">{camp.brand_name}</span>
-                            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm" style={{ background: sc + "20", color: sc, border: `1px solid ${sc}30` }}>{camp.status?.toUpperCase()}</span>
+                            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm" style={badgeStyle(sc)}>{camp.status?.toUpperCase()}</span>
                             <span className="text-[9px] font-mono text-(--subtle) ml-auto">{campaignMetricLabel(camp)}</span>
                           </div>
                           {camp.planned_action && <p className="text-[11px] text-(--subtle) mb-1">📋 {camp.planned_action}</p>}
@@ -501,15 +509,15 @@ function AnalysisModal({
                   <div className="space-y-2">
                     {output.top_priorities.map((p: any) => (
                       <div key={p.rank} className="flex items-start gap-3 border border-(--border) rounded-xl p-3">
-                        <span className="text-base font-bold text-[#fb923c] w-6 shrink-0">#{p.rank}</span>
+                        <span className="text-base font-bold text-accent-report w-6 shrink-0">#{p.rank}</span>
                         <div className="min-w-0">
                           <p className="text-[12px] text-(--text)">{p.action}</p>
                           <div className="flex items-center gap-2 mt-1 flex-wrap">
                             {p.brand && p.brand !== "все" && <span className="text-[10px] font-mono text-(--subtle)">{p.brand}</span>}
-                            <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded-sm ${p.deadline === "today" ? "bg-[#ef4444]/10 text-[#ef4444]" : p.deadline === "tomorrow" ? "bg-accent-yellow/10 text-accent-yellow" : "bg-(--input-bg) text-(--muted)"}`}>
+                            <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded-sm ${p.deadline === "today" ? "bg-accent-danger/10 text-accent-danger" : p.deadline === "tomorrow" ? "bg-accent-yellow/10 text-accent-yellow" : "bg-(--input-bg) text-(--muted)"}`}>
                               {p.deadline}
                             </span>
-                            {p.type && <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm bg-[#fb923c]/10 text-[#fb923c]">{p.type}</span>}
+                            {p.type && <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm bg-accent-report/10 text-accent-report">{p.type}</span>}
                           </div>
                         </div>
                       </div>
@@ -519,7 +527,7 @@ function AnalysisModal({
               )}
               {Array.isArray(output.decisions_needed) && output.decisions_needed.length > 0 && (
                 <div className="bg-accent-yellow/5 border border-accent-yellow/20 rounded-xl p-4">
-                  <div className="text-[9px] font-mono uppercase tracking-widest text-accent-yellow/70 mb-2">Рішення PM</div>
+                  <div className="text-[9px] font-mono uppercase tracking-widest text-accent-yellow mb-2">Рішення PM</div>
                   <ul className="space-y-1.5">
                     {output.decisions_needed.map((d: string, i: number) => (
                       <li key={i} className="text-[12px] text-(--text)">· {d}</li>
@@ -529,7 +537,7 @@ function AnalysisModal({
               )}
               {Array.isArray(output.wins) && output.wins.length > 0 && (
                 <div className="bg-accent-cyan/5 border border-accent-cyan/20 rounded-xl p-4">
-                  <div className="text-[9px] font-mono uppercase tracking-widest text-accent-cyan/70 mb-2">Перемоги тижня</div>
+                  <div className="text-[9px] font-mono uppercase tracking-widest text-accent-cyan mb-2">Перемоги тижня</div>
                   <ul className="space-y-1.5">
                     {output.wins.map((w: string, i: number) => (
                       <li key={i} className="text-[12px] text-(--text)">✓ {w}</li>
@@ -556,7 +564,7 @@ function AnalysisModal({
                     {output.health_score.recommendation_count != null && (
                       <span>Заплановано: <span className="text-(--text)">{output.health_score.scheduled_recommendations ?? 0}/{output.health_score.recommendation_count}</span></span>
                     )}
-                    {output.health_score.critical_gaps > 0 && <span>Критичних: <span className="text-[#ef4444]">{output.health_score.critical_gaps}</span></span>}
+                    {output.health_score.critical_gaps > 0 && <span>Критичних: <span className="text-accent-danger">{output.health_score.critical_gaps}</span></span>}
                     {output.health_score.high_gaps > 0 && <span>Важливих: <span className="text-accent-yellow">{output.health_score.high_gaps}</span></span>}
                   </div>
                   {output.health_score.summary && <p className="text-[12px] text-(--muted) mt-2">{output.health_score.summary}</p>}
@@ -569,7 +577,7 @@ function AnalysisModal({
                   </div>
                   <div className="space-y-2">
                     {output.annotations.map((ann: any, i: number) => {
-                      const prioColor = ann.priority === "critical" ? "#ef4444" : ann.priority === "high" ? "#fbbf24" : ann.priority === "medium" ? "#a78bfa" : "#6b7a8d";
+                      const prioColor = ann.priority === "critical" ? "var(--danger-ink)" : ann.priority === "high" ? "var(--amber-ink)" : ann.priority === "medium" ? "var(--violet-ink)" : "var(--muted)";
                       return (
                         <div key={ann.id ?? i} className="border border-(--border) rounded-xl p-3" style={{ borderLeftColor: prioColor, borderLeftWidth: 3 }}>
                           <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -646,7 +654,7 @@ function InfoModal({ onClose }: { onClose: () => void }) {
         <div className="px-6 py-5 space-y-5 text-[12px] text-(--muted) leading-relaxed">
 
           <div className="bg-accent-cyan/5 border border-accent-cyan/20 rounded-xl p-4">
-            <div className="text-[9px] font-mono uppercase tracking-widest text-accent-cyan/80 mb-2">Захист від старих даних</div>
+            <div className="text-[9px] font-mono uppercase tracking-widest text-accent-cyan mb-2">Захист від старих даних</div>
             <p className="text-(--text) mb-2">
               Агенти <strong>автоматично ігнорують старі дані</strong> — наприклад, дані минулого року або минулого сезону.
             </p>
@@ -706,7 +714,7 @@ function InfoModal({ onClose }: { onClose: () => void }) {
               </div>
               <div className="px-4 py-3">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm bg-[#fb923c]/10 text-[#fb923c]">БЛОК 4</span>
+                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm bg-accent-report/10 text-accent-report">БЛОК 4</span>
                   <span className="text-(--text) font-semibold">Campaign Analysis, Weekly Report</span>
                 </div>
                 <p>Читають збережені результати попередніх агентів з бази. Обрана дата <strong>майже не впливає</strong> на їх вивід — вони завжди аналізують останні збережені дані.</p>
@@ -715,7 +723,7 @@ function InfoModal({ onClose }: { onClose: () => void }) {
           </div>
 
           <div className="bg-accent-purple/5 border border-accent-purple/20 rounded-xl p-4">
-            <div className="text-[9px] font-mono uppercase tracking-widest text-accent-purple/80 mb-2">Нюанси власного періоду «від»</div>
+            <div className="text-[9px] font-mono uppercase tracking-widest text-accent-purple mb-2">Нюанси власного періоду «від»</div>
             <ul className="space-y-1.5 list-none pl-0">
               <li className="flex gap-2"><span className="text-accent-purple">·</span>Залишки на складі завжди беруться на дату <strong>«до»</strong> (найближчий знімок) — поле «від» на них не впливає.</li>
               <li className="flex gap-2"><span className="text-accent-purple">·</span>Дуже короткий період (менше 7 днів) робить тренд і STR нестабільними — половини періоду занадто малі.</li>
@@ -793,7 +801,7 @@ function DebugModal({
               {[
                 { label: "Провайдер", value: providerLabel },
                 { label: "Модель", value: debug.model ?? "—" },
-                { label: "Парсинг JSON", value: parsedOk ? "✓ успішно" : "✗ fallback", color: parsedOk ? "#00e5c4" : "#fbbf24" },
+                { label: "Парсинг JSON", value: parsedOk ? "✓ успішно" : "✗ fallback", color: parsedOk ? "var(--cyan-ink)" : "var(--amber-ink)" },
                 ...(duration ? [{ label: "Час роботи", value: duration }] : []),
                 ...(debug.brandCount != null ? [{ label: "Брендів", value: String(debug.brandCount) }] : []),
                 ...(debug.candidateCount != null ? [{ label: "Кандидатів", value: String(debug.candidateCount) }] : []),
@@ -804,8 +812,8 @@ function DebugModal({
                 ...(debug.calendarEventCount != null ? [{ label: "Подій", value: String(debug.calendarEventCount) }] : []),
                 ...(debug.agentsIncluded != null ? [{ label: "Агентів", value: String(debug.agentsIncluded) }] : []),
                 ...(runId ? [{ label: "Run ID", value: runId.slice(0, 12) + "…" }] : []),
-                ...(debug.asOf ? [{ label: "Дата аналізу", value: debug.asOf, color: "#fbbf24" }] : []),
-                ...(debug.dateFrom ? [{ label: "Дані від", value: debug.dateFrom, color: "#a78bfa" }] : []),
+                ...(debug.asOf ? [{ label: "Дата аналізу", value: debug.asOf, color: "var(--amber-ink)" }] : []),
+                ...(debug.dateFrom ? [{ label: "Дані від", value: debug.dateFrom, color: "var(--violet-ink)" }] : []),
                 ...(debug.analyzedAt ? [{ label: "Час аналізу", value: new Date(debug.analyzedAt).toLocaleTimeString("uk-UA") }] : []),
               ].map(({ label, value, color }) => (
                 <div key={label} className="bg-(--row) rounded-lg px-3 py-2">
@@ -851,7 +859,7 @@ function DebugModal({
 
           {!parsedOk && (
             <div className="bg-accent-yellow/5 border border-accent-yellow/20 rounded-xl p-4">
-              <div className="text-[9px] font-mono uppercase tracking-widest text-accent-yellow/70 mb-1">Парсинг не вдався</div>
+              <div className="text-[9px] font-mono uppercase tracking-widest text-accent-yellow mb-1">Парсинг не вдався</div>
               <p className="text-[12px] text-(--muted)">
                 AI повернув відповідь, але JSON не вдалося розпарсити. Використано fallback-вивід.
                 Перевірте сирий відповідь вище.
@@ -870,7 +878,7 @@ function BrandCard({ b }: { b: BrandResult }) {
   const color = statusColor(b.status);
 
   return (
-    <div className="border rounded-lg overflow-hidden" style={{ borderColor: color + "30" }}>
+    <div className="border rounded-lg overflow-hidden" style={{ borderColor: `color-mix(in srgb, ${color} 22%, transparent)` }}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -882,12 +890,12 @@ function BrandCard({ b }: { b: BrandResult }) {
           <span className="font-semibold text-(--text) text-sm">{b.brand_name}</span>
           <span
             className="text-[10px] font-mono px-1.5 py-0.5 rounded-sm"
-            style={{ background: color + "18", color }}
+            style={{ background: `color-mix(in srgb, ${color} 10%, transparent)`, color }}
           >
             {statusLabel(b.status)}
           </span>
           {b.urgency === "immediate" && (
-            <span className="text-[10px] font-mono text-[#ef4444]">● негайно</span>
+            <span className="text-[10px] font-mono text-accent-danger">● негайно</span>
           )}
         </div>
         <div className="flex items-center gap-4">
@@ -897,9 +905,9 @@ function BrandCard({ b }: { b: BrandResult }) {
               <span>STR <span className="text-(--text)">{b.metrics.strPercent}%</span></span>
               <span>
                 {b.metrics.trend7dPct > 0 ? (
-                  <TrendingUp size={11} className="inline text-[#86efac]" aria-hidden="true" />
+                  <TrendingUp size={11} className="inline text-accent-positive" aria-hidden="true" />
                 ) : b.metrics.trend7dPct < 0 ? (
-                  <TrendingDown size={11} className="inline text-[#fca5a5]" aria-hidden="true" />
+                  <TrendingDown size={11} className="inline text-accent-negative" aria-hidden="true" />
                 ) : (
                   <Minus size={11} className="inline text-(--subtle)" aria-hidden="true" />
                 )}
@@ -1019,21 +1027,19 @@ function AgentCard({
 
   return (
     <div
-      className="bg-(--surface2) border border-(--border) rounded-xl overflow-hidden"
-      style={{ borderLeft: `3px solid ${agent.color}` }}
+      className="agent-card bg-(--surface2) border border-(--border) border-s-[3px] border-s-(--signal) rounded-xl overflow-hidden"
     >
       <div className="p-4">
-        <div className="flex items-start justify-between gap-2">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex items-start gap-3 min-w-0">
             <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
-              style={{ background: agent.color + "15" }}
+              className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 mt-0.5 bg-(--signal-wash) text-(--signal-ink)"
             >
-              <Icon size={15} style={{ color: agent.color }} aria-hidden="true" />
+              <Icon size={17} aria-hidden="true" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-semibold text-sm text-(--text)">{agent.label}</span>
+                <h3 className="wrap-break-word text-sm font-semibold text-(--text)">{agent.label}</h3>
                 <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm bg-(--input-bg) text-(--subtle)">
                   {agent.model}
                 </span>
@@ -1058,15 +1064,10 @@ function AgentCard({
               disabled={s === "running" || !dependenciesReady}
               title={!dependenciesReady ? "Спочатку завершіть залежні агенти для поточного періоду" : undefined}
               aria-label={`${s === "running" ? "Агент працює" : "Запустити агента"} ${agent.label}`}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-mono font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{
-                background: agent.color + "18",
-                border: `1px solid ${agent.color}40`,
-                color: agent.color,
-              }}
+              className="flex min-h-11 items-center gap-1.5 rounded-lg border border-(--signal-line) bg-(--signal-wash) px-2.5 py-1.5 text-xs font-semibold text-(--signal-ink) transition-colors touch-manipulation enabled:hover:bg-(--signal-hover) disabled:cursor-not-allowed disabled:border-(--border) disabled:bg-(--input-bg) disabled:text-(--muted)"
             >
               {s === "running" ? (
-                <RefreshCw size={11} className="animate-spin" aria-hidden="true" />
+                <RefreshCw size={11} className="motion-safe:animate-spin" aria-hidden="true" />
               ) : (
                 <Play size={11} aria-hidden="true" />
               )}
@@ -1075,7 +1076,7 @@ function AgentCard({
           </div>
         </div>
 
-        <div className="flex items-center gap-3 mt-3 text-[10px] font-mono text-(--subtle)">
+        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] tabular-nums text-(--subtle)">
           <span>
             Статус:{" "}
             <span
@@ -1085,7 +1086,7 @@ function AgentCard({
                   : s === "running"
                     ? "text-accent-yellow"
                     : s === "error"
-                      ? "text-[#ef4444]"
+                      ? "text-accent-danger"
                       : "text-(--subtle)"
               }
             >
@@ -1103,7 +1104,7 @@ function AgentCard({
         {s === "done" && brands.length > 0 && (
           <div className="flex items-center gap-2 mt-3 flex-wrap">
             {criticalCount > 0 && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-[#ef4444]/10 border border-[#ef4444]/20 text-[#ef4444]">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-accent-danger/10 border border-accent-danger/20 text-accent-danger">
                 {criticalCount} критичних
               </span>
             )}
@@ -1147,7 +1148,7 @@ function AgentCard({
               </span>
             )}
             {deadStock.length > 0 && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-[#ef4444]/10 border border-[#ef4444]/20 text-[#ef4444]">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-accent-danger/10 border border-accent-danger/20 text-accent-danger">
                 Dead stock: {deadStock.length} категорій
               </span>
             )}
@@ -1179,7 +1180,7 @@ function AgentCard({
               {marketerBrands.length} брифів готово
             </span>
             {marketerBrands.filter((b: any) => b.urgency === "critical" || b.urgency === "high").length > 0 && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-[#ef4444]/10 border border-[#ef4444]/20 text-[#ef4444]">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-accent-danger/10 border border-accent-danger/20 text-accent-danger">
                 {marketerBrands.filter((b: any) => b.urgency === "critical" || b.urgency === "high").length} термінових
               </span>
             )}
@@ -1202,7 +1203,7 @@ function AgentCard({
               </span>
             )}
             {criticalAnnotations > 0 && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-[#ef4444]/10 border border-[#ef4444]/20 text-[#ef4444]">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-accent-danger/10 border border-accent-danger/20 text-accent-danger">
                 {criticalAnnotations} критичних прогалин
               </span>
             )}
@@ -1238,7 +1239,7 @@ function AgentCard({
               </span>
             )}
             {campaignsBehind > 0 && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-[#ef4444]/10 border border-[#ef4444]/20 text-[#ef4444]">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-accent-danger/10 border border-accent-danger/20 text-accent-danger">
                 {campaignsBehind} відстають
               </span>
             )}
@@ -1251,7 +1252,7 @@ function AgentCard({
         {s === "done" && isWeeklyReport && (output.pm_brief || output.summary) && (
           <div className="flex items-center gap-2 mt-3 flex-wrap">
             {output.week && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-[#fb923c]/10 border border-[#fb923c]/20 text-[#fb923c]">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-accent-report/10 border border-accent-report/20 text-accent-report">
                 {output.week}
               </span>
             )}
@@ -1272,7 +1273,7 @@ function AgentCard({
         )}
 
         {s === "error" && run?.errorMsg && (
-          <p className="mt-2 text-[11px] text-[#ef4444] font-mono">{run.errorMsg}</p>
+          <p className="mt-2 text-[11px] text-accent-danger font-mono">{run.errorMsg}</p>
         )}
 
         {s === "done" && brands.length === 0 && decisionBrands.length === 0 && marketerBrands.length === 0 && annotations.length === 0 && campaigns.length === 0 && !isWeeklyReport && run?.output?.message && (
@@ -1358,7 +1359,7 @@ function AgentCard({
                 <span className="font-semibold text-sm text-(--text)">{cat.category || cat.attribute}</span>
                 <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
                   cat.status === "bestseller" ? "bg-accent-cyan/10 text-accent-cyan" :
-                  cat.status === "dead" ? "bg-[#ef4444]/10 text-[#ef4444]" :
+                  cat.status === "dead" ? "bg-accent-danger/10 text-accent-danger" :
                   cat.status === "slow" ? "bg-accent-yellow/10 text-accent-yellow" :
                   "bg-(--input-bg) text-(--muted)"
                 }`}>
@@ -1408,11 +1409,11 @@ function AgentCard({
                       <div
                         key={item.option_id ?? item.scenario_id}
                         className="px-4 py-3"
-                        style={{ background: isRec ? "#00e5c4" + "07" : undefined }}
+                        style={{ background: isRec ? "color-mix(in srgb, var(--cyan-ink) 5%, transparent)" : undefined }}
                       >
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm" style={{
-                            background: agent.color + "20", color: agent.color,
+                            background: "var(--signal-wash)", color: "var(--signal-ink)",
                           }}>
                             {item.strategy_type ?? item.type}
                           </span>
@@ -1440,7 +1441,7 @@ function AgentCard({
                             <span>Обʼєм: <span className="text-(--text)">×{item.qty_multiplier}</span></span>
                           )}
                           <span className="ml-auto">
-                            Оцінка: <span style={{ color: score >= 7 ? "#00e5c4" : score >= 5 ? "#fbbf24" : "#ef4444" }}>
+                            Оцінка: <span style={{ color: score >= 7 ? "var(--cyan-ink)" : score >= 5 ? "var(--amber-ink)" : "var(--danger-ink)" }}>
                               {score}/10
                             </span>
                           </span>
@@ -1455,7 +1456,7 @@ function AgentCard({
                             type="button"
                             onClick={() => setSimParams(buildSimParams(brand, item, output._debug))}
                             className="mt-2.5 flex items-center gap-1.5 text-[10px] font-mono px-3 py-1.5 rounded-lg border transition-colors"
-                            style={{ borderColor: "#a78bfa40", background: "#a78bfa12", color: "#a78bfa" }}
+                            style={{ borderColor: "var(--signal-line)", background: "var(--signal-wash)", color: "var(--signal-ink)" }}
                           >
                             <Table2 size={11} aria-hidden="true" />
                             Переглянути в таблиці
@@ -1466,7 +1467,7 @@ function AgentCard({
                             type="button"
                             onClick={() => setReorderParams(buildReorderParams(brand, item, output._debug))}
                             className="mt-2.5 flex items-center gap-1.5 text-[10px] font-mono px-3 py-1.5 rounded-lg border transition-colors"
-                            style={{ borderColor: "#a78bfa40", background: "#a78bfa12", color: "#a78bfa" }}
+                            style={{ borderColor: "var(--signal-line)", background: "var(--signal-wash)", color: "var(--signal-ink)" }}
                           >
                             <Table2 size={11} aria-hidden="true" />
                             Переглянути в таблиці
@@ -1493,7 +1494,7 @@ function AgentCard({
                   {brand.decision_summary && <p className="text-[11px] text-(--muted) mt-0.5">{brand.decision_summary}</p>}
                 </div>
                 <span className={`text-[9px] font-mono px-2 py-0.5 rounded shrink-0 ml-3 ${
-                  brand.urgency === "critical" ? "bg-[#ef4444]/10 text-[#ef4444]" :
+                  brand.urgency === "critical" ? "bg-accent-danger/10 text-accent-danger" :
                   brand.urgency === "high" ? "bg-accent-yellow/10 text-accent-yellow" :
                   "bg-(--input-bg) text-(--muted)"
                 }`}>{(brand.urgency ?? "medium").toUpperCase()}</span>
@@ -1529,7 +1530,7 @@ function AgentCard({
             <p className="text-sm text-(--muted)">{output.summary}</p>
           )}
           {annotations.map((ann: any, i: number) => {
-            const prioColor = ann.priority === "critical" ? "#ef4444" : ann.priority === "high" ? "#fbbf24" : ann.priority === "medium" ? "#a78bfa" : "#6b7a8d";
+            const prioColor = ann.priority === "critical" ? "var(--danger-ink)" : ann.priority === "high" ? "var(--amber-ink)" : ann.priority === "medium" ? "var(--violet-ink)" : "var(--muted)";
             const typeIcon = ann.type === "suggestion" ? "+" : ann.type === "gap" ? "○" : ann.type === "conflict" ? "✕" : ann.type === "timing" ? "⏱" : "✓";
             const recommendation = planningRecommendations.find((item) => item.recommendation_id === ann.id && item.status === "draft");
             const scheduledRecommendation = planningRecommendations.find((item) => item.recommendation_id === ann.id && item.status === "scheduled");
@@ -1577,7 +1578,7 @@ function AgentCard({
               <div key={camp.campaign_id ?? i} className="border border-(--border) rounded-xl p-3">
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
                   <span className="font-semibold text-sm text-(--text)">{camp.brand_name}</span>
-                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm" style={{ background: statusColor + "20", color: statusColor, border: `1px solid ${statusColor}30` }}>
+                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm" style={badgeStyle(statusColor)}>
                     {camp.status?.toUpperCase()}
                   </span>
                   <span className="text-[9px] font-mono text-(--subtle) ml-auto">{campaignMetricLabel(camp)}</span>
@@ -1613,12 +1614,12 @@ function AgentCard({
               <div className="space-y-2">
                 {weeklyPriorities.map((p: any) => (
                   <div key={p.rank} className="flex items-start gap-3 py-2 border-b border-(--border) last:border-0">
-                    <span className="text-[11px] font-mono font-bold text-[#fb923c] w-5 shrink-0">#{p.rank}</span>
+                    <span className="text-[11px] font-mono font-bold text-accent-report w-5 shrink-0">#{p.rank}</span>
                     <div className="min-w-0">
                       <span className="text-[11px] text-(--text)">{p.action}</span>
                       <div className="flex items-center gap-2 mt-0.5">
                         {p.brand && p.brand !== "все" && <span className="text-[9px] font-mono text-(--subtle)">{p.brand}</span>}
-                        <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded-sm ${p.deadline === "today" ? "bg-[#ef4444]/10 text-[#ef4444]" : p.deadline === "tomorrow" ? "bg-accent-yellow/10 text-accent-yellow" : "bg-(--input-bg) text-(--muted)"}`}>
+                        <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded-sm ${p.deadline === "today" ? "bg-accent-danger/10 text-accent-danger" : p.deadline === "tomorrow" ? "bg-accent-yellow/10 text-accent-yellow" : "bg-(--input-bg) text-(--muted)"}`}>
                           {p.deadline}
                         </span>
                       </div>
@@ -1630,7 +1631,7 @@ function AgentCard({
           )}
           {weeklyDecisions.length > 0 && (
             <div className="bg-accent-yellow/5 border border-accent-yellow/20 rounded-xl p-3">
-              <div className="text-[9px] font-mono uppercase tracking-widest text-accent-yellow/70 mb-2">Рішення PM</div>
+              <div className="text-[9px] font-mono uppercase tracking-widest text-accent-yellow mb-2">Рішення PM</div>
               <ul className="space-y-1">
                 {weeklyDecisions.map((d: string, i: number) => (
                   <li key={i} className="text-[11px] text-(--text)">· {d}</li>
@@ -1685,71 +1686,39 @@ function AgentCard({
 
 function PipelineDiagram({ runs }: { runs: Record<string, AgentRunInfo> }) {
   return (
-    <div className="bg-(--surface) border border-(--border) rounded-xl p-5 mb-6 overflow-x-auto">
-      <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-4">Пайплайн агентів</div>
-      <div className="flex items-start gap-2 min-w-max">
-        {BLOCKS.map((block, bi) => {
+    <section className="mb-6 rounded-xl border border-(--border) bg-(--surface) p-4 sm:p-5">
+      <h2 className="mb-4 text-sm font-semibold text-(--text)">Пайплайн агентів</h2>
+      <ol className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {BLOCKS.map((block) => {
           const blockAgents = AGENTS.filter((a) => a.block === block.id);
           return (
-            <div key={block.id} className="flex items-center gap-2">
-              <div className="flex flex-col gap-1.5">
-                <div
-                  className="text-[9px] font-mono uppercase tracking-wider mb-1 px-1"
-                  style={{ color: block.color }}
-                >
-                  {block.label}
-                </div>
+            <li key={block.id} data-stage={block.id} className="min-w-0 rounded-lg border border-(--signal-line) border-t-[3px] border-t-(--signal) bg-(--signal-wash) p-3">
+              <p className="mb-2 flex items-baseline gap-2 text-xs font-bold text-(--signal-ink)">
+                <span className="font-mono tabular-nums">{String(block.id).padStart(2, "0")}</span>
+                {block.label}
+              </p>
+              <ul className="space-y-1.5">
                 {blockAgents.map((agent) => {
                   const run = runs[agent.id];
                   const s = run?.isCurrent === false ? "idle" : (run?.status ?? "idle");
+                  const status = s === "done" ? "Готово" : s === "running" ? "Працює" : s === "error" ? "Помилка" : "Очікування";
                   return (
-                    <div
+                    <li
                       key={agent.id}
-                      className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-[10px] font-mono whitespace-nowrap"
-                      style={{
-                        borderColor: agent.color + "40",
-                        background:
-                          s === "done"
-                            ? agent.color + "10"
-                            : s === "running"
-                              ? "#fbbf2415"
-                              : s === "error"
-                                ? "#ef444415"
-                                : "var(--surface2)",
-                        color:
-                          s === "done"
-                            ? agent.color
-                            : s === "running"
-                              ? "#fbbf24"
-                              : s === "error"
-                                ? "#ef4444"
-                                : "var(--muted)",
-                      }}
+                      className="flex min-w-0 items-center gap-2 rounded-md border border-(--border) bg-(--surface) px-2 py-1.5 text-xs font-medium text-(--text)"
                     >
                       {agentStatusIcon(s)}
-                      <span>{agent.label}</span>
-                    </div>
+                      <span className="min-w-0 wrap-break-word">{agent.label}</span>
+                      <span className="sr-only">{status}</span>
+                    </li>
                   );
                 })}
-              </div>
-              {bi < BLOCKS.length - 1 && (
-                <div className="flex items-center self-center pb-1">
-                  <div className="w-6 h-px bg-(--border)" />
-                  <div
-                    className="w-0 h-0"
-                    style={{
-                      borderTop: "4px solid transparent",
-                      borderBottom: "4px solid transparent",
-                      borderLeft: "6px solid var(--border)",
-                    }}
-                  />
-                </div>
-              )}
-            </div>
+              </ul>
+            </li>
           );
         })}
-      </div>
-    </div>
+      </ol>
+    </section>
   );
 }
 
@@ -1805,15 +1774,14 @@ export default function AgentsPage() {
   const totalError = Object.values(runs).filter((r) => r.status === "error").length;
 
   return (
-    <div className="p-6 max-w-4xl">
-      <div className="mb-6">
-        <div className="text-[10px] font-mono uppercase tracking-widest text-(--subtle) mb-2">AI Pipeline</div>
+    <div className="mx-auto max-w-6xl p-4 md:p-8">
+      <header className="agent-workspace-header mb-6">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-(--text)">Агенти</h1>
-            <p className="text-sm text-(--muted) mt-0.5">
-              9 агентів · {totalDone} виконано
-              {totalError > 0 && <span className="text-[#ef4444] ml-2">· {totalError} помилок</span>}
+            <h1 className="text-3xl font-bold tracking-tight text-(--text)">Агенти</h1>
+            <p className="mt-1 text-sm text-(--muted) tabular-nums" role="status">
+              <strong className="text-accent-cyan">{totalDone} із {AGENTS.length}</strong> виконано
+              {totalError > 0 && <span className="text-accent-danger ml-2">· {totalError} помилок</span>}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -1825,17 +1793,17 @@ export default function AgentsPage() {
               type="button"
               onClick={fetchStatus}
               aria-label="Оновити статус агентів"
-              className="p-1.5 rounded-lg border border-(--border) text-(--muted) hover:text-(--text) hover:bg-(--input-bg) transition-colors"
+              className="grid min-h-11 min-w-11 place-items-center rounded-lg border border-(--border) bg-(--surface) text-(--muted) transition-colors hover:bg-(--input-bg) hover:text-(--text)"
               title="Оновити статус"
             >
-              <RefreshCw size={13} className={loading ? "animate-spin" : ""} aria-hidden="true" />
+              <RefreshCw size={15} className={loading ? "motion-safe:animate-spin" : ""} aria-hidden="true" />
             </button>
           </div>
         </div>
-      </div>
+      </header>
 
       {statusError && (
-        <div role="alert" className="mb-4 flex items-center gap-2 rounded-xl border border-[#ef4444]/30 bg-[#ef4444]/10 px-4 py-3 text-xs text-[#ef4444]">
+        <div role="alert" className="mb-4 flex items-center gap-2 rounded-xl border border-accent-danger/30 bg-accent-danger/10 px-4 py-3 text-xs text-accent-danger">
           <AlertTriangle size={14} aria-hidden="true" />
           <span>{statusError}</span>
         </div>
@@ -1857,7 +1825,7 @@ export default function AgentsPage() {
               max={maxFromStr}
               aria-label="Дата початку періоду"
               onChange={(e) => setDateFrom(e.target.value || "")}
-              className="text-[11px] font-mono px-3 py-1.5 rounded-lg border border-(--border) bg-(--input-bg) text-(--text) focus:outline-hidden focus:border-accent-cyan/50"
+              className="min-h-11 rounded-lg border border-(--border) bg-(--input-bg) px-3 py-1.5 font-mono text-xs text-(--text)"
             />
           </div>
           <div className="flex items-center gap-2">
@@ -1875,7 +1843,7 @@ export default function AgentsPage() {
                 setAnalysisDate(v);
                 if (dateFrom && v <= dateFrom) setDateFrom("");
               }}
-              className="text-[11px] font-mono px-3 py-1.5 rounded-lg border border-(--border) bg-(--input-bg) text-(--text) focus:outline-hidden focus:border-accent-cyan/50"
+              className="min-h-11 rounded-lg border border-(--border) bg-(--input-bg) px-3 py-1.5 font-mono text-xs text-(--text)"
             />
           </div>
           {(isHistoricalDate || hasDateFrom) && (
@@ -1942,16 +1910,15 @@ export default function AgentsPage() {
         {BLOCKS.map((block) => {
           const blockAgents = AGENTS.filter((a) => a.block === block.id);
           return (
-            <div key={block.id}>
-              <div className="flex items-center gap-3 mb-3">
-                <div className="h-px flex-1 bg-(--border)" />
-                <div
-                  className="text-[9px] font-mono uppercase tracking-widest px-3 py-1 rounded-full border"
-                  style={{ color: block.color, borderColor: block.color + "40", background: block.color + "10" }}
+            <section key={block.id} data-stage={block.id} aria-labelledby={`agent-stage-${block.id}`}>
+              <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1">
+                <h2
+                  id={`agent-stage-${block.id}`}
+                  className="rounded-md border border-(--signal-line) bg-(--signal-wash) px-3 py-1 text-xs font-semibold text-(--signal-ink)"
                 >
                   Блок {block.id} — {block.label}
-                </div>
-                <div className="text-[9px] font-mono text-(--subtle)">{block.desc}</div>
+                </h2>
+                <p className="text-xs text-(--subtle)">{block.desc}</p>
                 <div className="h-px flex-1 bg-(--border)" />
               </div>
               <div className="space-y-3">
@@ -1966,7 +1933,7 @@ export default function AgentsPage() {
                   />
                 ))}
               </div>
-            </div>
+            </section>
           );
         })}
       </div>
@@ -1976,9 +1943,9 @@ export default function AgentsPage() {
       <div className="mt-8 pt-4 border-t border-(--border) flex items-center gap-6 flex-wrap">
         {[
           { color: "var(--subtle)", label: "Очікування" },
-          { color: "#fbbf24", label: "Працює" },
-          { color: "#00e5c4", label: "Готово" },
-          { color: "#ef4444", label: "Помилка" },
+          { color: "var(--amber-ink)", label: "Працює" },
+          { color: "var(--cyan-ink)", label: "Готово" },
+          { color: "var(--danger-ink)", label: "Помилка" },
         ].map((item) => (
           <div key={item.label} className="flex items-center gap-1.5 text-[10px] font-mono text-(--muted)">
             <div className="w-2 h-2 rounded-full" style={{ background: item.color }} />

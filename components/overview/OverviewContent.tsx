@@ -25,25 +25,27 @@ const tone = (value: string) =>
 const fill = (template: string, values: Record<string, string>) =>
   template.replace(/\{(\w+)\}/g, (_, key: string) => values[key] ?? "");
 function Metric({
+  metric,
   title,
   href,
   children,
   footer,
 }: {
+  metric: "sales" | "margin" | "stock";
   title: string;
   href: string;
   children: ReactNode;
   footer?: ReactNode;
 }) {
   return (
-    <article className={panel + " min-w-0"}>
+    <article data-metric={metric} className={panel + " overview-metric min-w-0"}>
       <Link
         href={href}
         className="block rounded-xl p-5 md:p-6 hover:bg-(--input-bg)"
       >
         <div className="mb-4 flex justify-between items-baseline gap-3">
           <h3 className="font-semibold">{title}</h3>
-          <span aria-hidden="true">↗</span>
+          <span className="text-(--signal-ink)" aria-hidden="true">↗</span>
         </div>
         {children}
       </Link>
@@ -122,7 +124,7 @@ function Trend({
               {
                 value: r.current.revenue,
                 x: i * 26 + 13,
-                fill: i === rows.length - 1 ? "var(--accent)" : "#7594b0",
+                fill: i === rows.length - 1 ? "var(--accent)" : "var(--trend-fill)",
               },
             ].map((bar) => {
               if (bar.value === null) return null;
@@ -245,7 +247,7 @@ export default function OverviewContent({
               ? copy.sheetsImported
               : copy.observed}: {stamp(data.freshness.sourceObservedAt)}
           </p>
-          <h1 className="mt-2 text-2xl font-bold">{copy.title}</h1>
+          <h1 className="mt-2 text-2xl font-bold tracking-tight text-balance">{copy.title}</h1>
           <p className="mt-1 text-sm text-(--muted)">
             {copy.snapshot}: {date(data.context.asOf)} · {copy.allChannels}
           </p>
@@ -366,7 +368,7 @@ export default function OverviewContent({
             {block.currency === null ? <Small>{lang === "uk" ? "Окрема група без підтвердженої валюти або залишку. Ці записи не скасовують відомі суми UAH нижче; невідомі дані не замінюються нулями." : "Separate records with unverified currency or stock. They do not invalidate the known UAH amounts below; unknown data is not replaced with zero."}</Small> : null}
             <section
               aria-label={copy.summary}
-              className="rounded-xl bg-(--text) p-5 md:p-6 text-(--bg) space-y-3 text-sm leading-relaxed wrap-break-word"
+              className="overview-summary rounded-xl bg-(--summary-bg) p-5 md:p-6 text-(--summary-ink) space-y-3 text-sm leading-relaxed wrap-break-word"
             >
               {revenueSentence ? (
                 <p>
@@ -427,6 +429,7 @@ export default function OverviewContent({
               className="grid gap-4 lg:grid-cols-3"
             >
               <Metric
+                metric="sales"
                 title={copy.revenue}
                 href={link("/sales", {
                   metric: "revenue",
@@ -525,6 +528,7 @@ export default function OverviewContent({
                 )}
               </Metric>
               <Metric
+                metric="margin"
                 title={copy.margin}
                 href={link("/sales", {
                   metric: "gmPct",
@@ -572,6 +576,7 @@ export default function OverviewContent({
                 ) : null}
               </Metric>
               <Metric
+                metric="stock"
                 title={copy.stock}
                 href={link("/stock")}
                 footer={

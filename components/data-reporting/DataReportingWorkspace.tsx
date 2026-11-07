@@ -500,7 +500,7 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
           </button>}
           {canImport && (
             <button type="button" onClick={() => void runAction("import")} disabled={action !== null || !status?.connection || rawImportIsLive(status?.latestImport ?? null)}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-accent-cyan text-[#03110f] text-sm font-semibold hover:bg-[#36ecd2] disabled:opacity-50 transition-colors">
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-accent-fill text-[#03110f] text-sm font-semibold hover:bg-[#36ecd2] disabled:opacity-50 transition-colors">
               {action === "import" ? <LoaderCircle size={14} className="animate-spin" /> : <UploadCloud size={14} />}
               {action === "import" ? copy.importing : copy.import}
             </button>

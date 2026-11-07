@@ -28,7 +28,8 @@ export default function ReorderingSummary({
   const result = current ? data : null;
   return (
     <section
-      className={panel + " p-5 space-y-4"}
+      data-metric="reordering"
+      className={panel + " scenario-summary p-5 space-y-4"}
       aria-labelledby="reordering-summary"
       aria-busy={!current}
     >
@@ -56,7 +57,7 @@ export default function ReorderingSummary({
         ].map(([label, value]) => (
           <div key={String(label)}>
             <dt className="text-xs text-(--muted)">{label}</dt>
-            <dd className="mt-1 text-lg font-semibold tabular-nums">
+            <dd className={`mt-1 text-lg font-semibold tabular-nums ${label === copy.totalUnits ? "scenario-key-value" : ""}`}>
               {format(value, "quantity", locale)}
             </dd>
           </div>
@@ -69,7 +70,7 @@ export default function ReorderingSummary({
         >
           <strong translate="no">{currency.currency ?? copy.unknown}</strong>
           <p className="mt-1 text-sm">
-            {copy.amount}: {format(currency.purchaseAmount, "money", locale)}
+            {copy.amount}: <strong className="scenario-key-value tabular-nums">{format(currency.purchaseAmount, "money", locale)}</strong>
           </p>
           {currency.unknownAmountSkuCount > 0 ? (
             <>

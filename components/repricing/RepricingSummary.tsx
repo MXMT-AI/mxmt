@@ -34,7 +34,8 @@ export default function RepricingSummary({
   ] as const;
   return (
     <section
-      className={panel + " p-5 space-y-4"}
+      data-metric="repricing"
+      className={panel + " scenario-summary p-5 space-y-4"}
       aria-labelledby="repricing-summary"
       aria-busy={!current}
     >
@@ -56,7 +57,7 @@ export default function RepricingSummary({
         {values.map(([label, value, type]) => (
           <div key={label}>
             <dt className="text-xs text-(--muted)">{label}</dt>
-            <dd className="mt-1 text-lg font-semibold tabular-nums wrap-break-word">
+            <dd className={`mt-1 text-lg font-semibold tabular-nums wrap-break-word ${label === copy.revenue ? "scenario-key-value" : ""}`}>
               {format(noEligible && type === "money" ? null : value, type, locale)}
               {!noEligible && value !== undefined && value !== null && type === "money" ? (
                 <small className="ml-1 text-xs">UAH</small>

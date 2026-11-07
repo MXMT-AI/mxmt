@@ -141,7 +141,13 @@ function Matrix({
     />
   );
 }
-const categoryColors = ["#779ab5", "#87a88c", "#c4a36e", "#a08eb5", "#9a9ea4"];
+const categoryColors = [
+  "var(--chart-series-1, #779ab5)",
+  "var(--chart-series-2, #87a88c)",
+  "var(--chart-series-3, #c4a36e)",
+  "var(--chart-series-4, #a08eb5)",
+  "var(--chart-series-5, #9a9ea4)",
+];
 function CategoryChart({
   rows,
   locale,
@@ -358,7 +364,7 @@ export default function SalesContent({
             className={
               button +
               (value === v.key
-                ? " bg-(--accent) text-[#002a24] font-semibold"
+                ? " bg-(--selection-bg) text-[#002a24] font-semibold"
                 : "")
             }
           >
@@ -451,7 +457,7 @@ export default function SalesContent({
                   className={
                     button +
                     (model.metric === m
-                      ? " bg-(--accent) text-[#002a24] font-semibold"
+                      ? " bg-(--selection-bg) text-[#002a24] font-semibold"
                       : "")
                   }
                 >

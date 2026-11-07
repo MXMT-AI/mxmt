@@ -813,7 +813,7 @@ export default function MarketingCalendar({ initialEvents }: { initialEvents: Db
                 {labels.cancel}
               </button>
               <button onClick={saveEdit} disabled={saving || !editModal.label.trim()}
-                className="flex-1 py-2 text-sm text-[#0d1117] bg-accent-cyan hover:bg-[#00c9ab] disabled:opacity-50 rounded-lg font-semibold transition-colors">
+                className="flex-1 py-2 text-sm text-[#0d1117] bg-accent-fill hover:bg-[#00c9ab] disabled:opacity-50 rounded-lg font-semibold transition-colors">
                 {saving ? "…" : (lang === "uk" ? "Зберегти" : "Save")}
               </button>
             </div>
@@ -869,7 +869,7 @@ export default function MarketingCalendar({ initialEvents }: { initialEvents: Db
                 {labels.cancel}
               </button>
               <button onClick={addEvent} disabled={saving || !newEvent.label.trim()}
-                className="flex-1 py-2 text-sm text-[#0d1117] bg-accent-cyan hover:bg-[#00c9ab] disabled:opacity-50 rounded-lg font-semibold transition-colors">
+                className="flex-1 py-2 text-sm text-[#0d1117] bg-accent-fill hover:bg-[#00c9ab] disabled:opacity-50 rounded-lg font-semibold transition-colors">
                 {saving ? "…" : labels.add_btn}
               </button>
             </div>

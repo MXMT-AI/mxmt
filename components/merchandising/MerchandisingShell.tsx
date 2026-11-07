@@ -250,7 +250,7 @@ function FilterForm({
         <button
           type="submit"
           disabled={pending}
-          className={control + " font-medium hover:bg-(--input-bg)"}
+          className="min-h-11 touch-manipulation rounded-lg border border-(--action-border) bg-(--action-bg) px-4 py-2 text-sm font-semibold text-(--action-ink) transition-colors hover:bg-(--action-hover) disabled:opacity-50"
         >
           {pending ? copy.loading : copy.apply}
         </button>

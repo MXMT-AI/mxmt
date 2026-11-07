@@ -5,11 +5,19 @@
 @theme {
   --color-surface-2: #161d26;
   --color-surface: #0f1419;
+}
 
-  --color-accent-cyan: #00e5c4;
-  --color-accent-orange: #ff6b35;
-  --color-accent-purple: #a78bfa;
-  --color-accent-yellow: #fbbf24;
+@theme inline {
+  --color-accent-cyan: var(--cyan-ink);
+  --color-accent-orange: var(--orange-ink);
+  --color-accent-purple: var(--violet-ink);
+  --color-accent-yellow: var(--amber-ink);
+  --color-accent-danger: var(--danger-ink);
+  --color-accent-report: var(--report-ink);
+  --color-accent-positive: var(--positive-ink);
+  --color-accent-negative: var(--negative-ink);
+  --color-accent-info: var(--info-ink);
+  --color-accent-fill: var(--cyan-signal);
 }
 
 @layer base {
@@ -37,23 +45,143 @@
   --error-text:   var(--color-red-400);
   --input-bg:     rgba(255,255,255,0.04);
   --input-hover:  rgba(255,255,255,0.08);
+  --cyan-ink:     #00e5c4;
+  --violet-ink:   #a78bfa;
+  --amber-ink:    #fbbf24;
+  --orange-ink:   #ff6b35;
+  --danger-ink:   #ef4444;
+  --report-ink:   #fb923c;
+  --positive-ink: #86efac;
+  --negative-ink: #fca5a5;
+  --info-ink:     #60a5fa;
+  --cyan-signal:  var(--cyan-ink);
+  --violet-signal: var(--violet-ink);
+  --amber-signal: var(--amber-ink);
+  --orange-signal: #fb923c;
+  --nav-current:  var(--input-hover);
+  --nav-ink:      var(--text);
+  --mark-bg:      var(--input-bg);
+  --mark-ink:     var(--accent);
+  --action-bg:    var(--surface);
+  --action-hover: var(--input-bg);
+  --action-ink:   var(--text);
+  --action-border: var(--border);
+  --summary-bg:   var(--text);
+  --summary-ink:  var(--bg);
+  --trend-fill:   #7594b0;
+  --selection-bg: var(--accent);
 }
 
 html.light {
-  --bg:           #f0f4f8;
+  --bg:           #f4f7ff;
   --surface:      #ffffff;
-  --surface2:     #f1f5f9;
-  --row:          #f8fafc;
-  --border:       rgba(0,0,0,0.09);
-  --border-faint: rgba(0,0,0,0.05);
-  --text:         #0f172a;
-  --muted:        #64748b;
-  --subtle:       #94a3b8;
-  --accent:       #00b89e;
-  --focus-ring:   #007a68;
+  --surface2:     #f7f8ff;
+  --row:          #f6f8ff;
+  --border:       #d4ddef;
+  --border-faint: #e5ebf7;
+  --text:         #101a35;
+  --muted:        #455571;
+  --subtle:       #556782;
+  --accent:       #007b70;
+  --focus-ring:   #5736e8;
   --error-text:   var(--color-red-700);
-  --input-bg:     rgba(0,0,0,0.04);
-  --input-hover:  rgba(0,0,0,0.07);
+  --input-bg:     #edf2ff;
+  --input-hover:  #e3eaff;
+  --cyan-ink:     #00655c;
+  --violet-ink:   #5426c2;
+  --amber-ink:    #744800;
+  --orange-ink:   #a03915;
+  --danger-ink:   #b42345;
+  --report-ink:   var(--orange-ink);
+  --positive-ink: #166534;
+  --negative-ink: #b91c1c;
+  --info-ink:     #1d4ed8;
+  --cyan-signal:  #00ebc0;
+  --violet-signal: #a98bff;
+  --amber-signal: #ffcf38;
+  --orange-signal: #ff8b58;
+  --nav-current:  #ece7ff;
+  --nav-ink:      #4820aa;
+  --mark-bg:      #b4ffe9;
+  --mark-ink:     #063f37;
+  --action-bg:    #5736df;
+  --action-hover: #4324bf;
+  --action-ink:   #ffffff;
+  --action-border: var(--action-bg);
+  --summary-bg:   #ede8ff;
+  --summary-ink:  #291758;
+  --trend-fill:   #7555e9;
+  --selection-bg: #a3f9e3;
+  --chart-series-1: #6550e8;
+  --chart-series-2: #007f8c;
+  --chart-series-3: #bb7400;
+  --chart-series-4: #c43b83;
+  --chart-series-5: #6e7d96;
+  --chart-healthy: #008764;
+  --chart-risk:    #b47600;
+  --chart-dead:    #dc365c;
+}
+
+[data-stage="1"],
+[data-metric="sales"],
+[data-metric="reordering"] {
+  --signal: var(--cyan-signal);
+  --signal-ink: var(--cyan-ink);
+}
+
+[data-stage="2"],
+[data-metric="margin"],
+[data-metric="repricing"] {
+  --signal: var(--violet-signal);
+  --signal-ink: var(--violet-ink);
+}
+
+[data-stage="3"] {
+  --signal: var(--amber-signal);
+  --signal-ink: var(--amber-ink);
+}
+
+[data-stage="4"],
+[data-metric="stock"] {
+  --signal: var(--orange-signal);
+  --signal-ink: var(--orange-ink);
+}
+
+[data-stage] {
+  --signal-wash: color-mix(in srgb, var(--signal) 10%, var(--surface));
+  --signal-line: color-mix(in srgb, var(--signal-ink) 30%, var(--border));
+  --signal-hover: color-mix(in srgb, var(--signal) 19%, var(--surface));
+}
+
+html.light .agent-card {
+  background: var(--surface);
+}
+
+html.light .agent-workspace-header {
+  border: 1px solid var(--border);
+  border-radius: 0.875rem;
+  padding: 1.25rem;
+  background:
+    linear-gradient(90deg, var(--cyan-signal) 25%, var(--violet-signal) 25% 50%, var(--amber-signal) 50% 75%, var(--orange-signal) 75%) top / 100% 4px no-repeat,
+    var(--surface);
+}
+
+html.light .overview-metric,
+html.light .scenario-summary {
+  border-top: 3px solid var(--signal);
+}
+
+html.light .scenario-key-value {
+  color: var(--signal-ink);
+}
+
+html.light .overview-summary {
+  border-inline-start: 4px solid var(--violet-ink);
+}
+
+html.light .skip-link {
+  background: var(--mark-bg);
+  color: var(--mark-ink);
 }
 
 html, body {

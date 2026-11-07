@@ -1069,7 +1069,7 @@ function BrandModal({ brand, onClose, onSave, onDelete }: {
 
         <div className="flex gap-3 mt-6">
           <button onClick={handleSave} disabled={loading || !form.name}
-            className="flex-1 bg-accent-cyan hover:bg-[#00c9ab] disabled:opacity-50 text-[#0d1117] font-semibold rounded-lg py-2.5 text-sm transition-colors">
+            className="flex-1 bg-accent-fill hover:bg-[#00c9ab] disabled:opacity-50 text-[#0d1117] font-semibold rounded-lg py-2.5 text-sm transition-colors">
             {loading ? "Зберігаємо…" : "Зберегти"}
           </button>
           {brand && (
