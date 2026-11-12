@@ -51,6 +51,7 @@ export default async function Home() {
     <>
       <a href="#workflow">{copy.workflow}</a>
       <a href="#integrations">{copy.integrations}</a>
+      <Link href="/docs">{copy.documentation}</Link>
     </>
   );
   const languageLink = (

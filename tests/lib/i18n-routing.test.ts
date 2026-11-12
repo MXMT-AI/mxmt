@@ -22,10 +22,12 @@ async function token(expired = false) {
 
 describe("locale routing and authentication", () => {
   it.each(["uk", "en"] as const)("serves the public %s landing page without a session", async locale => {
-    const response = await middleware(request(`/${locale}`));
-    expect(response.status).toBe(200);
-    expect(response.headers.get("location")).toBeNull();
-    expect(response.headers.get("x-middleware-request-x-next-intl-locale")).toBe(locale);
+    for (const page of ["", "/docs"]) {
+      const response = await middleware(request(`/${locale}${page}`));
+      expect(response.status).toBe(200);
+      expect(response.headers.get("location")).toBeNull();
+      expect(response.headers.get("x-middleware-request-x-next-intl-locale")).toBe(locale);
+    }
   });
   it.each(["uk", "en"] as const)("renders public %s auth routes without a locale redirect", async locale => {
     const response = await middleware(request(`/${locale}/login`));
@@ -47,6 +49,12 @@ describe("locale routing and authentication", () => {
     const url = new URL(response.headers.get("location")!);
     expect(url.pathname).toBe("/en/login");
     expect(url.searchParams.get("next")).toBe("/en/sales?snapshotId=frozen");
+  });
+  it("lets unknown pages reach the localized 404 without forwarding forged identity", async () => {
+    const response = await middleware(request("/en/missing/page"));
+    expect(response.headers.get("location")).toBeNull();
+    expect(response.headers.get("x-middleware-request-x-next-intl-locale")).toBe("en");
+    expect(response.headers.get("x-middleware-request-x-user-id")).toBeNull();
   });
   it("forwards verified identity and URL locale together", async () => {
     const response = await middleware(request("/en/sales", `lang=uk; access_token=${await token()}`));

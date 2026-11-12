@@ -11,6 +11,7 @@ export const landingCopy = {
     product: "Можливості",
     workflow: "Як це працює",
     integrations: "Інтеграції",
+    documentation: "Документація",
     login: "Увійти",
     register: "Створити кабінет",
     language: "English",
@@ -44,6 +45,7 @@ export const landingCopy = {
     product: "Product",
     workflow: "How it works",
     integrations: "Integrations",
+    documentation: "Documentation",
     login: "Log in",
     register: "Create a workspace",
     language: "Українська",
@@ -77,6 +79,7 @@ export const landingCopy = {
   product: string;
   workflow: string;
   integrations: string;
+  documentation: string;
   login: string;
   register: string;
   language: string;
