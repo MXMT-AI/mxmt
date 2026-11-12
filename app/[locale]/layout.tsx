@@ -7,8 +7,20 @@ import { isLocale } from "@/i18n/routing";
 import { ThemeProvider } from "@/components/ThemeProvider";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://mxmt.vercel.app"),
   title: "MXMT Analytics",
   description: "AI-powered retail analytics for fashion businesses",
+  openGraph: {
+    type: "website",
+    siteName: "MXMT Analytics",
+    images: [{
+      url: "/og-preview.png",
+      width: 1280,
+      height: 640,
+      alt: "MXMT Analytics — Retail analytics for fashion businesses",
+    }],
+  },
+  twitter: { card: "summary_large_image" },
 };
 
 export default async function RootLayout({ children, params }: { children: React.ReactNode; params: Promise<{ locale: string }> }) {

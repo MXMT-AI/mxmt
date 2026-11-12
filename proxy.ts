@@ -30,7 +30,7 @@ export async function proxy(request: NextRequest) {
   const locale = pathLocale ?? (isLocale(savedLocale) ? savedLocale : routing.defaultLocale);
   const pagePath = pathLocale ? pathname.slice(pathLocale.length + 1) || "/" : pathname;
 
-  if (/^\/training-data\/(products|stock|orders)\.csv$/.test(pathname)) return NextResponse.next();
+  if (pathname === "/og-preview.png" || /^\/training-data\/(products|stock|orders)\.csv$/.test(pathname)) return NextResponse.next();
 
   const publicApi = ["/api/auth", "/api/health", "/api/cron"].some(p => matchesPath(pathname, p));
   const salesDriveReceiver = /^\/api\/webhooks\/salesdrive\/[^/]+\/?$/.test(pathname);
