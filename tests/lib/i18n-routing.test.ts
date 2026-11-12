@@ -21,6 +21,12 @@ async function token(expired = false) {
 }
 
 describe("locale routing and authentication", () => {
+  it.each(["uk", "en"] as const)("serves the public %s landing page without a session", async locale => {
+    const response = await middleware(request(`/${locale}`));
+    expect(response.status).toBe(200);
+    expect(response.headers.get("location")).toBeNull();
+    expect(response.headers.get("x-middleware-request-x-next-intl-locale")).toBe(locale);
+  });
   it.each(["uk", "en"] as const)("renders public %s auth routes without a locale redirect", async locale => {
     const response = await middleware(request(`/${locale}/login`));
     expect(response.status).toBe(200);

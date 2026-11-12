@@ -8,6 +8,7 @@ import { Link } from "@/i18n/navigation";
 import { safeReturnPath } from "@/i18n/redirect";
 import { ThemeToggle } from "@/components/ThemeProvider";
 import { useLang, LangToggle } from "@/components/LanguageProvider";
+import { BrandMark } from "@/components/BrandMark";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -54,9 +55,7 @@ export default function RegisterPage() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2.5 mb-3">
-            <div className="w-9 h-9 rounded-xl bg-accent-cyan/10 border border-accent-cyan/20 flex items-center justify-center">
-              <span className="text-accent-cyan font-mono text-xs font-bold tracking-widest">MX</span>
-            </div>
+            <BrandMark size={36} />
             <span className="text-(--text) font-semibold text-lg tracking-tight">MXMT Analytics</span>
           </div>
           <p className="text-(--muted) text-sm">{t.auth_subtitle_register}</p>

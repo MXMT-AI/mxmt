@@ -189,6 +189,30 @@ html, body {
   color: var(--text);
 }
 
+.brand-mark {
+  --brand-fill: #080c10;
+  display: inline-block;
+  flex: none;
+  border-radius: 6px;
+  background: var(--brand-fill) var(--brand-dark) center / 138% no-repeat;
+}
+
+html.light .brand-mark {
+  --brand-fill: #f4f7ff;
+  background-image: var(--brand-light);
+}
+
+@media (prefers-color-scheme: light) {
+  html:not(.dark) .brand-mark {
+    --brand-fill: #f4f7ff;
+    background-image: var(--brand-light);
+  }
+}
+
+.brand-mark[data-transparent] {
+  background-color: transparent;
+}
+
 *:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;

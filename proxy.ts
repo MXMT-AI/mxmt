@@ -37,7 +37,7 @@ export async function proxy(request: NextRequest) {
       url.pathname = localizeHref(pathname, locale);
       return NextResponse.redirect(url);
     }
-    if (pagePath === "/login" || pagePath === "/register") return intlMiddleware(request);
+    if (pagePath === "/" || pagePath === "/login" || pagePath === "/register") return intlMiddleware(request);
   }
 
   const loginUrl = new URL(`/${locale}/login`, request.url);

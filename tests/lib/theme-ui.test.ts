@@ -13,9 +13,7 @@ it.each(["uk", "en"] as const)("renders an accessible stable theme placeholder d
       locale, messages: copy, timeZone: "Europe/Kyiv", children: createElement(ThemeToggle),
     }),
   }));
-  expect(html).toContain(`<span class="sr-only">${copy.theme_label}</span>`);
-  expect(html).toMatch(/<select[^>]*disabled=""/);
-  expect(html).toMatch(/<option value=""[^>]*selected=""/);
-  expect(html).not.toMatch(/<option value="(?:light|dark|system)"[^>]*selected=""/);
-  for (const label of [copy.theme_light, copy.theme_dark, copy.theme_system]) expect(html).toContain(label);
+  expect(html).toContain(`role="combobox" aria-label="${copy.theme_label}"`);
+  expect(html).toMatch(/<button[^>]*aria-expanded="false"[^>]*disabled=""/);
+  expect(html).not.toContain('role="listbox"');
 });

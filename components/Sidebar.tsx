@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useLang, LangToggle } from "@/components/LanguageProvider";
 import { ThemeToggle } from "@/components/ThemeProvider";
+import { BrandMark } from "@/components/BrandMark";
 import { merchandisingCopy } from "@/lib/merchandising-copy";
 import {
   merchandisingHref,
@@ -109,9 +110,7 @@ export default function Sidebar({
   return (
     <aside className="w-full md:w-56 md:min-h-screen bg-(--surface) border-b md:border-b-0 md:border-r border-(--border) flex flex-col shrink-0">
       <div className="p-4 border-b border-(--border) flex items-center gap-3 min-w-0">
-        <div className="w-8 h-8 rounded-lg bg-(--mark-bg) border border-(--border) flex items-center justify-center shrink-0">
-          <span className="text-(--mark-ink) text-xs font-bold">MX</span>
-        </div>
+        <BrandMark />
         <div className="min-w-0">
           <div className="text-(--text) text-sm font-semibold truncate">
             {tenantName}
@@ -133,7 +132,7 @@ export default function Sidebar({
             OpenAI
           </span>
           <div className="flex items-center gap-1.5">
-            <ThemeToggle className="min-w-0 flex-1" />
+            <ThemeToggle className="min-w-0 flex-1" placement="above" />
             <LangToggle />
           </div>
         </div>
