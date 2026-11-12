@@ -14,7 +14,8 @@ export const landingCopy = {
     documentation: "Документація",
     login: "Увійти",
     register: "Створити кабінет",
-    language: "English",
+    language: "Мова",
+    changeLanguage: "Змінити мову",
     audience: "Аналітика для fashion-ритейлу",
     headline: ["Продажі. Залишки.", "Рішення для асортименту."],
     description: "Зрозумійте, що продається, де бракує товару і що варто переоцінити. Усі дані для рішення — в одному кабінеті.",
@@ -48,7 +49,8 @@ export const landingCopy = {
     documentation: "Documentation",
     login: "Log in",
     register: "Create a workspace",
-    language: "Українська",
+    language: "Language",
+    changeLanguage: "Change language",
     audience: "Analytics for fashion retail",
     headline: ["Sales. Stock.", "Better assortment decisions."],
     description: "See what sells, where stock is running low and which products to reprice. Get the data behind each decision in one workspace.",
@@ -83,6 +85,7 @@ export const landingCopy = {
   login: string;
   register: string;
   language: string;
+  changeLanguage: string;
   audience: string;
   headline: [string, string];
   description: string;

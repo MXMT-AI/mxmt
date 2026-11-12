@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import type { CSSProperties } from "react";
-import { ArrowDown, ArrowDownUp, ArrowRight, BarChart3, Boxes, ChevronDown, LayoutDashboard, Menu, PackagePlus } from "lucide-react";
+import { ArrowDown, ArrowDownUp, ArrowRight, BarChart3, Boxes, Check, ChevronDown, Globe, LayoutDashboard, Menu, PackagePlus } from "lucide-react";
 import { getLocale } from "next-intl/server";
 import { getPathname, Link } from "@/i18n/navigation";
 import { BrandMark } from "@/components/BrandMark";
-import { ThemeToggle } from "@/components/ThemeProvider";
 import { LandingMenu } from "@/components/landing/LandingMenu";
+import { LandingThemeSwitch } from "@/components/landing/LandingThemeSwitch";
 import { landingCopy, landingFeatures } from "@/components/landing/copy";
 import styles from "./landing.module.css";
 
@@ -18,6 +18,7 @@ const icons = {
 };
 
 const sources = ["Google Sheets", "SalesDrive", "KeyCRM", "Horoshop", "Shopify", "CSV"];
+const languages = { en: "English", uk: "Українська" } as const;
 const signalHeights = [
   13, 17, 15, 21, 18, 24, 26, 22, 17, 28, 31, 32, 26, 34, 39, 45,
   33, 39, 31, 24, 36, 52, 57, 61, 53, 45, 47, 56, 60, 67, 70, 65,
@@ -36,7 +37,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 function Brand() {
   return (
-    <Link href="/" className={styles.brand}>
+    <Link href="/" className={styles.brand} aria-label="MXMT Analytics">
       <BrandMark transparent />
       MXMT <span>Analytics</span>
     </Link>
@@ -46,18 +47,12 @@ function Brand() {
 export default async function Home() {
   const locale = await getLocale();
   const copy = landingCopy[locale];
-  const otherLocale = locale === "uk" ? "en" : "uk";
   const sectionLinks = (
     <>
       <a href="#workflow">{copy.workflow}</a>
       <a href="#integrations">{copy.integrations}</a>
       <Link href="/docs">{copy.documentation}</Link>
     </>
-  );
-  const languageLink = (
-    <a href={getPathname({ href: "/", locale: otherLocale })} hrefLang={otherLocale} lang={otherLocale} className={styles.language}>
-      {copy.language}
-    </a>
   );
   const authLinks = (
     <>
@@ -89,17 +84,33 @@ export default async function Home() {
               {sectionLinks}
             </nav>
             <div className={styles.headerActions}>
-              {languageLink}
-              <ThemeToggle />
-              {authLinks}
+              <LandingMenu
+                className={styles.languageMenu}
+                label={<><Globe aria-hidden="true" size={17} /><span className="sr-only">{copy.changeLanguage}</span></>}
+              >
+                <p>{copy.language}</p>
+                {(["en", "uk"] as const).map((option) => (
+                  <a
+                    key={option}
+                    href={getPathname({ href: "/", locale: option })}
+                    hrefLang={option}
+                    lang={option}
+                    aria-current={locale === option ? "page" : undefined}
+                  >
+                    {languages[option]}
+                    {locale === option && <Check size={16} aria-hidden="true" />}
+                  </a>
+                ))}
+              </LandingMenu>
+              <LandingThemeSwitch className={styles.themeSwitch} />
+              <div className={styles.desktopAuth}>{authLinks}</div>
             </div>
             <LandingMenu className={styles.mobileMenu} label={<><Menu aria-hidden="true" size={23} /><span className="sr-only">{copy.menu}</span></>}>
               <nav aria-label={copy.navigation}>
                 <a href="#product">{copy.product}</a>
                 {sectionLinks}
               </nav>
-              <div className={styles.mobileActions}>{languageLink}{authLinks}</div>
-              <div className={styles.mobileTheme}><ThemeToggle placement="inline" /></div>
+              <div className={styles.mobileActions}>{authLinks}</div>
             </LandingMenu>
           </div>
         </div>
