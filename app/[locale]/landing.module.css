@@ -393,6 +393,30 @@
 
 .section { padding-block: clamp(55px, 8vw, 112px); }
 
+.productSection { position: relative; }
+.productContent { position: relative; }
+.productGrid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, var(--mint) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--mint) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(300px circle at var(--grid-x, 50%) var(--grid-y, 50%), #000, transparent);
+  opacity: 0;
+  transition: opacity 300ms ease;
+}
+.productGrid[data-active] { opacity: .38; }
+
+@media (any-hover: none), (prefers-reduced-motion: reduce) {
+  .productGrid, .productGrid[data-active] {
+    mask-image: radial-gradient(ellipse at 50% 25%, #000, transparent 75%);
+    opacity: .13;
+    transition: none;
+  }
+}
+
 .section h2 {
   max-width: 830px;
   font-size: clamp(32px, 4vw, 56px);
@@ -406,13 +430,13 @@
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 1px;
   margin-top: 36px;
-  background: var(--line);
   border: 1px solid var(--line);
 }
 
 .feature {
   grid-column: span 2;
-  background: var(--panel);
+  background: color-mix(in srgb, var(--panel) 84%, transparent);
+  outline: 1px solid var(--line);
   padding: clamp(20px, 3vw, 34px);
   scroll-margin-top: 20px;
 }

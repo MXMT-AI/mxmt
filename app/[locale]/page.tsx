@@ -7,6 +7,7 @@ import { BrandMark } from "@/components/BrandMark";
 import { LandingMenu } from "@/components/landing/LandingMenu";
 import { LandingThemeSwitch } from "@/components/landing/LandingThemeSwitch";
 import { landingCopy, landingFeatures } from "@/components/landing/copy";
+import { ProductGridSection } from "./ProductGridSection";
 import styles from "./landing.module.css";
 
 const icons = {
@@ -144,8 +145,8 @@ export default async function Home() {
           </div>
         </section>
 
-        <section id="product" className={`${styles.wrap} ${styles.section}`}>
-          <h2>{copy.productHeading}</h2>
+        <ProductGridSection>
+          <h2 id="product-heading">{copy.productHeading}</h2>
           <div className={styles.features}>
             {landingFeatures.map((feature) => {
               const Icon = icons[feature];
@@ -158,7 +159,7 @@ export default async function Home() {
               );
             })}
           </div>
-        </section>
+        </ProductGridSection>
 
         <section id="workflow" className={styles.workflow}>
           <div className={`${styles.wrap} ${styles.section}`}>
