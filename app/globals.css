@@ -349,3 +349,16 @@ html.light ::-webkit-scrollbar-thumb {
 .font-mono {
   font-family: "JetBrains Mono", ui-monospace, monospace;
 }
+
+/* The public landing page supplies its palette to the shared UI. */
+[data-ui-theme="landing"] {
+  --ui-muted: var(--landing-muted);
+  --ui-accent: var(--landing-mint);
+  --ui-action-primary-bg: var(--landing-ink);
+  --ui-action-primary-ink: var(--landing-canvas);
+  --ui-action-primary-hover: var(--landing-primary-hover);
+  --ui-action-secondary-border: var(--landing-control-border);
+  --ui-action-secondary-bg: color-mix(in srgb, var(--landing-hero) 52%, transparent);
+  --ui-menu-border: var(--landing-line);
+  --ui-menu-bg: var(--landing-panel);
+}

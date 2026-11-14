@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, type PointerEvent, type ReactNode } from "react";
-import { landingContainer, landingSection } from "../landing-styles";
+import { Section } from "@/components/ui/section/section";
 import styles from "./product-grid.module.css";
 
 export function ProductGridSection({ children }: { children: ReactNode }) {
@@ -21,16 +21,17 @@ export function ProductGridSection({ children }: { children: ReactNode }) {
   }
 
   return (
-    <section
+    <Section
       id="product"
       aria-labelledby="product-heading"
       className="relative"
+      contentClassName="relative"
+      background={<div ref={highlight} className={`pointer-events-none absolute inset-0 ${styles.productGrid}`} aria-hidden="true" />}
       onPointerMove={moveHighlight}
       onPointerLeave={hideHighlight}
       onPointerCancel={hideHighlight}
     >
-      <div ref={highlight} className={`pointer-events-none absolute inset-0 ${styles.productGrid}`} aria-hidden="true" />
-      <div className={`${landingContainer} ${landingSection} relative`}>{children}</div>
-    </section>
+      {children}
+    </Section>
   );
 }

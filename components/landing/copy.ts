@@ -1,5 +1,7 @@
 import type { Locale } from "@/i18n/routing";
 
+import type { LandingFeatureId } from "./landing-features";
+
 type Feature = { title: string; description: string };
 
 export const landingCopy = {
@@ -91,7 +93,7 @@ export const landingCopy = {
   description: string;
   explore: string;
   productHeading: string;
-  features: Record<"overview" | "sales" | "stock" | "repricing" | "reordering", Feature>;
+  features: Record<LandingFeatureId, Feature>;
   workflowHeading: string;
   steps: Feature[];
   integrationsHeading: string;
@@ -99,4 +101,4 @@ export const landingCopy = {
   closing: string;
 }>;
 
-export const landingFeatures = ["overview", "sales", "stock", "repricing", "reordering"] as const;
+export type LandingCopy = (typeof landingCopy)[Locale];

@@ -1,8 +1,9 @@
 "use client";
 
+import { cn } from "@/lib/utils";
 import { useRef, type ReactNode } from "react";
 
-export function LandingMenu({
+export function DisclosureMenu({
   label,
   className,
   summaryClassName,
@@ -32,8 +33,8 @@ export function LandingMenu({
         }
       }}
     >
-      <summary ref={summary} className={summaryClassName}>{label}</summary>
-      <div className={panelClassName} onClick={(event) => {
+      <summary ref={summary} className={cn("cursor-pointer list-none [&::-webkit-details-marker]:hidden", summaryClassName)}>{label}</summary>
+      <div className={cn("absolute border border-[color:var(--ui-menu-border,var(--border))] bg-[color:var(--ui-menu-bg,var(--surface))]", panelClassName)} onClick={(event) => {
         if (event.target instanceof Element && event.target.closest("a") && menu.current) {
           summary.current?.focus();
           menu.current.open = false;
