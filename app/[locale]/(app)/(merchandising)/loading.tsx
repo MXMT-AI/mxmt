@@ -1,1 +1,1 @@
-export { default } from "@/components/merchandising/MerchandisingLoading";
+export { default } from "@/components/merchandising/merchandising-loading/merchandising-loading";

@@ -6,11 +6,11 @@ vi.mock("@/lib/prisma",()=>({prisma:{}}));vi.mock("next/headers",()=>({cookies:a
 vi.mock("@/lib/analog-forecast-store",()=>({createAnalogPreview:m.preview,saveAnalogPolicy:m.save,readAnalogPolicy:m.read,evaluateAnalogForecasts:m.evaluate}));
 import {POST as preview} from "@/app/api/merchandising/forecasts/preview/route";
 import {POST as evaluate} from "@/app/api/merchandising/forecasts/evaluate/route";
-import {POST as save,GET as read} from "@/app/api/merchandising/forecasts/policies/[profileId]/route";
+import {POST as save,GET as read} from "@/app/api/merchandising/forecasts/policies/[profile-id]/route";
 import {signAccessToken} from "@/lib/auth";
 import {AnalogForecastError} from "@/lib/analog-forecast";
 const request=(value:unknown={},query="")=>new NextRequest(`https://app.test/api/forecasts${query}`,{method:"POST",headers:{"content-type":"application/json","x-tenant-id":"forged","x-user-role":"ADMIN"},body:JSON.stringify(value)});
-const params=()=>({params:Promise.resolve({profileId:"watch"})});
+const params=()=>({params:Promise.resolve({"profile-id":"watch"})});
 const login=async(role="ANALYST")=>m.cookies.set("access_token",await signAccessToken({sub:"actor",tenantId:"tenant",role}));
 beforeEach(()=>{vi.stubEnv("JWT_ACCESS_SECRET","synthetic-forecast-api-secret");vi.clearAllMocks();m.cookies.clear();m.preview.mockResolvedValue({state:"draft_preview",businessRulesApproved:false});m.save.mockResolvedValue({state:"draft"});m.read.mockResolvedValue({revision:1});m.evaluate.mockResolvedValue({releaseApproved:false});});afterEach(()=>{vi.unstubAllEnvs();vi.restoreAllMocks();});
 it("rejects forged identity and viewer access",async()=>{

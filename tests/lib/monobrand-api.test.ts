@@ -30,7 +30,7 @@ import {
   POST as exportPost,
   GET as historyGet,
 } from "@/app/api/merchandising/exports/route";
-import { GET as fileGet } from "@/app/api/merchandising/exports/[exportId]/route";
+import { GET as fileGet } from "@/app/api/merchandising/exports/[export-id]/route";
 import {
   GET as importGet,
   POST as importPost,
@@ -114,7 +114,7 @@ it("isolates export creation, stored downloads and history through the authentic
   const receipt = await created.json();
   await login("a");
   const file = await fileGet(request(receipt.files[0].url), {
-    params: Promise.resolve({ exportId: receipt.exportId }),
+    params: Promise.resolve({ "export-id": receipt.exportId }),
   });
   expect(file.status).toBe(404);
   expect(

@@ -7,7 +7,7 @@ vi.mock("@/lib/connectors/order-jobs", () => ({ enqueueOrderImport: m.enqueue, g
 vi.mock("@/lib/prisma", () => ({ prisma: { connectorConnection: { findUnique: m.connection } } }));
 import { GET, POST } from "@/app/api/connectors/salesdrive/import/route";
 import { GET as CRON } from "@/app/api/cron/salesdrive-orders/route";
-import { POST as WEBHOOK } from "@/app/api/webhooks/salesdrive/[sourceId]/route";
+import { POST as WEBHOOK } from "@/app/api/webhooks/salesdrive/[source-id]/route";
 import { salesDriveWebhookToken, parseOrderWebhook } from "@/lib/connectors/order-webhook";
 import { proxy as middleware } from "@/proxy";
 import { signAccessToken } from "@/lib/auth";
@@ -39,7 +39,7 @@ describe("order import authorization and safe errors", () => {
   });
 });
 describe("authenticated webhook relay", () => {
-  const context = { params: Promise.resolve({ sourceId: "source-a" }) };
+  const context = { params: Promise.resolve({ "source-id": "source-a" }) };
   const event = { info: { webhookType: "order", webhookEvent: "status_change", account: "demo" }, data: { id: 123, version: 4 } };
   it("exempts only the authenticated receiver from cookie middleware", async () => {
     const allowed = await middleware(new NextRequest("https://app.example/api/webhooks/salesdrive/source-a"));

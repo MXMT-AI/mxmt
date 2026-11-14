@@ -20,7 +20,7 @@ vi.mock("@/lib/scenario-export-store", async (original) => ({
   readScenarioExportFile: m.file,
 }));
 import { POST, GET } from "@/app/api/merchandising/exports/route";
-import { GET as download } from "@/app/api/merchandising/exports/[exportId]/route";
+import { GET as download } from "@/app/api/merchandising/exports/[export-id]/route";
 import { signAccessToken } from "@/lib/auth";
 import { ScenarioExportError } from "@/lib/scenario-export-store";
 const id = "11111111-1111-4111-8111-111111111111";
@@ -61,7 +61,7 @@ describe("export API RBAC and bytes", () => {
     expect(
       (
         await download(request("?fileId=abc"), {
-          params: Promise.resolve({ exportId: id }),
+          params: Promise.resolve({ "export-id": id }),
         })
       ).status,
     ).toBe(403);
@@ -81,7 +81,7 @@ describe("export API RBAC and bytes", () => {
   it("returns original BOM bytes with attachment headers and tenant-scoped file lookup", async () => {
     await login();
     const response = await download(request("?fileId=abc"), {
-      params: Promise.resolve({ exportId: id }),
+      params: Promise.resolve({ "export-id": id }),
     });
     expect(response.status).toBe(200);
     expect(response.headers.get("Content-Type")).toBe(
@@ -106,7 +106,7 @@ describe("export API RBAC and bytes", () => {
     expect(
       (
         await download(request("?fileId=a&fileId=b"), {
-          params: Promise.resolve({ exportId: id }),
+          params: Promise.resolve({ "export-id": id }),
         })
       ).status,
     ).toBe(404);

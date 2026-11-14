@@ -42,7 +42,7 @@ The agents screen now uses these seams:
 - `components/agents/agents.config.ts` for agent/block definitions and route maps
 - `components/agents/agents.types.ts` for shared contracts
 - `components/agents/agents.utils.ts` for pure formatting/simulation helpers
-- `components/agents/useAgentRuns.ts` for polling and run orchestration
-- `components/agents/DebugSection.tsx` for reusable debug UI
+- `components/agents/use-agent-runs.ts` for polling and run orchestration
+- `components/agents/debug-section/debug-section.tsx` for reusable debug UI
 
-Future work should continue extracting self-contained UI sections from `app/(app)/agents/page.tsx` instead of adding more logic directly to the page.
+The route in `app/[locale]/(app)/agents/page.tsx` renders the screen from `components/agents/agents-page/agents-page.tsx`.

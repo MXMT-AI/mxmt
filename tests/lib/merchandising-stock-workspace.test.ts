@@ -7,7 +7,7 @@ vi.mock("next/link", () => ({
   default: ({ children, ...props }: Record<string, unknown>) =>
     createElement("a", props, children as string),
 }));
-import StockContent from "@/components/stock/StockContent";
+import StockContent from "@/components/stock/stock-content/stock-content";
 import { createStockWorkspaceDb } from "../helpers/stock-workspace-db";
 import { screenSelection } from "../helpers/screen-db";
 import { createScreenSnapshot } from "@/lib/merchandising-snapshot";

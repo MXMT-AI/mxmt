@@ -1,7 +1,7 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, it } from "vitest";
-import ShopifyConnectionCard from "@/components/settings/ShopifyConnectionCard";
+import ShopifyConnectionCard from "@/components/settings/shopify-connection-card/shopify-connection-card";
 const initial = {
   configured: false,
   accountHost: null,

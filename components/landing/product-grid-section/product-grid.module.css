@@ -1,0 +1,18 @@
+.productGrid {
+  background-image:
+    linear-gradient(to right, var(--landing-mint) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--landing-mint) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(300px circle at var(--grid-x, 50%) var(--grid-y, 50%), #000, transparent);
+  opacity: 0;
+  transition: opacity 300ms ease;
+}
+.productGrid[data-active] { opacity: .38; }
+
+@media (any-hover: none), (prefers-reduced-motion: reduce) {
+  .productGrid, .productGrid[data-active] {
+    mask-image: radial-gradient(ellipse at 50% 25%, #000, transparent 75%);
+    opacity: .13;
+    transition: none;
+  }
+}

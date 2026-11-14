@@ -1,7 +1,7 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, it } from "vitest";
-import HoroshopConnectionCard from "@/components/settings/HoroshopConnectionCard";
+import HoroshopConnectionCard from "@/components/settings/horoshop-connection-card/horoshop-connection-card";
 const initial = {
   configured: false,
   accountHost: null,

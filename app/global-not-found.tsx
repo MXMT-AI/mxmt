@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
-import { ProblemScreen } from "@/components/ProblemScreen";
-import { ThemeProvider } from "@/components/ThemeProvider";
+import { ProblemScreen } from "@/components/problem-screen/problem-screen";
+import { ThemeProvider } from "@/components/theme-provider/theme-provider";
 import { isLocale, routing } from "@/i18n/routing";
 import "./globals.css";
 

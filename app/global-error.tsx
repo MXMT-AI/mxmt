@@ -1,8 +1,8 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { ProblemScreen } from "@/components/ProblemScreen";
-import { ThemeProvider } from "@/components/ThemeProvider";
+import { ProblemScreen } from "@/components/problem-screen/problem-screen";
+import { ThemeProvider } from "@/components/theme-provider/theme-provider";
 import { localeFromPath, routing } from "@/i18n/routing";
 import "./globals.css";
 

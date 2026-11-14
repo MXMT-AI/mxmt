@@ -64,7 +64,7 @@ import {
 import { SalesReportError } from "@/lib/sales-report";
 import { getMerchandisingScreen } from "@/lib/merchandising-screen";
 import { parseScreenQuery } from "@/lib/merchandising-screen-query";
-import OverviewContent from "@/components/overview/OverviewContent";
+import OverviewContent from "@/components/overview/overview-content/overview-content";
 let fixture: Awaited<ReturnType<typeof createScreenDb>>,
   baseline: ScreenSnapshot;
 beforeAll(async () => {

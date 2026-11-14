@@ -4,8 +4,8 @@
 
 ![MXMT Analytics](./mxmt-github-og-preview.png)
 
-- [Інструкція користувача](INSTRUCTIONS.md) — підключення, п’ять екранів і щоденні дії.
-- [Операційний runbook](RUNBOOK.md) — деплой, міграції, worker, інциденти та відновлення.
+- [Інструкція користувача](user-instructions.md) — підключення, п’ять екранів і щоденні дії.
+- [Операційний runbook](operations-runbook.md) — деплой, міграції, worker, інциденти та відновлення.
 - [Звіт оновлення залежностей](prisma/verification/dependency-upgrade/report.md) — версії, сумісність, перевірки й обмеження.
 
 ## Поточний продукт
@@ -205,7 +205,7 @@ npm run dev
 
 Deployment topology: Vercel application/API, Neon PostgreSQL, окремий external sync worker на погодженому Hobby-плані. Repository build command у `vercel.json` — **`npm run build:vercel`**. Pending migrations застосовуються окремим release-кроком після rehearsal на копії; build/startup не мігрують production автоматично.
 
-Node engines обмежено `24.x`. Vercel підтримує Node 24, але exact patch у hosting може відрізнятися від `.nvmrc`; перевірте фактичні build/runtime logs ([правила Vercel](https://vercel.com/docs/functions/runtimes/node-js/node-js-versions)). Merge у `main` може запустити production Git deployment, якщо integration активна. Порядок release, workers і rollback — у [RUNBOOK](RUNBOOK.md).
+Node engines обмежено `24.x`. Vercel підтримує Node 24, але exact patch у hosting може відрізнятися від `.nvmrc`; перевірте фактичні build/runtime logs ([правила Vercel](https://vercel.com/docs/functions/runtimes/node-js/node-js-versions)). Merge у `main` може запустити production Git deployment, якщо integration активна. Порядок release, workers і rollback — у [RUNBOOK](operations-runbook.md).
 
 ## Планування синхронізації
 
@@ -272,7 +272,7 @@ npm audit
 
 | Тема                               | Документ                                                                                                                                                                                                                                                                                      |
 | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Модель, provenance та isolation    | [Data model](prisma/verification/README.md)                                                                                                                                                                                                                                                   |
+| Модель, provenance та isolation    | [Data model](prisma/verification/data-model.md)                                                                                                                                                                                                                                                   |
 | Підключення та додаткові providers | [Onboarding](prisma/verification/29-connector-onboarding.md), [CSV](prisma/verification/82-csv-connector.md), [KeyCRM](prisma/verification/83-keycrm-connector.md), [Horoshop](prisma/verification/84-horoshop-connector.md), [Shopify](prisma/verification/85-shopify-connector.md)          |
 | Нормалізація й налаштування        | [Products](prisma/verification/33-product-normalization.md), [Settings](prisma/verification/34-merchandising-settings.md)                                                                                                                                                                     |
 | Серверні метрики                   | [Sales](prisma/verification/35-sales-financial-metrics.md), [Daily SKU](prisma/verification/36-daily-sku-metrics.md), [Classification](prisma/verification/37-sku-classification.md)                                                                                                          |

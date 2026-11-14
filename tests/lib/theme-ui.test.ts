@@ -2,7 +2,7 @@ import { createElement } from "react";
 import { expect, it } from "vitest";
 import { NextIntlClientProvider } from "next-intl";
 import { renderToStaticMarkup } from "react-dom/server";
-import { ThemeProvider, ThemeToggle } from "@/components/ThemeProvider";
+import { ThemeProvider, ThemeToggle } from "@/components/theme-provider/theme-provider";
 import uk from "@/messages/uk.json";
 import en from "@/messages/en.json";
 

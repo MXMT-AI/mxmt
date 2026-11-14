@@ -4,7 +4,7 @@ vi.mock("@/lib/fetch", () => ({ apiFetch: m.fetch }));
 import {
   postScenario,
   scenarioFailure,
-} from "@/components/merchandising/useScenarioPreview";
+} from "@/components/merchandising/use-scenario-preview";
 beforeEach(() => vi.resetAllMocks());
 describe("shared scenario transport errors", () => {
   it("uses the authenticated wrapper and passes the cancellation signal and server-only intent", async () => {

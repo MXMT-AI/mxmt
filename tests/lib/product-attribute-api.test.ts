@@ -6,13 +6,13 @@ vi.mock("@/lib/prisma",()=>({prisma:{agentRun:{update:m.update}}}));vi.mock("nex
 vi.mock("@/lib/product-attribute-report",()=>({analyzeProductAttributes:m.analyze}));vi.mock("@/lib/product-attribute-store",()=>({saveAttributeDictionary:m.save,readAttributeDictionary:m.read,approveAttributeDictionary:m.approve,sampleProductAttributes:m.sample}));
 vi.mock("@/lib/attribute-metrics",()=>({getAttributeMetrics:m.legacy}));vi.mock("@/lib/agent-runs",()=>({startAgentRun:async()=>({run:{id:"legacy-run"},response:null})}));
 import {POST as analyze} from "@/app/api/agents/product-attributes/route";
-import {POST as save,GET as read} from "@/app/api/merchandising/attributes/dictionaries/[dictionaryId]/route";
-import {POST as approve} from "@/app/api/merchandising/attributes/dictionaries/[dictionaryId]/approve/route";
+import {POST as save,GET as read} from "@/app/api/merchandising/attributes/dictionaries/[dictionary-id]/route";
+import {POST as approve} from "@/app/api/merchandising/attributes/dictionaries/[dictionary-id]/approve/route";
 import {POST as sample} from "@/app/api/merchandising/attributes/samples/route";
 import {signAccessToken} from "@/lib/auth";
 import {ProductAttributeError} from "@/lib/product-attributes";
 const request=(value:unknown={},query="")=>new NextRequest(`https://app.test/api/attributes${query}`,{method:"POST",headers:{"content-type":"application/json","x-tenant-id":"forged","x-user-role":"ADMIN"},body:JSON.stringify(value)});
-const params=()=>({params:Promise.resolve({dictionaryId:"watch"})});
+const params=()=>({params:Promise.resolve({"dictionary-id":"watch"})});
 const login=async(role="ANALYST")=>m.cookies.set("access_token",await signAccessToken({sub:"actor",tenantId:"tenant",role}));
 beforeEach(()=>{vi.stubEnv("JWT_ACCESS_SECRET","synthetic-attribute-api-secret");vi.clearAllMocks();m.cookies.clear();m.analyze.mockResolvedValue({mode:"attributes_v2",state:"draft_preview"});m.save.mockResolvedValue({state:"draft"});m.read.mockResolvedValue({revision:1});m.approve.mockResolvedValue({state:"approved"});m.sample.mockResolvedValue({samples:[]});m.legacy.mockResolvedValue({byCategory:[]});});afterEach(()=>{vi.unstubAllEnvs();vi.restoreAllMocks();});
 it("rejects forged identity and viewer access",async()=>{

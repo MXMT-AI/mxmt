@@ -9,12 +9,12 @@ import {
 } from "@/lib/reorder-calc";
 import { repricingUiSkus } from "../helpers/repricing-workspace";
 import { reorderingUiSkus } from "../helpers/reordering-workspace";
-import RepriceControls from "@/components/repricing/RepricingControls";
-import RepriceTable from "@/components/repricing/RepricingTable";
-import ReorderControls from "@/components/reordering/ReorderingControls";
-import ReorderTable from "@/components/reordering/ReorderingTable";
-import type { RepricingPreview } from "@/components/repricing/useRepricingPreview";
-import type { ReorderingPreview } from "@/components/reordering/ReorderingEditor";
+import RepriceControls from "@/components/repricing/repricing-controls/repricing-controls";
+import RepriceTable from "@/components/repricing/repricing-table/repricing-table";
+import ReorderControls from "@/components/reordering/reordering-controls/reordering-controls";
+import ReorderTable from "@/components/reordering/reordering-table/reordering-table";
+import type { RepricingPreview } from "@/components/repricing/use-repricing-preview";
+import type { ReorderingPreview } from "@/components/reordering/reordering-editor/reordering-editor";
 import { readRepricingDraft } from "@/lib/repricing-workspace";
 import { readReorderingDraft } from "@/lib/reordering-workspace";
 import { repricingCopy } from "@/lib/repricing-copy";

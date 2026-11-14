@@ -20,14 +20,14 @@ vi.mock("@/i18n/navigation", () => ({
   Link: ({ children, ...props }: Record<string, unknown>) =>
     createElement("a", props, children as string),
 }));
-vi.mock("@/components/LanguageProvider", () => ({
+vi.mock("@/components/language-provider/language-provider", () => ({
   useLang: () => ({ lang: state.lang, t: getT(state.lang) }),
   LangToggle: () => null,
 }));
-vi.mock("@/components/ThemeProvider", () => ({ ThemeToggle: () => null }));
-import Sidebar from "@/components/Sidebar";
-import Shell from "@/components/merchandising/MerchandisingShell";
-import Destination from "@/components/merchandising/MerchandisingDestination";
+vi.mock("@/components/theme-provider/theme-provider", () => ({ ThemeToggle: () => null }));
+import Sidebar from "@/components/sidebar/sidebar";
+import Shell from "@/components/merchandising/merchandising-shell/merchandising-shell";
+import Destination from "@/components/merchandising/merchandising-destination/merchandising-destination";
 const options = {
   monobrand: false,
   channels: [{ id: "1" }, { id: "2" }],

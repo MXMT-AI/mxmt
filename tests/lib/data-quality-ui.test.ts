@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "../helpers/render-localized";
 import { it, expect } from "vitest";
-import Summary from "@/components/settings/DataQualitySummary";
+import Summary from "@/components/settings/data-quality-summary/data-quality-summary";
 import {
   readQualitySelection,
   writeQualitySelection,

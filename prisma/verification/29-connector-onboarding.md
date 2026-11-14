@@ -159,7 +159,7 @@ secrets if the upstream unexpectedly echoes them.
   staging; after use retain it or export encrypted credentials with their key and
   use a forward fix. Never reverse #28 underneath this migration. Resolve a
   failed transactional migration only after verifying rollback, as documented in
-  the [existing migration recovery procedure](README.md).
+  the [existing migration recovery procedure](data-model.md).
 
 Real customer credentials, dictionaries, permissions and E02 mapping samples have
 not been supplied or verified by implementing this task. Synthetic success/failure

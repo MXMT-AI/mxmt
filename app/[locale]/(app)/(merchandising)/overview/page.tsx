@@ -1,4 +1,4 @@
-import OverviewWorkspace from "@/components/overview/OverviewWorkspace";
+import OverviewWorkspace from "@/components/overview/overview-workspace/overview-workspace";
 export default function Page() {
   return <OverviewWorkspace />;
 }

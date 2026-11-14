@@ -1,6 +1,6 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "../helpers/render-localized";
-import OverviewContent from "@/components/overview/OverviewContent";
+import OverviewContent from "@/components/overview/overview-content/overview-content";
 import {
   overviewContributors,
   overviewClassificationCoverage,

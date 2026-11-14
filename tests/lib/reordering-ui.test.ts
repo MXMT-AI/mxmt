@@ -9,12 +9,12 @@ import {
 import { readReorderingDraft } from "@/lib/reordering-workspace";
 import { reorderingCopy } from "@/lib/reordering-copy";
 import { reorderingUiSkus } from "../helpers/reordering-workspace";
-import Controls from "@/components/reordering/ReorderingControls";
-import Table from "@/components/reordering/ReorderingTable";
+import Controls from "@/components/reordering/reordering-controls/reordering-controls";
+import Table from "@/components/reordering/reordering-table/reordering-table";
 import Summary, {
   SupplierGroups,
-} from "@/components/reordering/ReorderingSummary";
-import type { ReorderingPreview } from "@/components/reordering/ReorderingEditor";
+} from "@/components/reordering/reordering-summary/reordering-summary";
+import type { ReorderingPreview } from "@/components/reordering/reordering-editor/reordering-editor";
 const calculation = calculateReordering(
   { snapshotId: "frozen", asOf: "2026-10-25", rows: reorderingUiSkus },
   parseReorderingRequest({ snapshotId: "frozen" }),

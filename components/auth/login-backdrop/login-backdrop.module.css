@@ -1,0 +1,22 @@
+.backdrop {
+  background:
+    radial-gradient(ellipse at 90% 88%, color-mix(in srgb, var(--accent) 11%, transparent), transparent 56%),
+    radial-gradient(ellipse at 10% 100%, color-mix(in srgb, var(--violet-ink) 8%, transparent), transparent 48%);
+}
+.backdrop::before {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background-image:
+    linear-gradient(to right, var(--border) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--border) 1px, transparent 1px);
+  background-size: 34px 34px;
+  mask-image: linear-gradient(to bottom, transparent 6%, #000 94%);
+}
+.chart {
+  mask-image: radial-gradient(ellipse at 50% 38%, transparent 16%, #000 72%);
+}
+
+@media (max-width: 480px) {
+  .chart { mask-image: linear-gradient(to bottom, transparent 28%, #000 88%); }
+}

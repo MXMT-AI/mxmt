@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "../helpers/render-localized";
 import { it, expect } from "vitest";
-import ReportReadiness from "@/components/merchandising/ReportReadiness";
+import ReportReadiness from "@/components/merchandising/report-readiness/report-readiness";
 const complete = { scope: "SOURCE_SNAPSHOT" as const, total: 10, missingStock: 0, missingReceipt: 0, missingVelocity: 0, unknownOwnership: 0, unknownKind: 0, unclassified: 0 };
 it("does not show missing evidence when frozen inputs are complete", () => {
   expect(renderToStaticMarkup(createElement(ReportReadiness, { data: complete, lang: "uk" }))).toBe("");

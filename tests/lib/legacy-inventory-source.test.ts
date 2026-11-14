@@ -14,8 +14,8 @@ vi.mock("@/lib/server-auth", () => ({
   }),
 }));
 vi.mock("@/lib/ai", () => ({ chat: async () => '{"chips":[]}' }));
-vi.mock("@/components/analyst/AnalystApp", () => ({ default: () => null }));
-vi.mock("@/components/dashboard/SalesSparkline", () => ({
+vi.mock("@/components/analyst/analyst-app/analyst-app", () => ({ default: () => null }));
+vi.mock("@/components/dashboard/sales-sparkline/sales-sparkline", () => ({
   default: () => null,
 }));
 vi.mock("@/lib/prisma", () => ({
@@ -55,8 +55,8 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 import { createScreenDb } from "../helpers/screen-db";
-import Analyst from "@/app/[locale]/(app)/analyst/page";
-import Dashboard from "@/app/[locale]/(app)/dashboard/page";
+import Analyst from "@/components/analyst/analyst-page/analyst-page";
+import Dashboard from "@/components/dashboard/dashboard-page/dashboard-page";
 import { GET as stock } from "@/app/api/calendar/stock/route";
 import { GET as insights } from "@/app/api/calendar/insights/route";
 import { POST as plan } from "@/app/api/calendar/ai-plan/route";

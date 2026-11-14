@@ -7,7 +7,7 @@ import {readStockHistory} from "@/lib/stock-history-store";
 import {createScreenDb,screenSelection} from "../helpers/screen-db";
 import {createScreenSnapshot,type ScreenSnapshot} from "@/lib/merchandising-snapshot";
 import {parseScreenQuery} from "@/lib/merchandising-screen-query";
-import StockHistory from "@/components/stock/StockHistory";
+import StockHistory from "@/components/stock/stock-history/stock-history";
 const asOf="2026-10-25",dates=stockHistoryDates(asOf);
 const rows=():StockHistoryObservation[]=>dates.dates.map(date=>({date,currency:"UAH",cohortSize:2,observedCount:2,quantity:"3",coveredCost:"0",costCount:2,firstObservedAt:`${date}T03:00:00Z`,lastObservedAt:`${date}T03:00:00Z`}));
 it("uses completed month ends and true leap-year month ends",()=>{

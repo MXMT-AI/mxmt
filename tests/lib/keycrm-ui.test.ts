@@ -1,7 +1,7 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, it } from "vitest";
-import KeyCrmConnectionCard from "@/components/settings/KeyCrmConnectionCard";
+import KeyCrmConnectionCard from "@/components/settings/key-crm-connection-card/key-crm-connection-card";
 const initial = {
   configured: false,
   accountHost: null,

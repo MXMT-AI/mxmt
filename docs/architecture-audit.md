@@ -321,7 +321,7 @@ Risk:
 
 Recommendation:
 
-- Add `RUNBOOK.md`:
+- Add `operations-runbook.md`:
   - deploy
   - env vars
   - backup/restore

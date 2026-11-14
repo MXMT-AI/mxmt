@@ -5,7 +5,7 @@ import {
   reportingErrorHelp,
   reportingSourceHelp,
 } from "@/lib/reporting-readiness-copy";
-import ReportingError from "@/components/merchandising/ReportingError";
+import ReportingError from "@/components/merchandising/reporting-error/reporting-error";
 import type { ReportingSourceChoice } from "@/lib/reporting-source-contract";
 const source = (
   readiness: ReportingSourceChoice["readiness"],

@@ -1,5 +1,5 @@
-import type { PromoSimParams } from "@/components/agents/PromoTableModal";
-import type { ReorderSimParams } from "@/components/agents/ReorderTableModal";
+import type { PromoSimParams } from "@/components/agents/promo-table-modal/promo-table-modal";
+import type { ReorderSimParams } from "@/components/agents/reorder-table-modal/reorder-table-modal";
 import type { AgentDefinition, AgentRunInfo, BrandStatus } from "@/components/agents/agents.types";
 
 export function areAgentDependenciesReady(

@@ -1,0 +1,6 @@
+.announcement {
+  background:
+    linear-gradient(90deg, transparent, var(--landing-banner) 31% 69%, transparent),
+    radial-gradient(circle, var(--landing-banner-dot) 1px, transparent 1.65px) 0 0 / 5px 5px,
+    linear-gradient(105deg, var(--landing-banner-edge), var(--landing-banner) 25% 75%, var(--landing-banner-edge));
+}

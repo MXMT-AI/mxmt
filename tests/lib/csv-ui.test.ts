@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "../helpers/render-localized";
 import { expect, it, vi } from "vitest";
 vi.mock("next/navigation", async (importOriginal) => ({
   ...(await importOriginal<typeof import("next/navigation")>()), useRouter: () => ({ refresh: vi.fn() }) }));
-import CsvImportCard from "@/components/settings/CsvImportCard";
+import CsvImportCard from "@/components/settings/csv-import-card/csv-import-card";
 it("keeps upload controls administrator-only and separates approval, preview and activation", () => {
   const viewer = renderToStaticMarkup(
     React.createElement(CsvImportCard, { lang: "en", canManage: false }),

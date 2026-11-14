@@ -13,14 +13,14 @@ import {POST as cancelPreview} from "@/app/api/merchandising/supplier-delivery/c
 import {POST as cancelApprove} from "@/app/api/merchandising/supplier-delivery/cancellation/approve/route";
 import {POST as cancel} from "@/app/api/merchandising/supplier-delivery/cancellation/execute/route";
 import {POST as receipt} from "@/app/api/merchandising/supplier-delivery/receipt/route";
-import {GET as read} from "@/app/api/merchandising/supplier-delivery/[operationId]/route";
-import {GET as recipient,POST as save} from "@/app/api/merchandising/supplier-recipients/[recipientId]/route";
-import {POST as recipientApprove} from "@/app/api/merchandising/supplier-recipients/[recipientId]/approve/route";
+import {GET as read} from "@/app/api/merchandising/supplier-delivery/[operation-id]/route";
+import {GET as recipient,POST as save} from "@/app/api/merchandising/supplier-recipients/[recipient-id]/route";
+import {POST as recipientApprove} from "@/app/api/merchandising/supplier-recipients/[recipient-id]/approve/route";
 import {signAccessToken} from "@/lib/auth";
 import {SupplierDeliveryError} from "@/lib/supplier-delivery";
 const request=(query="")=>new NextRequest(`https://app.test/api/supplier-delivery${query}`,{method:"POST",headers:{"content-type":"application/json","x-user-role":"ADMIN","x-tenant-id":"forged"},body:JSON.stringify({operationId:"selector"})});
 const login=async(role="ADMIN")=>m.cookies.set("access_token",await signAccessToken({sub:"actor",tenantId:"tenant",role}));
-const params={params:Promise.resolve({operationId:"selector",recipientId:"recipient"})};
+const params={params:Promise.resolve({"operation-id":"selector","recipient-id":"recipient"})};
 const calls=[()=>preview(request()),()=>approve(request()),()=>send(request()),()=>reconcile(request()),()=>cancelPreview(request()),()=>cancelApprove(request()),()=>cancel(request()),()=>receipt(request()),()=>read(request(),params),()=>recipient(request(),params),()=>save(request(),params),()=>recipientApprove(request(),params)];
 beforeEach(()=>{vi.stubEnv("JWT_ACCESS_SECRET","synthetic-supplier110-secret");vi.clearAllMocks();m.cookies.clear();for(const v of Object.values(m))if(vi.isMockFunction(v))v.mockResolvedValue({state:"DRAFT"});});
 afterEach(()=>{vi.unstubAllEnvs();vi.restoreAllMocks();});

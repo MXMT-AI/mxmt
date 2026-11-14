@@ -1,7 +1,7 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import SalesDriveConnectionCard from "@/components/settings/SalesDriveConnectionCard";
+import SalesDriveConnectionCard from "@/components/settings/sales-drive-connection-card/sales-drive-connection-card";
 import type { PublicConnection } from "@/lib/connectors/contract";
 
 const empty: PublicConnection = { configured: false, accountHost: null, hasReceiptsKey: false, hasYmlUrl: false, revision: null, lastCheck: null };

@@ -5,10 +5,10 @@ vi.mock("server-only", () => ({}));
 import { repricingCopy } from "@/lib/repricing-copy";
 import { readRepricingDraft } from "@/lib/repricing-workspace";
 import { calculateRepricing, parseRepricingRequest } from "@/lib/repricing";
-import Controls from "@/components/repricing/RepricingControls";
-import Summary from "@/components/repricing/RepricingSummary";
-import Table from "@/components/repricing/RepricingTable";
-import type { RepricingPreview } from "@/components/repricing/useRepricingPreview";
+import Controls from "@/components/repricing/repricing-controls/repricing-controls";
+import Summary from "@/components/repricing/repricing-summary/repricing-summary";
+import Table from "@/components/repricing/repricing-table/repricing-table";
+import type { RepricingPreview } from "@/components/repricing/use-repricing-preview";
 import { repricingUiSkus } from "../helpers/repricing-workspace";
 const data = {
   ...calculateRepricing(

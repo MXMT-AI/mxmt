@@ -25,13 +25,13 @@ vi.mock("@/lib/connectors/sheets-projection-store", () => ({
 import {
   POST as project,
   GET as intent,
-} from "@/app/api/connectors/sheets/projection/[sourceId]/route";
+} from "@/app/api/connectors/sheets/projection/[source-id]/route";
 import { signAccessToken } from "@/lib/auth";
 import { SheetsMappingError } from "@/lib/connectors/sheets-mapping-validation";
-import { GET } from "@/app/api/connectors/sheets/mapping/[sourceId]/route";
-import { POST as preview } from "@/app/api/connectors/sheets/mapping/[sourceId]/preview/route";
-import { POST as approve } from "@/app/api/connectors/sheets/mapping/[sourceId]/approve/route";
-const context = { params: Promise.resolve({ sourceId: "sheet" }) };
+import { GET } from "@/app/api/connectors/sheets/mapping/[source-id]/route";
+import { POST as preview } from "@/app/api/connectors/sheets/mapping/[source-id]/preview/route";
+import { POST as approve } from "@/app/api/connectors/sheets/mapping/[source-id]/approve/route";
+const context = { params: Promise.resolve({ "source-id": "sheet" }) };
 const req = (body?: string, query = "") =>
   new NextRequest(
     `https://app.test/api/connectors/sheets/mapping/sheet${query}`,

@@ -2,8 +2,8 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "../helpers/render-localized";
 import { describe, it, expect, vi } from "vitest";
 import { ExportAttempt, exportCopy } from "@/lib/scenario-export-client";
-import Panel from "@/components/merchandising/ScenarioExportPanel";
-import type { useScenarioExport } from "@/components/merchandising/useScenarioExport";
+import Panel from "@/components/merchandising/scenario-export-panel/scenario-export-panel";
+import type { useScenarioExport } from "@/components/merchandising/use-scenario-export";
 const receipt = {
   exportId: "e",
   actionId: "a",

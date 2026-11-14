@@ -1,0 +1,61 @@
+"use client";
+import ReportingError from "@/components/merchandising/reporting-error/reporting-error";
+import ReportReadiness from "@/components/merchandising/report-readiness/report-readiness";
+import { Link } from "@/i18n/navigation";
+import { useSearchParams } from "next/navigation";
+import { useLang } from "@/components/language-provider/language-provider";
+import { useMerchandisingFilters } from "@/components/merchandising/merchandising-shell/merchandising-shell";
+import { useMerchandisingScreen } from "@/components/merchandising/use-merchandising-screen";
+import { button } from "@/components/merchandising/report-primitives/report-primitives";
+import { merchandisingHref } from "@/lib/merchandising-navigation";
+import { reorderingCopy } from "@/lib/reordering-copy";
+import ReorderingEditor from "../reordering-editor/reordering-editor";
+export default function ReorderingWorkspace() {
+  const filters = useMerchandisingFilters()!,
+    params = useSearchParams(),
+    { lang } = useLang(),
+    copy = reorderingCopy[lang];
+  const { data, busy, error, refresh } = useMerchandisingScreen(
+    filters,
+    "reordering",
+  );
+  return (
+    <div className="space-y-5">
+      {data && !busy && !error ? <ReportReadiness data={data.readiness} lang={lang}/> : null}
+      <header className="flex flex-wrap justify-between items-start gap-4">
+        <div>
+          <Link
+            className="text-sm text-(--muted) underline underline-offset-4"
+            href={merchandisingHref("/overview", new URLSearchParams(params))}
+          >
+            {copy.back}
+          </Link>
+          <h1 className="mt-3 text-2xl font-bold">{copy.title}</h1>
+          <p className="mt-2 text-sm text-(--muted)">{copy.intro}</p>
+        </div>
+        <button
+          className={button}
+          type="button"
+          onClick={refresh}
+          disabled={busy}
+        >
+          {copy.refresh}
+        </button>
+      </header>
+      {error ? (
+        <ReportingError code={error} lang={lang} onRetry={refresh}/>
+      ) : busy || !data ? (
+        <p role="status">{copy.loading}</p>
+      ) : (
+        <ReorderingEditor
+          key={data.context.snapshotId}
+          snapshotId={data.context.snapshotId}
+          asOf={data.context.asOf}
+          monobrand={data.context.profileMode === "MONOBRAND"}
+          lang={lang}
+          onRefresh={refresh}
+        />
+      )}
+    </div>
+  );
+}

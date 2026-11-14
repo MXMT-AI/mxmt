@@ -6,14 +6,14 @@ vi.mock("@/lib/prisma",()=>({prisma:{}}));vi.mock("next/headers",()=>({cookies:a
 vi.mock("@/lib/market-evidence-store",()=>({getMarketEvidence:m.get,recoverMarketRequest:m.recover}));
 vi.mock("@/lib/market-source-store",()=>({saveMarketSource:m.save,readMarketSource:m.read,approveMarketSource:m.approve}));
 import {POST as get} from "@/app/api/merchandising/market-evidence/route";
-import {POST as save,GET as read} from "@/app/api/merchandising/market-sources/[profileId]/route";
-import {POST as approve} from "@/app/api/merchandising/market-sources/[profileId]/approve/route";
-import {POST as recover} from "@/app/api/merchandising/market-sources/requests/[requestKey]/recover/route";
+import {POST as save,GET as read} from "@/app/api/merchandising/market-sources/[profile-id]/route";
+import {POST as approve} from "@/app/api/merchandising/market-sources/[profile-id]/approve/route";
+import {POST as recover} from "@/app/api/merchandising/market-sources/requests/[request-key]/recover/route";
 import {signAccessToken} from "@/lib/auth";
 import {MarketEvidenceError} from "@/lib/market-evidence";
 import {marketQuery} from "../fixtures/market-evidence";
 const request=(value:unknown={},query="")=>new NextRequest(`https://app.test/api/market-evidence${query}`,{method:"POST",headers:{"content-type":"application/json","x-tenant-id":"forged","x-user-role":"ADMIN"},body:JSON.stringify(value)});
-const params=()=>({params:Promise.resolve({profileId:"market"})});const recovery=()=>({params:Promise.resolve({requestKey:"lookup"})});
+const params=()=>({params:Promise.resolve({"profile-id":"market"})});const recovery=()=>({params:Promise.resolve({"request-key":"lookup"})});
 const login=async(role="ANALYST")=>m.cookies.set("access_token",await signAccessToken({sub:"actor",tenantId:"tenant",role}));
 beforeEach(()=>{vi.stubEnv("JWT_ACCESS_SECRET","synthetic-market-api-secret");vi.clearAllMocks();m.cookies.clear();m.get.mockResolvedValue({status:"unavailable",reason:"SOURCE_ADAPTER_NOT_CONFIGURED"});m.save.mockResolvedValue({state:"draft"});m.read.mockResolvedValue({revision:1});m.approve.mockResolvedValue({state:"approved"});m.recover.mockResolvedValue({state:"RECOVERED"});});
 afterEach(()=>{vi.unstubAllEnvs();vi.restoreAllMocks();});
