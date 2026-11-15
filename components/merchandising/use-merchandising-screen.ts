@@ -4,39 +4,21 @@ import { useRouter } from "@/i18n/navigation";
 import { useSearchParams } from "next/navigation";
 import { apiFetch } from "@/lib/fetch";
 import { readApiJson } from "@/lib/api-response";
-import type { MerchandisingFilters } from "@/lib/merchandising-navigation";
+import { buildScreenSelection, buildScreenReadParams } from "@/lib/client/merchandising-screen-request";
+import type { MerchandisingFilters, MvpScreen } from "@/lib/merchandising-navigation";
 import type { getMerchandisingScreen } from "@/lib/merchandising-screen";
 export type OverviewResponse = Awaited<
   ReturnType<typeof getMerchandisingScreen>
 >;
-const FILTER_KEYS = [
-  "brandId",
-  "categoryId",
-  "skuId",
-  "currency",
-  "channelId",
-] as const;
 
 export function useMerchandisingScreen(
   filters: MerchandisingFilters,
-  screen: "overview" | "sales" | "stock" | "repricing" | "reordering",
+  screen: MvpScreen,
   controls: Record<string, string> = {},
 ) {
   const params = useSearchParams(),
     router = useRouter();
-  const selection = new URLSearchParams({
-    dateFrom: filters.dateFrom,
-    dateTo: filters.dateTo,
-  });
-  for (const key of [
-    "asOf",
-    ...(["repricing", "reordering"].includes(screen) ? [] : FILTER_KEYS),
-  ] as const) {
-    const value = params.get(key);
-    if (value) selection.set(key, value);
-  }
-  for (const [key, value] of Object.entries(controls))
-    selection.set(key, value);
+  const selection = buildScreenSelection(filters, screen, params, controls);
   const signature = selection.toString(),
     snapshotId = params.get("snapshotId");
   const [result, setResult] = useState<{
@@ -53,31 +35,8 @@ export function useMerchandisingScreen(
     const controller = new AbortController();
     const refresh = force.current;
     force.current = false;
-    const readParams = new URLSearchParams({ snapshotId: snapshotId ?? "" });
     const source = new URLSearchParams(signature);
-    for (const key of [
-      ...FILTER_KEYS,
-      ...(screen === "sales"
-        ? ["groupBy", "measure", "metric", "others", "page", "channelPage"]
-        : screen === "stock"
-          ? [
-              "groupBy",
-              "classification",
-              "ownership",
-              "supplierId",
-              "page",
-              "sort",
-              "direction",
-              "categoryPage",
-              "brandPage",
-              "categorySort",
-              "categoryDirection",
-            ]
-          : []),
-    ]) {
-      const value = source.get(key);
-      if (value) readParams.set(key, value);
-    }
+    const readParams = buildScreenReadParams(screen, source, snapshotId);
     if (
       !refresh &&
       snapshotId &&

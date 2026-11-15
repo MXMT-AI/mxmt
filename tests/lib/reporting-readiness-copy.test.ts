@@ -1,5 +1,6 @@
 import { createElement } from "react";
-import { it, expect } from "vitest";
+import { it, expect, vi } from "vitest";
+import { Button } from "@/components/ui/button/button";
 import { renderToStaticMarkup } from "../helpers/render-localized";
 import {
   reportingErrorHelp,
@@ -78,4 +79,27 @@ it("renders actionable Sheets recovery consistently in both languages", () => {
       reportingErrorHelp("SCREEN_DATA_UNAVAILABLE", lang).message,
     );
   }
+});
+
+it("forwards retry to a non-submit button", () => {
+  const onRetry = vi.fn();
+  const panel = ReportingError({ code: "SCREEN_DATA_UNAVAILABLE", lang: "en", onRetry });
+  const retry = panel.props.children[2].props.children[0];
+  expect(retry.type).toBe(Button);
+  const button = Button(retry.props);
+  expect(button.props.type).toBe("button");
+  button.props.onClick!({} as never);
+  expect(onRetry).toHaveBeenCalledOnce();
+});
+
+it.each([undefined, "Sales"])("preserves the optional page heading: %s", title => {
+  const markup = renderToStaticMarkup(createElement(ReportingError, {
+    code: "SCREEN_DATA_UNAVAILABLE", lang: "en", title, onRetry: () => {},
+  }));
+  if (title) {
+    expect(markup).toMatch(/<h1[^>]*>Sales<\/h1>/);
+    expect(markup).toContain("text-2xl");
+    expect(markup).toContain("tracking-normal");
+    expect(markup).toContain("text-inherit");
+  } else expect(markup).not.toContain("<h1");
 });

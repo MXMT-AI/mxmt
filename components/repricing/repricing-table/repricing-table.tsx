@@ -1,16 +1,16 @@
 "use client";
 import ReportTable from "@/components/data-reporting/report-table/report-table";
-import {
-  panel,
-  button,
-  Note,
-} from "@/components/merchandising/report-primitives/report-primitives";
+import { panel } from "@/components/ui/panel/panel-styles";
+import { Button } from "@/components/ui/button/button";
+import { Note } from "@/components/ui/note/note";
 import { formatTableValue as format } from "@/lib/data-reporting-ui";
 import type { DataColumnMetadata } from "@/lib/data-table-api";
 import type { RepricingEdits } from "@/lib/repricing-workspace";
 import type { RepricingCopy } from "@/lib/repricing-copy";
 import type { RepricingPreview, RepricingFailure } from "../use-repricing-preview";
-import { control } from "@/components/merchandising/form-controls/form-controls";
+import { RepricingProductCell } from "../repricing-product-cell/repricing-product-cell";
+import { RepricingDiscountCell } from "../repricing-discount-cell/repricing-discount-cell";
+import { RepricingPriceCell } from "../repricing-price-cell/repricing-price-cell";
 type Row = RepricingPreview["rows"][number];
 export default function RepricingTable({
   monobrand = false,
@@ -57,16 +57,15 @@ export default function RepricingTable({
   ).map(([key, label, type]) => ({ key, label, type }) as DataColumnMetadata);
   const manual = new Map(edits.manualPrices.map((r) => [r.skuId, r.price])),
     selection = new Map(edits.selection.map((r) => [r.skuId, r.included]));
-  const rowError = (row: Row) =>
-    !!error &&
-    manual.has(row.skuId) &&
-    error.details.some(
-      (d) =>
-        d.startsWith(`manualPrices.${row.skuId}:`) ||
-        d.startsWith(
-          `manualPrices.${edits.manualPrices.findIndex((e) => e.skuId === row.skuId)}.`,
-        ),
-    );
+  const invalidSkus = new Set<string>();
+  for (const detail of error?.details ?? []) {
+    const indexed = /^manualPrices\.(\d+)\./.exec(detail);
+    const bySku = /^manualPrices\.([^:]+):/.exec(detail);
+    const skuId = indexed
+      ? edits.manualPrices[Number(indexed[1])]?.skuId
+      : bySku?.[1];
+    if (skuId !== undefined && manual.has(skuId)) invalidSkus.add(skuId);
+  }
   return (
     <section
       className={panel + " overflow-hidden"}
@@ -91,8 +90,6 @@ export default function RepricingTable({
         })}
         renderCell={(raw, column) => {
           const row = raw as Row;
-          const invalid = rowError(row);
-          const errorId = `repricing-price-${row.skuId}`;
           switch (column.key) {
             case "include":
               return (
@@ -111,114 +108,24 @@ export default function RepricingTable({
                 </label>
               );
             case "name":
-              return (
-                <div className="min-w-52 max-w-72 whitespace-normal wrap-break-word">
-                  <strong className="font-semibold">{row.name}</strong>{" "}
-                  <span
-                    className={
-                      row.classification === "RISK"
-                        ? "text-report-warning"
-                        : "text-report-negative"
-                    }
-                  >
-                    {row.classification === "RISK"
-                      ? copy.statuses.RISK
-                      : copy.statuses.DEAD}
-                  </span>
-                  <div className="mt-1 text-(--muted)">
-                    {!monobrand && (
-                      <>
-                        <span translate="no">
-                          {row.brandName ?? copy.unassigned}
-                        </span>{" "}
-                        ·{" "}
-                      </>
-                    )}
-                    {row.categoryName ?? copy.unassigned}
-                    <br />
-                    <span translate="no">{row.sku}</span>
-                  </div>
-                  {row.ownership === "CONSIGNMENT" ? (
-                    <p className={"text-report-warning"}>{copy.consignment}</p>
-                  ) : !row.eligible ? (
-                    <p>{copy.unavailable}</p>
-                  ) : null}
-                </div>
-              );
+              return <RepricingProductCell row={row} copy={copy} monobrand={monobrand} />;
             case "daysWithoutSale":
               return row.neverSold
                 ? copy.neverSold
                 : format(row.daysWithoutSale, "number", locale);
             case "effectiveDiscount":
-              if (!settled) return "—";
-              return (
-                <span>
-                  {format(row.effectiveDiscount, "percentage", locale)}
-                  {row.floorLimited ? (
-                    <small
-                      className={
-                        "text-report-warning block max-w-40 whitespace-normal"
-                      }
-                    >
-                      {copy.floor}
-                    </small>
-                  ) : null}
-                  {row.priceErrors.map((code) => (
-                    <small
-                      className={
-                        "text-report-negative block max-w-40 whitespace-normal"
-                      }
-                      key={code}
-                    >
-                      {code === "AUTOMATIC_PRICE_INCREASE"
-                        ? copy.priceIncreased
-                        : code === "NON_POSITIVE_PRICE"
-                          ? copy.nonPositive
-                          : code === "COST_FLOOR_VIOLATION"
-                            ? copy.costFloor
-                            : copy.belowCost}
-                    </small>
-                  ))}
-                </span>
-              );
+              return <RepricingDiscountCell row={row} copy={copy} locale={locale} settled={settled} />;
             case "newPrice":
               return (
-                <div className="w-36">
-                  <input
-                    aria-label={`${copy.newPrice}: ${row.name}`}
-                    aria-invalid={invalid}
-                    aria-describedby={invalid ? errorId : undefined}
-                    className={control + " text-right tabular-nums"}
-                    name={`price-${row.skuId}`}
-                    inputMode="decimal"
-                    autoComplete="off"
-                    spellCheck={false}
-                    value={manual.get(row.skuId) ?? row.newPrice ?? ""}
-                    disabled={!row.eligible || !canEdit}
-                    onChange={(e) => onPrice(row.skuId, e.target.value)}
-                  />
-                  {manual.has(row.skuId) ? (
-                    <>
-                      <small className="block mt-1">{copy.manual}</small>
-                      <button
-                        type="button"
-                        className="min-h-11 text-xs underline underline-offset-2"
-                        disabled={!canEdit}
-                        onClick={() => onPrice(row.skuId, null)}
-                      >
-                        {copy.restore}
-                      </button>
-                    </>
-                  ) : null}
-                  {invalid ? (
-                    <p
-                      id={errorId}
-                      className={"text-report-negative mt-1 text-xs whitespace-normal"}
-                    >
-                      {copy.manualError}
-                    </p>
-                  ) : null}
-                </div>
+                <RepricingPriceCell
+                  row={row}
+                  value={manual.get(row.skuId)}
+                  edited={manual.has(row.skuId)}
+                  invalid={invalidSkus.has(row.skuId)}
+                  copy={copy}
+                  canEdit={canEdit}
+                  onPrice={onPrice}
+                />
               );
             case "margin":
               if (!settled) return "—";
@@ -248,28 +155,26 @@ export default function RepricingTable({
           aria-label={copy.page}
           className="flex items-center gap-3 border-t border-(--border) p-3 text-xs"
         >
-          <button
-            className={button}
-            type="button"
+          <Button
+            variant="report"
             disabled={data.pagination.page <= 1 || !settled}
             onClick={() => onPage(data.pagination.page - 1)}
           >
             {copy.previous}
-          </button>
+          </Button>
           <span>
             {copy.page} {data.pagination.page} /{" "}
             {Math.max(1, data.pagination.totalPages)}
           </span>
-          <button
-            className={button}
-            type="button"
+          <Button
+            variant="report"
             disabled={
               data.pagination.page >= data.pagination.totalPages || !settled
             }
             onClick={() => onPage(data.pagination.page + 1)}
           >
             {copy.next}
-          </button>
+          </Button>
         </nav>
       ) : null}
     </section>

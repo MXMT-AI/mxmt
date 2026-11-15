@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 const styles = {
   primary: "border-transparent bg-[color:var(--ui-action-primary-bg,var(--action-bg))] text-[color:var(--ui-action-primary-ink,var(--action-ink))] hover:bg-[color:var(--ui-action-primary-hover,var(--action-hover))]",
   secondary: "border-[color:var(--ui-action-secondary-border,var(--border))] bg-[color:var(--ui-action-secondary-bg,transparent)] hover:border-[color:var(--ui-accent,var(--accent))] hover:text-[color:var(--ui-accent,var(--accent))]",
+  guide: "min-h-11 justify-start rounded-lg border-(--border) bg-(--surface) px-4 font-semibold hover:border-(--focus-ring)",
 };
 
 type ActionStyleProps = {

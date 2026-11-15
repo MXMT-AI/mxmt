@@ -6,14 +6,12 @@ type Feature = { title: string; description: string };
 
 export const landingCopy = {
   uk: {
-    skip: "Перейти до основного вмісту",
     announcement: "Підключіть дані свого магазину до MXMT",
     navigation: "Головна навігація",
     menu: "Меню",
     product: "Можливості",
     workflow: "Як це працює",
     integrations: "Інтеграції",
-    documentation: "Документація",
     login: "Увійти",
     register: "Створити кабінет",
     language: "Мова",
@@ -41,14 +39,12 @@ export const landingCopy = {
     closing: "Почніть з даних свого магазину",
   },
   en: {
-    skip: "Skip to main content",
     announcement: "Connect your store data to MXMT",
     navigation: "Main navigation",
     menu: "Menu",
     product: "Product",
     workflow: "How it works",
     integrations: "Integrations",
-    documentation: "Documentation",
     login: "Log in",
     register: "Create a workspace",
     language: "Language",
@@ -76,14 +72,12 @@ export const landingCopy = {
     closing: "Start with your store data",
   },
 } satisfies Record<Locale, {
-  skip: string;
   announcement: string;
   navigation: string;
   menu: string;
   product: string;
   workflow: string;
   integrations: string;
-  documentation: string;
   login: string;
   register: string;
   language: string;

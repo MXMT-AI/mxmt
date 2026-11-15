@@ -1,6 +1,7 @@
 import { createSign } from "crypto";
 import * as XLSX from "xlsx";
 import { fetchWithTimeout } from "@/lib/server-fetch";
+import { buildXlsxWorkbook, type SheetCell } from "@/lib/xlsx-workbook";
 
 
 interface ServiceAccount {
@@ -82,20 +83,8 @@ function translateDriveError(text: string, sa: ServiceAccount, folderId: string 
   return `Google Drive API: ${text.slice(0, 400)}`;
 }
 
-export function valuesToXlsxBuffer(values: (string | number)[][], sheetName: string): Buffer {
-  const ws = XLSX.utils.aoa_to_sheet(values);
-  for (const addr of Object.keys(ws)) {
-    if (addr.startsWith("!")) continue;
-    const cell: any = (ws as any)[addr];
-    if (cell && typeof cell.v === "string" && cell.v.startsWith("=")) {
-      cell.f = cell.v.slice(1);
-      cell.t = "n";
-      cell.v = 0;
-    }
-  }
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, sheetName);
-  return XLSX.write(wb, { type: "buffer", bookType: "xlsx" }) as Buffer;
+export function valuesToXlsxBuffer(values: SheetCell[][], sheetName: string): Buffer {
+  return XLSX.write(buildXlsxWorkbook(XLSX, values, sheetName), { type: "buffer", bookType: "xlsx" }) as Buffer;
 }
 
 export interface CreatedSheet {

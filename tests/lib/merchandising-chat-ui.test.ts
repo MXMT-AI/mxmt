@@ -2,7 +2,8 @@ import {createElement} from "react";
 import {renderToStaticMarkup} from "../helpers/render-localized";
 import {expect,it,vi} from "vitest";
 vi.mock("next/link",()=>({default:({children,...props}:Record<string,unknown>)=>createElement("a",props,children as string)}));
-import MerchandisingChat,{ChatReply} from "@/components/merchandising/merchandising-chat/merchandising-chat";
+import {ChatReply} from "@/components/merchandising/chat-reply/chat-reply";
+import MerchandisingChat from "@/components/merchandising/merchandising-chat/merchandising-chat";
 import type {MerchandisingChatReply} from "@/lib/merchandising-chat-contract";
 const reply:MerchandisingChatReply={mode:"fallback",code:"AI_POLICY_REQUIRED",answer:null,citations:[],cards:[
  {id:"gp",label:"grossProfit",value:"0.0000",currency:"UAH",unit:"money",status:"partial",evidenceRef:"/sales/0/current/coveredGrossProfit",href:"/sales?snapshotId=frozen"},

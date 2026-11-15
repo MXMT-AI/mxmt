@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { ArrowLeft } from "lucide-react";
-import { getLocale } from "next-intl/server";
-import { BrandMark } from "@/components/brand-mark/brand-mark";
-import { ThemeToggle } from "@/components/theme-provider/theme-provider";
-import { getPathname, Link } from "@/i18n/navigation";
+import { getLocale, getTranslations } from "next-intl/server";
+import { BrandLink } from "@/components/brand-link/brand-link";
+import { Heading } from "@/components/ui/heading/heading";
+import { Text } from "@/components/ui/text/text";
+import { mainContentId, SkipLink } from "@/components/ui/skip-link/skip-link";
+import { Link } from "@/i18n/navigation";
 import { CsvGuide } from "../csv-guide/csv-guide";
 import { SheetsGuide } from "../sheets-guide/sheets-guide";
 import { docsCopy } from "./copy";
@@ -24,36 +26,26 @@ export default async function DocumentationPage({
 }: {
   searchParams: Promise<{ tab?: string | string[] }>;
 }) {
-  const [locale, { tab }] = await Promise.all([getLocale(), searchParams]);
+  const [locale, { tab }, t] = await Promise.all([getLocale(), searchParams, getTranslations()]);
   const copy = docsCopy[locale];
-  const alternateLocale = locale === "uk" ? "en" : "uk";
   const activeTab = tab === "google-sheets" ? sourceTabs[1] : sourceTabs[0];
-  const alternatePath = getPathname({ href: "/docs", locale: alternateLocale });
 
   return (
     <>
+      <SkipLink />
       <header className="border-b border-(--border) bg-(--surface)">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-5 py-3 sm:px-8">
-          <Link href="/" className="inline-flex items-center gap-2 rounded-md text-sm font-semibold">
-            <BrandMark transparent />
-            MXMT Analytics
-          </Link>
-          <div className="flex flex-wrap items-center gap-3">
-            <a href={activeTab.id === "google-sheets" ? `${alternatePath}?tab=google-sheets` : alternatePath} hrefLang={alternateLocale} lang={alternateLocale} className="text-sm text-(--muted) hover:text-(--text)">
-              {copy.language}
-            </a>
-            <ThemeToggle />
-          </div>
+          <BrandLink variant="documentation" />
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-5 pb-14 sm:px-8">
+      <main id={mainContentId} tabIndex={-1} className="mx-auto max-w-5xl px-5 pb-14 sm:px-8">
         <div className="py-10 sm:py-14">
           <Link href="/" className="mb-5 inline-flex items-center gap-2 text-sm text-(--focus-ring)">
-            <ArrowLeft size={16} aria-hidden="true" />{copy.home}
+            <ArrowLeft size={16} aria-hidden="true" />{t("nav_back_home")}
           </Link>
-          <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">{copy.title}</h1>
-          <p className="mt-3 max-w-2xl text-lg text-(--muted)">{copy.description}</p>
+          <Heading as="h1" variant="page" className="text-4xl font-semibold tracking-tight sm:text-5xl">{copy.title}</Heading>
+          <Text variant="body" className="mt-3 max-w-2xl text-lg leading-7">{copy.description}</Text>
           <nav aria-label={copy.sources} className="mt-7 grid grid-cols-2 divide-x divide-(--border) border border-(--border)">
             {sourceTabs.map((source) => (
               <Link

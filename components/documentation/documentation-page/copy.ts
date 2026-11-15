@@ -2,9 +2,7 @@ export const docsCopy = {
   uk: {
     title: "Документація",
     description: "Підключіть демонстраційні дані через CSV або Google Sheets і перевірте звіти MXMT.",
-    home: "На головну",
     sources: "Джерела даних",
-    language: "English",
     training: "Демонабір",
     trainingIntro: "DEMO-2026-FULL-v3 — синтетичні дані магазину одягу для тренування в MXMT. Повний набір охоплює 96 SKU, 4 348 подій замовлень, 645 надходжень і 36 192 спостереження залишків. Для вправи нижче підготували вибірку з цього набору за вересень 2026 року: 6 SKU, 26 рядків замовлень і 180 спостережень залишків.",
     files: ["Товари", "Датовані залишки", "Рядки замовлень"],
@@ -44,9 +42,7 @@ export const docsCopy = {
   en: {
     title: "Documentation",
     description: "Connect the demo dataset through CSV or Google Sheets and check your MXMT reports.",
-    home: "Home",
     sources: "Data sources",
-    language: "Українська",
     training: "Demo dataset",
     trainingIntro: "DEMO-2026-FULL-v3 is a synthetic fashion retail dataset for practising in MXMT. The full dataset contains 96 SKUs, 4,348 order events, 645 receipts and 36,192 stock observations. The exercise uses a September 2026 extract with 6 SKUs, 26 order lines and 180 stock observations.",
     files: ["Products", "Dated stock", "Order lines"],

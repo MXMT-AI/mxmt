@@ -8,12 +8,14 @@ export function DisclosureMenu({
   className,
   summaryClassName,
   panelClassName,
+  closeOnSelect = false,
   children,
 }: {
   label: ReactNode;
   className: string;
   summaryClassName: string;
   panelClassName: string;
+  closeOnSelect?: boolean;
   children: ReactNode;
 }) {
   const menu = useRef<HTMLDetailsElement>(null);
@@ -35,7 +37,7 @@ export function DisclosureMenu({
     >
       <summary ref={summary} className={cn("cursor-pointer list-none [&::-webkit-details-marker]:hidden", summaryClassName)}>{label}</summary>
       <div className={cn("absolute border border-[color:var(--ui-menu-border,var(--border))] bg-[color:var(--ui-menu-bg,var(--surface))]", panelClassName)} onClick={(event) => {
-        if (event.target instanceof Element && event.target.closest("a") && menu.current) {
+        if (event.target instanceof Element && event.target.closest(closeOnSelect ? "a, button" : "a") && menu.current) {
           summary.current?.focus();
           menu.current.open = false;
         }

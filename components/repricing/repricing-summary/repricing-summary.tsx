@@ -1,8 +1,7 @@
-import {
-  panel,
-  button,
-  Note,
-} from "@/components/merchandising/report-primitives/report-primitives";
+import { panel } from "@/components/ui/panel/panel-styles";
+import { Button } from "@/components/ui/button/button";
+import { MetricTile } from "@/components/ui/metric-tile/metric-tile";
+import { Note } from "@/components/ui/note/note";
 import { formatTableValue as format } from "@/lib/data-reporting-ui";
 import type { RepricingCopy } from "@/lib/repricing-copy";
 import type { RepricingPreview } from "../use-repricing-preview";
@@ -24,13 +23,13 @@ export default function RepricingSummary({
   const totals = current ? data?.totals : null;
   const noEligible = current && data?.counts.eligibleSkuCount === 0;
   const values = [
-    [copy.capital, totals?.costCapital, "money"],
-    [copy.revenue, totals?.potentialRevenue, "money"],
-    [copy.weighted, totals?.weightedDiscount, "percentage"],
-    [copy.profit, totals?.grossProfit, "money"],
-    [copy.grossMargin, totals?.grossMargin, "percentage"],
-    [copy.selectedSkus, totals?.skuCount, "number"],
-    [copy.duration, totals?.durationDays, "number"],
+    { key: "capital", label: copy.capital, value: totals?.costCapital, type: "money", primary: false },
+    { key: "revenue", label: copy.revenue, value: totals?.potentialRevenue, type: "money", primary: true },
+    { key: "weighted", label: copy.weighted, value: totals?.weightedDiscount, type: "percentage", primary: false },
+    { key: "profit", label: copy.profit, value: totals?.grossProfit, type: "money", primary: false },
+    { key: "grossMargin", label: copy.grossMargin, value: totals?.grossMargin, type: "percentage", primary: false },
+    { key: "selectedSkus", label: copy.selectedSkus, value: totals?.skuCount, type: "number", primary: false },
+    { key: "duration", label: copy.duration, value: totals?.durationDays, type: "number", primary: false },
   ] as const;
   return (
     <section
@@ -43,27 +42,31 @@ export default function RepricingSummary({
         <h2 id="repricing-summary" className="font-semibold">
           {copy.summary}
         </h2>
-        <button
-          type="button"
-          className={button + " disabled:opacity-50"}
+        <Button
+          variant="report"
           disabled={!onExport || exporting || !current}
           onClick={onExport}
           aria-describedby="repricing-export-note"
         >
           {copy.csv}
-        </button>
+        </Button>
       </div>
       <dl className="grid grid-cols-2 gap-5 md:grid-cols-4">
-        {values.map(([label, value, type]) => (
-          <div key={label}>
-            <dt className="text-xs text-(--muted)">{label}</dt>
-            <dd className={`mt-1 text-lg font-semibold tabular-nums wrap-break-word ${label === copy.revenue ? "scenario-key-value" : ""}`}>
-              {format(noEligible && type === "money" ? null : value, type, locale)}
-              {!noEligible && value !== undefined && value !== null && type === "money" ? (
-                <small className="ml-1 text-xs">UAH</small>
-              ) : null}
-            </dd>
-          </div>
+        {values.map(({ key, label, value, type, primary }) => (
+          <MetricTile
+            key={key}
+            variant="scenario"
+            label={label}
+            valueClassName={`wrap-break-word ${primary ? "scenario-key-value" : ""}`}
+            value={
+              <>
+                {format(noEligible && type === "money" ? null : value, type, locale)}
+                {!noEligible && value !== undefined && value !== null && type === "money" ? (
+                  <small className="ml-1 text-xs">UAH</small>
+                ) : null}
+              </>
+            }
+          />
         ))}
       </dl>
       <Note>{copy.basis}</Note>

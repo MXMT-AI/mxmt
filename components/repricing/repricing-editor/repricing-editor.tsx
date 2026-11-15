@@ -1,17 +1,11 @@
 "use client";
-import { profileFilters } from "@/lib/merchandising-profile";
-import { useEffect, useReducer, useRef } from "react";
-import { useSearchParams } from "next/navigation";
-import {
-  initialRepricingState,
-  readRepricingDraft,
-  writeRepricingDraft,
-  repricingWorkspaceReducer,
-  type RepricingDraft,
-} from "@/lib/repricing-workspace";
+import { useEffect, useRef } from "react";
+import { useRepricingEditor } from "../use-repricing-editor";
 import { repricingCopy } from "@/lib/repricing-copy";
 import type { Lang } from "@/lib/translations";
-import { button, Note } from "@/components/merchandising/report-primitives/report-primitives";
+import { Button } from "@/components/ui/button/button";
+import { AlertPanel } from "@/components/ui/alert-panel/alert-panel";
+import { Note } from "@/components/ui/note/note";
 import { useRepricingInputs, useRepricingPreview } from "../use-repricing-preview";
 import RepricingControls from "../repricing-controls/repricing-controls";
 import RepricingTable from "../repricing-table/repricing-table";
@@ -30,38 +24,14 @@ export default function RepricingEditor({
   lang: Lang;
   onRefresh: () => void;
 }) {
-  const params = useSearchParams(),
-    query = params.toString(),
-    copy = repricingCopy[lang],
-    locale = lang === "uk" ? "uk-UA" : "en-GB";
-  const [state, dispatch] = useReducer(
-    repricingWorkspaceReducer,
-    query,
-    (q) => ({
-      ...initialRepricingState(readRepricingDraft(new URLSearchParams(q))),
-      page: new URLSearchParams(q).has("page")
-        ? Number(new URLSearchParams(q).get("page"))
-        : 1,
-    }),
-  );
-  const lastUrl = useRef(query);
-  useEffect(() => {
-    if (query !== lastUrl.current) {
-      lastUrl.current = query;
-      dispatch({
-        type: "draft",
-        draft: readRepricingDraft(new URLSearchParams(query)),
-      });
-      const page = new URLSearchParams(query).get("page");
-      if (page) dispatch({ type: "page", page: Number(page) });
-    }
-  }, [query]);
+  const { state, draft, change, changePage, changeSelection, changePrice } = useRepricingEditor(monobrand);
+  const copy = repricingCopy[lang];
+  const locale = lang === "uk" ? "uk-UA" : "en-GB";
   const inputs = useRepricingInputs(snapshotId),
     context = useRef<string | undefined>(undefined);
   const request = {
     inputSetId: inputs.data?.inputSetId ?? null,
-    ...state.draft,
-    filters: profileFilters(state.draft.filters, monobrand),
+    ...draft,
     ...state.edits,
     ...(state.edits.selection.length || state.edits.manualPrices.length
       ? { editContext: context.current }
@@ -76,28 +46,13 @@ export default function RepricingEditor({
     if (preview.current && preview.data)
       context.current = preview.data.editContext;
   }, [preview.current, preview.data]);
-  function change(draft: RepricingDraft) {
-    dispatch({ type: "draft", draft });
-    const next = writeRepricingDraft(
-      new URLSearchParams(window.location.search),
-      draft,
-    );
-    lastUrl.current = next.toString();
-    window.history.replaceState(
-      null,
-      "",
-      `${window.location.pathname}?${next}`,
-    );
-  }
   const error = inputs.error ?? preview.error;
+  const ready = preview.current && !error;
   return (
     <div className="space-y-5">
       <RepricingControls
         monobrand={monobrand}
-        draft={{
-          ...state.draft,
-          filters: profileFilters(state.draft.filters, monobrand),
-        }}
+        draft={draft}
         onChange={change}
         data={preview.data}
         error={error}
@@ -117,12 +72,9 @@ export default function RepricingEditor({
               : ""}
       </div>
       {error ? (
-        <div
-          role="alert"
-          className="rounded-lg border border-(--border) p-4 space-y-3"
-        >
-          <p>
-            {error.code === "REPRICING_SOURCE_CHANGED" ||
+        <AlertPanel
+          className="bg-transparent p-4"
+          message={error.code === "REPRICING_SOURCE_CHANGED" ||
             error.code === "SCREEN_SELECTION_MISMATCH"
               ? copy.sourceChanged
               : error.code === "STALE_REPRICING_EDITS"
@@ -131,20 +83,19 @@ export default function RepricingEditor({
                     error.code === "INVALID_MANUAL_REPRICING_PRICE"
                   ? copy.invalid
                   : copy.error}
-          </p>
+        >
           <div className="flex flex-wrap gap-2">
-            <button
-              className={button}
-              type="button"
+            <Button
+              variant="report"
               onClick={inputs.error ? inputs.retry : preview.retry}
             >
               {copy.retry}
-            </button>
-            <button className={button} type="button" onClick={onRefresh}>
+            </Button>
+            <Button variant="report" onClick={onRefresh}>
               {copy.refresh}
-            </button>
+            </Button>
           </div>
-        </div>
+        </AlertPanel>
       ) : null}
       {inputs.data ? (
         <Note>
@@ -169,21 +120,9 @@ export default function RepricingEditor({
           canEdit={preview.sameControls && !inputs.error}
           settled={preview.current}
           error={preview.error}
-          onSelection={(skuId, included) =>
-            dispatch({ type: "selection", skuId, included })
-          }
-          onPrice={(skuId, price) => dispatch({ type: "price", skuId, price })}
-          onPage={(page) => {
-            dispatch({ type: "page", page });
-            const next = new URLSearchParams(window.location.search);
-            next.set("page", String(page));
-            lastUrl.current = next.toString();
-            window.history.replaceState(
-              null,
-              "",
-              `${window.location.pathname}?${next}`,
-            );
-          }}
+          onSelection={changeSelection}
+          onPrice={changePrice}
+          onPage={changePage}
         />
       ) : null}
       {preview.current && preview.data?.counts.blockedSelectedSkuCount ? (
@@ -193,12 +132,12 @@ export default function RepricingEditor({
       ) : null}
       <RepricingSummary
         data={preview.data}
-        current={preview.current && !error}
+        current={ready}
         copy={copy}
         locale={locale}
         exporting={exportState.busy}
         onExport={
-          allowed && preview.current && !error && preview.data?.canExport
+          allowed && ready && preview.data?.canExport
             ? () => void exportState.prepare(preview.data!.previewId, request)
             : undefined
         }

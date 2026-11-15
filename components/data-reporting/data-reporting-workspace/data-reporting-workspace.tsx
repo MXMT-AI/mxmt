@@ -3,15 +3,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
-  CalendarDays,
   Calculator,
-  CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  Columns3,
   LoaderCircle,
   RefreshCw,
-  Search,
   UploadCloud,
 } from "lucide-react";
 import {
@@ -21,15 +17,23 @@ import {
   sheetsRefreshMessage,
 } from "@/lib/client/sheets-reporting";
 import { apiFetch } from "@/lib/fetch";
+import { hasRole } from "@/lib/roles";
 import { rawImportIsLive } from "@/lib/data-import-policy";
 import { scheduleRawImportStatusCheck } from "@/lib/client/raw-import-status";
 import { Link } from "@/i18n/navigation";
+import { Button } from "@/components/ui/button/button";
+import { Heading } from "@/components/ui/heading/heading";
+import { Text } from "@/components/ui/text/text";
+import { ReportPeriodControls } from "../report-period-controls/report-period-controls";
+import { ReportStatusCard } from "../report-status-card/report-status-card";
+import { ReportTableToolbar } from "../report-table-toolbar/report-table-toolbar";
+import { useReportTable } from "../use-report-table";
+import { responseMessage } from "../response-message";
 import ReportTable from "../report-table/report-table";
 import { useLang } from "@/components/language-provider/language-provider";
 import type {
   DataColumnMetadata,
   DataTableKey,
-  DataTableResponse,
 } from "@/lib/data-table-api";
 import {
   currentKyivMonth,
@@ -38,12 +42,7 @@ import {
   validateReportPeriod,
 } from "@/lib/data-reporting-ui";
 
-export interface InitialTablePreference {
-  visibleColumns: string[];
-  pageSize: number;
-  sortColumn: string | null;
-  sortDirection: "asc" | "desc";
-}
+import { normalizeTablePreferences, type InitialTablePreference } from "@/lib/data-table-preferences";
 
 interface Props {
   userRole: string;
@@ -171,39 +170,6 @@ const COPY = {
   },
 } as const;
 
-const DEFAULT_PREFERENCE: InitialTablePreference = {
-  visibleColumns: [],
-  pageSize: 50,
-  sortColumn: null,
-  sortDirection: "asc",
-};
-
-function normalizePreferences(
-  initial: Partial<Record<DataTableKey, InitialTablePreference>>
-): Record<DataTableKey, InitialTablePreference> {
-  return Object.fromEntries(
-    TABLES.map(({ key }) => [key, { ...DEFAULT_PREFERENCE, ...initial[key] }])
-  ) as Record<DataTableKey, InitialTablePreference>;
-}
-
-async function responseMessage(response: Response, lang: "uk" | "en" = "en"): Promise<string> {
-  const fallback = `${response.status} ${response.statusText}`.trim();
-  const payload = await response.json().catch(() => null) as
-    | { error?: string | { message?: string }; message?: string; code?: string }
-    | null;
-  if (payload?.code === "RAW_IMPORT_IN_PROGRESS") return lang === "uk"
-    ? "Імпорт ще виконується. Стан оновлюється автоматично. Якщо запуск перервався, через 10 хвилин від його початку можна повторити імпорт."
-    : "Import is running. Status updates automatically. An interrupted run can be retried 10 minutes after it started.";
-  if (payload?.code === "RAW_IMPORT_EXPIRED") return lang === "uk"
-    ? "Час імпорту вичерпано. Попередні дані збережені. Запустіть імпорт знову."
-    : "The import expired. Previous data is retained. Start the import again.";
-  if (typeof payload?.error === "string") return payload.error;
-  if (payload?.error && typeof payload.error === "object" && payload.error.message) {
-    return payload.error.message;
-  }
-  return payload?.message ?? fallback;
-}
-
 function dateTime(value: string | null | undefined, locale: string): string {
   if (!value) return "—";
   const date = new Date(value);
@@ -212,27 +178,17 @@ function dateTime(value: string | null | undefined, locale: string): string {
     : new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(date);
 }
 
-function statusTone(status: string | null | undefined): string {
-  if (status === "SUCCESS") return "text-emerald-400 bg-emerald-400/10 border-emerald-400/20";
-  if (status === "WARNING") return "text-amber-400 bg-amber-400/10 border-amber-400/20";
-  if (status === "RUNNING" || status === "PENDING") return "text-sky-400 bg-sky-400/10 border-sky-400/20";
-  return "text-(--muted) bg-(--input-bg) border-(--border)";
-}
-
 export default function DataReportingWorkspace({ userRole, initialPreferences }: Props) {
   const { lang } = useLang();
   const copy = COPY[lang];
   const locale = lang === "uk" ? "uk-UA" : "en-GB";
   const [activeTab, setActiveTab] = useState<DataTableKey>("product_yml");
-  const [preferences, setPreferences] = useState(() => normalizePreferences(initialPreferences));
-  const [table, setTable] = useState<DataTableResponse | null>(null);
+  const [preferences, setPreferences] = useState(() => normalizeTablePreferences(initialPreferences));
   const [status, setStatus] = useState<DataStatus | null>(null);
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(true);
   const [statusLoading, setStatusLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [action, setAction] = useState<"import" | "calculate" | "projection" | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [reportsReady,setReportsReady]=useState(false);
@@ -247,8 +203,8 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
   const periodInitialized = useRef(false);
 
   const preference = preferences[activeTab];
-  const canImport = ["ADMIN", "SUPER_ADMIN"].includes(userRole.toUpperCase());
-  const canCalculate = ["ANALYST", "ADMIN", "SUPER_ADMIN"].includes(userRole.toUpperCase());
+  const canImport = hasRole(userRole.toUpperCase(), "ADMIN");
+  const canCalculate = hasRole(userRole.toUpperCase(), "ANALYST");
 
   const loadStatus = useCallback(async (signal?: AbortSignal, quiet = false) => {
     if (!quiet) setStatusLoading(true);
@@ -316,41 +272,9 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
     periodInitialized.current = true;
   }, [status, statusLoading]);
 
-  useEffect(() => {
-    const controller = new AbortController();
-    const params = new URLSearchParams({
-      page: String(page),
-      pageSize: String(preference.pageSize),
-      direction: preference.sortDirection,
-    });
-    if (search) params.set("search", search);
-    if (preference.sortColumn) params.set("sort", preference.sortColumn);
-
-    setLoading(true);
-    setTable(null);
-    setError(null);
-    fetch(`/api/data/tables/${activeTab}?${params}`, { cache: "no-store", signal: controller.signal })
-      .then(async (response) => {
-        if (!response.ok) throw new Error(await responseMessage(response));
-        return response.json() as Promise<DataTableResponse>;
-      })
-      .then((result) => {
-        setTable(result);
-        if (result.pagination.totalPages > 0 && page > result.pagination.totalPages) {
-          setPage(result.pagination.totalPages);
-        }
-      })
-      .catch((loadError) => {
-        if (!(loadError instanceof DOMException && loadError.name === "AbortError")) {
-          setTable(null);
-          setError(loadError instanceof Error ? loadError.message : "Could not load data");
-        }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
-      });
-    return () => controller.abort();
-  }, [activeTab, page, preference.pageSize, preference.sortColumn, preference.sortDirection, reloadVersion, search]);
+  const { table, loading, error } = useReportTable({
+    activeTab, page, preference, reloadVersion, search, onPageChange: setPage,
+  });
 
   const visibleKeys = useMemo(
     () => resolveVisibleColumns(table?.columns ?? [], preference.visibleColumns),
@@ -392,7 +316,6 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
     setPage(1);
     setSearchInput("");
     setSearch("");
-    setError(null);
     setSaveState("idle");
   }
 
@@ -477,33 +400,33 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
       <header className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-5 mb-6">
         <div>
           <p className="text-[10px] font-mono uppercase tracking-[0.22em] text-accent-cyan mb-2">{copy.eyebrow}</p>
-          <h1 className="text-2xl font-semibold text-(--text)">{copy.title}</h1>
-          <p className="text-sm text-(--muted) mt-1 max-w-2xl">{copy.subtitle}</p>
+          <Heading as="h1" variant="page" className="text-2xl font-semibold tracking-normal">{copy.title}</Heading>
+          <Text variant="body" className="mt-1 max-w-2xl leading-5">{copy.subtitle}</Text>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button type="button" onClick={() => {setActionError(null);setRefreshMessage(true);setReloadVersion((value) => value + 1);}}
+          <Button type="button" onClick={() => {setActionError(null);setRefreshMessage(true);setReloadVersion((value) => value + 1);}}
             disabled={loading || statusLoading}
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-(--border) bg-(--surface) text-sm text-(--muted) hover:text-(--text) hover:bg-(--input-hover) disabled:opacity-50 transition-colors">
+            className="inline-flex items-center gap-2 px-3 py-2 font-sans rounded-lg border border-(--border) bg-(--surface) text-sm text-(--muted) hover:text-(--text) hover:bg-(--input-hover) disabled:opacity-50 transition-colors">
             <RefreshCw size={14} className={loading || statusLoading ? "animate-spin" : ""} />
             {lang === "uk" ? "Оновити перегляд" : "Refresh view"}
-          </button>
+          </Button>
           {canCalculate && (
-            <button type="button" onClick={() => void runAction("calculate")} disabled={action !== null || !status?.activeImport}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-(--border) bg-(--surface) text-sm text-(--text) hover:bg-(--input-hover) disabled:opacity-50 transition-colors">
+            <Button type="button" onClick={() => void runAction("calculate")} disabled={action !== null || !status?.activeImport}
+              className="inline-flex items-center gap-2 px-3 py-2 font-sans rounded-lg border border-(--border) bg-(--surface) text-sm text-(--text) hover:bg-(--input-hover) disabled:opacity-50 transition-colors">
               {action === "calculate" ? <LoaderCircle size={14} className="animate-spin" /> : <Calculator size={14} />}
               {action === "calculate" ? copy.calculating : copy.calculate}
-            </button>
+            </Button>
           )}
-          {canImport && <button type="button" onClick={()=>void runAction("projection")} disabled={action!==null||!canRefreshReports}
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-(--border) text-sm text-(--text) disabled:opacity-50 focus-visible:outline-solid focus-visible:outline-2">
+          {canImport && <Button type="button" onClick={()=>void runAction("projection")} disabled={action!==null||!canRefreshReports}
+            className="inline-flex items-center gap-2 px-3 py-2 font-sans rounded-lg border border-(--border) text-sm text-(--text) disabled:opacity-50 focus-visible:outline-solid focus-visible:outline-2">
             {action==="projection"?<LoaderCircle size={14} className="animate-spin"/>:<RefreshCw size={14}/>}{lang==="uk"?"Оновити MVP-звіти":"Refresh MVP reports"}
-          </button>}
+          </Button>}
           {canImport && (
-            <button type="button" onClick={() => void runAction("import")} disabled={action !== null || !status?.connection || rawImportIsLive(status?.latestImport ?? null)}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-accent-fill text-[#03110f] text-sm font-semibold hover:bg-[#36ecd2] disabled:opacity-50 transition-colors">
+            <Button type="button" onClick={() => void runAction("import")} disabled={action !== null || !status?.connection || rawImportIsLive(status?.latestImport ?? null)}
+              variant="accent" className="inline-flex items-center gap-2 px-3 py-2">
               {action === "import" ? <LoaderCircle size={14} className="animate-spin" /> : <UploadCloud size={14} />}
               {action === "import" ? copy.importing : copy.import}
-            </button>
+            </Button>
           )}
         </div>
       </header>
@@ -526,140 +449,65 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
         ? (lang === "uk" ? "Імпорт виконується; показано попередні дані. Стан перевіряється кожні 10 секунд." : "Import is running; previous data is shown. Status is checked every 10 seconds.")
         : (lang === "uk" ? "Попередній імпорт перевищив час виконання. Натисніть «Імпортувати» для відновлення; старі дані збережені." : "The previous import exceeded its execution window. Click Import to recover; previous data is retained.")}</p>}
 
-      <section aria-labelledby="report-period-heading" className="mb-4 rounded-xl border border-(--border) bg-(--surface) px-4 py-3">
-        <div className="flex flex-col xl:flex-row xl:items-end gap-3 xl:gap-5">
-          <div className="flex items-start gap-2 xl:min-w-72">
-            <CalendarDays size={16} className="mt-0.5 shrink-0 text-accent-cyan" />
-            <div>
-              <h2 id="report-period-heading" className="text-sm font-medium text-(--text)">{copy.reportPeriod}</h2>
-              <p className="mt-0.5 text-[11px] text-(--muted)">{copy.periodHelp}</p>
-            </div>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <label className="grid gap-1 text-[11px] text-(--muted)">
-              <span>{copy.dateFrom}</span>
-              <input type="date" value={dateFrom} max={dateTo || undefined}
-                aria-invalid={Boolean(periodError)}
-                onChange={(event) => { setDateFrom(event.target.value); setPeriodError(null); }}
-                className="h-9 rounded-lg border border-(--border) bg-(--input-bg) px-3 text-sm text-(--text)" />
-            </label>
-            <label className="grid gap-1 text-[11px] text-(--muted)">
-              <span>{copy.dateTo}</span>
-              <input type="date" value={dateTo} min={dateFrom || undefined}
-                aria-invalid={Boolean(periodError)}
-                onChange={(event) => { setDateTo(event.target.value); setPeriodError(null); }}
-                className="h-9 rounded-lg border border-(--border) bg-(--input-bg) px-3 text-sm text-(--text)" />
-            </label>
-          </div>
-        </div>
-        {periodError && <p role="alert" className="mt-2 text-xs text-red-400">{periodError}</p>}
-      </section>
+      <ReportPeriodControls
+        copy={copy} dateFrom={dateFrom} dateTo={dateTo} error={periodError}
+        onDateFromChange={(value) => { setDateFrom(value); setPeriodError(null); }}
+        onDateToChange={(value) => { setDateTo(value); setPeriodError(null); }}
+      />
 
       {reportsReady && <p role="status" className="mb-4 text-sm text-(--text)">{lang==="uk"?"Дані MVP-звітів оновлено. ":"MVP report inputs refreshed. "}<Link className="underline" href="/overview">{lang==="uk"?"Відкрити Огляд":"Open Overview"}</Link></p>}
       {actionError && (
-        <div role="alert" className="mb-4 flex items-start gap-2 rounded-lg border border-red-400/20 bg-red-400/10 px-3 py-2.5 text-sm text-red-300">
+        <div role="alert" className="mb-4 flex items-start gap-2 rounded-lg border border-red-400/20 bg-red-400/10 px-3 py-2.5 text-sm text-accent-danger">
           <AlertTriangle size={15} className="mt-0.5 shrink-0" />
           <span>{actionError}</span>
         </div>
       )}
 
       <section aria-label="Data status" className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-6">
-        <StatusCard label={copy.source} value={status?.source?.name ?? copy.noSource}
+        <ReportStatusCard label={copy.source} value={status?.source?.name ?? copy.noSource}
           detail={status?.source?.timezone ?? "Europe/Kyiv"} loading={statusLoading} />
-        <StatusCard label={copy.lastImport} value={dateTime(lastImportDate, locale)}
+        <ReportStatusCard label={copy.lastImport} value={dateTime(lastImportDate, locale)}
           detail={status?.activeImport?.status ?? status?.latestImport?.status ?? copy.noRuns}
-          badgeClass={statusTone(status?.activeImport?.status ?? status?.latestImport?.status)} loading={statusLoading} />
-        <StatusCard label={copy.report} value={dateTime(calculationDate, locale)}
+          status={status?.activeImport?.status ?? status?.latestImport?.status} loading={statusLoading} />
+        <ReportStatusCard label={copy.report} value={dateTime(calculationDate, locale)}
           detail={status?.calculation?.status ?? copy.noRuns}
-          badgeClass={statusTone(status?.calculation?.status)} loading={statusLoading} />
-        <StatusCard label={copy.issues} value={String(issueTotal)}
+          status={status?.calculation?.status} loading={statusLoading} />
+        <ReportStatusCard label={copy.issues} value={String(issueTotal)}
           detail={issueTotal > 0 ? copy.warning : copy.success}
-          badgeClass={issueTotal > 0 ? statusTone("WARNING") : statusTone("SUCCESS")} loading={statusLoading} />
+          status={issueTotal > 0 ? "WARNING" : "SUCCESS"} loading={statusLoading} />
       </section>
 
       <section className="rounded-xl border border-(--border) bg-(--surface) overflow-hidden">
         <div className="overflow-x-auto border-b border-(--border)">
           <div role="tablist" aria-label={copy.title} className="flex min-w-max px-2 pt-2">
             {TABLES.map((item) => (
-              <button key={item.key} id={`tab-${item.key}`} role="tab"
+              <Button key={item.key} id={`tab-${item.key}`} role="tab"
                 aria-selected={activeTab === item.key} aria-controls="data-table-panel"
                 type="button" onClick={() => selectTab(item.key)}
-                className={`px-4 py-3 border-b-2 text-xs font-mono font-semibold tracking-wide transition-colors ${
+                className={`rounded-none border-x-0 border-t-0 px-4 py-3 border-b-2 text-xs font-mono font-semibold tracking-wide transition-colors ${
                   activeTab === item.key
                     ? "border-accent-cyan text-accent-cyan"
                     : "border-transparent text-(--muted) hover:text-(--text)"
                 }`}>
                 {item.label}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
 
-        <div className="p-3 md:p-4 flex flex-col lg:flex-row lg:items-center gap-3 border-b border-(--border) bg-(--row)">
-          <form className="flex min-w-0 flex-1 max-w-xl" onSubmit={(event) => {
-            event.preventDefault();
-            setPage(1);
-            setSearch(searchInput.trim());
-          }}>
-            <label className="sr-only" htmlFor="data-search">{copy.search}</label>
-            <div className="relative min-w-0 flex-1">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-(--subtle)" />
-              <input id="data-search" value={searchInput} onChange={(event) => setSearchInput(event.target.value)}
-                placeholder={copy.search}
-                className="w-full h-9 pl-9 pr-3 rounded-l-lg border border-(--border) bg-(--input-bg) text-sm text-(--text) placeholder:text-(--subtle)" />
-            </div>
-            <button type="submit" className="h-9 px-3 rounded-r-lg border-y border-r border-(--border) bg-(--surface2) text-xs font-medium text-(--text) hover:bg-(--input-hover)">
-              {copy.searchButton}
-            </button>
-          </form>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <details className="relative group">
-              <summary className="list-none cursor-pointer h-9 inline-flex items-center gap-2 px-3 rounded-lg border border-(--border) bg-(--surface) text-xs text-(--text) hover:bg-(--input-hover)">
-                <Columns3 size={14} />
-                {copy.columns}: {visibleColumns.length} {copy.visible}
-              </summary>
-              <div className="absolute right-0 z-30 mt-2 w-72 max-h-96 overflow-auto rounded-xl border border-(--border) bg-(--surface) p-3 shadow-2xl">
-                <div className="flex items-center justify-between gap-2 pb-2 mb-2 border-b border-(--border)">
-                  <button type="button" onClick={() => table && updatePreference({ ...preference, visibleColumns: table.columns.map((column) => column.key) })}
-                    className="text-xs text-accent-cyan hover:underline">{copy.all}</button>
-                  <button type="button" onClick={() => table && updatePreference({ ...preference, visibleColumns: resolveVisibleColumns(table.columns, []) })}
-                    className="text-xs text-(--muted) hover:text-(--text)">{copy.defaults}</button>
-                </div>
-                <div className="space-y-0.5">
-                  {(table?.columns ?? []).map((column) => {
-                    const checked = visibleSet.has(column.key);
-                    return (
-                      <label key={column.key} className="flex items-start gap-2.5 rounded-md px-2 py-1.5 text-xs text-(--text) hover:bg-(--input-bg) cursor-pointer">
-                        <input type="checkbox" checked={checked} disabled={checked && visibleColumns.length === 1}
-                          onChange={() => toggleColumn(column.key)} className="mt-0.5 rounded-sm border-(--border) bg-(--input-bg) text-accent-cyan focus:ring-accent-cyan" />
-                        <span className="min-w-0">
-                          <span className="block wrap-break-word">{column.label}</span>
-                          {column.sourceOnly && <span className="block text-[10px] text-(--subtle)">source</span>}
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-            </details>
-
-            <label className="h-9 inline-flex items-center gap-2 px-3 rounded-lg border border-(--border) bg-(--surface) text-xs text-(--muted)">
-              <span className="hidden sm:inline">{copy.rows}</span>
-              <select value={preference.pageSize} onChange={(event) => {
-                const pageSize = Number(event.target.value);
-                setPage(1);
-                updatePreference({ ...preference, pageSize });
-              }} className="border-0 bg-transparent py-0 pl-0 pr-6 text-xs text-(--text) focus:ring-0">
-                {[25, 50, 100, 200].map((size) => <option key={size} value={size}>{size}</option>)}
-              </select>
-            </label>
-
-            <span aria-live="polite" className={`text-[10px] min-w-24 ${saveState === "error" ? "text-red-400" : "text-(--subtle)"}`}>
-              {saveState === "saving" ? copy.saving : saveState === "saved" ? copy.saved : saveState === "error" ? copy.saveError : ""}
-            </span>
-          </div>
-        </div>
+        <ReportTableToolbar
+          copy={copy}
+          columns={table?.columns ?? []}
+          visibleKeys={visibleKeys}
+          searchInput={searchInput}
+          pageSize={preference.pageSize}
+          saveState={saveState}
+          onSearch={() => { setPage(1); setSearch(searchInput.trim()); }}
+          onSearchInputChange={setSearchInput}
+          onColumnsChange={(visibleColumns) => table && updatePreference({ ...preference, visibleColumns })}
+          onToggleColumn={toggleColumn}
+          onPageSizeChange={(pageSize) => { setPage(1); updatePreference({ ...preference, pageSize }); }}
+        />
 
         {table?.context.dateFrom && (
           <div className="px-4 py-2 border-b border-(--border) bg-accent-cyan/3 text-[11px] font-mono text-(--muted) flex flex-wrap gap-x-5 gap-y-1">
@@ -676,10 +524,10 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
             </div>
           ) : error ? (
             <div role="alert" className="h-80 flex flex-col items-center justify-center gap-3 px-5 text-center">
-              <AlertTriangle size={24} className="text-amber-400" />
+              <AlertTriangle size={24} className="text-accent-yellow" />
               <p className="text-sm text-(--muted) max-w-xl">{error}</p>
-              <button type="button" onClick={() => setReloadVersion((value) => value + 1)}
-                className="px-3 py-2 rounded-lg border border-(--border) text-xs text-(--text) hover:bg-(--input-hover)">{copy.retry}</button>
+              <Button type="button" onClick={() => setReloadVersion((value) => value + 1)}
+                className="px-3 py-2 font-sans rounded-lg border border-(--border) text-xs text-(--text) hover:bg-(--input-hover)">{copy.retry}</Button>
             </div>
           ) : table && table.rows.length === 0 ? (
             <div className="h-80 flex items-center justify-center px-5 text-sm text-(--muted) text-center">{copy.empty}</div>
@@ -695,53 +543,22 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
           <footer className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-3 border-t border-(--border) text-xs text-(--muted)">
             <span>{table.pagination.totalRows.toLocaleString(locale)} {copy.records}</span>
             <div className="flex items-center gap-2">
-              <button type="button" aria-label={copy.previous} title={copy.previous} disabled={page <= 1}
+              <Button type="button" aria-label={copy.previous} title={copy.previous} disabled={page <= 1}
                 onClick={() => setPage((value) => Math.max(1, value - 1))}
-                className="w-8 h-8 inline-flex items-center justify-center rounded-lg border border-(--border) hover:bg-(--input-hover) disabled:opacity-35">
+                className="w-8 h-8 p-0 inline-flex items-center justify-center rounded-lg border border-(--border) hover:bg-(--input-hover) disabled:opacity-35">
                 <ChevronLeft size={14} />
-              </button>
+              </Button>
               <span className="min-w-28 text-center">{copy.page} {table.pagination.page} {copy.of} {Math.max(1, table.pagination.totalPages)}</span>
-              <button type="button" aria-label={copy.next} title={copy.next}
+              <Button type="button" aria-label={copy.next} title={copy.next}
                 disabled={table.pagination.totalPages === 0 || page >= table.pagination.totalPages}
                 onClick={() => setPage((value) => value + 1)}
-                className="w-8 h-8 inline-flex items-center justify-center rounded-lg border border-(--border) hover:bg-(--input-hover) disabled:opacity-35">
+                className="w-8 h-8 p-0 inline-flex items-center justify-center rounded-lg border border-(--border) hover:bg-(--input-hover) disabled:opacity-35">
                 <ChevronRight size={14} />
-              </button>
+              </Button>
             </div>
           </footer>
         )}
       </section>
-    </div>
-  );
-}
-
-function StatusCard({
-  label,
-  value,
-  detail,
-  badgeClass,
-  loading,
-}: {
-  label: string;
-  value: string;
-  detail: string;
-  badgeClass?: string;
-  loading: boolean;
-}) {
-  return (
-    <div className="rounded-xl border border-(--border) bg-(--surface) p-4 min-w-0">
-      <p className="text-[10px] font-mono uppercase tracking-widest text-(--subtle) mb-2">{label}</p>
-      {loading ? (
-        <div className="h-8 flex items-center"><LoaderCircle size={15} className="animate-spin text-(--muted)" /></div>
-      ) : (
-        <>
-          <p className="text-sm font-medium text-(--text) truncate" title={value}>{value}</p>
-          <span className={`mt-2 inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-mono ${badgeClass ?? "text-(--muted) border-transparent"}`}>
-            {detail === "SUCCESS" && <CheckCircle2 size={10} />}
-            {detail}
-          </span>
-        </>
-      )}
     </div>
   );
 }

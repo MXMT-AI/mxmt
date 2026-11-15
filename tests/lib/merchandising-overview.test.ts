@@ -520,3 +520,29 @@ it.each(["DEAD", "HEALTHY", "OOS"])("does not turn a %s-filtered Overview into f
     expect(html).not.toContain(lang === "uk" ? "— неліквід" : "is dead stock");
   }
 });
+
+
+it.each(["uk", "en"] as const)("keeps all freshness labels and historical stale suffix in %s", async lang => {
+  const data = await read({ currency: "UAH" });
+  const { overviewCopy } = await import("@/lib/overview-copy");
+  const copy = overviewCopy[lang];
+  for (const [status, label] of [
+    ["FRESH", copy.fresh], ["STALE", copy.stale], ["HISTORICAL", copy.historical],
+    ["SYNCING", copy.syncing], ["SOURCE_CHANGED", copy.changed], ["SOURCE_UNAVAILABLE", copy.sourceUnavailable],
+  ]) {
+    const html = renderToStaticMarkup(createElement(OverviewContent, {
+      data: { ...data, freshness: { ...data.freshness, status, historical: false, sourceStale: false } },
+      lang, query: "", monobrand: false,
+    }));
+    expect(html).toContain(label);
+  }
+  for (const historical of [false, true]) {
+    for (const sourceStale of [false, true]) {
+      const html = renderToStaticMarkup(createElement(OverviewContent, {
+        data: { ...data, freshness: { ...data.freshness, status: "HISTORICAL", historical, sourceStale } },
+        lang, query: "", monobrand: false,
+      }));
+      expect(html.includes(`${copy.historical} · ${copy.stale}`)).toBe(historical && sourceStale);
+    }
+  }
+});

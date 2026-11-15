@@ -1,5 +1,6 @@
 "use client";
-import { Field, control } from "@/components/merchandising/form-controls/form-controls";
+import { Field } from "@/components/ui/field/field";
+import { control } from "@/components/ui/control-styles/control-styles";
 export interface StatusMappingRow {
   id: string;
   kind: string;

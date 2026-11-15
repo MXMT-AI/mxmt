@@ -18,8 +18,7 @@ import {
   Tags,
   ShoppingCart,
 } from "lucide-react";
-import { useLang, LangToggle } from "@/components/language-provider/language-provider";
-import { ThemeToggle } from "@/components/theme-provider/theme-provider";
+import { useLang } from "@/components/language-provider/language-provider";
 import { BrandMark } from "@/components/brand-mark/brand-mark";
 import { merchandisingCopy } from "@/lib/merchandising-copy";
 import {
@@ -131,10 +130,6 @@ export default function Sidebar({
             <Zap size={12} aria-hidden="true" />
             OpenAI
           </span>
-          <div className="flex items-center gap-1.5">
-            <ThemeToggle className="min-w-0 flex-1" placement="above" />
-            <LangToggle />
-          </div>
         </div>
         <button
           type="button"

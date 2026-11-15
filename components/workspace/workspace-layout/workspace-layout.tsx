@@ -1,4 +1,4 @@
-import AppSkipLink from "@/components/app-skip-link/app-skip-link";
+import { mainContentId, SkipLink } from "@/components/ui/skip-link/skip-link";
 import { Suspense } from "react";
 import { navigationFeatures } from "@/lib/navigation-features";
 import { redirect } from "@/i18n/navigation";
@@ -28,7 +28,7 @@ export default async function AppLayout({
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-(--bg)">
-      <AppSkipLink />
+      <SkipLink />
       <TokenRefreshProvider />
       <Suspense fallback={<div className="md:w-56" />}>
         <Sidebar
@@ -38,7 +38,7 @@ export default async function AppLayout({
         />
       </Suspense>
       <main
-        id="main-content"
+        id={mainContentId}
         className="flex-1 overflow-auto min-w-0"
         tabIndex={-1}
       >

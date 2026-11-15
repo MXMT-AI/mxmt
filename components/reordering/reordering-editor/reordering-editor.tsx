@@ -1,16 +1,10 @@
 "use client";
-import { profileReordering } from "@/lib/merchandising-profile";
-import { useEffect, useReducer, useRef } from "react";
-import { useSearchParams } from "next/navigation";
+import { useReorderingEditor } from "../use-reordering-editor";
 import { useScenarioPreview } from "@/components/merchandising/use-scenario-preview";
-import { button, Note } from "@/components/merchandising/report-primitives/report-primitives";
-import {
-  initialReorderingState,
-  reorderingReducer,
-  reorderingRequest,
-  writeReorderingDraft,
-  type ReorderingDraft,
-} from "@/lib/reordering-workspace";
+import { Button } from "@/components/ui/button/button";
+import { AlertPanel } from "@/components/ui/alert-panel/alert-panel";
+import { Note } from "@/components/ui/note/note";
+import { reorderingRequest } from "@/lib/reordering-workspace";
 import { reorderingCopy } from "@/lib/reordering-copy";
 import type { getReorderingPreview } from "@/lib/reordering-store";
 import type { Lang } from "@/lib/translations";
@@ -19,7 +13,8 @@ import { useScenarioExportPermission } from "@/components/merchandising/merchand
 import { useScenarioExport } from "@/components/merchandising/use-scenario-export";
 import ScenarioExportPanel from "@/components/merchandising/scenario-export-panel/scenario-export-panel";
 import Table from "../reordering-table/reordering-table";
-import Summary, { SupplierGroups } from "../reordering-summary/reordering-summary";
+import Summary from "../reordering-summary/reordering-summary";
+import { ReorderingSupplierGroups } from "../reordering-supplier-groups/reordering-supplier-groups";
 export type ReorderingPreview = Awaited<
   ReturnType<typeof getReorderingPreview>
 >;
@@ -36,20 +31,9 @@ export default function ReorderingEditor({
   lang: Lang;
   onRefresh: () => void;
 }) {
-  const params = useSearchParams(),
-    query = params.toString(),
-    lastUrl = useRef(query),
-    copy = reorderingCopy[lang],
-    locale = lang === "uk" ? "uk-UA" : "en-GB";
-  const [state, dispatch] = useReducer(reorderingReducer, query, (q) =>
-    initialReorderingState(new URLSearchParams(q)),
-  );
-  useEffect(() => {
-    if (query !== lastUrl.current) {
-      lastUrl.current = query;
-      dispatch({ type: "restore", query });
-    }
-  }, [query]);
+  const { state, draft, change, reset, changePage, changeTransit, restoreTransit } = useReorderingEditor(monobrand);
+  const copy = reorderingCopy[lang];
+  const locale = lang === "uk" ? "uk-UA" : "en-GB";
   const needsBrand =
     !monobrand && state.draft.mode === "brand" && !state.draft.filters.brandId;
   const request = needsBrand
@@ -64,7 +48,7 @@ export default function ReorderingEditor({
       }
     : reorderingRequest(snapshotId, {
         ...state,
-        draft: profileReordering(state.draft, monobrand),
+        draft,
       });
   const preview = useScenarioPreview<ReorderingPreview>(
     "/api/merchandising/reordering/preview",
@@ -76,39 +60,12 @@ export default function ReorderingEditor({
     exportState = useScenarioExport("reorder");
   const current = preview.current && !needsBrand,
     error = preview.error;
-  function save(next: URLSearchParams) {
-    lastUrl.current = next.toString();
-    window.history.replaceState(
-      null,
-      "",
-      `${window.location.pathname}?${next}`,
-    );
-  }
-  function change(draft: ReorderingDraft) {
-    dispatch({ type: "draft", draft });
-    save(
-      writeReorderingDraft(new URLSearchParams(window.location.search), draft),
-    );
-  }
-  function reset() {
-    const draft: ReorderingDraft = {
-        mode: "shortage",
-        filters: {},
-        leadDays: "",
-        coverDays: "",
-      },
-      next = writeReorderingDraft(
-        new URLSearchParams(window.location.search),
-        draft,
-      );
-    dispatch({ type: "restore", query: next.toString() });
-    save(next);
-  }
+  const ready = current && !error;
   return (
     <div className="space-y-5">
       <Controls
         monobrand={monobrand}
-        draft={profileReordering(state.draft, monobrand)}
+        draft={draft}
         data={preview.data}
         error={error}
         copy={copy}
@@ -135,26 +92,23 @@ export default function ReorderingEditor({
               : ""}
       </p>
       {error ? (
-        <div
-          role="alert"
-          className="rounded-lg border border-(--border) p-4 space-y-3"
-        >
-          <p>
-            {error.code === "INVALID_REORDERING_REQUEST"
+        <AlertPanel
+          className="bg-transparent p-4"
+          message={error.code === "INVALID_REORDERING_REQUEST"
               ? copy.invalid
               : error.code === "REORDERING_OVERRIDE_INELIGIBLE"
                 ? copy.filterError
                 : copy.error}
-          </p>
+        >
           <div className="flex flex-wrap gap-2">
-            <button type="button" className={button} onClick={preview.retry}>
+            <Button variant="report" onClick={preview.retry}>
               {copy.retry}
-            </button>
-            <button type="button" className={button} onClick={onRefresh}>
+            </Button>
+            <Button variant="report" onClick={onRefresh}>
               {copy.refresh}
-            </button>
+            </Button>
           </div>
-        </div>
+        </AlertPanel>
       ) : null}
       {!needsBrand && preview.data && preview.sameControls ? (
         <Table
@@ -162,29 +116,22 @@ export default function ReorderingEditor({
           data={preview.data}
           copy={copy}
           locale={locale}
-          current={current && !error}
+          current={ready}
           error={error}
           transit={state.transit}
-          onTransit={(skuId, value) =>
-            dispatch({ type: "transit", skuId, value })
-          }
-          onRestore={(skuId) => dispatch({ type: "restoreTransit", skuId })}
-          onPage={(page) => {
-            dispatch({ type: "page", page });
-            const next = new URLSearchParams(window.location.search);
-            next.set("page", String(page));
-            save(next);
-          }}
+          onTransit={changeTransit}
+          onRestore={restoreTransit}
+          onPage={changePage}
         />
       ) : null}
       <Summary
         data={preview.data}
-        current={current && !error}
+        current={ready}
         copy={copy}
         locale={locale}
         exporting={exportState.busy}
         onExport={
-          allowed && current && !error && preview.data?.canExport
+          allowed && ready && preview.data?.canExport
             ? () => void exportState.prepare(preview.data!.previewId, request)
             : undefined
         }
@@ -195,8 +142,8 @@ export default function ReorderingEditor({
         allowed={allowed}
         lang={lang}
       />
-      {current && !error && preview.data ? (
-        <SupplierGroups
+      {ready && preview.data ? (
+        <ReorderingSupplierGroups
           key={preview.data.previewId}
           data={preview.data}
           copy={copy}

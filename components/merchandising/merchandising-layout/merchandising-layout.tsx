@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { redirect } from "@/i18n/navigation";
 import { getLocale } from "next-intl/server";
 import { requireCurrentUser } from "@/lib/server-auth";
+import { hasRole } from "@/lib/roles";
 import { readNavigationOptions } from "@/lib/merchandising-navigation-store";
 import MerchandisingShell from "@/components/merchandising/merchandising-shell/merchandising-shell";
 import MerchandisingLoading from "@/components/merchandising/merchandising-loading/merchandising-loading";
@@ -17,7 +18,7 @@ export default async function MerchandisingLayout({
     <Suspense fallback={<MerchandisingLoading />}>
       <NavigationContent
         tenantId={user.tenantId}
-        exportAllowed={["ANALYST", "ADMIN", "SUPER_ADMIN"].includes(user.role)}
+        exportAllowed={hasRole(user.role, "ANALYST")}
       >
         {children}
       </NavigationContent>

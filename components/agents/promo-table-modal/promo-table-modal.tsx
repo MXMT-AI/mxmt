@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { X, RefreshCw, AlertTriangle } from "lucide-react";
-import type { PromoSimulation } from "@/lib/promo-calc";
+import { MetricTile } from "@/components/ui/metric-tile/metric-tile";
+import type { PromoSimulation, PromoSkuRow } from "@/lib/promo-calc";
 import { buildPromoSheetValues } from "@/lib/promo-sheet";
-import ExportButtons from "@/components/agents/export-buttons/export-buttons";
+import { ExcelExportButton } from "@/components/agents/excel-export-button/excel-export-button";
+
+import { SimulationDialog } from "../simulation-dialog/simulation-dialog";
+import { SimulationTable, type SimulationColumn } from "../simulation-table/simulation-table";
+import { useAgentSimulation } from "../use-agent-simulation";
 
 export interface PromoSimParams {
   brandId: string;
@@ -18,8 +21,36 @@ export interface PromoSimParams {
   dateFrom?: string | null;
 }
 
-const fmtUah = (n: number) =>
-  new Intl.NumberFormat("uk-UA", { maximumFractionDigits: 0 }).format(n);
+const amountFormatter = new Intl.NumberFormat("uk-UA", { maximumFractionDigits: 0 });
+const fmtUah = (value: number) => amountFormatter.format(value);
+const formatPercent = (value: number | null) => value != null ? `${value}%` : "—";
+
+const promoColumns: SimulationColumn<PromoSkuRow>[] = [
+  { label: "SKU", render: (row) => row.sku, className: "text-(--text)" },
+  { label: "Назва", render: (row) => row.name, title: (row) => row.name, className: "max-w-[180px] truncate" },
+  { label: "Залишок", render: (row) => row.stock },
+  { label: "Ціна", render: (row) => fmtUah(row.priceRetail) },
+  { label: "Зі знижкою", render: (row) => fmtUah(row.newPrice), className: "text-accent-purple" },
+  { label: "Маржа до", render: (row) => formatPercent(row.marginBeforePct) },
+  {
+    label: "Маржа після",
+    render: (row) => formatPercent(row.marginAfterPct),
+    className: ({ marginAfterPct }) => {
+      if (marginAfterPct == null) return "";
+      if (marginAfterPct < 0) return "text-accent-danger";
+      return marginAfterPct < 15 ? "text-accent-yellow" : "";
+    },
+  },
+  { label: "Прогноз, шт", render: (row) => row.promoUnits, className: "text-(--text)" },
+  { label: "Виручка", render: (row) => fmtUah(row.promoRevenue) },
+  {
+    label: "Маржа, грн",
+    render: (row) => fmtUah(row.promoMarginUah),
+    className: (row) => row.promoMarginUah < 0 ? "text-accent-danger" : "",
+  },
+  { label: "Капітал", render: (row) => fmtUah(row.capitalReleased), className: "text-accent-cyan" },
+  { label: "DOH після", render: (row) => row.wohAfterDays != null ? `${row.wohAfterDays}д` : "∞" },
+];
 
 export default function PromoTableModal({
   params,
@@ -28,180 +59,87 @@ export default function PromoTableModal({
   params: PromoSimParams;
   onClose: () => void;
 }) {
-  const overlayRef = useRef<HTMLDivElement>(null);
-  const [sim, setSim] = useState<PromoSimulation | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/agents/repricing/simulate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            brandId: params.brandId,
-            discountPercent: params.discountPercent,
-            durationDays: params.durationDays,
-            unitsToSellPercent: params.unitsToSellPercent ?? null,
-            ...(params.asOf ? { asOf: params.asOf } : {}),
-            ...(params.dateFrom ? { dateFrom: params.dateFrom } : {}),
-          }),
-        });
-        const data = await res.json();
-        if (cancelled) return;
-        if (!res.ok) setError(data.error ?? "Невідома помилка");
-        else setSim(data);
-      } catch (e) {
-        if (!cancelled) setError(String(e));
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [params]);
+  const simulation = useAgentSimulation<PromoSimulation>("/api/agents/repricing/simulate", {
+    brandId: params.brandId,
+    discountPercent: params.discountPercent,
+    durationDays: params.durationDays,
+    unitsToSellPercent: params.unitsToSellPercent ?? null,
+    ...(params.asOf ? { asOf: params.asOf } : {}),
+    ...(params.dateFrom ? { dateFrom: params.dateFrom } : {}),
+  });
 
   const title = `Уцінка ${params.brandName} · ${params.strategyType} ${params.label} · ${new Date().toISOString().slice(0, 10)}`;
-  const marginDeltaUah = sim ? sim.totals.promoMarginUah - sim.totals.baselineMarginUah : 0;
+  return (
+    <SimulationDialog
+      simulation={simulation}
+      title={<span className="block truncate">{params.brandName} · <span className="text-accent-purple">{params.strategyType}</span> {params.label}</span>}
+      subtitle="Розрахунок акції · без AI, чиста математика"
+      closeLabel="Закрити таблицю уцінки"
+      onClose={onClose}
+    >
+      {(sim) => <PromoResult simulation={sim} title={title} scenarioTitle={`${params.strategyType} — ${params.label}`} />}
+    </SimulationDialog>
+  );
+}
+
+function PromoResult({ simulation: sim, title, scenarioTitle }: {
+  simulation: PromoSimulation;
+  title: string;
+  scenarioTitle: string;
+}) {
+  const { totals } = sim;
+  const marginDeltaUah = totals.promoMarginUah - totals.baselineMarginUah;
+  const metrics = [
+    { label: "Позицій", value: totals.skuCount },
+    { label: "Залишок", value: `${fmtUah(totals.stock)} шт` },
+    { label: "Прогноз акції", value: `${fmtUah(totals.promoUnits)} шт`, color: "var(--violet-ink)" },
+    { label: "Виручка акції", value: `${fmtUah(totals.promoRevenue)} грн`, color: "var(--cyan-ink)" },
+    {
+      label: "Маржа vs без акції",
+      value: `${marginDeltaUah > 0 ? "+" : ""}${fmtUah(marginDeltaUah)} грн`,
+      color: marginDeltaUah < 0 ? "var(--amber-ink)" : "var(--cyan-ink)",
+    },
+    { label: "Звільнений капітал", value: `${fmtUah(totals.capitalReleased)} грн`, color: "var(--cyan-ink)" },
+  ];
 
   return (
-    <div
-      ref={overlayRef}
-      className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/[0.65] backdrop-blur-sm"
-      onClick={(e) => e.target === overlayRef.current && onClose()}
-    >
-      <div
-        className="relative w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl border border-(--border) bg-(--surface) shadow-[0_24px_64px_rgba(0,0,0,0.6)]"
-      >
-        <div className="sticky top-0 bg-(--surface) border-b border-(--border) px-6 py-4 flex items-center justify-between z-10 gap-3">
-          <div className="min-w-0">
-            <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-0.5">
-              Розрахунок акції · без AI, чиста математика
-            </div>
-            <h2 className="text-base font-bold text-(--text) truncate">
-              {params.brandName} · <span className="text-accent-purple">{params.strategyType}</span> {params.label}
-            </h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-lg border border-(--border) flex items-center justify-center text-(--muted) hover:text-(--text) hover:bg-(--input-bg) transition-colors shrink-0"
-          >
-            <X size={14} />
-          </button>
-        </div>
+    <>
+      <ExcelExportButton
+        title={title}
+        sheetName="Уцінка"
+        buildValues={() => buildPromoSheetValues(sim, { title: scenarioTitle, formulas: true })}
+        disabled={sim.rows.length === 0}
+      />
 
-        <div className="px-6 py-5 space-y-4">
-          {sim && (
-            <ExportButtons
-              title={title}
-              sheetName="Уцінка"
-              buildValues={(formulas) =>
-                buildPromoSheetValues(sim, { title: `${params.strategyType} — ${params.label}`, formulas })
-              }
-              disabled={!sim || sim.rows.length === 0}
-            />
-          )}
+      <dl className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+        {metrics.map((metric) => <MetricTile key={metric.label} variant="summary" {...metric} />)}
+      </dl>
 
-          {!sim && !error && (
-            <div className="flex items-center justify-center gap-2 py-12 text-(--muted) text-sm">
-              <RefreshCw size={14} className="animate-spin" /> Розрахунок…
-            </div>
-          )}
-          {error && (
-            <div className="flex items-start gap-2 bg-[#ef4444]/5 border border-[#ef4444]/20 rounded-xl px-4 py-3">
-              <AlertTriangle size={13} className="text-[#ef4444] shrink-0 mt-0.5" />
-              <p className="text-[12px] text-(--muted)">{error}</p>
-            </div>
-          )}
+      <p className="font-mono text-[10px] text-(--subtle)">
+        Параметри сценарію — від AI-агента; розрахунок таблиці — детермінований (PostgreSQL + формули).
+        Прогноз: {sim.forecastModel === "ai_percent"
+          ? `${sim.unitsToSellPercent}% залишку кожного SKU (оцінка AI)`
+          : "еластичність ×2 від швидкості продажів"}.
+        Дані за {sim.periodDays} дн.{sim.dateFrom ? ` (${sim.dateFrom} — ${sim.asOf ?? "сьогодні"})` : ""}.
+        В експорті знижка в клітинці B2 — формули перерахуються автоматично.
+      </p>
 
-          {sim && (
-            <>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
-                {[
-                  { label: "Позицій", value: String(sim.totals.skuCount) },
-                  { label: "Залишок", value: `${fmtUah(sim.totals.stock)} шт` },
-                  { label: "Прогноз акції", value: `${fmtUah(sim.totals.promoUnits)} шт`, color: "#a78bfa" },
-                  { label: "Виручка акції", value: `${fmtUah(sim.totals.promoRevenue)} грн`, color: "#00e5c4" },
-                  {
-                    label: "Маржа vs без акції",
-                    value: `${marginDeltaUah > 0 ? "+" : ""}${fmtUah(marginDeltaUah)} грн`,
-                    color: marginDeltaUah < 0 ? "#fbbf24" : "#00e5c4",
-                  },
-                  { label: "Звільнений капітал", value: `${fmtUah(sim.totals.capitalReleased)} грн`, color: "#00e5c4" },
-                ].map(({ label, value, color }) => (
-                  <div key={label} className="bg-(--surface2) border border-(--border) rounded-xl px-3 py-2.5">
-                    <div className="text-[9px] font-mono uppercase text-(--subtle)">{label}</div>
-                    <div className="text-[13px] font-mono font-semibold mt-0.5" style={{ color: color ?? "var(--text)" }}>{value}</div>
-                  </div>
-                ))}
-              </div>
-
-              <p className="text-[10px] font-mono text-(--subtle)">
-                Параметри сценарію — від AI-агента; розрахунок таблиці — детермінований (PostgreSQL + формули).
-                Прогноз: {sim.forecastModel === "ai_percent"
-                  ? `${sim.unitsToSellPercent}% залишку кожного SKU (оцінка AI)`
-                  : "еластичність ×2 від швидкості продажів"}.
-                Дані за {sim.periodDays} дн.{sim.dateFrom ? ` (${sim.dateFrom} — ${sim.asOf ?? "сьогодні"})` : ""}.
-                В експорті знижка в клітинці B2 — формули перерахуються автоматично.
-              </p>
-
-              {sim.rows.length === 0 ? (
-                <p className="text-sm text-(--muted) py-6 text-center">
-                  Немає SKU з позитивним залишком для цього бренда.
-                </p>
-              ) : (
-                <div className="overflow-x-auto border border-(--border) rounded-xl">
-                  <table className="w-full text-[11px] font-mono whitespace-nowrap">
-                    <thead>
-                      <tr className="bg-(--surface2) text-(--subtle) text-[9px] uppercase tracking-wide">
-                        {["SKU", "Назва", "Залишок", "Ціна", "Зі знижкою", "Маржа до", "Маржа після", "Прогноз, шт", "Виручка", "Маржа, грн", "Капітал", "DOH після"].map((h) => (
-                          <th key={h} className="px-3 py-2 text-left font-normal">{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-(--border)">
-                      {sim.rows.map((r) => (
-                        <tr key={r.sku} className="text-(--muted) hover:bg-white/2">
-                          <td className="px-3 py-1.5 text-(--text)">{r.sku}</td>
-                          <td className="px-3 py-1.5 max-w-[180px] truncate" title={r.name}>{r.name}</td>
-                          <td className="px-3 py-1.5">{r.stock}</td>
-                          <td className="px-3 py-1.5">{fmtUah(r.priceRetail)}</td>
-                          <td className="px-3 py-1.5 text-accent-purple">{fmtUah(r.newPrice)}</td>
-                          <td className="px-3 py-1.5">{r.marginBeforePct != null ? `${r.marginBeforePct}%` : "—"}</td>
-                          <td className="px-3 py-1.5" style={{ color: (r.marginAfterPct ?? 0) < 0 ? "#ef4444" : (r.marginAfterPct ?? 0) < 15 ? "#fbbf24" : "var(--muted)" }}>
-                            {r.marginAfterPct != null ? `${r.marginAfterPct}%` : "—"}
-                          </td>
-                          <td className="px-3 py-1.5 text-(--text)">{r.promoUnits}</td>
-                          <td className="px-3 py-1.5">{fmtUah(r.promoRevenue)}</td>
-                          <td className="px-3 py-1.5" style={{ color: r.promoMarginUah < 0 ? "#ef4444" : "var(--muted)" }}>{fmtUah(r.promoMarginUah)}</td>
-                          <td className="px-3 py-1.5 text-accent-cyan">{fmtUah(r.capitalReleased)}</td>
-                          <td className="px-3 py-1.5">{r.wohAfterDays != null ? `${r.wohAfterDays}д` : "∞"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                    <tfoot>
-                      <tr className="bg-(--surface2) text-(--text) font-semibold">
-                        <td className="px-3 py-2" colSpan={2}>РАЗОМ</td>
-                        <td className="px-3 py-2">{fmtUah(sim.totals.stock)}</td>
-                        <td className="px-3 py-2" colSpan={4}></td>
-                        <td className="px-3 py-2">{fmtUah(sim.totals.promoUnits)}</td>
-                        <td className="px-3 py-2">{fmtUah(sim.totals.promoRevenue)}</td>
-                        <td className="px-3 py-2">{fmtUah(sim.totals.promoMarginUah)}</td>
-                        <td className="px-3 py-2 text-accent-cyan">{fmtUah(sim.totals.capitalReleased)}</td>
-                        <td className="px-3 py-2"></td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </div>
-    </div>
+      <SimulationTable
+        rows={sim.rows}
+        columns={promoColumns}
+        emptyMessage="Немає SKU з позитивним залишком для цього бренда."
+        totals={
+          <>
+            <td>{fmtUah(totals.stock)}</td>
+            <td colSpan={4} />
+            <td>{fmtUah(totals.promoUnits)}</td>
+            <td>{fmtUah(totals.promoRevenue)}</td>
+            <td>{fmtUah(totals.promoMarginUah)}</td>
+            <td className="text-accent-cyan">{fmtUah(totals.capitalReleased)}</td>
+            <td />
+          </>
+        }
+      />
+    </>
   );
 }

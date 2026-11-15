@@ -1,0 +1,26 @@
+import type { Row } from "./calendar-types";
+
+export const calendarRows: Row[] = [
+  { t: "g", l: "Загальна інформація" },
+  { t: "r", l: "Акцент комунікації", k: "accent" },
+  { t: "r", l: "Акцент 2", k: "accent2" },
+  { t: "r", l: "Акцент 3", k: "accent3" },
+  { t: "r", l: "Фокус бренди", k: "focus" },
+  { t: "r", l: "Промо", k: "promo" },
+  { t: "r", l: "Події", k: "events" },
+  { t: "g", l: "Сайт" },
+  { t: "r", l: "Слайдер банер 1", k: "ban1" },
+  { t: "r", l: "Слайдер банер 2", k: "ban2" },
+  { t: "r", l: "Слайдер банер 3", k: "ban3" },
+  { t: "r", l: "Email / SMS", k: "comm" },
+  { t: "g", l: "Реклама" },
+  { t: "r", l: "Ads 1", k: "ads1" },
+  { t: "r", l: "Ads 2", k: "ads2" },
+  { t: "r", l: "Ads 3", k: "ads3" },
+  { t: "r", l: "Ads 4", k: "ads4" },
+  { t: "g", l: "Соцмережі" },
+  { t: "r", l: "Акцент тижня", k: "smm1" },
+  { t: "r", l: "Зйомки", k: "shoot" },
+  { t: "g", l: "Постачання" },
+  { t: "r", l: "Постачання", k: "supply" },
+];

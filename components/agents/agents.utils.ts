@@ -1,6 +1,6 @@
 import type { PromoSimParams } from "@/components/agents/promo-table-modal/promo-table-modal";
 import type { ReorderSimParams } from "@/components/agents/reorder-table-modal/reorder-table-modal";
-import type { AgentDefinition, AgentRunInfo, BrandStatus } from "@/components/agents/agents.types";
+import type { AgentDefinition, AgentRunInfo } from "@/components/agents/agents.types";
 
 export function areAgentDependenciesReady(
   agent: Pick<AgentDefinition, "dependsOn">,
@@ -42,20 +42,6 @@ export function buildReorderParams(brand: any, sc: any, debug?: Record<string, a
     asOf: debug?.asOf ?? null,
     dateFrom: debug?.dateFrom ?? null,
   };
-}
-
-export function statusColor(status: BrandStatus) {
-  if (status === "critical") return "var(--danger-ink)";
-  if (status === "warning") return "var(--amber-ink)";
-  if (status === "excellent") return "var(--cyan-ink)";
-  return "var(--muted)";
-}
-
-export function statusLabel(status: BrandStatus) {
-  if (status === "critical") return "КРИТИЧНО";
-  if (status === "warning") return "ПОПЕРЕДЖЕННЯ";
-  if (status === "excellent") return "ВІДМІННО";
-  return "НОРМА";
 }
 
 export function fmt(dt?: string) {

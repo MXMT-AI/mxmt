@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/fetch";
 import { readApiJson } from "@/lib/api-response";
 import { qualityLabel, qualityGuidance } from "@/lib/data-quality-copy";
-import { button } from "@/components/merchandising/report-primitives/report-primitives";
+import { button } from "@/components/ui/button/button-styles";
 interface Issue {
   id: string;
   code: string;

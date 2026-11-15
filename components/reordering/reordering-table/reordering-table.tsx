@@ -1,16 +1,16 @@
 "use client";
 import ReportTable from "@/components/data-reporting/report-table/report-table";
-import {
-  panel,
-  button,
-  Note,
-} from "@/components/merchandising/report-primitives/report-primitives";
-import { control } from "@/components/merchandising/form-controls/form-controls";
+import { panel } from "@/components/ui/panel/panel-styles";
+import { Button } from "@/components/ui/button/button";
+import { Note } from "@/components/ui/note/note";
 import { formatTableValue as format } from "@/lib/data-reporting-ui";
-import { reorderingIssue, type ReorderingCopy } from "@/lib/reordering-copy";
-import type { ScenarioFailure } from "@/components/merchandising/use-scenario-preview";
+import type { ReorderingCopy } from "@/lib/reordering-copy";
+import type { ScenarioFailure } from "@/lib/client/scenario-preview-request";
 import type { DataColumnMetadata } from "@/lib/data-table-api";
 import type { ReorderingPreview } from "../reordering-editor/reordering-editor";
+import { ReorderingTransitCell } from "../reordering-transit-cell/reordering-transit-cell";
+import { ReorderingNotesCell } from "../reordering-notes-cell/reordering-notes-cell";
+
 type Row = ReorderingPreview["rows"][number];
 export default function ReorderingTable({
   monobrand = false,
@@ -50,6 +50,12 @@ export default function ReorderingTable({
   const overrideIds = Object.keys(transit)
     .filter((id) => transit[id] !== "")
     .sort();
+  const overrideIndices = new Map(overrideIds.map((skuId, index) => [skuId, index]));
+  const invalidOverrideIndices = new Set<number>();
+  for (const detail of error?.details ?? []) {
+    const match = /^overrides\.(\d+)\.inTransitQuantity/.exec(detail);
+    if (match) invalidOverrideIndices.add(Number(match[1]));
+  }
   return (
     <section
       className={panel + " overflow-hidden"}
@@ -96,65 +102,18 @@ export default function ReorderingTable({
                   </p>
                 </div>
               );
-            case "inTransitQuantity": {
-              const editable = row.shortageEligible && row.state !== "EXCLUDED";
-              const edited = Object.hasOwn(transit, row.skuId);
-              const invalid = !!error?.details.some((d) =>
-                d.startsWith(
-                  `overrides.${overrideIds.indexOf(row.skuId)}.inTransitQuantity`,
-                ),
-              );
-              const id = `transit-error-${row.skuId}`;
+            case "inTransitQuantity":
               return (
-                <div className="w-40 space-y-1">
-                  <input
-                    className={control + " text-right tabular-nums"}
-                    aria-label={`${copy.transit}: ${row.name}`}
-                    aria-invalid={invalid}
-                    aria-describedby={invalid ? id : undefined}
-                    name={`transit-${row.skuId}`}
-                    inputMode="decimal"
-                    autoComplete="off"
-                    value={transit[row.skuId] ?? row.inTransitQuantity ?? ""}
-                    placeholder={copy.unknown + "…"}
-                    disabled={!editable}
-                    onChange={(e) => onTransit(row.skuId, e.target.value)}
-                  />
-                  {edited ? (
-                    <>
-                      <small className="block whitespace-normal">
-                        {transit[row.skuId] === ""
-                          ? copy.clearedTransit
-                          : copy.confirmed}
-                      </small>
-                      <button
-                        className="min-h-11 text-xs underline underline-offset-2"
-                        type="button"
-                        onClick={() => onRestore(row.skuId)}
-                      >
-                        {copy.restore}
-                      </button>
-                    </>
-                  ) : row.inTransitQuantity === null && editable ? (
-                    <button
-                      className={button + " text-xs"}
-                      type="button"
-                      onClick={() => onTransit(row.skuId, "0")}
-                    >
-                      {copy.confirmZero}
-                    </button>
-                  ) : null}
-                  {invalid ? (
-                    <p
-                      id={id}
-                      className={"text-report-negative text-xs whitespace-normal"}
-                    >
-                      {copy.transitError}
-                    </p>
-                  ) : null}
-                </div>
+                <ReorderingTransitCell
+                  row={row}
+                  value={transit[row.skuId]}
+                  edited={Object.hasOwn(transit, row.skuId)}
+                  invalid={invalidOverrideIndices.has(overrideIndices.get(row.skuId) ?? -1)}
+                  copy={copy}
+                  onTransit={onTransit}
+                  onRestore={onRestore}
+                />
               );
-            }
             case "daysToZero":
               return (
                 <span
@@ -182,45 +141,8 @@ export default function ReorderingTable({
               ) : (
                 "—"
               );
-            case "notes": {
-              const exclusions = row.exclusionReasons.map((r) =>
-                r === "OFF_SEASON"
-                  ? copy.offSeason
-                  : r === "NEW_PRODUCT_QUARANTINE"
-                    ? copy.new
-                    : r === "INACTIVE"
-                      ? copy.inactive
-                      : copy.service,
-              );
-              return (
-                <div className="min-w-48 max-w-80 space-y-1 whitespace-normal wrap-break-word">
-                  {row.urgency === "RED" ? (
-                    <p className={"text-report-negative"}>{copy.urgent}</p>
-                  ) : null}
-                  {exclusions.map((note) => (
-                    <p key={note}>{note}</p>
-                  ))}
-                  {row.issues.length ? (
-                    <details>
-                      <summary className="min-h-11 cursor-pointer py-2">
-                        {copy.review} ({row.issues.length})
-                      </summary>
-                      {row.issues.map((code) => (
-                        <p key={code}>{reorderingIssue(copy, code)}</p>
-                      ))}
-                    </details>
-                  ) : null}
-                  {row.state === "ZERO_DEMAND" ? <p>{copy.noDemand}</p> : null}
-                  {row.warnings.includes("RECEIPT_DATE_VELOCITY_FALLBACK") ? (
-                    <p>{copy.fallback}</p>
-                  ) : null}
-                  <Note>
-                    {copy.terms}: {row.leadDays ?? "—"} / {row.coverDays ?? "—"}{" "}
-                    {copy.days} · {copy.moq}: {row.moq ?? "—"}
-                  </Note>
-                </div>
-              );
-            }
+            case "notes":
+              return <ReorderingNotesCell row={row} copy={copy} />;
             default:
               return format(raw[column.key], column.type, locale);
           }
@@ -232,28 +154,26 @@ export default function ReorderingTable({
           className="flex items-center gap-3 border-t border-(--border) p-3 text-xs"
           aria-label={copy.page}
         >
-          <button
-            type="button"
-            className={button}
+          <Button
+            variant="report"
             disabled={!current || data.pagination.page <= 1}
             onClick={() => onPage(data.pagination.page - 1)}
           >
             {copy.previous}
-          </button>
+          </Button>
           <span>
             {copy.page} {data.pagination.page} /{" "}
             {Math.max(1, data.pagination.totalPages)}
           </span>
-          <button
-            type="button"
-            className={button}
+          <Button
+            variant="report"
             disabled={
               !current || data.pagination.page >= data.pagination.totalPages
             }
             onClick={() => onPage(data.pagination.page + 1)}
           >
             {copy.next}
-          </button>
+          </Button>
         </nav>
       ) : null}
     </section>

@@ -1,5 +1,5 @@
 import type { ReorderSimulation } from "@/lib/legacy-reorder-calc";
-import type { SheetCell } from "@/lib/promo-sheet";
+import type { SheetCell } from "@/lib/xlsx-workbook";
 
 
 export const REORDER_SHEET_HEADERS = [

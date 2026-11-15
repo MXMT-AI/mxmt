@@ -42,12 +42,9 @@ export const merchandisingCopy = {
     brand: "Бренди",
     category: "Категорії",
     sku: "Товари",
-    screenPending:
-      "Цей розділ ще готується. Наявні інструменти доступні в меню «Інші інструменти».",
     salesDetails: "Деталізація продажів",
     stockDetails: "Деталізація складу",
     back: "До огляду",
-    skip: "Перейти до основного вмісту",
   },
   en: {
     overview: "Overview",
@@ -90,11 +87,8 @@ export const merchandisingCopy = {
     brand: "Brands",
     category: "Categories",
     sku: "Products",
-    screenPending:
-      "This section is being prepared. Existing tools remain available under Other tools.",
     salesDetails: "Sales details",
     stockDetails: "Stock details",
     back: "Back to overview",
-    skip: "Skip to main content",
   },
 } satisfies Record<Lang, Record<string, string>>;

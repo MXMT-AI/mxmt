@@ -8,7 +8,8 @@ import {
 } from "react";
 import { useRouter } from "@/i18n/navigation";
 
-import { Field, control } from "@/components/merchandising/form-controls/form-controls";
+import { Field } from "@/components/ui/field/field";
+import { control } from "@/components/ui/control-styles/control-styles";
 import {
   CSV_FIELDS,
   CSV_REQUIRED,

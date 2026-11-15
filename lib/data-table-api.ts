@@ -3,15 +3,10 @@ import { prisma } from "@/lib/prisma";
 import { SHEETS_SOURCE_FILTER } from "@/lib/data-source";
 import { ARTICLE_CALCULATION_VERSION } from "@/lib/article-report";
 
-export const DATA_TABLE_KEYS = [
-  "product_yml",
-  "zavod_api",
-  "article_report",
-  "by_brand",
-  "by_category",
-] as const;
+import type { DataTableKey } from "./data-table-preferences";
 
-export type DataTableKey = (typeof DATA_TABLE_KEYS)[number];
+export { DATA_TABLE_KEYS, isDataTableKey, type DataTableKey } from "./data-table-preferences";
+
 export type DataColumnType = "text" | "number" | "money" | "quantity" | "percentage" | "date" | "source";
 
 export interface DataColumnMetadata {
@@ -107,10 +102,6 @@ function groupedColumns(label: "Brand" | "Category"): DataColumnMetadata[] {
     { key: "avgSalesLastTwoWeeks", label: "AVG Sales Last 2 week", type: "quantity", defaultVisible: true },
     { key: "woh", label: "WOH", type: "number", defaultVisible: true },
   ];
-}
-
-export function isDataTableKey(value: string): value is DataTableKey {
-  return (DATA_TABLE_KEYS as readonly string[]).includes(value);
 }
 
 function positiveInteger(value: string | null, fallback: number, min: number, max: number): number {

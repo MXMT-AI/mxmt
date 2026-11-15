@@ -3,19 +3,17 @@ import { Link } from "@/i18n/navigation";
 import StockHistory from "../stock-history/stock-history";
 import { useId } from "react";
 import ReportTable from "@/components/data-reporting/report-table/report-table";
-import {
-  panel,
-  button,
-  Note,
-  PartialMarker,
-  Pager,
-} from "@/components/merchandising/report-primitives/report-primitives";
+import { panel } from "@/components/ui/panel/panel-styles";
+import { button } from "@/components/ui/button/button-styles";
+import { Note } from "@/components/ui/note/note";
+import { PartialMarker } from "@/components/ui/partial-marker/partial-marker";
+import { Pager } from "@/components/ui/pager/pager";
 import type { OverviewResponse } from "@/components/merchandising/use-merchandising-screen";
 import type { StockWorkspaceModel } from "@/lib/merchandising-stock-workspace";
 import type { Lang } from "@/lib/translations";
 import type { DataColumnMetadata } from "@/lib/data-table-api";
 import { stockCopy, type StockCopy } from "@/lib/stock-copy";
-import { overviewCopy } from "@/lib/overview-copy";
+import { freshnessLabel } from "@/lib/freshness-label";
 import { stockStatusColors } from "@/lib/merchandising-stock-display";
 import { merchandisingHref } from "@/lib/merchandising-navigation";
 import { formatTableValue as format } from "@/lib/data-reporting-ui";
@@ -357,18 +355,7 @@ export default function StockContent({
           </button>
         ) : null}
       </header>
-      <Note>
-        {
-          {
-            FRESH: overviewCopy[lang].fresh,
-            STALE: overviewCopy[lang].stale,
-            HISTORICAL: overviewCopy[lang].historical,
-            SYNCING: overviewCopy[lang].syncing,
-            SOURCE_CHANGED: overviewCopy[lang].changed,
-            SOURCE_UNAVAILABLE: overviewCopy[lang].sourceUnavailable,
-          }[data.freshness.status]
-        }
-      </Note>
+      <Note>{freshnessLabel(data.freshness.status, lang)}</Note>
       {params.has("brandId") ||
       params.has("categoryId") ||
       params.has("skuId") ||

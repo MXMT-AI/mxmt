@@ -1,31 +1,33 @@
-import { ArrowRight, Check, ChevronDown, Globe, Menu } from "lucide-react";
-import { getPathname, Link } from "@/i18n/navigation";
+import { ArrowRight, ChevronDown, Menu } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
-import { LandingBrand } from "../landing-brand/landing-brand";
+import { LanguageMenu } from "@/components/language-provider/language-menu/language-menu";
+import { BrandLink } from "@/components/brand-link/brand-link";
 import { Container } from "@/components/ui/container/container";
 import { DisclosureMenu } from "@/components/ui/disclosure-menu/disclosure-menu";
-import { ActionLink } from "@/components/ui/action-link/action-link";
+import { RegisterLink } from "@/components/register-link/register-link";
 import { LandingThemeSwitch } from "../landing-theme-switch/landing-theme-switch";
 import { landingCopy } from "../copy";
-import { landingFeatures } from "../landing-features";
+import { FeatureLinks } from "../feature-links/feature-links";
 import styles from "./landing-header.module.css";
 
-const languages = { en: "English", uk: "Українська" } as const;
 const menuPanel = "rounded-xl shadow-[0_16px_40px_#0009]";
 
 export function LandingHeader({ locale }: { locale: Locale }) {
+  const t = useTranslations();
   const copy = landingCopy[locale];
   const sectionLinks = (
     <>
       <a href="#workflow">{copy.workflow}</a>
       <a href="#integrations">{copy.integrations}</a>
-      <Link href="/docs">{copy.documentation}</Link>
+      <Link href="/docs">{t("nav_documentation")}</Link>
     </>
   );
   const authLinks = (
     <>
       <Link href="/login">{copy.login}</Link>
-      <ActionLink href="/register">{copy.register}</ActionLink>
+      <RegisterLink label={copy.register} />
     </>
   );
 
@@ -36,7 +38,7 @@ export function LandingHeader({ locale }: { locale: Locale }) {
       </a>
       <div className="border-b border-landing-line bg-landing-header">
         <Container className="flex min-h-[65px] items-center gap-[clamp(22px,3vw,54px)] max-[1190px]:gap-2 max-[640px]:min-h-[59px] max-[640px]:gap-0.5">
-          <LandingBrand />
+          <BrandLink variant="landing" />
           <nav className="flex items-center gap-[clamp(17px,2.1vw,30px)] whitespace-nowrap text-sm max-[1190px]:hidden [&>a:hover]:text-landing-mint" aria-label={copy.navigation}>
             <DisclosureMenu
               summaryClassName="flex min-h-10 items-center gap-1.5"
@@ -44,34 +46,12 @@ export function LandingHeader({ locale }: { locale: Locale }) {
               className="relative [&>summary:hover]:text-landing-mint [&>summary_svg]:text-landing-muted [&[open]>summary_svg]:rotate-180"
               label={<>{copy.product} <ChevronDown aria-hidden="true" size={14} /></>}
             >
-              {landingFeatures.map(({ id, Icon }) => (
-                <a key={id} href={`#${id}`} className="flex items-center gap-2.5 rounded-md px-3 py-2.5 hover:bg-landing-hover-surface"><Icon aria-hidden="true" size={16} className="text-landing-mint" />{copy.features[id].title}</a>
-              ))}
+              <FeatureLinks copy={copy} variant="menu" />
             </DisclosureMenu>
             {sectionLinks}
           </nav>
           <div className="ml-auto flex items-center gap-2 whitespace-nowrap text-sm max-[640px]:gap-0.5">
-            <DisclosureMenu
-              className="relative max-[1190px]:static"
-              summaryClassName="grid size-10 place-items-center rounded-full border border-transparent text-landing-muted hover:border-landing-line hover:bg-landing-hover-surface hover:text-landing-mint [[open]>&]:border-landing-line [[open]>&]:bg-landing-hover-surface [[open]>&]:text-landing-mint max-[640px]:w-9"
-              panelClassName="top-[calc(100%_+_8px)] right-0 z-1 w-48 rounded-[14px] p-2 shadow-[0_12px_32px_#0003] max-[1190px]:right-6 max-[640px]:right-[18px]"
-              label={<><Globe aria-hidden="true" size={17} /><span className="sr-only">{copy.changeLanguage}</span></>}
-            >
-              <p className="mb-1 border-b border-landing-line px-2 pt-[3px] pb-2 font-semibold">{copy.language}</p>
-              {(["en", "uk"] as const).map((option) => (
-                <a
-                  key={option}
-                  href={getPathname({ href: "/", locale: option })}
-                  hrefLang={option}
-                  lang={option}
-                  aria-current={locale === option ? "page" : undefined}
-                  className="flex min-h-10 items-center justify-between rounded-md px-2 text-landing-muted hover:bg-landing-hover-surface hover:text-landing-mint aria-[current=page]:bg-landing-hover-surface aria-[current=page]:font-semibold aria-[current=page]:text-landing-mint"
-                >
-                  {languages[option]}
-                  {locale === option && <Check size={16} aria-hidden="true" />}
-                </a>
-              ))}
-            </DisclosureMenu>
+            <LanguageMenu label={copy.changeLanguage} title={copy.language} />
             <LandingThemeSwitch />
             <div className="ml-2 flex items-center gap-[15px] max-[1190px]:hidden [&>a:first-child:hover]:text-landing-mint [&>a:last-child]:min-h-9 [&>a:last-child]:px-4">{authLinks}</div>
           </div>

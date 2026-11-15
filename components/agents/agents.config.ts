@@ -78,6 +78,11 @@ export const BLOCKS: AgentBlock[] = [
   { id: 4, label: "Tracking & Reports", desc: "Авто-трекінг" },
 ];
 
+export const AGENT_BLOCKS = BLOCKS.map((block) => ({
+  ...block,
+  agents: AGENTS.filter((agent) => agent.block === block.id),
+}));
+
 export const AGENT_ROUTES: Record<string, string> = {
   inventory_analyst: "/api/agents/inventory-analyst",
   channel_analytics: "/api/agents/channel-analytics",

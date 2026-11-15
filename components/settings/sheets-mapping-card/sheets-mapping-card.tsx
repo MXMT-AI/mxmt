@@ -6,7 +6,8 @@ import { Link } from "@/i18n/navigation";
 import { apiFetch } from "@/lib/fetch";
 import { readApiJson } from "@/lib/api-response";
 import { sheetsMappingMessage } from "@/lib/sheets-mapping-copy";
-import { Field, control } from "@/components/merchandising/form-controls/form-controls";
+import { Field } from "@/components/ui/field/field";
+import { control } from "@/components/ui/control-styles/control-styles";
 import {
   SHEETS_PRODUCT_FIELDS,
   SHEETS_ORDER_FIELDS,

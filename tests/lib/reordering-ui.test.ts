@@ -1,4 +1,4 @@
-import { createElement } from "react";
+import { createElement, isValidElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "../helpers/render-localized";
 import { describe, it, expect, vi } from "vitest";
 vi.mock("server-only", () => ({}));
@@ -10,10 +10,11 @@ import { readReorderingDraft } from "@/lib/reordering-workspace";
 import { reorderingCopy } from "@/lib/reordering-copy";
 import { reorderingUiSkus } from "../helpers/reordering-workspace";
 import Controls from "@/components/reordering/reordering-controls/reordering-controls";
+import { ReorderingTransitCell } from "@/components/reordering/reordering-transit-cell/reordering-transit-cell";
+import ReportTable from "@/components/data-reporting/report-table/report-table";
 import Table from "@/components/reordering/reordering-table/reordering-table";
-import Summary, {
-  SupplierGroups,
-} from "@/components/reordering/reordering-summary/reordering-summary";
+import Summary from "@/components/reordering/reordering-summary/reordering-summary";
+import { ReorderingSupplierGroups } from "@/components/reordering/reordering-supplier-groups/reordering-supplier-groups";
 import type { ReorderingPreview } from "@/components/reordering/reordering-editor/reordering-editor";
 const calculation = calculateReordering(
   { snapshotId: "frozen", asOf: "2026-10-25", rows: reorderingUiSkus },
@@ -94,7 +95,7 @@ describe("localized reordering UI", () => {
       expect(summary).toContain("USD");
       expect(summary).toContain("UAH");
       const groups = renderToStaticMarkup(
-        createElement(SupplierGroups, { data, copy, locale }),
+        createElement(ReorderingSupplierGroups, { data, copy, locale }),
       );
       expect(groups).toContain("Play Supply");
       expect(groups).toContain("Field Supply");
@@ -157,4 +158,87 @@ it("keeps a cleared saved transit field blank and aligns errors after omitted em
   expect(html).toContain(reorderingCopy.en.clearedTransit);
   expect(html).toMatch(/aria-invalid="true"[^>]*name="transit-sku-01"/);
   expect(html).toContain(reorderingCopy.en.transitError);
+});
+
+function controlNodes(node: ReactNode): { type: unknown; props: Record<string, any> }[] {
+  if (Array.isArray(node)) return node.flatMap(controlNodes);
+  if (!isValidElement<{ children?: ReactNode }>(node)) return [];
+  return [{ type: node.type, props: node.props }, ...controlNodes(node.props.children)];
+}
+
+it.each([false, true])("preserves mode selection and reset for monobrand=%s", (monobrand) => {
+  const draft = readReorderingDraft(new URLSearchParams("leadDays=0&supplierId=supplier-a"));
+  const onChange = vi.fn(), onReset = vi.fn();
+  const nodes = controlNodes(Controls({ monobrand, draft, data, error: null, copy: reorderingCopy.en, onChange, onReset }));
+  const modes = nodes.filter(node => "aria-pressed" in node.props);
+  expect(modes.map(node => node.props.children)).toEqual([
+    reorderingCopy.en.modes.shortage,
+    reorderingCopy.en.modes[monobrand ? "all" : "brand"],
+  ]);
+  expect(modes[0].props["aria-pressed"]).toBe(true);
+  modes[1].props.onClick();
+  expect(onChange).toHaveBeenCalledWith({ ...draft, mode: monobrand ? "all" : "brand" });
+  nodes.find(node => node.props.children === reorderingCopy.en.reset)!.props.onClick();
+  expect(onReset).toHaveBeenCalledOnce();
+});
+
+it("clears only contextual filters while keeping supplier, brand and parameters", () => {
+  const draft = readReorderingDraft(new URLSearchParams("brandId=b&supplierId=s&categoryId=c&skuId=sku&currency=EUR&leadDays=0&coverDays=60"));
+  const onChange = vi.fn();
+  const nodes = controlNodes(Controls({ draft, data, error: null, copy: reorderingCopy.en, onChange, onReset: vi.fn() }));
+  nodes.find(node => node.props.children === reorderingCopy.en.clearContext)!.props.onClick();
+  expect(onChange).toHaveBeenCalledWith({ ...draft, filters: { brandId: "b", supplierId: "s" } });
+  expect(draft.filters.skuId).toBe("sku");
+});
+
+it("keeps parameter errors scoped to their fields and preserves blank inheritance", () => {
+  const draft = readReorderingDraft(new URLSearchParams("leadDays=-1"));
+  const onChange = vi.fn();
+  const props = { draft, data, error: { code: "INVALID_REORDERING_REQUEST", details: ["parameters.leadDays: invalid", "filters.brandId: invalid"] }, copy: reorderingCopy.en, onChange, onReset: vi.fn() };
+  const nodes = controlNodes(Controls(props));
+  const lead = nodes.find(node => node.type === "input" && node.props.name === "leadDays")!.props;
+  const cover = nodes.find(node => node.type === "input" && node.props.name === "coverDays")!.props;
+  expect(lead["aria-invalid"]).toBe(true);
+  expect(lead["aria-describedby"]).toBe("reordering-field-error");
+  expect(cover["aria-invalid"]).toBe(false);
+  expect(cover["aria-describedby"]).toBe("reordering-settings-note");
+  expect(cover.value).toBe("");
+  expect(cover.placeholder).toBe(`${reorderingCopy.en.settings} (60)…`);
+  lead.onChange({ target: { value: "" } });
+  expect(onChange).toHaveBeenCalledWith({ ...draft, leadDays: "" });
+  const filterOnly = controlNodes(Controls({ ...props, error: { ...props.error, details: ["filters.brandId: invalid"] } }));
+  expect(filterOnly.some(node => node.props.id === "reordering-field-error")).toBe(false);
+});
+
+
+it("keeps zero confirmation, blank editing and restore callbacks tied to the SKU", () => {
+  const row = { ...data.rows[0], shortageEligible: true, state: "SHORTAGE" as const, inTransitQuantity: null };
+  const onTransit = vi.fn(), onRestore = vi.fn();
+  const props = { row, value: undefined, edited: false, invalid: false, copy: reorderingCopy.en, onTransit, onRestore };
+  const initial = controlNodes(ReorderingTransitCell(props));
+  initial.find(node => node.props.children === reorderingCopy.en.confirmZero)!.props.onClick();
+  expect(onTransit).toHaveBeenCalledWith(row.skuId, "0");
+  const edited = controlNodes(ReorderingTransitCell({ ...props, value: "", edited: true }));
+  const input = edited.find(node => node.type === "input")!.props;
+  expect(input.value).toBe("");
+  input.onChange({ target: { value: "12" } });
+  expect(onTransit).toHaveBeenLastCalledWith(row.skuId, "12");
+  edited.find(node => node.props.children === reorderingCopy.en.restore)!.props.onClick();
+  expect(onRestore).toHaveBeenCalledWith(row.skuId);
+  const excluded = controlNodes(ReorderingTransitCell({ ...props, row: { ...row, state: "EXCLUDED" } }));
+  expect(excluded.find(node => node.type === "input")!.props.disabled).toBe(true);
+  expect(excluded.some(node => node.props.children === reorderingCopy.en.confirmZero)).toBe(false);
+});
+
+it("aligns transit errors with sorted nonempty overrides and hides stale amounts", () => {
+  const tree = controlNodes(Table({ data, current: false, monobrand: false, transit: { z: "9", a: "-1", empty: "" }, error: { code: "INVALID_REORDERING_REQUEST", details: ["overrides.0.inTransitQuantity: invalid"] }, copy: reorderingCopy.en, locale: "en-GB", onTransit: vi.fn(), onRestore: vi.fn(), onPage: vi.fn() }));
+  const table = tree.find(node => node.type === ReportTable)!.props;
+  const cell = (skuId: string) => table.renderCell({ ...data.rows[0], skuId }, { key: "inTransitQuantity" }).props;
+  expect(cell("a").invalid).toBe(true);
+  expect(cell("z").invalid).toBe(false);
+  expect(cell("empty").invalid).toBe(false);
+  expect(cell("other").invalid).toBe(false);
+  expect(table.renderCell(data.rows[0], { key: "purchaseAmount" })).toBe("—");
+  expect(table.renderCell(data.rows[0], { key: "recommendedQuantity" }).props.children).toBe("—");
+  expect(tree.filter(node => "disabled" in node.props && "onClick" in node.props).every(node => node.props.disabled)).toBe(true);
 });

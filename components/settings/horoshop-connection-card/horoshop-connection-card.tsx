@@ -1,6 +1,7 @@
 "use client";
 import { useRef, useState, type FormEvent } from "react";
-import { Field, control } from "@/components/merchandising/form-controls/form-controls";
+import { Field } from "@/components/ui/field/field";
+import { control } from "@/components/ui/control-styles/control-styles";
 import { useConnectorConnection } from "../use-connector-connection";
 import type { PublicConnection } from "@/lib/connectors/contract";
 import StatusMappingFields, {

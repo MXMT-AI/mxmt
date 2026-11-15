@@ -5,7 +5,7 @@ import {
   qualityGuidance,
   qualityFixHref,
 } from "@/lib/data-quality-copy";
-import { button } from "@/components/merchandising/report-primitives/report-primitives";
+import { button } from "@/components/ui/button/button-styles";
 export interface QualityStockGroup {
   currency: string | null;
   skuCount: number;

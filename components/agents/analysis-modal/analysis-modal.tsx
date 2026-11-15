@@ -1,9 +1,31 @@
-import { useState, useEffect, useRef } from "react";
-import { Table2, X } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { Table2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge/badge";
+import { Button } from "@/components/ui/button/button";
+import { Dialog } from "@/components/ui/dialog/dialog";
+import { Heading } from "@/components/ui/heading/heading";
+import { Text } from "@/components/ui/text/text";
+import { cn } from "@/lib/utils";
+import { InsightList } from "../insight-list/insight-list";
+import { buildCategoryInsightRows, buildChannelInsightRows } from "../insight-list/insight-rows";
 import PromoTableModal, { type PromoSimParams } from "@/components/agents/promo-table-modal/promo-table-modal";
 import ReorderTableModal, { type ReorderSimParams } from "@/components/agents/reorder-table-modal/reorder-table-modal";
 import { buildReorderParams, buildSimParams, formatWohDays } from "@/components/agents/agents.utils";
 import { badgeStyle, campaignHealthLabel, campaignHealthClasses, campaignStatusColor, campaignMetricLabel } from "../agent-card-presentation";
+import { getBrandStatus } from "../brand-status";
+
+function AnalysisCallout({ title, accent = false, children }: {
+  title: string;
+  accent?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div className={cn("rounded-xl border p-4", accent ? "border-accent-cyan/20 bg-accent-cyan/5" : "border-(--border) bg-(--surface2)")}>
+      <Heading as="h3" variant="eyebrow" className={cn("mb-2", accent && "text-accent-cyan")}>{title}</Heading>
+      <Text variant="body" className={accent ? "font-medium text-accent-cyan" : "text-(--text)"}>{children}</Text>
+    </div>
+  );
+}
 
 export function AnalysisModal({
   agentId,
@@ -16,98 +38,32 @@ export function AnalysisModal({
   output: Record<string, any>;
   onClose: () => void;
 }) {
-  const overlayRef = useRef<HTMLDivElement>(null);
   const [simParams, setSimParams] = useState<PromoSimParams | null>(null);
   const [reorderParams, setReorderParams] = useState<ReorderSimParams | null>(null);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
-  const statusBadge = (status: string, map: Record<string, string>) => {
-    const color = map[status] ?? "var(--muted)";
-    return (
-      <span
-        className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm ml-2 shrink-0"
-        style={badgeStyle(color)}
-      >
-        {status?.toUpperCase()}
-      </span>
-    );
-  };
-
-  const brandColors: Record<string, string> = {
-    critical: "var(--danger-ink)", warning: "var(--amber-ink)", excellent: "var(--cyan-ink)", balanced: "var(--muted)",
-  };
-  const channelColors: Record<string, string> = {
-    best: "var(--cyan-ink)", normal: "var(--muted)", weak: "var(--amber-ink)", inactive: "var(--amber-ink)",
-  };
-  const catColors: Record<string, string> = {
-    bestseller: "var(--cyan-ink)", normal: "var(--muted)", slow: "var(--amber-ink)", dead: "var(--danger-ink)",
-    stockout: "var(--info-ink)", inactive: "var(--muted)",
-  };
-
   return (
-    <div
-      ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/[0.6] backdrop-blur-sm"
-      onClick={(e) => e.target === overlayRef.current && onClose()}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="analysis-modal-title"
-        className="relative w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-2xl border border-(--border) bg-(--surface) shadow-[0_24px_64px_rgba(0,0,0,0.5)]"
-      >
-        <div className="sticky top-0 bg-(--surface) border-b border-(--border) px-6 py-4 flex items-center justify-between z-10">
-          <div>
-            <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-0.5">
-              Повний аналіз
-            </div>
-            <h2 id="analysis-modal-title" className="text-base font-bold text-(--text)">{agentLabel}</h2>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Закрити повний аналіз"
-            className="w-8 h-8 rounded-lg border border-(--border) flex items-center justify-center text-(--muted) hover:text-(--text) hover:bg-(--input-bg) transition-colors"
-          >
-            <X size={14} aria-hidden="true" />
-          </button>
-        </div>
-
+    <>
+      <Dialog title={agentLabel} subtitle="Повний аналіз" closeLabel="Закрити повний аналіз" onClose={onClose}>
         <div className="px-6 py-5 space-y-5">
           {output.summary && (
-            <div className="bg-(--surface2) border border-(--border) rounded-xl p-4">
-              <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-2">
-                Загальний висновок
-              </div>
-              <p className="text-sm text-(--text) leading-relaxed">{output.summary}</p>
-            </div>
+            <AnalysisCallout title="Загальний висновок">{output.summary}</AnalysisCallout>
           )}
 
           {output.action && (
-            <div className="bg-accent-cyan/5 border border-accent-cyan/20 rounded-xl p-4">
-              <div className="text-[9px] font-mono uppercase tracking-widest text-accent-cyan mb-2">
-                Головна дія
-              </div>
-              <p className="text-sm text-accent-cyan font-medium leading-relaxed">{output.action}</p>
-            </div>
+            <AnalysisCallout title="Головна дія" accent>{output.action}</AnalysisCallout>
           )}
 
           {agentId === "inventory_analyst" && Array.isArray(output.brands) && output.brands.length > 0 && (
             <div>
-              <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-3">
+              <Heading as="h3" variant="eyebrow">
                 Аналіз по брендах ({output.brands.length})
-              </div>
+              </Heading>
               <div className="space-y-3">
                 {output.brands.map((b: any) => (
                   <div key={b.brand_id ?? b.brand_name} className="border border-(--border) rounded-xl p-4">
                     <div className="flex items-center mb-2">
                       <span className="font-semibold text-sm text-(--text)">{b.brand_name}</span>
-                      {statusBadge(b.status, brandColors)}
+                      <Badge size="small" className="ml-2 shrink-0" style={badgeStyle(getBrandStatus(b.status).color)}>{b.status?.toUpperCase()}</Badge>
                     </div>
                     {b.analysis && (
                       <p className="text-[12px] text-(--muted) leading-relaxed mb-2">{b.analysis}</p>
@@ -115,9 +71,7 @@ export function AnalysisModal({
                     {Array.isArray(b.suggested_actions) && b.suggested_actions.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 mt-2">
                         {b.suggested_actions.map((a: string) => (
-                          <span key={a} className="text-[10px] font-mono px-2 py-0.5 bg-(--row) border border-(--border) rounded-sm text-(--muted)">
-                            {a}
-                          </span>
+                          <Badge key={a} className="bg-(--row)">{a}</Badge>
                         ))}
                       </div>
                     )}
@@ -129,49 +83,22 @@ export function AnalysisModal({
 
           {agentId === "channel_analytics" && Array.isArray(output.channels) && output.channels.length > 0 && (
             <div>
-              <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-3">
-                Аналіз по каналах ({output.channels.length})
-              </div>
-              <div className="space-y-3">
-                {output.channels.map((c: any, i: number) => (
-                  <div key={i} className="border border-(--border) rounded-xl p-4">
-                    <div className="flex items-center mb-2">
-                      <span className="font-semibold text-sm text-(--text) capitalize">{c.channel}</span>
-                      {statusBadge(c.status, channelColors)}
-                    </div>
-                    {c.insight && (
-                      <p className="text-[12px] text-(--muted) leading-relaxed mb-2">{c.insight}</p>
-                    )}
-                    {c.recommendation && (
-                      <p className="text-[12px] text-accent-cyan">→ {c.recommendation}</p>
-                    )}
-                  </div>
-                ))}
-              </div>
+              <Heading as="h3" variant="eyebrow">Аналіз по каналах ({output.channels.length})</Heading>
+              <InsightList
+                variant="dialog"
+                capitalizeTitles
+                rows={buildChannelInsightRows(output.channels, "dialog")}
+              />
             </div>
           )}
 
           {agentId === "product_attributes" && Array.isArray(output.by_category) && output.by_category.length > 0 && (
             <div>
-              <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-3">
-                Аналіз по категоріях ({output.by_category.length})
-              </div>
-              <div className="space-y-3">
-                {output.by_category.map((c: any, i: number) => (
-                  <div key={i} className="border border-(--border) rounded-xl p-4">
-                    <div className="flex items-center mb-2">
-                      <span className="font-semibold text-sm text-(--text)">{c.category || c.attribute}</span>
-                      {statusBadge(c.status, catColors)}
-                    </div>
-                    {c.insight && (
-                      <p className="text-[12px] text-(--muted) leading-relaxed mb-2">{c.insight}</p>
-                    )}
-                    {c.recommendation && (
-                      <p className="text-[12px] text-accent-cyan">→ {c.recommendation}</p>
-                    )}
-                  </div>
-                ))}
-              </div>
+              <Heading as="h3" variant="eyebrow">Аналіз по категоріях ({output.by_category.length})</Heading>
+              <InsightList
+                variant="dialog"
+                rows={buildCategoryInsightRows(output.by_category, "dialog")}
+              />
             </div>
           )}
 
@@ -261,15 +188,13 @@ export function AnalysisModal({
                           </ul>
                         )}
                         {opt.discount_percent > 0 && brand.brand_id && (
-                          <button
-                            type="button"
+                          <Button
                             onClick={() => setSimParams(buildSimParams(brand, opt, output._debug))}
-                            className="mt-3 flex items-center gap-1.5 text-[10px] font-mono px-3 py-1.5 rounded-lg border transition-colors"
-                            style={{ borderColor: "var(--signal-line)", background: "var(--signal-wash)", color: "var(--signal-ink)" }}
+                            className="mt-3 border-(--signal-line) bg-(--signal-wash) px-3 py-1.5 text-(--signal-ink) hover:bg-(--signal-hover) hover:text-(--signal-ink)"
                           >
                             <Table2 size={11} aria-hidden="true" />
                             Переглянути в таблиці
-                          </button>
+                          </Button>
                         )}
                       </div>
                     ))}
@@ -300,9 +225,9 @@ export function AnalysisModal({
                           <div className="flex items-center gap-2 mb-2 flex-wrap">
                             <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm bg-accent-purple/15 text-accent-purple">{sc.type}</span>
                             <span className="font-semibold text-sm text-(--text)">{sc.label}</span>
-                            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm ml-1" style={badgeStyle(riskColor)}>
+                            <Badge size="small" className="ml-1" style={badgeStyle(riskColor)}>
                               {sc.evaluation?.risk_level} RISK
-                            </span>
+                            </Badge>
                             {sc.evaluation?.recommended && (
                               <span className="text-[9px] font-mono text-accent-cyan ml-auto">★ РЕКОМЕНДОВАНО · {sc.evaluation.score}/10</span>
                             )}
@@ -330,15 +255,13 @@ export function AnalysisModal({
                             </ul>
                           )}
                           {sc.qty_multiplier > 0 && brand.brand_id && (
-                            <button
-                              type="button"
+                            <Button
                               onClick={() => setReorderParams(buildReorderParams(brand, sc, output._debug))}
-                              className="mt-3 flex items-center gap-1.5 text-[10px] font-mono px-3 py-1.5 rounded-lg border transition-colors"
-                              style={{ borderColor: "var(--signal-line)", background: "var(--signal-wash)", color: "var(--signal-ink)" }}
+                              className="mt-3 border-(--signal-line) bg-(--signal-wash) px-3 py-1.5 text-(--signal-ink) hover:bg-(--signal-hover) hover:text-(--signal-ink)"
                             >
                               <Table2 size={11} aria-hidden="true" />
                               Переглянути в таблиці
-                            </button>
+                            </Button>
                           )}
                         </div>
                       );
@@ -402,7 +325,7 @@ export function AnalysisModal({
               )}
               {Array.isArray(output.campaigns) && output.campaigns.length > 0 && (
                 <div>
-                  <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-3">Кампанії ({output.campaigns.length})</div>
+                  <Heading as="h3" variant="eyebrow">Кампанії ({output.campaigns.length})</Heading>
                   <div className="space-y-3">
                     {output.campaigns.map((camp: any, i: number) => {
                       const sc = campaignStatusColor(camp.status);
@@ -410,7 +333,7 @@ export function AnalysisModal({
                         <div key={camp.campaign_id ?? i} className="border border-(--border) rounded-xl p-4">
                           <div className="flex items-center gap-2 mb-2 flex-wrap">
                             <span className="font-semibold text-sm text-(--text)">{camp.brand_name}</span>
-                            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm" style={badgeStyle(sc)}>{camp.status?.toUpperCase()}</span>
+                            <Badge size="small" style={badgeStyle(sc)}>{camp.status?.toUpperCase()}</Badge>
                             <span className="text-[9px] font-mono text-(--subtle) ml-auto">{campaignMetricLabel(camp)}</span>
                           </div>
                           {camp.planned_action && <p className="text-[11px] text-(--subtle) mb-1">📋 {camp.planned_action}</p>}
@@ -441,7 +364,7 @@ export function AnalysisModal({
               )}
               {Array.isArray(output.top_priorities) && output.top_priorities.length > 0 && (
                 <div>
-                  <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-3">Топ пріоритети</div>
+                  <Heading as="h3" variant="eyebrow">Топ пріоритети</Heading>
                   <div className="space-y-2">
                     {output.top_priorities.map((p: any) => (
                       <div key={p.rank} className="flex items-start gap-3 border border-(--border) rounded-xl p-3">
@@ -508,9 +431,9 @@ export function AnalysisModal({
               )}
               {Array.isArray(output.annotations) && output.annotations.length > 0 && (
                 <div>
-                  <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-3">
+                  <Heading as="h3" variant="eyebrow">
                     Анотації ({output.annotations.length})
-                  </div>
+                  </Heading>
                   <div className="space-y-2">
                     {output.annotations.map((ann: any, i: number) => {
                       const prioColor = ann.priority === "critical" ? "var(--danger-ink)" : ann.priority === "high" ? "var(--amber-ink)" : ann.priority === "medium" ? "var(--violet-ink)" : "var(--muted)";
@@ -533,7 +456,7 @@ export function AnalysisModal({
             </div>
           )}
         </div>
-      </div>
+      </Dialog>
 
       {simParams && (
         <PromoTableModal params={simParams} onClose={() => setSimParams(null)} />
@@ -542,6 +465,6 @@ export function AnalysisModal({
       {reorderParams && (
         <ReorderTableModal params={reorderParams} onClose={() => setReorderParams(null)} />
       )}
-    </div>
+    </>
   );
 }

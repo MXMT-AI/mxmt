@@ -4,6 +4,10 @@ import { describe, it, expect, vi } from "vitest";
 import { ExportAttempt, exportCopy } from "@/lib/scenario-export-client";
 import Panel from "@/components/merchandising/scenario-export-panel/scenario-export-panel";
 import type { useScenarioExport } from "@/components/merchandising/use-scenario-export";
+vi.mock("next/navigation", async load => ({
+  ...await load<typeof import("next/navigation")>(),
+  useSearchParams: () => new URLSearchParams("snapshotId=frozen&channelId=2&chatTopic=old&chatExportId=old"),
+}));
 const receipt = {
   exportId: "e",
   actionId: "a",
@@ -98,4 +102,25 @@ describe("export retry identity and download/history UI", () => {
     expect(viewer).toContain(exportCopy.en.earlier);
     expect(viewer).not.toContain("download=");
   });
+});
+
+it.each(["reprice", "reorder"] as const)("preserves report context when asking about a %s export", kind => {
+  const html = renderToStaticMarkup(createElement(Panel, {
+    state: { ...state, receipt: { ...receipt, kind } }, previewId: "p", allowed: true, lang: "en",
+  }));
+  expect(html).toContain(`snapshotId=frozen&amp;channelId=2&amp;chatTopic=${kind === "reprice" ? "repricing" : "reordering"}&amp;chatExportId=e&amp;chat=1`);
+  const earlier = renderToStaticMarkup(createElement(Panel, { state, previewId: "new", allowed: true, lang: "en" }));
+  expect(earlier).not.toContain("chatExportId=");
+});
+
+it.each([
+  ["EXPORT_NOT_READY", "notReady"], ["EXPORT_PREVIEW_MISMATCH", "changed"],
+  ["EXPORT_ID_CONFLICT", "conflict"], ["FORBIDDEN", "readOnly"],
+  ["UNEXPECTED", "error"], ["constructor", "error"],
+] as const)("preserves recovery text for %s", (error, key) => {
+  const html = renderToStaticMarkup(createElement(Panel, {
+    state: { ...state, error }, previewId: "p", allowed: true, lang: "en",
+  }));
+  expect(html).toContain(exportCopy.en[key]);
+  expect(html).toContain('role="alert"');
 });

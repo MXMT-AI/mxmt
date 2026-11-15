@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Field, control } from "@/components/merchandising/form-controls/form-controls";
+import { Field } from "@/components/ui/field/field";
+import { control } from "@/components/ui/control-styles/control-styles";
 import { apiFetch } from "@/lib/fetch";
 import { readApiJson } from "@/lib/api-response";
 import StatusMappingFields from "../status-mapping-fields/status-mapping-fields";

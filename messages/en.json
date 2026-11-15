@@ -1,4 +1,7 @@
 {
+  "nav_skip_to_main": "Skip to main content",
+  "nav_documentation": "Documentation",
+  "nav_back_home": "Back to home",
   "nav_dashboard": "Dashboard",
   "nav_agents": "Agents",
   "nav_calendar": "Calendar",

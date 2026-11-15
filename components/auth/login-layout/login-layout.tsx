@@ -1,45 +1,43 @@
 import type { ReactNode } from "react";
 import { ArrowLeft, ArrowUpRight } from "lucide-react";
-import { getLocale } from "next-intl/server";
-import { BrandMark } from "@/components/brand-mark/brand-mark";
-import { landingCopy } from "@/components/landing/copy";
+import { getTranslations } from "next-intl/server";
+import { BrandLink } from "@/components/brand-link/brand-link";
+import { Container } from "@/components/ui/container/container";
+import { SkipLink } from "@/components/ui/skip-link/skip-link";
 import { Link } from "@/i18n/navigation";
 import { LoginBackdrop } from "../login-backdrop/login-backdrop";
 
-const barClassName = "mx-auto flex min-h-[65px] w-[min(100%_-_40px,1320px)] flex-wrap items-center justify-between gap-x-4 gap-y-2 py-2 max-[480px]:min-h-[58px]";
-const homeLabel = { uk: "На головну", en: "Back to home" };
+const barClassName = "flex min-h-[65px] flex-wrap items-center justify-between gap-x-4 gap-y-2 py-2 max-[480px]:min-h-[58px]";
+const navLinkClassName = "inline-flex min-h-10 items-center gap-[7px] text-sm hover:text-(--accent) max-[480px]:text-[.8125rem] [&_svg]:shrink-0 [&_svg]:text-(--accent)";
+const loginMainId = "login-main";
 
 export default async function LoginLayout({ children }: { children: ReactNode }) {
-  const locale = await getLocale();
-  const copy = landingCopy[locale];
+  const t = await getTranslations();
 
   return (
     <div className="flex min-h-svh flex-col bg-(--bg) text-(--text)">
-      <a className="skip-link" href="#login-main">{copy.skip}</a>
+      <SkipLink targetId={loginMainId} />
       <header className="border-b border-(--border) bg-(--surface)">
-        <div className={barClassName}>
-          <Link href="/" className="inline-flex items-center gap-[7px] text-[1.1875rem] font-bold tracking-[-.045em] max-[480px]:gap-1 max-[480px]:text-base">
-            <BrandMark transparent />
-            MXMT <span className="font-[450] text-(--login-muted)">Analytics</span>
+        <Container gutter="fixed" className={barClassName}>
+          <BrandLink variant="auth" />
+          <Link href="/docs" className={navLinkClassName}>
+            {t("nav_documentation")}<ArrowUpRight size={15} aria-hidden="true" />
           </Link>
-          <Link href="/docs" className="inline-flex min-h-10 items-center gap-[7px] text-sm hover:text-(--accent) max-[480px]:text-[.8125rem] [&_svg]:shrink-0 [&_svg]:text-(--accent)">
-            {copy.documentation}<ArrowUpRight size={15} aria-hidden="true" />
-          </Link>
-        </div>
+        </Container>
       </header>
 
-      <main id="login-main" className="relative isolate grid flex-1 place-items-center px-5 py-[clamp(32px,7vh,84px)]">
+      <main id={loginMainId} tabIndex={-1} className="relative isolate grid flex-1 place-items-center px-5 py-[clamp(32px,7vh,84px)]">
         <LoginBackdrop />
         {children}
       </main>
 
       <footer className="border-t border-(--border) bg-(--surface) text-[.8125rem] text-(--login-muted)">
-        <div className={barClassName}>
+        <Container gutter="fixed" className={barClassName}>
           <span>© MXMT Analytics</span>
-          <Link href="/" className="inline-flex min-h-10 items-center gap-[7px] text-sm hover:text-(--accent) max-[480px]:text-[.8125rem] [&_svg]:shrink-0 [&_svg]:text-(--accent)">
-            <ArrowLeft size={15} aria-hidden="true" />{homeLabel[locale]}
+          <Link href="/" className={navLinkClassName}>
+            <ArrowLeft size={15} aria-hidden="true" />{t("nav_back_home")}
           </Link>
-        </div>
+        </Container>
       </footer>
     </div>
   );

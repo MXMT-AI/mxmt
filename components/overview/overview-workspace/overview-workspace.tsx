@@ -1,55 +1,46 @@
 "use client";
+
 import ReportingError from "@/components/merchandising/reporting-error/reporting-error";
 import ReportReadiness from "@/components/merchandising/report-readiness/report-readiness";
-import { Link } from "@/i18n/navigation";
-import dynamic from "next/dynamic";
 import { useState } from "react";
-import { useRouter } from "@/i18n/navigation";
 import { useSearchParams } from "next/navigation";
 import { useLang } from "@/components/language-provider/language-provider";
-import { useMerchandisingFilters,useScenarioExportPermission } from "@/components/merchandising/merchandising-shell/merchandising-shell";
-import { CHAT_TOPICS,type ChatTopic,type MerchandisingChatRequest } from "@/lib/merchandising-chat-contract";
-import { chatCopy } from "@/lib/merchandising-chat-copy";
-import {panel} from "@/components/merchandising/report-primitives/report-primitives";
-import { merchandisingHref } from "@/lib/merchandising-navigation";
+import { useMerchandisingFilters, useScenarioExportPermission } from "@/components/merchandising/merchandising-shell/merchandising-shell";
 import { overviewCopy } from "@/lib/overview-copy";
-import { useOverview } from "../use-overview";
+import { useMerchandisingScreen } from "@/components/merchandising/use-merchandising-screen";
 import OverviewContent from "../overview-content/overview-content";
-const Chat=dynamic(()=>import("@/components/merchandising/merchandising-chat/merchandising-chat"));
+import { OverviewChatPanel } from "../overview-chat-panel/overview-chat-panel";
+
 export default function OverviewWorkspace() {
   const filters = useMerchandisingFilters()!;
-  const { lang } = useLang(),
-    copy = overviewCopy[lang],
-    params = useSearchParams(),router=useRouter(),allowed=useScenarioExportPermission();
-  const [chatLoaded,setChatLoaded]=useState(params.get("chat")==="1");
-  const { data, busy, error, refresh } = useOverview(filters);
-  if (error) return <ReportingError code={error} lang={lang} title={copy.title} onRetry={refresh}/>;
-  if (busy || !data)
+  const { lang } = useLang();
+  const copy = overviewCopy[lang];
+  const params = useSearchParams();
+  const allowed = useScenarioExportPermission();
+  const [chatLoaded, setChatLoaded] = useState(params.get("chat") === "1");
+  const { data, busy, error, refresh } = useMerchandisingScreen(filters, "overview");
+
+  if (error) return <ReportingError code={error} lang={lang} title={copy.title} onRetry={refresh} />;
+  if (busy || !data) {
     return (
       <div role="status" aria-live="polite" className="py-6">
         <h1 className="text-2xl font-bold">{copy.title}</h1>
         <p className="mt-3 text-sm text-(--muted)">{copy.loading}</p>
       </div>
     );
-  const chatFilters:NonNullable<MerchandisingChatRequest["filters"]>={};
-  for(const key of ["brandId","categoryId","skuId","channelId","currency","classification","ownership","supplierId","search"] as const){const v=params.get(key);if(v!==null)chatFilters[key]=v;}
-  const topicValue=params.get("chatTopic"),initialTopic=CHAT_TOPICS.includes(topicValue as ChatTopic)?topicValue as ChatTopic:undefined;
-  const chatScope=JSON.stringify([data.context.snapshotId,chatFilters,initialTopic,params.get("chatExportId")]);
-  return <div className="space-y-6">
-    <ReportReadiness data={data.readiness} lang={lang}/>
-    <OverviewContent
-      data={data}
-      lang={lang}
-      query={params.toString()}
-      monobrand={data.context.profileMode === "MONOBRAND"}
-      onRefresh={refresh}
-    />
-    <details className={panel} open={params.get("chat")==="1"} onToggle={event=>{
-      const open=event.currentTarget.open;if(open)setChatLoaded(true);
-      if(open!==(params.get("chat")==="1")){const next=new URLSearchParams(params);if(open)next.set("chat","1");else next.delete("chat");router.replace(`/overview?${next}`,{scroll:false});}
-    }}>
-      <summary className="min-h-11 cursor-pointer rounded-xl px-5 py-4 text-base font-semibold focus-visible:outline-solid focus-visible:outline-2"><h2 className="inline">{chatCopy[lang].title}</h2></summary>
-      {chatLoaded?<Chat key={chatScope} snapshotId={data.context.snapshotId} filters={chatFilters} lang={lang} allowed={allowed} initialTopic={initialTopic} scenarioExportId={params.get("chatExportId")??undefined}/>:null}
-    </details>
-  </div>;
+  }
+
+  return (
+    <div className="space-y-6">
+      <ReportReadiness data={data.readiness} lang={lang} />
+      <OverviewContent
+        data={data}
+        lang={lang}
+        query={params.toString()}
+        monobrand={data.context.profileMode === "MONOBRAND"}
+        onRefresh={refresh}
+      />
+      <OverviewChatPanel snapshotId={data.context.snapshotId} lang={lang} allowed={allowed} loaded={chatLoaded} onLoad={() => setChatLoaded(true)} />
+    </div>
+  );
 }

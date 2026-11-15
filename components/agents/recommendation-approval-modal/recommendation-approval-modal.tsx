@@ -1,7 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { CalendarPlus, X } from "lucide-react";
+import { useRef, useState, type FormEvent } from "react";
+import { CalendarPlus } from "lucide-react";
+import { Button } from "@/components/ui/button/button";
+import { Dialog } from "@/components/ui/dialog/dialog";
+import { Text } from "@/components/ui/text/text";
 import { apiFetch } from "@/lib/fetch";
 import { readApiJson } from "@/lib/api-response";
 import type { RecommendationChannel } from "@/lib/calendar-recommendation-approval";
@@ -42,6 +45,7 @@ export default function RecommendationApprovalModal({
   const [weekKey, setWeekKey] = useState(weekKeys[0] ?? "");
   const [channels, setChannels] = useState<RecommendationChannel[]>(availableChannels);
   const [saving, setSaving] = useState(false);
+  const inFlight = useRef(false);
   const [error, setError] = useState<string | null>(null);
 
   const toggleChannel = (channel: RecommendationChannel) => {
@@ -50,8 +54,16 @@ export default function RecommendationApprovalModal({
       : [...current, channel]);
   };
 
-  const approve = async () => {
-    if (!weekKey || channels.length === 0 || saving) return;
+  const canApprove = weekKeys.includes(weekKey) && channels.length > 0;
+
+  function requestClose() {
+    if (!inFlight.current) onClose();
+  }
+
+  async function approve(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!canApprove || inFlight.current) return;
+    inFlight.current = true;
     setSaving(true);
     setError(null);
     try {
@@ -65,51 +77,47 @@ export default function RecommendationApprovalModal({
           channels,
         }),
       });
-      const body = await readApiJson<{ error?: string }>(response);
-      if (!response.ok) throw new Error(body.error ?? "Не вдалося погодити рекомендацію");
+      const body = await readApiJson<{ ok?: boolean; error?: string }>(response);
+      if (!response.ok || body?.ok !== true) {
+        throw new Error(body?.error ?? "Не вдалося погодити рекомендацію");
+      }
       await onApproved();
       onClose();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Не вдалося погодити рекомендацію");
     } finally {
+      inFlight.current = false;
       setSaving(false);
     }
-  };
+  }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs" role="presentation">
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="approval-title"
-        className="w-full max-w-lg rounded-2xl border border-(--border) bg-(--surface) shadow-2xl"
-      >
-        <div className="flex items-start justify-between gap-4 border-b border-(--border) p-5">
-          <div>
-            <p className="text-[10px] font-mono uppercase tracking-widest text-accent-yellow">Погодження плану</p>
-            <h2 id="approval-title" className="mt-1 text-lg font-semibold text-(--text)">
-              {recommendation.brand_name}
-            </h2>
-            <p className="mt-1 text-sm text-(--muted)">{recommendation.decision_summary}</p>
-          </div>
-          <button type="button" onClick={onClose} aria-label="Закрити" className="rounded-lg p-1.5 text-(--muted) hover:bg-(--input-bg) hover:text-(--text)">
-            <X size={16} aria-hidden="true" />
-          </button>
-        </div>
-
+    <Dialog
+      title={recommendation.brand_name}
+      subtitle="Погодження плану"
+      closeLabel="Закрити"
+      closeDisabled={saving}
+      onClose={requestClose}
+      className="max-w-lg"
+    >
+      <form onSubmit={approve} aria-busy={saving}>
         <div className="space-y-5 p-5">
+          <Text variant="body">{recommendation.decision_summary}</Text>
           <label className="block">
             <span className="mb-2 block text-[10px] font-mono uppercase tracking-wider text-(--subtle)">Тиждень запуску</span>
             <select
-              value={weekKey}
+              value={weekKeys.includes(weekKey) ? weekKey : ""}
+              disabled={saving || weekKeys.length === 0}
+              required
               onChange={(event) => setWeekKey(event.target.value)}
               className="w-full rounded-lg border border-(--border) bg-(--input-bg) px-3 py-2 text-sm text-(--text) focus:border-accent-yellow/50 focus:outline-hidden"
             >
+              {!weekKeys.includes(weekKey) && <option value="">Немає вибраного тижня</option>}
               {weekKeys.map((key) => <option key={key} value={key}>Тиждень {key.slice(1)}</option>)}
             </select>
           </label>
 
-          <fieldset>
+          <fieldset disabled={saving}>
             <legend className="mb-2 text-[10px] font-mono uppercase tracking-wider text-(--subtle)">Канали</legend>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {availableChannels.map((channel) => (
@@ -131,24 +139,23 @@ export default function RecommendationApprovalModal({
               Рекламний бюджет потребує окремого погодження PM.
             </p>
           )}
-          {error && <p role="alert" className="text-xs text-[#ef4444]">{error}</p>}
+          {error && <p role="alert" className="text-xs text-accent-danger">{error}</p>}
         </div>
 
         <div className="flex justify-end gap-2 border-t border-(--border) p-5">
-          <button type="button" onClick={onClose} disabled={saving} className="rounded-lg border border-(--border) px-4 py-2 text-xs text-(--muted) hover:bg-(--input-bg)">
+          <Button onClick={requestClose} disabled={saving} className="px-4 py-2 font-sans text-xs">
             Скасувати
-          </button>
-          <button
-            type="button"
-            onClick={approve}
-            disabled={saving || !weekKey || channels.length === 0}
-            className="flex items-center gap-2 rounded-lg border border-accent-yellow/40 bg-accent-yellow/15 px-4 py-2 text-xs font-semibold text-accent-yellow disabled:cursor-not-allowed disabled:opacity-50"
+          </Button>
+          <Button
+            type="submit"
+            disabled={saving || !canApprove}
+            className="gap-2 border-accent-yellow/40 bg-accent-yellow/15 px-4 py-2 font-sans text-xs font-semibold text-accent-yellow hover:bg-accent-yellow/20 hover:text-accent-yellow"
           >
             <CalendarPlus size={14} aria-hidden="true" />
             {saving ? "Додаємо…" : "Погодити й додати"}
-          </button>
+          </Button>
         </div>
-      </div>
-    </div>
+      </form>
+    </Dialog>
   );
 }

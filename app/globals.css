@@ -2,6 +2,17 @@
 
 @plugin '@tailwindcss/forms';
 
+@custom-variant theme-light {
+  &:where(html.light *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: light) {
+    &:where(html:not(.dark) *) {
+      @slot;
+    }
+  }
+}
+
 @theme {
   --color-surface-2: #161d26;
   --color-surface: #0f1419;
@@ -22,6 +33,8 @@
   --color-report-warning: var(--report-warning);
   --color-report-info: var(--report-info);
   --color-accent-fill: var(--cyan-signal);
+  --color-accent-fill-hover: #00c9ab;
+  --color-accent-fill-ink: #0d1117;
   --color-landing-canvas: var(--landing-canvas);
   --color-landing-panel: var(--landing-panel);
   --color-landing-ink: var(--landing-ink);
@@ -80,7 +93,9 @@
   --landing-mint-glow: #79f8cd9e;
   --landing-art-line: #68bdab10;
 
-  --bg:           #080c10;
+  --bg-dark:      #080c10;
+  --bg-light:     #f4f7ff;
+  --bg:           var(--bg-dark);
   --surface:      #0f1419;
   --surface2:     #161d26;
   --row:          #0a0d13;
@@ -155,7 +170,7 @@ html.light {
   --landing-closing: radial-gradient(ellipse at 30% 100%, #c1e6d5, #e5f3ec 58%, #f0f7f4);
   --landing-primary-hover: #075b48;
 
-  --bg:           #f4f7ff;
+  --bg:           var(--bg-light);
   --surface:      #ffffff;
   --surface2:     #f7f8ff;
   --row:          #f6f8ff;
@@ -263,62 +278,14 @@ html.light .overview-summary {
   border-inline-start: 4px solid var(--violet-ink);
 }
 
-html.light .skip-link {
-  background: var(--mark-bg);
-  color: var(--mark-ink);
-}
-
 html, body {
   background: var(--bg);
   color: var(--text);
 }
 
-.brand-mark {
-  --brand-fill: #080c10;
-  display: inline-block;
-  flex: none;
-  border-radius: 6px;
-  background: var(--brand-fill) var(--brand-dark) center / 138% no-repeat;
-}
-
-html.light .brand-mark {
-  --brand-fill: #f4f7ff;
-  background-image: var(--brand-light);
-}
-
-@media (prefers-color-scheme: light) {
-  html:not(.dark) .brand-mark {
-    --brand-fill: #f4f7ff;
-    background-image: var(--brand-light);
-  }
-}
-
-.brand-mark[data-transparent] {
-  background-color: transparent;
-}
-
 *:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
-}
-
-.skip-link {
-  position: fixed;
-  left: 1rem;
-  top: 1rem;
-  z-index: 1000;
-  transform: translateY(-150%);
-  border-radius: 0.5rem;
-  background: var(--accent);
-  color: #03110f;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.75rem;
-  font-weight: 700;
-  transition: transform 150ms ease;
-}
-
-.skip-link:focus-visible {
-  transform: translateY(0);
 }
 
 html.light .text-white { color: var(--text); }

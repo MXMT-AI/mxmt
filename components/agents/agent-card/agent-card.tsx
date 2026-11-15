@@ -1,4 +1,6 @@
+import { Badge } from "@/components/ui/badge/badge";
 import { AgentStatusIcon } from "../agent-status-icon/agent-status-icon";
+import { agentStatusPresentation, getAgentRunState } from "../agent-status";
 import { Link } from "@/i18n/navigation";
 import { useState, useEffect } from "react";
 import { Play, RefreshCw, Table2, Eye, Code2 } from "lucide-react";
@@ -7,12 +9,16 @@ import PromoTableModal, { type PromoSimParams } from "@/components/agents/promo-
 import ReorderTableModal, { type ReorderSimParams } from "@/components/agents/reorder-table-modal/reorder-table-modal";
 import { AGENTS, AGENT_ROUTES } from "@/components/agents/agents.config";
 import type { AgentRunInfo, BrandResult } from "@/components/agents/agents.types";
-import { buildReorderParams, buildSimParams, duration, fmtDate, formatWohDays, statusColor } from "@/components/agents/agents.utils";
+import { buildReorderParams, buildSimParams, duration, fmtDate, formatWohDays } from "@/components/agents/agents.utils";
 import RecommendationApprovalModal, { type ApprovalRecommendation } from "@/components/agents/recommendation-approval-modal/recommendation-approval-modal";
 import { AnalysisModal } from "../analysis-modal/analysis-modal";
 import { DebugModal } from "../debug-modal/debug-modal";
 import { BrandCard } from "../brand-card/brand-card";
 import { badgeStyle, campaignHealthLabel, campaignHealthClasses, campaignStatusColor, campaignMetricLabel } from "../agent-card-presentation";
+
+import { InsightList } from "../insight-list/insight-list";
+import { buildCategoryInsightRows, buildChannelInsightRows, type CategoryInsight, type ChannelInsight } from "../insight-list/insight-rows";
+import { ResultSummary } from "./result-summary/result-summary";
 
 export function AgentCard({
   agent,
@@ -34,19 +40,20 @@ export function AgentCard({
   const [reorderParams, setReorderParams] = useState<ReorderSimParams | null>(null);
   const [approvalTarget, setApprovalTarget] = useState<ApprovalRecommendation | null>(null);
   const [provider, setProvider] = useState<string>("openai");
+  const toggleExpanded = () => setExpanded((value) => !value);
   const Icon = agent.icon;
-  const isStale = run?.isCurrent === false;
-  const s = isStale ? "idle" : (run?.status ?? "idle");
+  const { status: s, isStale } = getAgentRunState(run);
+  const { color: statusTextColor, label: statusLabel } = agentStatusPresentation[s];
   const output = isStale ? {} : (run?.output ?? {});
 
   const brands: BrandResult[] = agent.id === "inventory_analyst" ? (output.brands ?? []) : [];
   const criticalCount = brands.filter((b) => b.status === "critical").length;
   const warningCount = brands.filter((b) => b.status === "warning").length;
 
-  const channels: any[] = output.channels ?? output.metrics?.channels ?? [];
+  const channels: ChannelInsight[] = output.channels ?? output.metrics?.channels ?? [];
   const topChannel: string = output.top_channel ?? "";
 
-  const byCategory: any[] = output.by_category ?? output.metrics?.byCategory ?? [];
+  const byCategory: CategoryInsight[] = output.by_category ?? output.metrics?.byCategory ?? [];
   const bestsellers: string[] = output.bestsellers ?? output.metrics?.topCategories ?? [];
   const deadStock: string[] = output.dead_stock ?? output.metrics?.deadCategories ?? [];
 
@@ -100,13 +107,13 @@ export function AgentCard({
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="wrap-break-word text-sm font-semibold text-(--text)">{agent.label}</h3>
-                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm bg-(--input-bg) text-(--subtle)">
+                <Badge tone="subtle" size="small" outlined={false}>
                   {agent.model}
-                </span>
+                </Badge>
                 {agent.model !== "Rules v1" && (
-                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm bg-(--input-bg) text-(--subtle)">
+                  <Badge tone="subtle" size="small" outlined={false}>
                     {provider === "openai" ? "OpenAI" : "Anthropic"}
-                  </span>
+                  </Badge>
                 )}
                 {!AGENT_ROUTES[agent.id] && (
                   <span className="text-[9px] font-mono text-(--subtle)">• скоро</span>
@@ -139,18 +146,8 @@ export function AgentCard({
         <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] tabular-nums text-(--subtle)">
           <span>
             Статус:{" "}
-            <span
-              className={
-                s === "done"
-                  ? "text-accent-cyan"
-                  : s === "running"
-                    ? "text-accent-yellow"
-                    : s === "error"
-                      ? "text-accent-danger"
-                      : "text-(--subtle)"
-              }
-            >
-              {isStale ? "застаріло" : s === "idle" ? "очікування" : s === "running" ? "працює" : s === "done" ? "готово" : "помилка"}
+            <span className={statusTextColor}>
+              {isStale ? "застаріло" : statusLabel}
             </span>
           </span>
           {run?.finishedAt && (
@@ -162,174 +159,150 @@ export function AgentCard({
         </div>
 
         {s === "done" && brands.length > 0 && (
-          <div className="flex items-center gap-2 mt-3 flex-wrap">
+          <ResultSummary expanded={expanded} onToggle={toggleExpanded} label={`Детально (${brands.length} брендів) ↓`}>
             {criticalCount > 0 && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-accent-danger/10 border border-accent-danger/20 text-accent-danger">
+              <Badge tone="danger">
                 {criticalCount} критичних
-              </span>
+              </Badge>
             )}
             {warningCount > 0 && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-accent-yellow/10 border border-accent-yellow/20 text-accent-yellow">
+              <Badge tone="warning">
                 {warningCount} попереджень
-              </span>
+              </Badge>
             )}
             {criticalCount === 0 && warningCount === 0 && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-accent-cyan/10 border border-accent-cyan/20 text-accent-cyan">
+              <Badge tone="positive">
                 Все гаразд
-              </span>
+              </Badge>
             )}
-            <button type="button" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded} className="text-[10px] font-mono text-(--muted) hover:text-(--text) ml-auto">
-              {expanded ? "Згорнути ↑" : `Детально (${brands.length} брендів) ↓`}
-            </button>
-          </div>
+          </ResultSummary>
         )}
 
         {s === "done" && channels.length > 0 && brands.length === 0 && byCategory.length === 0 && (
-          <div className="flex items-center gap-2 mt-3 flex-wrap">
+          <ResultSummary expanded={expanded} onToggle={toggleExpanded}>
             {topChannel && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-accent-cyan/10 border border-accent-cyan/20 text-accent-cyan">
+              <Badge tone="positive">
                 Лідер за кількістю: {topChannel}
-              </span>
+              </Badge>
             )}
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-(--input-bg) border border-(--border) text-(--muted)">
+            <Badge>
               {channels.length} каналів
-            </span>
-            <button type="button" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded} className="text-[10px] font-mono text-(--muted) hover:text-(--text) ml-auto">
-              {expanded ? "Згорнути ↑" : "Детально ↓"}
-            </button>
-          </div>
+            </Badge>
+          </ResultSummary>
         )}
 
         {s === "done" && byCategory.length > 0 && (
-          <div className="flex items-center gap-2 mt-3 flex-wrap">
+          <ResultSummary expanded={expanded} onToggle={toggleExpanded} label={`Детально (${byCategory.length} категорій) ↓`}>
             {bestsellers.length > 0 && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-accent-cyan/10 border border-accent-cyan/20 text-accent-cyan">
+              <Badge tone="positive">
                 Бестселери: {bestsellers.slice(0, 2).join(", ")}
-              </span>
+              </Badge>
             )}
             {deadStock.length > 0 && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-accent-danger/10 border border-accent-danger/20 text-accent-danger">
+              <Badge tone="danger">
                 Dead stock: {deadStock.length} категорій
-              </span>
+              </Badge>
             )}
-            <button type="button" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded} className="text-[10px] font-mono text-(--muted) hover:text-(--text) ml-auto">
-              {expanded ? "Згорнути ↑" : `Детально (${byCategory.length} категорій) ↓`}
-            </button>
-          </div>
+          </ResultSummary>
         )}
 
         {s === "done" && decisionBrands.length > 0 && (
-          <div className="flex items-center gap-2 mt-3 flex-wrap">
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-accent-purple/10 border border-accent-purple/20 text-accent-purple">
+          <ResultSummary expanded={expanded} onToggle={toggleExpanded}>
+            <Badge tone="accent">
               {decisionBrands.length} {agent.id === "repricing" ? "брендів до уцінки" : "брендів до дозамовлення"}
-            </span>
+            </Badge>
             {recommendedCount > 0 && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-accent-cyan/10 border border-accent-cyan/20 text-accent-cyan">
+              <Badge tone="positive">
                 {recommendedCount} рекомендацій готово
-              </span>
+              </Badge>
             )}
-            <button type="button" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded} className="text-[10px] font-mono text-(--muted) hover:text-(--text) ml-auto">
-              {expanded ? "Згорнути ↑" : "Детально ↓"}
-            </button>
-          </div>
+          </ResultSummary>
         )}
 
         {s === "done" && marketerBrands.length > 0 && (
-          <div className="flex items-center gap-2 mt-3 flex-wrap">
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-accent-yellow/10 border border-accent-yellow/20 text-accent-yellow">
+          <ResultSummary expanded={expanded} onToggle={toggleExpanded}>
+            <Badge tone="warning">
               {marketerBrands.length} брифів готово
-            </span>
+            </Badge>
             {marketerBrands.filter((b: any) => b.urgency === "critical" || b.urgency === "high").length > 0 && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-accent-danger/10 border border-accent-danger/20 text-accent-danger">
+              <Badge tone="danger">
                 {marketerBrands.filter((b: any) => b.urgency === "critical" || b.urgency === "high").length} термінових
-              </span>
+              </Badge>
             )}
-            <button type="button" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded} className="text-[10px] font-mono text-(--muted) hover:text-(--text) ml-auto">
-              {expanded ? "Згорнути ↑" : "Детально ↓"}
-            </button>
-          </div>
+          </ResultSummary>
         )}
 
         {s === "done" && (annotations.length > 0 || healthScore) && (
-          <div className="flex items-center gap-2 mt-3 flex-wrap">
+          <ResultSummary expanded={expanded} onToggle={toggleExpanded}>
             {healthScore?.coverage_percent != null && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-accent-yellow/10 border border-accent-yellow/20 text-accent-yellow">
+              <Badge tone="warning">
                 Покриття: {healthScore.coverage_percent}%
-              </span>
+              </Badge>
             )}
             {healthScore?.recommendation_count != null && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-(--input-bg) border border-(--border) text-(--muted)">
+              <Badge>
                 {healthScore.scheduled_recommendations ?? 0} заплановано / {healthScore.recommendation_count} рекомендовано
-              </span>
+              </Badge>
             )}
             {criticalAnnotations > 0 && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-accent-danger/10 border border-accent-danger/20 text-accent-danger">
+              <Badge tone="danger">
                 {criticalAnnotations} критичних прогалин
-              </span>
+              </Badge>
             )}
             {annotations.length > 0 && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-(--input-bg) border border-(--border) text-(--muted)">
+              <Badge>
                 {annotations.length} анотацій
-              </span>
+              </Badge>
             )}
-            <button type="button" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded} className="text-[10px] font-mono text-(--muted) hover:text-(--text) ml-auto">
-              {expanded ? "Згорнути ↑" : "Детально ↓"}
-            </button>
-          </div>
+          </ResultSummary>
         )}
 
         {s === "done" && agent.id === "campaign_analysis" && campaignOverallHealth && (
-          <div className="flex items-center gap-2 mt-3 flex-wrap">
+          <ResultSummary expanded={expanded} onToggle={toggleExpanded}>
             {campaignOverallHealth && (
-              <span className={`text-[10px] font-mono px-2 py-0.5 rounded-sm border ${campaignHealthClasses(campaignOverallHealth)}`}>
+              <Badge className={campaignHealthClasses(campaignOverallHealth)}>
                 {campaignHealthLabel(campaignOverallHealth)}
-              </span>
+              </Badge>
             )}
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-(--input-bg) border border-(--border) text-(--muted)">
+            <Badge>
               {activeCampaignCount} активних
-            </span>
+            </Badge>
             {scheduledCampaignCount > 0 && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-(--input-bg) border border-(--border) text-(--muted)">
+              <Badge>
                 {scheduledCampaignCount} у календарі
-              </span>
+              </Badge>
             )}
             {pendingRecommendations > 0 && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-accent-yellow/10 border border-accent-yellow/20 text-accent-yellow">
+              <Badge tone="warning">
                 {pendingRecommendations} очікують погодження
-              </span>
+              </Badge>
             )}
             {campaignsBehind > 0 && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-accent-danger/10 border border-accent-danger/20 text-accent-danger">
+              <Badge tone="danger">
                 {campaignsBehind} відстають
-              </span>
+              </Badge>
             )}
-            <button type="button" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded} className="text-[10px] font-mono text-(--muted) hover:text-(--text) ml-auto">
-              {expanded ? "Згорнути ↑" : "Детально ↓"}
-            </button>
-          </div>
+          </ResultSummary>
         )}
 
         {s === "done" && isWeeklyReport && (output.pm_brief || output.summary) && (
-          <div className="flex items-center gap-2 mt-3 flex-wrap">
+          <ResultSummary expanded={expanded} onToggle={toggleExpanded} label="Показати звіт ↓">
             {output.week && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-accent-report/10 border border-accent-report/20 text-accent-report">
+              <Badge tone="report">
                 {output.week}
-              </span>
+              </Badge>
             )}
             {weeklyPriorities.length > 0 && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-(--input-bg) border border-(--border) text-(--muted)">
+              <Badge>
                 {weeklyPriorities.length} пріоритетів
-              </span>
+              </Badge>
             )}
             {weeklyDecisions.length > 0 && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-accent-yellow/10 border border-accent-yellow/20 text-accent-yellow">
+              <Badge tone="warning">
                 {weeklyDecisions.length} рішень PM
-              </span>
+              </Badge>
             )}
-            <button type="button" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded} className="text-[10px] font-mono text-(--muted) hover:text-(--text) ml-auto">
-              {expanded ? "Згорнути ↑" : "Показати звіт ↓"}
-            </button>
-          </div>
+          </ResultSummary>
         )}
 
         {s === "error" && run?.errorMsg && (
@@ -377,68 +350,20 @@ export function AgentCard({
       )}
 
       {expanded && channels.length > 0 && brands.length === 0 && (
-        <div className="border-t border-(--border) px-4 py-3 space-y-2">
-          {output.summary && (
-            <p className="text-sm text-(--muted) pb-2">{output.summary}</p>
-          )}
-          {channels.map((ch: any, i: number) => (
-            <div key={i} className="bg-(--row) rounded-lg px-4 py-3">
-              <div className="flex items-center justify-between mb-1">
-                <span className="font-semibold text-sm text-(--text) capitalize">{ch.channel}</span>
-                <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
-                  ch.status === "best" ? "bg-accent-cyan/10 text-accent-cyan" :
-                  ch.status === "weak" || ch.status === "inactive" ? "bg-accent-yellow/10 text-accent-yellow" :
-                  "bg-(--input-bg) text-(--muted)"
-                }`}>
-                  {ch.status?.toUpperCase()}
-                </span>
-              </div>
-              {ch.insight && <p className="text-[11px] text-(--muted)">{ch.insight}</p>}
-              {ch.recommendation && (
-                <p className="text-[11px] text-accent-cyan mt-1">→ {ch.recommendation}</p>
-              )}
-            </div>
-          ))}
-          {output.action && (
-            <div className="mt-2 px-3 py-2 bg-accent-cyan/5 border border-accent-cyan/20 rounded-lg">
-              <span className="text-[10px] font-mono text-(--subtle)">Дія: </span>
-              <span className="text-[11px] text-accent-cyan">{output.action}</span>
-            </div>
-          )}
-        </div>
+        <InsightList
+          capitalizeTitles
+          summary={output.summary}
+          action={output.action}
+          rows={buildChannelInsightRows(channels, "card")}
+        />
       )}
 
       {expanded && byCategory.length > 0 && (
-        <div className="border-t border-(--border) px-4 py-3 space-y-2">
-          {output.summary && (
-            <p className="text-sm text-(--muted) pb-2">{output.summary}</p>
-          )}
-          {byCategory.map((cat: any, i: number) => (
-            <div key={i} className="bg-(--row) rounded-lg px-4 py-3">
-              <div className="flex items-center justify-between mb-1">
-                <span className="font-semibold text-sm text-(--text)">{cat.category || cat.attribute}</span>
-                <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
-                  cat.status === "bestseller" ? "bg-accent-cyan/10 text-accent-cyan" :
-                  cat.status === "dead" ? "bg-accent-danger/10 text-accent-danger" :
-                  cat.status === "slow" ? "bg-accent-yellow/10 text-accent-yellow" :
-                  "bg-(--input-bg) text-(--muted)"
-                }`}>
-                  {(cat.status || "normal").toUpperCase()}
-                </span>
-              </div>
-              {cat.insight && <p className="text-[11px] text-(--muted)">{cat.insight}</p>}
-              {cat.recommendation && (
-                <p className="text-[11px] text-accent-cyan mt-1">→ {cat.recommendation}</p>
-              )}
-            </div>
-          ))}
-          {output.action && (
-            <div className="mt-2 px-3 py-2 bg-accent-cyan/5 border border-accent-cyan/20 rounded-lg">
-              <span className="text-[10px] font-mono text-(--subtle)">Дія: </span>
-              <span className="text-[11px] text-accent-cyan">{output.action}</span>
-            </div>
-          )}
-        </div>
+        <InsightList
+          summary={output.summary}
+          action={output.action}
+          rows={buildCategoryInsightRows(byCategory, "card")}
+        />
       )}
 
       {expanded && decisionBrands.length > 0 && (

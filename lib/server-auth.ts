@@ -2,6 +2,9 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { verifyAccessToken } from "@/lib/auth";
 import { apiError } from "@/lib/api-contracts";
+import { hasRole, type RequiredRole } from "@/lib/roles";
+
+export type { RequiredRole } from "@/lib/roles";
 
 export interface CurrentUser {
   userId: string;
@@ -27,19 +30,6 @@ export class ForbiddenError extends Error {
     super(message);
     this.name = "ForbiddenError";
   }
-}
-
-const ROLE_RANK: Record<string, number> = {
-  VIEWER: 0,
-  ANALYST: 1,
-  ADMIN: 2,
-  SUPER_ADMIN: 3,
-};
-
-export type RequiredRole = keyof typeof ROLE_RANK;
-
-function hasRole(userRole: string, requiredRole: RequiredRole): boolean {
-  return (ROLE_RANK[userRole] ?? -1) >= ROLE_RANK[requiredRole];
 }
 
 export async function getCurrentUser(): Promise<CurrentUser | null> {

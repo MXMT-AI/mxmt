@@ -1,20 +1,27 @@
 "use client";
 
 import { useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { useRouter } from "@/i18n/navigation";
-
 import { Link } from "@/i18n/navigation";
-import { safeReturnPath } from "@/i18n/redirect";
-import { ThemeToggle } from "@/components/theme-provider/theme-provider";
-import { useLang, LangToggle } from "@/components/language-provider/language-provider";
+import { useLang } from "@/components/language-provider/language-provider";
 import { BrandMark } from "@/components/brand-mark/brand-mark";
+import { Button } from "@/components/ui/button/button";
+import { Heading } from "@/components/ui/heading/heading";
+import { Text } from "@/components/ui/text/text";
+import { AuthField } from "../auth-field/auth-field";
+import { AuthFormError } from "../auth-form-error/auth-form-error";
+import { useAuthNavigation } from "../use-auth-navigation";
+
+const fields = [
+  { field: "businessName", id: "register-business-name", label: "auth_business_name", type: "text", placeholder: "MXMT Store" },
+  { field: "name", id: "register-name", label: "auth_your_name", type: "text", autoComplete: "name" },
+  { field: "email", id: "register-email", label: "auth_email", type: "email", autoComplete: "email", placeholder: "you@company.com" },
+  { field: "password", id: "register-password", label: "auth_password", type: "password", autoComplete: "new-password", placeholder: "min 8" },
+  { field: "confirmPassword", id: "register-confirm-password", label: "auth_confirm_password", type: "password", autoComplete: "new-password", placeholder: "••••••••" },
+] as const;
 
 export default function RegisterForm() {
-  const router = useRouter();
   const { t, lang } = useLang();
-  const returnTo = useSearchParams().get("next");
-  const authQuery = returnTo ? `?${new URLSearchParams({ next: returnTo })}` : "";
+  const { authQuery, navigateAfterAuth } = useAuthNavigation(lang);
   const [form, setForm] = useState({ businessName: "", name: "", email: "", password: "", confirmPassword: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -36,19 +43,13 @@ export default function RegisterForm() {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error ?? t.auth_err_network); return; }
-      const destination = safeReturnPath(new URLSearchParams(window.location.search).get("next"), lang);
-      const path = destination.slice(lang.length + 1);
-      router.push(path.startsWith("/") ? path : `/${path}`);
-      router.refresh();
+      navigateAfterAuth();
     } catch {
       setError(t.auth_err_network);
     } finally {
       setLoading(false);
     }
   }
-
-  const ic = "w-full bg-(--input-bg) border border-(--border) rounded-lg px-4 py-2.5 text-(--text) text-sm focus:outline-hidden focus:border-accent-cyan/40 transition-colors placeholder:text-(--subtle)";
-  const lc = "block text-[10px] font-mono uppercase tracking-widest text-(--muted) mb-2";
 
   return (
     <div className="min-h-screen bg-(--bg) flex items-center justify-center p-4">
@@ -58,33 +59,36 @@ export default function RegisterForm() {
             <BrandMark size={36} />
             <span className="text-(--text) font-semibold text-lg tracking-tight">MXMT Analytics</span>
           </div>
-          <p className="text-(--muted) text-sm">{t.auth_subtitle_register}</p>
+          <Heading as="h1" variant="compact" className="font-normal text-(--muted)">
+            {t.auth_subtitle_register}
+          </Heading>
         </div>
 
         <div className="bg-(--surface) border border-(--border) rounded-2xl p-7">
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div><label htmlFor="register-business-name" className={lc}>{t.auth_business_name}</label><input id="register-business-name" type="text" value={form.businessName} onChange={set("businessName")} required className={ic} placeholder="MXMT Store" /></div>
-            <div><label htmlFor="register-name" className={lc}>{t.auth_your_name}</label><input id="register-name" type="text" value={form.name} onChange={set("name")} required autoComplete="name" className={ic} /></div>
-            <div><label htmlFor="register-email" className={lc}>{t.auth_email}</label><input id="register-email" type="email" value={form.email} onChange={set("email")} required autoComplete="email" className={ic} placeholder="you@company.com" /></div>
-            <div><label htmlFor="register-password" className={lc}>{t.auth_password}</label><input id="register-password" type="password" value={form.password} onChange={set("password")} required autoComplete="new-password" className={ic} placeholder="min 8" /></div>
-            <div><label htmlFor="register-confirm-password" className={lc}>{t.auth_confirm_password}</label><input id="register-confirm-password" type="password" value={form.confirmPassword} onChange={set("confirmPassword")} required autoComplete="new-password" className={ic} placeholder="••••••••" /></div>
-            {error && <div role="alert" className="bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2.5 text-(--error-text) text-sm">{error}</div>}
-            <button type="submit" disabled={loading}
-              className="w-full bg-accent-fill hover:bg-[#00c9ab] disabled:opacity-50 disabled:cursor-not-allowed text-[#0d1117] font-semibold rounded-lg px-4 py-2.5 text-sm transition-colors mt-2">
+            {fields.map(({ field, label, ...input }) => (
+              <AuthField
+                {...input}
+                key={field}
+                variant="register"
+                label={t[label]}
+                value={form[field]}
+                onChange={set(field)}
+                required
+              />
+            ))}
+            <AuthFormError message={error} />
+            <Button variant="accent" type="submit" disabled={loading} className="mt-2 w-full">
               {loading ? t.auth_creating : t.auth_create_btn}
-            </button>
+            </Button>
           </form>
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3 mt-5">
-          <p className="text-(--muted) text-sm">
+          <Text variant="body" className="leading-5">
             {t.auth_have_account}{" "}
             <Link href={`/login${authQuery}`} className="text-(--focus-ring) hover:underline">{t.auth_sign_in}</Link>
-          </p>
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <LangToggle />
-          </div>
+          </Text>
         </div>
       </div>
     </div>

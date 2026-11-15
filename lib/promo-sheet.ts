@@ -1,7 +1,5 @@
 import type { PromoSimulation } from "@/lib/promo-calc";
-
-
-export type SheetCell = string | number;
+import type { SheetCell } from "@/lib/xlsx-workbook";
 
 export const PROMO_SHEET_HEADERS = [
   "SKU", "Назва", "Категорія", "Залишок, шт", "Ціна, грн", "Закупка, грн",

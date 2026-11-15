@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { getT } from "@/lib/translations";
+import type { NavigationOptions } from "@/lib/merchandising-navigation-store";
 const state = vi.hoisted(() => ({
   lang: "uk" as "uk" | "en",
   path: "/stock",
@@ -22,23 +23,20 @@ vi.mock("@/i18n/navigation", () => ({
 }));
 vi.mock("@/components/language-provider/language-provider", () => ({
   useLang: () => ({ lang: state.lang, t: getT(state.lang) }),
-  LangToggle: () => null,
 }));
-vi.mock("@/components/theme-provider/theme-provider", () => ({ ThemeToggle: () => null }));
 import Sidebar from "@/components/sidebar/sidebar";
 import Shell from "@/components/merchandising/merchandising-shell/merchandising-shell";
-import Destination from "@/components/merchandising/merchandising-destination/merchandising-destination";
 const options = {
   monobrand: false,
   channels: [{ id: "1" }, { id: "2" }],
   truncated: false,
 };
-const render = (config = options) =>
+const render = (config: NavigationOptions | null = options) =>
   renderToStaticMarkup(
     createElement(Shell, {
       options: config,
       now: "2026-10-25T10:00:00Z",
-      children: createElement(Destination, { screen: "stock" }),
+      children: createElement("div", { "data-testid": "report-content" }, "Report content"),
     }),
   );
 beforeEach(() => {
@@ -49,7 +47,7 @@ beforeEach(() => {
 });
 describe("localized merchandising shell", () => {
   it.each(["uk", "en"] as const)(
-    "renders labeled filters and direct action links in %s",
+    "renders labeled filters and report content in %s",
     (lang) => {
       state.lang = lang;
       const html = render();
@@ -58,28 +56,26 @@ describe("localized merchandising shell", () => {
       );
       expect(html).toContain(lang === "uk" ? "Усі канали" : "All channels");
       expect(html).toContain('value="2" selected=""');
-      expect(html).toContain(
-        "/repricing?period=month&amp;dateFrom=2026-09-01&amp;dateTo=2026-09-30&amp;channelId=2&amp;snapshotId=frozen",
-      );
-      expect(html).toContain("/reordering?");
+      expect(html).toContain('data-testid="report-content"');
     },
   );
-  it("skips brand-level navigation for monobrand deep links", () => {
-    state.query += "&groupBy=brand";
-    const html = render({ ...options, monobrand: true });
-    expect(html).not.toContain("Бренди");
-    expect(html).toContain('groupBy=category" aria-current="page"');
-  });
-  it("offers recovery for invalid links without rendering a default destination", () => {
+  it("offers recovery for invalid links without rendering report content", () => {
     state.query = "period=custom&dateFrom=broken&dateTo=2026-09-30";
     const html = render();
     expect(html).toContain('role="alert"');
     expect(html).toContain("Скинути фільтри");
-    expect(html).not.toContain("Цей розділ ще готується");
+    expect(html).not.toContain('data-testid="report-content"');
   });
   it("preserves the selected channel when it is missing from available options", () => {
     state.query = state.query.replace("channelId=2", "channelId=external");
     expect(render()).toContain('value="external" selected=""');
+  });
+  it("offers retry without rendering filters or report content when options are unavailable", () => {
+    const html = render(null);
+    expect(html).toContain('role="alert"');
+    expect(html).toContain("Спробувати ще раз");
+    expect(html).not.toContain('name="period"');
+    expect(html).not.toContain('data-testid="report-content"');
   });
   it("separates existing tools while preserving their routes and filter context", () => {
     const html = renderToStaticMarkup(

@@ -9,7 +9,7 @@ export async function GET() {
 
   const items = await prisma.catalogItem.findMany({
     where: { tenantId },
-    include: { brand: { select: { name: true } } },
+    include: { brand: { select: { id: true, name: true, currency: true } } },
     orderBy: [{ category: "asc" }, { color: "asc" }],
   });
 

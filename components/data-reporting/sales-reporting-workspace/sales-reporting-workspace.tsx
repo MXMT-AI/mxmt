@@ -2,153 +2,43 @@
 import { Link } from "@/i18n/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useLang } from "@/components/language-provider/language-provider";
-import { apiFetch } from "@/lib/fetch";
-import { readApiJson } from "@/lib/api-response";
 import { ukSalesColumns } from "@/lib/sales-report-labels";
-import { formatTableValue } from "@/lib/data-reporting-ui";
-import type { DataColumnMetadata } from "@/lib/data-table-api";
-import type { PublishedSalesReport } from "@/lib/sales-report";
+import { nextSortDirection } from "@/lib/data-reporting-ui";
 import type { SalesView } from "@/lib/sales-report-view";
+import { Button } from "@/components/ui/button/button";
+import { DateField } from "@/components/ui/date-field/date-field";
+import { Heading } from "@/components/ui/heading/heading";
+import { Text } from "@/components/ui/text/text";
+import { useSalesReport } from "../use-sales-report";
+import { SalesCurrencySummary } from "../sales-currency-summary/sales-currency-summary";
+import { SalesReportDetails } from "../sales-report-details/sales-report-details";
+import { salesReportReason } from "./sales-report-copy";
 import ReportTable from "../report-table/report-table";
-type ResponseData = Omit<
-  PublishedSalesReport,
-  "articles" | "brands" | "categories" | "channels"
-> & {
-  view: SalesView;
-  table: {
-    columns: DataColumnMetadata[];
-    rows: Array<Record<string, unknown>>;
-    pagination: { page: number; totalPages: number; totalRows: number };
-  };
-  oneOffOrderCount: number;
-};
 const control =
-  "rounded-lg border border-(--border) bg-(--surface) px-3 py-2 text-sm text-(--text) focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50 touch-manipulation aria-pressed:border-(--text) aria-pressed:font-semibold";
+  "rounded-lg border border-(--border) bg-(--surface) px-3 py-2 font-sans text-sm text-(--text) focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50 touch-manipulation aria-pressed:border-(--text) aria-pressed:font-semibold";
 const field = "mt-1 block w-full " + control;
 
-const reasons: Record<string, [string, string]> = {
-  IMPORT_QUARANTINED: [
-    "В імпорті є ізольовані замовлення: перевірте якість даних",
-    "Import contains quarantined orders: review data quality",
-  ],
-  INSUFFICIENT_HISTORY: ["Недостатньо історії", "Insufficient history"],
-  MISSING_REVENUE: ["Неповна виручка", "Incomplete revenue"],
-  LY_NON_POSITIVE: ["LY не додатний", "LY is not positive"],
-  NORMALIZATION_REPLAY_REQUIRED: [
-    "Потрібен повторний імпорт історії",
-    "History replay required",
-  ],
-  PROJECT_MAPPING_UNVERIFIED: [
-    "Не підтверджено поле проєкту",
-    "Project field unverified",
-  ],
-  RETURN_DATE_UNAVAILABLE: [
-    "Невідома дата повернення",
-    "Return date unavailable",
-  ],
-  PAYMENT_DATE_UNAVAILABLE: [
-    "Невідома дата оплати",
-    "Payment date unavailable",
-  ],
-  INFERRED_PAYMENT_DATE: [
-    "Використано погоджену резервну дату",
-    "Approved inferred sale date",
-  ],
-  PRODUCT_KIND_UNVERIFIED: [
-    "Не підтверджено тип товару",
-    "Product type unverified",
-  ],
-  CURRENCY_UNVERIFIED: ["Невідома валюта", "Currency unverified"],
-  REVENUE_UNAVAILABLE: ["Невідомий дохід рядка", "Line revenue unavailable"],
-  SERVICE_PROFIT_UNVERIFIED: [
-    "Не погоджено прибуток послуг",
-    "Service profit treatment unverified",
-  ],
-  OWNERSHIP_UNVERIFIED: ["Невідома власність", "Ownership unverified"],
-  PREORDER_AMOUNT_UNAVAILABLE: [
-    "Невідома сума передзамовлення",
-    "Preorder amount unavailable",
-  ],
-  MISSING_COST: ["Невідома собівартість", "Cost unavailable"],
-  COMMISSION_UNVERIFIED: ["Невідома комісія", "Commission unavailable"],
-};
 export default function SalesReportingWorkspace() {
   const { lang } = useLang(),
     uk = lang === "uk",
     locale = uk ? "uk-UA" : "en-GB";
-  const [data, setData] = useState<ResponseData | null>(null),
-    [error, setError] = useState(""),
-    [busy, setBusy] = useState(false),
-    [view, setView] = useState<SalesView>("articles"),
-    [page, setPage] = useState(1),
-    [q, setQ] = useState(""),
-    [search, setSearch] = useState(""),
-    [sort, setSort] = useState("name"),
-    [direction, setDirection] = useState<"asc" | "desc">("asc"),
-    [period, setPeriod] = useState({ from: "", to: "" }),
-    [applied, setApplied] = useState({ from: "", to: "" }),
-    [reload, setReload] = useState(0);
-  const snapshot = useRef<string | null>(null),
-    errorRef = useRef<HTMLParagraphElement>(null);
-  useEffect(() => {
-    const c = new AbortController();
-    setBusy(true);
-    setError("");
-    const params = new URLSearchParams({
-      view,
-      page: String(page),
-      q: search,
-      sort,
-      direction,
-    });
-    if (snapshot.current) params.set("calculationRunId", snapshot.current);
-    else if (applied.from || applied.to) {
-      params.set("dateFrom", applied.from);
-      params.set("dateTo", applied.to);
-    }
-    apiFetch(`/api/data/sales?${params}`, {
-      signal: c.signal,
-      cache: "no-store",
-    })
-      .then(async (response) => {
-        const body = await readApiJson<ResponseData & { code?: string }>(
-          response,
-        );
-        if (!response.ok) throw new Error(body.code ?? "UNAVAILABLE");
-        if (!c.signal.aborted) {
-          snapshot.current = body.calculationRunId;
-          setData(body);
-          setPeriod({ from: body.period.from, to: body.period.to });
-        }
-      })
-      .catch((cause) => {
-        if (!c.signal.aborted) {
-          setError(cause instanceof Error ? cause.message : "UNAVAILABLE");
-        }
-      })
-      .finally(() => {
-        if (!c.signal.aborted) setBusy(false);
-      });
-    return () => c.abort();
-  }, [view, page, search, sort, direction, applied, reload]);
+  const [view, setView] = useState<SalesView>("articles");
+  const [page, setPage] = useState(1);
+  const [q, setQ] = useState("");
+  const [search, setSearch] = useState("");
+  const [sort, setSort] = useState("name");
+  const [direction, setDirection] = useState<"asc" | "desc">("asc");
+  const errorRef = useRef<HTMLParagraphElement>(null);
+  const { data, error, busy, period, setPeriod, applyPeriod, refresh, exportHref } = useSalesReport({
+    view, page, search, sort, direction, locale: lang,
+  });
   useEffect(() => {
     if (error) errorRef.current?.focus();
   }, [error]);
-  const text = (code: string) => reasons[code]?.[uk ? 0 : 1] ?? code;
-  const fmt = (
-    v: unknown,
-    type: "money" | "percentage" | "quantity" | "number" = "money",
-  ) => formatTableValue(v, type, locale);
-  const apply = (e: FormEvent) => {
-    e.preventDefault();
-    if (!period.from || !period.to || period.from > period.to) {
-      setError("INVALID_REPORT_PERIOD");
-      return;
-    }
-    snapshot.current = null;
-    setPage(1);
-    setApplied({ ...period });
-    setReload((n) => n + 1);
+  const text = (code: string) => salesReportReason(code, uk);
+  const apply = (event: FormEvent) => {
+    event.preventDefault();
+    if (applyPeriod()) setPage(1);
   };
   const labels: Record<SalesView, string> = uk
     ? {
@@ -163,17 +53,6 @@ export default function SalesReportingWorkspace() {
         categories: "Categories",
         channels: "Channels",
       };
-  const exportParams = data
-    ? new URLSearchParams({
-        view,
-        calculationRunId: data.calculationRunId,
-        q: search,
-        sort,
-        direction,
-        format: "csv",
-        locale: lang,
-      })
-    : null;
   const columns =
     data?.table.columns.map((c) => ({
       ...c,
@@ -201,37 +80,31 @@ export default function SalesReportingWorkspace() {
   return (
     <div className="p-5 md:p-8 min-w-0 space-y-5">
       <header>
-        <h1 className="text-2xl font-semibold text-(--text)">
+        <Heading as="h1" variant="page" className="text-2xl font-semibold tracking-normal">
           {uk ? "Продажі та маржа SalesDrive" : "SalesDrive sales and margin"}
-        </h1>
-        <p className="mt-1 text-sm text-(--muted)">
+        </Heading>
+        <Text variant="body" className="mt-1 leading-5">
           {uk
             ? "Продажі за датою оплати, повернення за підтвердженою датою. Валюти показано окремо."
             : "Sales by payment date and returns by verified return date. Currencies remain separate."}
-        </p>
+        </Text>
       </header>
       <form onSubmit={apply} className="flex flex-wrap items-end gap-3">
-        <label className="text-sm text-(--muted)">
-          {uk ? "Дата від" : "Date from"}
-          <input
-            name="sales-from"
-            type="date"
-            className={field}
-            value={period.from}
-            onChange={(e) => setPeriod((p) => ({ ...p, from: e.target.value }))}
-          />
-        </label>
-        <label className="text-sm text-(--muted)">
-          {uk ? "Дата до" : "Date to"}
-          <input
-            name="sales-to"
-            type="date"
-            className={field}
-            value={period.to}
-            onChange={(e) => setPeriod((p) => ({ ...p, to: e.target.value }))}
-          />
-        </label>
-        <button className={control} disabled={busy}>
+        <DateField
+          id="sales-from" name="sales-from" variant="stacked"
+          label={uk ? "Дата від" : "Date from"}
+          value={period.from}
+          onChange={(event) => setPeriod((current) => ({ ...current, from: event.target.value }))}
+          className="h-auto py-2"
+        />
+        <DateField
+          id="sales-to" name="sales-to" variant="stacked"
+          label={uk ? "Дата до" : "Date to"}
+          value={period.to}
+          onChange={(event) => setPeriod((current) => ({ ...current, to: event.target.value }))}
+          className="h-auto py-2"
+        />
+        <Button type="submit" className={control} disabled={busy}>
           {busy
             ? uk
               ? "Розрахунок…"
@@ -239,18 +112,15 @@ export default function SalesReportingWorkspace() {
             : uk
               ? "Застосувати період"
               : "Apply period"}
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
           className={control}
           disabled={busy}
-          onClick={() => {
-            snapshot.current = null;
-            setReload((n) => n + 1);
-          }}
+          onClick={refresh}
         >
           {uk ? "Оновити розрахунок" : "Refresh calculation"}
-        </button>
+        </Button>
       </form>
       {busy && (
         <p role="status" className="text-sm text-(--muted)">
@@ -262,7 +132,7 @@ export default function SalesReportingWorkspace() {
           ref={errorRef}
           tabIndex={-1}
           role="alert"
-          className="text-sm text-red-500"
+          className="text-sm text-accent-danger"
         >
           {error === "INVALID_REPORT_PERIOD"
             ? uk
@@ -298,113 +168,14 @@ export default function SalesReportingWorkspace() {
             )}
           </p>
           <div className="space-y-3">
-            {data.summary.map((row) => (
-              <section
-                key={row.currency ?? "unknown"}
-                className="rounded-xl border border-(--border) bg-(--surface) p-4"
-                aria-label={
-                  row.currency ?? (uk ? "Невідома валюта" : "Unknown currency")
-                }
-              >
-                <h2 className="font-semibold text-(--text)">
-                  {row.currency ??
-                    (uk ? "Невідома валюта" : "Unknown currency")}
-                </h2>
-                <dl className="mt-3 grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
-                  {[
-                    [
-                      uk ? "Чиста виручка" : "Net revenue",
-                      fmt(row.current.revenue),
-                    ],
-                    [
-                      uk ? "Замовлення-продажі" : "Sale orders",
-                      fmt(row.current.orderCount, "number"),
-                    ],
-                    [
-                      uk ? "Замовлення-повернення" : "Return orders",
-                      fmt(row.current.returnOrderCount, "number"),
-                    ],
-                    [
-                      uk ? "Одиниці товару" : "Merchandise units",
-                      fmt(row.current.units, "quantity"),
-                    ],
-                    [
-                      uk
-                        ? "Валовий прибуток покритих рядків"
-                        : "Covered gross profit",
-                      fmt(row.current.coveredGrossProfit),
-                    ],
-                    [
-                      uk ? "Маржа покритих рядків" : "Covered GM",
-                      fmt(row.current.gmPct, "percentage"),
-                    ],
-                    [
-                      uk ? "Виручка покритих рядків" : "Covered revenue",
-                      fmt(row.current.coveredRevenue),
-                    ],
-                    [
-                      uk
-                        ? "Виконання місячного плану"
-                        : "Monthly plan attainment",
-                      fmt(row.plan.attainmentPct, "percentage"),
-                    ],
-                    [
-                      uk
-                        ? "Темп проти плану за дні періоду"
-                        : "Pace against period-day target",
-                      fmt(row.plan.pacePct, "percentage"),
-                    ],
-                  ].map(([label, value]) => (
-                    <div key={label}>
-                      <dt className="text-(--muted)">{label}</dt>
-                      <dd className="mt-1 font-semibold tabular-nums text-(--text)">
-                        {value}
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
-                {row.coveredMarginBelowTarget !== null && (
-                  <p className="mt-3 text-sm text-(--text)">
-                    {uk ? "Маржа покритих рядків" : "Covered margin"}:{" "}
-                    {row.coveredMarginBelowTarget
-                      ? uk
-                        ? "нижче порогу"
-                        : "below target"
-                      : uk
-                        ? "не нижче порогу"
-                        : "at or above target"}{" "}
-                    {fmt(row.marginTargetPct, "percentage")}.
-                  </p>
-                )}
-                {["PLAN_UNSET", "PLAN_CURRENCY_UNAVAILABLE"].includes(
-                  row.plan.reason ?? "",
-                ) && (
-                  <Link
-                    className="mt-3 block text-sm text-(--text) underline focus-visible:outline-solid"
-                    href="/settings?tab=merchandising"
-                  >
-                    {uk ? "Задати план і валюту" : "Set plan and currency"}
-                  </Link>
-                )}
-                {row.current.coverage !== "COMPLETE" && (
-                  <p className="mt-3 text-sm text-(--text) font-medium">
-                    {uk
-                      ? "Часткові дані. Рядків без відомого прибутку:"
-                      : "Partial data. Lines without known profit:"}{" "}
-                    {row.current.missingProfitCount};{" "}
-                    {uk ? "без відомої виручки:" : "without known revenue:"}{" "}
-                    {row.current.missingRevenueCount}.
-                  </p>
-                )}
-              </section>
-            ))}
+            {data.summary.map((row) => <SalesCurrencySummary key={row.currency ?? "unknown"} row={row} uk={uk} />)}
           </div>
           <nav
             aria-label={uk ? "Фінансові зрізи" : "Financial views"}
             className="flex flex-wrap gap-2"
           >
             {Object.entries(labels).map(([key, label]) => (
-              <button
+              <Button
                 key={key}
                 type="button"
                 className={control}
@@ -415,7 +186,7 @@ export default function SalesReportingWorkspace() {
                 }}
               >
                 {label}
-              </button>
+              </Button>
             ))}
           </nav>
           <form
@@ -437,9 +208,9 @@ export default function SalesReportingWorkspace() {
                 onChange={(e) => setQ(e.target.value)}
               />
             </label>
-            <button className={control}>{uk ? "Знайти" : "Search"}</button>
-            {exportParams && (
-              <a className={control} href={`/api/data/sales?${exportParams}`}>
+            <Button type="submit" className={control}>{uk ? "Знайти" : "Search"}</Button>
+            {exportHref && (
+              <a className={control} href={exportHref}>
                 {uk ? "Експорт CSV" : "Export CSV"}
               </a>
             )}
@@ -454,9 +225,7 @@ export default function SalesReportingWorkspace() {
               isSortable={() => true}
               onSort={(c) => {
                 setPage(1);
-                setDirection(
-                  sort === c.key && direction === "asc" ? "desc" : "asc",
-                );
+                setDirection(nextSortDirection(sort, direction, c.key));
                 setSort(c.key);
               }}
             />
@@ -468,90 +237,28 @@ export default function SalesReportingWorkspace() {
             </p>
           )}
           <div className="flex flex-wrap items-center gap-3 text-sm text-(--muted)">
-            <button
+            <Button
               type="button"
               className={control}
               disabled={page <= 1}
               onClick={() => setPage((p) => p - 1)}
             >
               {uk ? "Назад" : "Previous"}
-            </button>
+            </Button>
             <span>
               {page} / {Math.max(1, data.table.pagination.totalPages)} ·{" "}
               {data.table.pagination.totalRows}
             </span>
-            <button
+            <Button
               type="button"
               className={control}
               disabled={page >= data.table.pagination.totalPages}
               onClick={() => setPage((p) => p + 1)}
             >
               {uk ? "Далі" : "Next"}
-            </button>
+            </Button>
           </div>
-          <details className="rounded-xl border border-(--border) p-4 text-sm text-(--muted)">
-            <summary className="cursor-pointer focus-visible:outline-solid">
-              {uk
-                ? "Компоненти, передзамовлення й винятки"
-                : "Components, preorders and exceptions"}
-            </summary>
-            <div className="mt-3 space-y-3">
-              <p>
-                {uk
-                  ? "Послуги входять у виручку, але їх прибуток не підтверджений. Gift card та невідомі типи показано окремо."
-                  : "Services enter revenue with unverified profit. Gift cards and unknown product types remain separate."}
-              </p>
-              {data.components
-                .filter((c) => c.current.lineCount)
-                .map((c) => (
-                  <p key={`${c.id}:${c.currency}`}>
-                    {
-                      (
-                        {
-                          MERCHANDISE: uk ? "Товари" : "Merchandise",
-                          SERVICE: uk ? "Послуги" : "Services",
-                          GIFT_CARD: "Gift card",
-                          UNKNOWN: uk ? "Невідомий тип" : "Unknown type",
-                        } as Record<string, string>
-                      )[c.id]
-                    }{" "}
-                    · {c.currency ?? "—"}: {fmt(c.current.revenue)}
-                  </p>
-                ))}
-              {data.preorders
-                .filter((p) => p.lineCount)
-                .map((p) => (
-                  <p key={p.currency ?? "unknown"}>
-                    {uk
-                      ? "Оплачені передзамовлення, окремо від продажів"
-                      : "Paid preorders, separate from sales"}{" "}
-                    · {p.currency ?? "—"}: {fmt(p.paidAmount)}
-                  </p>
-                ))}
-              <p>
-                {uk
-                  ? "Разових замовлень LY понад 50% місячної виручки бренду:"
-                  : "LY orders exceeding 50% of monthly brand revenue:"}{" "}
-                {data.oneOffOrderCount}
-              </p>
-              {data.oneOffOrders.map((o, i) => (
-                <p key={i}>
-                  {o.period === "ly"
-                    ? "LY"
-                    : uk
-                      ? "Поточний період"
-                      : "Current"}{" "}
-                  · {o.month} · {o.orderId} · {o.currency ?? "—"} ·{" "}
-                  {fmt(o.revenue)} · {fmt(o.shareOfLy, "percentage")} LY
-                </p>
-              ))}
-              {data.issues.map((issue) => (
-                <p key={issue.code}>
-                  {text(issue.code)}: {issue.count}
-                </p>
-              ))}
-            </div>
-          </details>
+          <SalesReportDetails data={data} uk={uk} />
           <p className="break-all text-xs text-(--muted)">
             {uk ? "Розрахунок" : "Calculation"}: {data.calculationRunId} ·{" "}
             {uk ? "Версія формул" : "Formula version"} {data.calculationVersion}

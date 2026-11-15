@@ -2,7 +2,11 @@ import { afterAll, beforeAll, beforeEach, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 vi.mock("server-only", () => ({}));
 vi.mock("next-intl/server", () => ({ getLocale: async () => "en" }));
-const state = vi.hoisted(() => ({ pg: null as any, reads: [] as any[] }));
+const state = vi.hoisted(() => ({
+  pg: null as any,
+  reads: [] as any[],
+  findSkus: vi.fn<() => Promise<unknown[]>>(async () => []),
+}));
 vi.mock("next/headers", () => ({
   headers: async () => new Headers({ "x-tenant-id": "a" }),
   cookies: async () => ({ get: () => ({ value: "en" }) }),
@@ -46,7 +50,7 @@ vi.mock("@/lib/prisma", () => ({
         }));
       },
     },
-    sku: { findMany: async () => [] },
+    sku: { findMany: state.findSkus },
     salesRecord: { groupBy: async () => [], findMany: async () => [] },
     onboardingBrief: { findUnique: async () => null },
     tenant: { findUnique: async () => ({ name: "A" }) },
@@ -73,6 +77,7 @@ beforeAll(async () => {
 }, 30000);
 beforeEach(() => {
   state.reads = [];
+  state.findSkus.mockReset();
 });
 afterAll(async () => f?.pg.close());
 it.each([
@@ -98,3 +103,33 @@ it.each([
       ]);
   },
 );
+
+it("uses the same eligible SKUs and counts on first render and refresh", async () => {
+  const sku = {
+    id: "sku-a",
+    sku: "A",
+    name: "Alpha",
+    category: "Category A",
+    productKind: "MERCHANDISE",
+    brand: { name: "Brand A", leadTimeDays: 10 },
+    priceRetail: 20,
+    pricePurchase: 10,
+  };
+  state.findSkus.mockResolvedValue([
+    sku,
+    { ...sku, id: "sku-b", sku: "B", name: "No legacy snapshot" },
+  ]);
+
+  const page = await Analyst();
+  const url = "https://app.test/api/analyst/classify";
+  const result = await (await classify(new NextRequest(url))).json();
+
+  expect(result.skus).toMatchObject([{ id: "sku-a", stock: 7, flag: "dead" }]);
+  expect(result.skus).toHaveLength(1);
+  expect(result.summary).toEqual({ total: 1, hit: 0, stockout: 0, slow: 0, dead: 1, ok: 0 });
+  expect(page.props.initialSkus).toEqual(result.skus);
+  expect(page.props.initialSummary).toEqual(result.summary);
+
+  const filtered = await (await classify(new NextRequest(`${url}?flag=ok`))).json();
+  expect(filtered).toEqual({ skus: [], summary: result.summary });
+});

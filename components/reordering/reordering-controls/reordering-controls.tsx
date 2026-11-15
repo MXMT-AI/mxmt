@@ -1,18 +1,19 @@
 "use client";
-import {
-  panel,
-  button,
-  Note,
-} from "@/components/merchandising/report-primitives/report-primitives";
-import {
-  Choice,
-  Field,
-  control,
-} from "@/components/merchandising/form-controls/form-controls";
+import { panel } from "@/components/ui/panel/panel-styles";
+import { Button } from "@/components/ui/button/button";
+import { Note } from "@/components/ui/note/note";
+import { Choice } from "@/components/ui/choice/choice";
+import { Field } from "@/components/ui/field/field";
+import { control } from "@/components/ui/control-styles/control-styles";
 import type { ReorderingDraft } from "@/lib/reordering-workspace";
 import type { ReorderingCopy } from "@/lib/reordering-copy";
-import type { ScenarioFailure } from "@/components/merchandising/use-scenario-preview";
+import type { ScenarioFailure } from "@/lib/client/scenario-preview-request";
 import type { ReorderingPreview } from "../reordering-editor/reordering-editor";
+const parameterFields = [
+  { key: "leadDays", labelKey: "lead" },
+  { key: "coverDays", labelKey: "cover" },
+] as const;
+
 export default function ReorderingControls({
   monobrand = false,
   draft,
@@ -39,6 +40,10 @@ export default function ReorderingControls({
   const context = (["categoryId", "skuId", "currency"] as const).filter(
     (key) => draft.filters[key] !== undefined,
   );
+  const parameterErrors = error?.details.filter((detail) =>
+    detail.startsWith("parameters."),
+  ) ?? [];
+
   return (
     <section
       className={panel + " p-5 space-y-4"}
@@ -48,24 +53,21 @@ export default function ReorderingControls({
         <h2 className="font-semibold" id="reordering-controls">
           {copy.mode}
         </h2>
-        <button type="button" className={button} onClick={onReset}>
+        <Button variant="report" onClick={onReset}>
           {copy.reset}
-        </button>
+        </Button>
       </div>
       <div role="group" aria-label={copy.mode} className="flex flex-wrap gap-2">
         {(["shortage", monobrand ? "all" : "brand"] as const).map((mode) => (
-          <button
-            className={
-              button +
-              " aria-pressed:bg-(--input-bg) aria-pressed:font-semibold"
-            }
-            type="button"
+          <Button
+            variant="report"
+            className="aria-pressed:bg-(--input-bg) aria-pressed:font-semibold"
             key={mode}
             aria-pressed={draft.mode === mode}
             onClick={() => onChange({ ...draft, mode })}
           >
             {copy.modes[mode]}
-          </button>
+          </Button>
         ))}
       </div>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -87,15 +89,12 @@ export default function ReorderingControls({
           copy={copy}
           onChange={(value) => setFilter("supplierId", value)}
         />
-        {(["leadDays", "coverDays"] as const).map((key) => {
-          const invalid = error?.details.some((d) =>
-            d.startsWith("parameters." + key),
+        {parameterFields.map(({ key, labelKey }) => {
+          const invalid = parameterErrors.some((detail) =>
+            detail.startsWith("parameters." + key),
           );
           return (
-            <Field
-              key={key}
-              label={key === "leadDays" ? copy.lead : copy.cover}
-            >
+            <Field key={key} label={copy[labelKey]}>
               <input
                 className={control}
                 name={key}
@@ -119,7 +118,7 @@ export default function ReorderingControls({
       <p id="reordering-settings-note" className="text-xs text-(--muted)">
         {copy.inherit}
       </p>
-      {error?.details.some((d) => d.startsWith("parameters.")) ? (
+      {parameterErrors.length > 0 ? (
         <p id="reordering-field-error" role="alert" className="text-sm">
           {copy.invalid}
         </p>
@@ -132,9 +131,8 @@ export default function ReorderingControls({
               {draft.filters[key]}
             </span>
           ))}
-          <button
-            type="button"
-            className={button}
+          <Button
+            variant="report"
             onClick={() => {
               const filters = { ...draft.filters };
               for (const key of context) delete filters[key];
@@ -142,7 +140,7 @@ export default function ReorderingControls({
             }}
           >
             {copy.clearContext}
-          </button>
+          </Button>
         </div>
       ) : null}
       <Note>{monobrand ? copy.scopeNoteMono : copy.scopeNote}</Note>

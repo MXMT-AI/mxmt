@@ -8,6 +8,13 @@ export default async function CalendarPage() {
 
   const events = await prisma.marketingEvent.findMany({
     where: { tenantId },
+    select: {
+      id: true,
+      weekKey: true,
+      rowKey: true,
+      type: true,
+      label: true,
+    },
     orderBy: { createdAt: "asc" },
   });
 

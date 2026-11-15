@@ -1,7 +1,46 @@
-import { useEffect, useRef } from "react";
-import { X } from "lucide-react";
-import { duration } from "@/components/agents/agents.utils";
 import DebugSection from "@/components/agents/debug-section/debug-section";
+import { Badge } from "@/components/ui/badge/badge";
+import { Dialog } from "@/components/ui/dialog/dialog";
+import { Heading } from "@/components/ui/heading/heading";
+import { MetricTile } from "@/components/ui/metric-tile/metric-tile";
+
+type DebugTrace = {
+  provider?: string;
+  model?: string | null;
+  parsedSuccessfully?: boolean;
+  brandCount?: number | null;
+  candidateCount?: number | null;
+  channelCount?: number | null;
+  categoryCount?: number | null;
+  decisionCount?: number | null;
+  campaignCount?: number | null;
+  calendarEventCount?: number | null;
+  agentsIncluded?: number | null;
+  asOf?: string | null;
+  dateFrom?: string | null;
+  analyzedAt?: string | null;
+  weeksAnalyzed?: string[] | null;
+  systemPrompt?: string | null;
+  userPrompt?: string | null;
+  rawResponse?: string | null;
+};
+
+const countFields = [
+  ["brandCount", "Брендів"],
+  ["candidateCount", "Кандидатів"],
+  ["channelCount", "Каналів"],
+  ["categoryCount", "Категорій"],
+  ["decisionCount", "Валідованих рекомендацій"],
+  ["campaignCount", "Кампаній"],
+  ["calendarEventCount", "Подій"],
+  ["agentsIncluded", "Агентів"],
+] as const;
+
+const traceSections = [
+  { key: "systemPrompt", title: "Системний промт (роль + правила + схема JSON)", defaultOpen: false },
+  { key: "userPrompt", title: "Дані для аналізу (те що відправлено в AI)", defaultOpen: true },
+  { key: "rawResponse", title: "Сира відповідь AI (до парсингу JSON)", defaultOpen: false },
+] as const;
 
 export function DebugModal({
   agentLabel,
@@ -11,125 +50,67 @@ export function DebugModal({
   onClose,
 }: {
   agentLabel: string;
-  debug: Record<string, any>;
+  debug: DebugTrace;
   runId?: string;
   duration?: string | null;
   onClose: () => void;
 }) {
-  const overlayRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
   const parsedOk = debug.parsedSuccessfully !== false;
   const providerLabel = debug.provider === "openai" ? "OpenAI" : "Anthropic";
+  const metadata: { label: string; value: string | number | null | undefined; color?: string }[] = [
+    { label: "Провайдер", value: providerLabel },
+    { label: "Модель", value: debug.model ?? "—" },
+    { label: "Парсинг JSON", value: parsedOk ? "✓ успішно" : "✗ fallback", color: parsedOk ? "var(--cyan-ink)" : "var(--amber-ink)" },
+    { label: "Час роботи", value: duration || null },
+    ...countFields.map(([key, label]) => ({ label, value: debug[key] })),
+    { label: "Run ID", value: runId ? `${runId.slice(0, 12)}…` : null },
+    { label: "Дата аналізу", value: debug.asOf || null, color: "var(--amber-ink)" },
+    { label: "Дані від", value: debug.dateFrom || null, color: "var(--violet-ink)" },
+    { label: "Час аналізу", value: debug.analyzedAt ? new Date(debug.analyzedAt).toLocaleTimeString("uk-UA") : null },
+  ];
 
   return (
-    <div
-      ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/[0.65] backdrop-blur-sm"
-      onClick={(e) => e.target === overlayRef.current && onClose()}
+    <Dialog
+      title={agentLabel}
+      subtitle="Трасування агента"
+      closeLabel="Закрити трасування агента"
+      onClose={onClose}
+      className="max-h-[90vh] shadow-[0_24px_64px_rgba(0,0,0,.6)] backdrop:bg-black/65"
     >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="debug-modal-title"
-        className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-(--border) bg-(--surface) shadow-[0_24px_64px_rgba(0,0,0,0.6)]"
-      >
-        <div className="sticky top-0 bg-(--surface) border-b border-(--border) px-6 py-4 flex items-center justify-between z-10">
-          <div>
-            <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-0.5">
-              Трасування агента
-            </div>
-            <h2 id="debug-modal-title" className="text-base font-bold text-(--text)">{agentLabel}</h2>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Закрити трасування агента"
-            className="w-8 h-8 rounded-lg border border-(--border) flex items-center justify-center text-(--muted) hover:text-(--text) hover:bg-(--input-bg) transition-colors"
-          >
-            <X size={14} aria-hidden="true" />
-          </button>
+      <div className="space-y-4 px-6 py-5">
+        <div className="rounded-xl border border-(--border) bg-(--surface2) p-4">
+          <Heading as="h3" variant="eyebrow">Метадані запуску</Heading>
+          <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {metadata.map(({ label, value, color }) => value != null && (
+              <MetricTile key={label} label={label} value={value} color={color} />
+            ))}
+          </dl>
         </div>
 
-        <div className="px-6 py-5 space-y-4">
-          <div className="bg-(--surface2) border border-(--border) rounded-xl p-4">
-            <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-3">Метадані запуску</div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {[
-                { label: "Провайдер", value: providerLabel },
-                { label: "Модель", value: debug.model ?? "—" },
-                { label: "Парсинг JSON", value: parsedOk ? "✓ успішно" : "✗ fallback", color: parsedOk ? "var(--cyan-ink)" : "var(--amber-ink)" },
-                ...(duration ? [{ label: "Час роботи", value: duration }] : []),
-                ...(debug.brandCount != null ? [{ label: "Брендів", value: String(debug.brandCount) }] : []),
-                ...(debug.candidateCount != null ? [{ label: "Кандидатів", value: String(debug.candidateCount) }] : []),
-                ...(debug.channelCount != null ? [{ label: "Каналів", value: String(debug.channelCount) }] : []),
-                ...(debug.categoryCount != null ? [{ label: "Категорій", value: String(debug.categoryCount) }] : []),
-                ...(debug.decisionCount != null ? [{ label: "Валідованих рекомендацій", value: String(debug.decisionCount) }] : []),
-                ...(debug.campaignCount != null ? [{ label: "Кампаній", value: String(debug.campaignCount) }] : []),
-                ...(debug.calendarEventCount != null ? [{ label: "Подій", value: String(debug.calendarEventCount) }] : []),
-                ...(debug.agentsIncluded != null ? [{ label: "Агентів", value: String(debug.agentsIncluded) }] : []),
-                ...(runId ? [{ label: "Run ID", value: runId.slice(0, 12) + "…" }] : []),
-                ...(debug.asOf ? [{ label: "Дата аналізу", value: debug.asOf, color: "var(--amber-ink)" }] : []),
-                ...(debug.dateFrom ? [{ label: "Дані від", value: debug.dateFrom, color: "var(--violet-ink)" }] : []),
-                ...(debug.analyzedAt ? [{ label: "Час аналізу", value: new Date(debug.analyzedAt).toLocaleTimeString("uk-UA") }] : []),
-              ].map(({ label, value, color }) => (
-                <div key={label} className="bg-(--row) rounded-lg px-3 py-2">
-                  <div className="text-[9px] font-mono uppercase text-(--subtle)">{label}</div>
-                  <div className="text-[11px] font-mono font-semibold mt-0.5" style={{ color: color ?? "var(--text)" }}>{value}</div>
-                </div>
-              ))}
-            </div>
+        {Array.isArray(debug.weeksAnalyzed) && debug.weeksAnalyzed.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-mono text-[9px] tracking-wide text-(--subtle) uppercase">Тижні:</span>
+            {debug.weeksAnalyzed.map((week) => (
+              <Badge key={week} tone="warning" className="text-[9px]">{week}</Badge>
+            ))}
           </div>
+        )}
 
-          {Array.isArray(debug.weeksAnalyzed) && debug.weeksAnalyzed.length > 0 && (
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[9px] font-mono text-(--subtle) uppercase tracking-wide">Тижні:</span>
-              {debug.weeksAnalyzed.map((w: string) => (
-                <span key={w} className="text-[9px] font-mono px-2 py-0.5 rounded-sm bg-accent-yellow/10 border border-accent-yellow/20 text-accent-yellow">{w}</span>
-              ))}
-            </div>
-          )}
+        {traceSections.map(({ key, title, defaultOpen }) => {
+          const content = debug[key];
+          return content ? <DebugSection key={key} title={title} content={content} defaultOpen={defaultOpen} /> : null;
+        })}
 
-          {debug.systemPrompt && (
-            <DebugSection
-              title="Системний промт (роль + правила + схема JSON)"
-              content={debug.systemPrompt}
-              defaultOpen={false}
-            />
-          )}
-
-          {debug.userPrompt && (
-            <DebugSection
-              title="Дані для аналізу (те що відправлено в AI)"
-              content={debug.userPrompt}
-              defaultOpen={true}
-            />
-          )}
-
-          {debug.rawResponse && (
-            <DebugSection
-              title="Сирий відповідь AI (до парсингу JSON)"
-              content={debug.rawResponse}
-              defaultOpen={false}
-            />
-          )}
-
-          {!parsedOk && (
-            <div className="bg-accent-yellow/5 border border-accent-yellow/20 rounded-xl p-4">
-              <div className="text-[9px] font-mono uppercase tracking-widest text-accent-yellow mb-1">Парсинг не вдався</div>
-              <p className="text-[12px] text-(--muted)">
-                AI повернув відповідь, але JSON не вдалося розпарсити. Використано fallback-вивід.
-                Перевірте сирий відповідь вище.
-              </p>
-            </div>
-          )}
-        </div>
+        {!parsedOk && (
+          <div className="rounded-xl border border-accent-yellow/20 bg-accent-yellow/5 p-4">
+            <Heading as="h3" variant="eyebrow" className="mb-1 text-accent-yellow">Парсинг не вдався</Heading>
+            <p className="text-xs text-(--muted)">
+              AI повернув відповідь, але JSON не вдалося розпарсити. Використано fallback-вивід.
+              {debug.rawResponse && " Перевірте сиру відповідь вище."}
+            </p>
+          </div>
+        )}
       </div>
-    </div>
+    </Dialog>
   );
 }

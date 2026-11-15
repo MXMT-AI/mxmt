@@ -3,8 +3,8 @@ import { useEffect, useState } from "react";
 import {
   postScenario,
   scenarioFailure,
-  useScenarioPreview,
-} from "@/components/merchandising/use-scenario-preview";
+} from "@/lib/client/scenario-preview-request";
+import { useScenarioPreview } from "@/components/merchandising/use-scenario-preview";
 import type {
   createRepricingInputs,
   getRepricingPreview,

@@ -1,7 +1,13 @@
 "use client";
+
 import { Link } from "@/i18n/navigation";
 import { reportingErrorHelp } from "@/lib/reporting-readiness-copy";
-import { button, panel } from "../report-primitives/report-primitives";
+import type { Lang } from "@/lib/translations";
+import { Button } from "@/components/ui/button/button";
+import { Heading } from "@/components/ui/heading/heading";
+import { button } from "@/components/ui/button/button-styles";
+import { panel } from "@/components/ui/panel/panel-styles";
+
 export default function ReportingError({
   code,
   lang,
@@ -9,19 +15,19 @@ export default function ReportingError({
   title,
 }: {
   code: string;
-  lang: "uk" | "en";
+  lang: Lang;
   onRetry: () => void;
   title?: string;
 }) {
   const help = reportingErrorHelp(code, lang);
   return (
     <section role="alert" className={panel + " space-y-3 p-5"}>
-      {title ? <h1 className="text-2xl font-bold">{title}</h1> : null}
+      {title ? <Heading as="h1" variant="page" className="text-2xl tracking-normal text-inherit">{title}</Heading> : null}
       <p className="max-w-prose">{help.message}</p>
       <div className="flex flex-wrap gap-3">
-        <button type="button" className={button} onClick={onRetry}>
+        <Button variant="report" onClick={onRetry}>
           {lang === "uk" ? "Повторити" : "Retry"}
-        </button>
+        </Button>
         <Link className={button} href={help.href}>
           {help.action}
         </Link>
