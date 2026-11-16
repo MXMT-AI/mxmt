@@ -1,23 +1,11 @@
 "use client";
-import { useEffect, useState } from "react";
-import { apiFetch } from "@/lib/fetch";
-import { readApiJson } from "@/lib/api-response";
+import { useState } from "react";
+import { useImportIssues } from "./use-import-issues";
 import { qualityLabel, qualityGuidance } from "@/lib/data-quality-copy";
-import { button } from "@/components/ui/button/button-styles";
-interface Issue {
-  id: string;
-  code: string;
-  severity: string;
-  importRunId: string;
-  sourceId: string;
-  createdAt: string;
-  entityKey: string | null;
-  context: Record<string, string | null>;
-}
-interface Result extends Record<string, unknown> {
-  rows: Issue[];
-  pagination: { totalRows: number; totalPages: number };
-}
+import { Button } from "@/components/ui/button/button";
+import { Field } from "@/components/ui/field/field";
+import { Text } from "@/components/ui/text/text";
+import { control } from "@/components/ui/control-styles/control-styles";
 export default function ImportIssueList({
   lang,
   revision,
@@ -28,33 +16,8 @@ export default function ImportIssueList({
   const uk = lang === "uk",
     [open, setOpen] = useState(false),
     [page, setPage] = useState(1),
-    [code, setCode] = useState("SKU_ALIAS_UNRESOLVED"),
-    [data, setData] = useState<Result | null>(null),
-    [error, setError] = useState(false),
-    [retry, setRetry] = useState(0),
-    [loading, setLoading] = useState(false);
-  useEffect(() => {
-    if (!open) return;
-    const c = new AbortController();
-    setLoading(true);
-    setError(false);
-    apiFetch(
-      `/api/data/issues?source=salesdrive&pageSize=25&page=${page}&code=${code}`,
-      { signal: c.signal, cache: "no-store" },
-    )
-      .then(async (r) => {
-        const result = await readApiJson<Result>(r);
-        if (!r.ok || !Array.isArray(result.rows)) throw new Error();
-        if (!c.signal.aborted) setData(result);
-      })
-      .catch(() => {
-        if (!c.signal.aborted) setError(true);
-      })
-      .finally(() => {
-        if (!c.signal.aborted) setLoading(false);
-      });
-    return () => c.abort();
-  }, [open, page, code, revision, retry]);
+    [code, setCode] = useState("SKU_ALIAS_UNRESOLVED");
+  const { data, error, loading, retry } = useImportIssues({ open, page, code, revision });
   return (
     <details
       className="mt-6 text-sm"
@@ -65,17 +28,16 @@ export default function ImportIssueList({
           ? "Попередження імпорту та незв’язані продажі"
           : "Import warnings and unmatched sales"}
       </summary>
-      <p className="my-2 text-(--muted)">
+      <Text variant="body" className="my-2 leading-normal text-(--muted)">
         {uk
           ? "Історія попереджень поточного підключення. Виправлені незв’язані продажі не показуються. Інші історичні попередження можуть уже бути виправлені — перевірте поточну діагностику."
           : "Warning history for the current connection. Resolved unmatched sales are omitted. Other historical warnings may already be corrected; check current diagnostics."}
-      </p>
-      <label>
-        {uk ? "Показати" : "Show"}
+      </Text>
+      <Field label={uk ? "Показати" : "Show"} className="flex-row flex-wrap items-center gap-2 text-sm text-inherit">
         <select
           name="import-issue-code"
           aria-label={uk ? "Код попередження" : "Warning code"}
-          className={button + " ml-2 bg-(--surface)"}
+          className={control + " w-auto"}
           value={code}
           onChange={(e) => {
             setCode(e.target.value);
@@ -87,22 +49,22 @@ export default function ImportIssueList({
           </option>
           <option value="">{uk ? "Усі попередження" : "All warnings"}</option>
         </select>
-      </label>
+      </Field>
       {loading ? (
-        <p role="status">{uk ? "Завантаження…" : "Loading…"}</p>
+        <Text variant="body" role="status" className="leading-normal text-inherit">{uk ? "Завантаження…" : "Loading…"}</Text>
       ) : error ? (
-        <p role="alert">
+        <Text variant="body" role="alert" className="leading-normal text-inherit">
           {uk
             ? "Попередження недоступні. Повторіть спробу."
             : "Warnings unavailable. Please retry."}
-          <button
-            className={button}
-            onClick={() => setRetry((n) => n + 1)}
+          <Button
+            variant="report"
+            onClick={retry}
             type="button"
           >
             {uk ? "Повторити" : "Retry"}
-          </button>
-        </p>
+          </Button>
+        </Text>
       ) : (
         <>
           <ul>
@@ -111,7 +73,7 @@ export default function ImportIssueList({
                 key={row.id}
                 className="border-t border-(--border) py-3 wrap-break-word"
               >
-                <p className="font-medium">
+                <Text variant="body" className="font-medium leading-normal text-inherit">
                   {qualityLabel(row.code, lang)} ·{" "}
                   <span translate="no">
                     {row.context.sku ??
@@ -119,10 +81,10 @@ export default function ImportIssueList({
                       row.entityKey ??
                       "—"}
                   </span>
-                </p>
-                <p className="mt-1 text-(--muted)">
+                </Text>
+                <Text variant="body" className="mt-1 leading-normal text-(--muted)">
                   {qualityGuidance(row.code, lang)}
-                </p>
+                </Text>
                 <dl className="mt-2 break-all text-xs text-(--muted)">
                   {Object.entries({
                     [uk ? "Джерело" : "Source"]: row.sourceId,
@@ -146,33 +108,33 @@ export default function ImportIssueList({
             ))}
           </ul>
           {data && !data.rows.length && (
-            <p className="my-3">
+            <Text variant="body" className="my-3 leading-normal text-inherit">
               {uk ? "Попереджень не знайдено." : "No warnings found."}
-            </p>
+            </Text>
           )}
           <nav
             aria-label={uk ? "Сторінки попереджень" : "Warning pages"}
             className="mt-3 flex flex-wrap gap-2 items-center"
           >
-            <button
+            <Button
+              variant="report"
               type="button"
-              className={button}
               disabled={page <= 1}
               onClick={() => setPage((p) => p - 1)}
             >
               {uk ? "Назад" : "Previous"}
-            </button>
+            </Button>
             <span>
               {page} / {Math.max(1, data?.pagination.totalPages ?? 1)}
             </span>
-            <button
+            <Button
+              variant="report"
               type="button"
-              className={button}
               disabled={!data || page >= data.pagination.totalPages}
               onClick={() => setPage((p) => p + 1)}
             >
               {uk ? "Далі" : "Next"}
-            </button>
+            </Button>
           </nav>
         </>
       )}

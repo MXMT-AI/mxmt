@@ -1,4 +1,5 @@
 "use client";
+import { WorkspaceLoading } from "@/components/merchandising/workspace-loading/workspace-loading";
 import ReportingError from "@/components/merchandising/reporting-error/reporting-error";
 import ReportReadiness from "@/components/merchandising/report-readiness/report-readiness";
 import { useSearchParams } from "next/navigation";
@@ -8,7 +9,7 @@ import {
   useMerchandisingOptions,
 } from "@/components/merchandising/merchandising-shell/merchandising-shell";
 import { useMerchandisingScreen } from "@/components/merchandising/use-merchandising-screen";
-import { merchandisingGroup } from "@/lib/merchandising-navigation";
+import { salesWorkspaceControls } from "../sales-workspace-controls";
 import { salesCopy } from "@/lib/sales-copy";
 import SalesContent from "../sales-content/sales-content";
 export default function SalesWorkspace() {
@@ -16,16 +17,7 @@ export default function SalesWorkspace() {
     options = useMerchandisingOptions(),
     params = useSearchParams(),
     { lang } = useLang();
-  const controls: Record<string, string> = {
-    groupBy: merchandisingGroup(
-      new URLSearchParams(params),
-      options?.monobrand ?? true,
-    ),
-  };
-  for (const key of ["metric", "measure", "others", "page", "channelPage"]) {
-    const value = params.get(key);
-    if (value) controls[key] = value;
-  }
+  const controls = salesWorkspaceControls(new URLSearchParams(params), options?.monobrand ?? true);
   const { data, busy, error, refresh } = useMerchandisingScreen(
       filters,
       "sales",
@@ -34,21 +26,17 @@ export default function SalesWorkspace() {
     copy = salesCopy[lang];
   if (error) return <ReportingError code={error} lang={lang} title={copy.title} onRetry={refresh}/>;
   if (busy || !data)
-    return (
-      <div role="status">
-        <h1 className="text-2xl font-bold">{copy.title}</h1>
-        <p className="mt-4 text-(--muted)">{copy.loading}</p>
-      </div>
-    );
+    return <WorkspaceLoading title={copy.title} message={copy.loading} messageClassName="mt-4 text-base" />;
+
   return (
     <div className="space-y-5">
-    <ReportReadiness data={data.readiness} lang={lang}/>
-    <SalesContent
-      data={data}
-      lang={lang}
-      query={params.toString()}
-      onRefresh={refresh}
-    />
+      <ReportReadiness data={data.readiness} lang={lang}/>
+      <SalesContent
+        data={data}
+        lang={lang}
+        query={params.toString()}
+        onRefresh={refresh}
+      />
     </div>
   );
 }

@@ -1,113 +1,24 @@
 "use client";
-import { useEffect, useState } from "react";
-import { useRouter } from "@/i18n/navigation";
 
-import { apiFetch } from "@/lib/fetch";
-import { readApiJson } from "@/lib/api-response";
 import { Field } from "@/components/ui/field/field";
 import { control } from "@/components/ui/control-styles/control-styles";
-import type {ReportingSources as Sources} from "@/lib/reporting-source-contract";
-export default function ConnectorSourceCard({
-  lang,
-  canManage,
-}: {
-  lang: "uk" | "en";
-  canManage: boolean;
-}) {
-  const uk = lang === "uk",
-    router = useRouter();
-  const [data, setData] = useState<Sources | null>(null),
-    [source, setSource] = useState(""),
-    [busy, setBusy] = useState(false),
-    [error, setError] = useState(""),
-    [message, setMessage] = useState("");
-  useEffect(() => {
-    let active = true;
-    const load = () =>
-      apiFetch("/api/connectors/source")
-        .then(async (r) => {
-          const body = await readApiJson(r);
-          if (!r.ok) throw new Error();
-          if (active) {
-            const value = body as unknown as Sources;
-            setData(value);
-            setSource(value.sourceId ?? "");
-            setError("");
-          }
-        })
-        .catch(() => {
-          if (active)
-            setError(
-              uk
-                ? "Не вдалося завантажити джерела. Оновіть сторінку."
-                : "Sources could not be loaded. Refresh the page.",
-            );
-        });
-    void load();
-    window.addEventListener("connector-connection-changed", load);
-    return () => {
-      active = false;
-      window.removeEventListener("connector-connection-changed", load);
-    };
-  }, [uk]);
-  const dirty = Boolean(data && source !== (data.sourceId ?? ""));
-  useEffect(() => {
-    if (!dirty) return;
-    const warn = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = "";
-    };
-    window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, [dirty]);
-  async function activate(e: React.FormEvent) {
-    e.preventDefault();
-    if (!data) return;
-    setBusy(true);
-    setError("");
-    setMessage("");
-    try {
-      const response = await apiFetch("/api/connectors/source", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sourceId: source, revision: data.revision }),
-      });
-      const body = await readApiJson(response);
-      if (!response.ok) {
-        setError(
-          uk
-            ? "Не вдалося змінити джерело. Перевірте з’єднання й оновіть сторінку."
-            : "Source could not be changed. Check the connection and refresh the page.",
-        );
-        return;
-      }
-      setData(body as unknown as Sources);
-      setMessage(
-        uk
-          ? "Джерело змінено. Оновіть звіт, щоб отримати актуальні дані."
-          : "Source changed. Refresh the report to use the selected source.",
-      );
-      router.refresh();
-    } catch {
-      setError(
-        uk ? "Помилка мережі. Спробуйте ще раз." : "Network error. Try again.",
-      );
-    } finally {
-      setBusy(false);
-    }
-  }
+import { Heading } from "@/components/ui/heading/heading";
+import { Text } from "@/components/ui/text/text";
+import { Button } from "@/components/ui/button/button";
+import { panel } from "@/components/ui/panel/panel-styles";
+import type { Lang } from "@/lib/translations";
+import { connectorSourceCopy } from "./copy";
+import { useConnectorSource } from "./use-connector-source";
+
+export default function ConnectorSourceCard({ lang, canManage }: { lang: Lang; canManage: boolean }) {
+  const copy = connectorSourceCopy[lang];
+  const { data, source, setSource, busy, error, message, dirty, activate } = useConnectorSource(lang, canManage);
   return (
-    <section className="mb-10 rounded-xl border border-(--border) bg-(--surface) p-5 min-w-0">
-      <h2 className="font-semibold text-(--text)">
-        {uk ? "Джерело звітів" : "Reporting source"}
-      </h2>
-      <p className="mt-1 mb-4 text-sm text-(--muted)">
-        {uk
-          ? "Для звітів використовується одне джерело. Збереження іншого з’єднання не змінює цей вибір. Історія звітів і експортів зберігається."
-          : "Reports use one selected source. Saving another connection does not change this selection. Report and export history is retained."}
-      </p>
-      <form onSubmit={activate} className="space-y-3">
-        <Field label={uk ? "Збережене джерело" : "Saved source"}>
+    <section className={panel + " mb-10 p-5"}>
+      <Heading as="h2" variant="compact" className="text-base">{copy.title}</Heading>
+      <Text variant="body" className="mt-1 mb-4 leading-normal text-(--muted)">{copy.description}</Text>
+      <form onSubmit={event => { event.preventDefault(); void activate(); }} className="space-y-3">
+        <Field label={copy.source}>
           <select
             className={control}
             name="connector-source"
@@ -116,21 +27,13 @@ export default function ConnectorSourceCard({
             disabled={!canManage || busy || !data}
           >
             <option value="">
-              {data && !data.connections.length
-                ? uk
-                  ? "Спочатку збережіть з’єднання"
-                  : "Save a connection first"
-                : uk
-                  ? "Виберіть джерело"
-                  : "Choose a source"}
+              {data && !data.connections.length ? copy.empty : copy.choose}
             </option>
             {source &&
             data &&
             !data.connections.some((c) => c.sourceId === source) ? (
               <option value={source}>
-                {uk
-                  ? "Попереднє джерело недоступне"
-                  : "Previous source unavailable"}
+                {copy.unavailable}
               </option>
             ) : null}
             {data?.connections.map((c) => (
@@ -141,32 +44,21 @@ export default function ConnectorSourceCard({
                   !c.selectable && c.sourceId !== data.sourceId
                 }
               >
-                {c.provider==="sheets"?"Google Sheets":c.provider} · {c.accountHost}
-                {c.readiness==="MAPPING_REQUIRED"
-                  ?uk?" — погодьте зіставлення":" — approve mapping"
-                  :c.readiness==="IMPORT_REQUIRED"
-                    ?uk?" — потрібен імпорт":" — import required"
-                    :c.readiness==="CONNECTION_CHECK_REQUIRED"
-                      ?uk?" — перевірте доступ":" — check access":""
-                }
+                {c.provider === "sheets" ? "Google Sheets" : c.provider} · {c.accountHost}
+                {copy.readiness[c.readiness]}
               </option>
             ))}
           </select>
         </Field>
         {canManage ? (
-          <button
+          <Button
+            variant="report"
             type="submit"
             disabled={busy || !source || !dirty}
-            className="min-h-11 rounded-lg border border-(--border) px-4 py-2 text-sm text-(--text) hover:bg-(--bg) focus-visible:outline-solid focus-visible:outline-2 disabled:opacity-50"
+            className="text-(--text) hover:bg-(--bg)"
           >
-            {busy
-              ? uk
-                ? "Змінюємо…"
-                : "Changing…"
-              : uk
-                ? "Використовувати для звітів"
-                : "Use for reports"}
-          </button>
+            {busy ? copy.changing : copy.submit}
+          </Button>
         ) : null}
       </form>
       {error ? (

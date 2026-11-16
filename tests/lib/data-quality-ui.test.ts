@@ -2,6 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "../helpers/render-localized";
 import { it, expect } from "vitest";
 import Summary from "@/components/settings/data-quality-summary/data-quality-summary";
+import { DataQualityStockFigures } from "@/components/settings/data-quality-stock-figures/data-quality-stock-figures";
 import {
   readQualitySelection,
   writeQualitySelection,
@@ -11,6 +12,23 @@ import {
   qualityGuidance,
   qualityFixHref,
 } from "@/lib/data-quality-copy";
+it.each(["uk", "en"] as const)("distinguishes zero stock from unknown stock in %s", lang => {
+  const stock = {
+    currency: null, skuCount: 0, quantity: "0", costValue: "0",
+    unknownValueCount: 0, unknownQuantityCount: 0,
+  };
+  const zero = renderToStaticMarkup(createElement(DataQualityStockFigures, { stock, lang }));
+  expect(zero).toContain(lang === "uk" ? "0 SKU · 0 шт · 0 валюта невідома" : "0 SKU · 0 units · 0 currency unknown");
+  expect(zero).not.toContain("—");
+  expect(zero).not.toContain(lang === "uk" ? "Кількість невідома" : "Unknown quantity");
+
+  const unknown = renderToStaticMarkup(createElement(DataQualityStockFigures, {
+    stock: { ...stock, quantity: null, costValue: null, unknownValueCount: 2, unknownQuantityCount: 3 }, lang,
+  }));
+  expect(unknown).toContain(lang === "uk" ? "0 SKU · — шт · — валюта невідома" : "0 SKU · — units · — currency unknown");
+  expect(unknown).toContain(lang === "uk" ? "SKU без оцінки: 2" : "unvalued SKUs: 2");
+  expect(unknown).toContain(lang === "uk" ? "Кількість невідома: 3" : "Unknown quantity: 3");
+});
 it("does not describe missing or unverified stock as a clean catalogue", () => {
   const html = renderToStaticMarkup(createElement(Summary, {
     lang: "uk", affectedStock: [], summary: [], selected: "", onSelect: () => {},

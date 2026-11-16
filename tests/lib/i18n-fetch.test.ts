@@ -1,5 +1,6 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { apiFetch } from "@/lib/fetch";
+import { refreshAccessToken } from "@/lib/client/refresh-access-token";
 
 afterEach(() => vi.unstubAllGlobals());
 it("keeps locale, filters and hash when the API session cannot be refreshed", async () => {
@@ -20,4 +21,22 @@ it("retries the original API call after a successful refresh", async () => {
   vi.stubGlobal("fetch", fetch);
   expect(await apiFetch("/api/data/sales")).toBe(response);
   expect(fetch).toHaveBeenNthCalledWith(3, "/api/data/sales", undefined);
+});
+it("shares one refresh across concurrent API failures and the proactive refresh caller", async () => {
+  let finish!: (response: Response) => void;
+  let authorized = false;
+  const pending = new Promise<Response>(resolve => { finish = resolve; });
+  const fetch = vi.fn().mockImplementation(async input => input === "/api/auth/refresh"
+    ? pending : new Response(null, { status: authorized ? 200 : 401 }));
+  vi.stubGlobal("fetch", fetch);
+  const first = apiFetch("/api/data/sales"), second = apiFetch("/api/data/stock");
+  const proactive = refreshAccessToken();
+  await Promise.resolve();
+  expect(fetch.mock.calls.filter(call => call[0] === "/api/auth/refresh")).toHaveLength(1);
+  authorized = true;
+  finish(new Response("{}"));
+  const [sales, stock, refreshed] = await Promise.all([first, second, proactive]);
+  expect(sales.ok && stock.ok && refreshed).toBe(true);
+  expect(fetch.mock.calls.filter(call => call[0] === "/api/auth/refresh")).toHaveLength(1);
+  expect(fetch).toHaveBeenCalledTimes(5);
 });

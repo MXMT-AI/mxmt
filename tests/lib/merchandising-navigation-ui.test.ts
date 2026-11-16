@@ -45,6 +45,18 @@ beforeEach(() => {
   state.query =
     "period=month&dateFrom=2026-09-01&dateTo=2026-09-30&channelId=2&snapshotId=frozen";
 });
+it.each(["/agents/research", "/data-reporting/import"])("opens existing tools for nested route %s", path => {
+  state.path = path;
+  const html = renderToStaticMarkup(createElement(Sidebar, { tenantName: "Fixture", userRole: "VIEWER" }));
+  expect(html).toMatch(/<details open="" class="pt-3">/);
+  expect(html.match(/aria-current="page"/g)).toHaveLength(2);
+});
+it("does not match a sibling route by a partial prefix", () => {
+  state.path = "/agents-extra";
+  const html = renderToStaticMarkup(createElement(Sidebar, { tenantName: "Fixture", userRole: "VIEWER" }));
+  expect(html).not.toMatch(/<details open="" class="pt-3">/);
+  expect(html).not.toContain('aria-current="page"');
+});
 describe("localized merchandising shell", () => {
   it.each(["uk", "en"] as const)(
     "renders labeled filters and report content in %s",

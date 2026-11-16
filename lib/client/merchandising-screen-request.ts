@@ -16,6 +16,15 @@ const screenControlKeys: Record<MvpScreen, readonly string[]> = {
   reordering: [],
 };
 
+export function readScreenControls(screen: MvpScreen, params: Pick<URLSearchParams, "get">): Record<string, string> {
+  const controls: Record<string, string> = {};
+  for (const key of screenControlKeys[screen]) {
+    const value = params.get(key);
+    if (value) controls[key] = value;
+  }
+  return controls;
+}
+
 export function buildScreenSelection(
   filters: MerchandisingFilters,
   screen: MvpScreen,

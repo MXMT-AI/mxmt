@@ -5,7 +5,10 @@ import {
   qualityGuidance,
   qualityFixHref,
 } from "@/lib/data-quality-copy";
-import { button } from "@/components/ui/button/button-styles";
+import { Button } from "@/components/ui/button/button";
+import { Heading } from "@/components/ui/heading/heading";
+import { Text } from "@/components/ui/text/text";
+import { DataQualityStockFigures } from "../data-quality-stock-figures/data-quality-stock-figures";
 export interface QualityStockGroup {
   currency: string | null;
   skuCount: number;
@@ -27,69 +30,38 @@ export default function DataQualitySummary({
   selected: string;
   onSelect: (code: string) => void;
 }) {
-  const uk = lang === "uk",
-    locale = uk ? "uk-UA" : "en-GB",
-    n = (v: string | number | null) =>
-      v === null
-        ? "—"
-        : new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(
-            Number(v),
-          );
-  const figures = (s: QualityStockGroup) => (
-    <>
-      <span className="tabular-nums">
-        {n(s.skuCount)} SKU · {n(s.quantity)} {uk ? "шт" : "units"} ·{" "}
-        {n(s.costValue)}{" "}
-        {s.currency ?? (uk ? "валюта невідома" : "currency unknown")}
-      </span>
-      {s.unknownValueCount > 0 && (
-        <span className="block text-xs text-(--muted)">
-          {uk
-            ? "Відома частина вартості; SKU без оцінки"
-            : "Known value only; unvalued SKUs"}
-          : {n(s.unknownValueCount)}
-        </span>
-      )}
-      {s.unknownQuantityCount > 0 && (
-        <span className="block text-xs">
-          {uk ? "Кількість невідома" : "Unknown quantity"}:{" "}
-          {n(s.unknownQuantityCount)}
-        </span>
-      )}
-    </>
-  );
+  const uk = lang === "uk";
   return (
     <div className="mt-5 space-y-4">
       <div className="border-y border-(--border) py-4 space-y-2">
-        <h3 className="font-semibold">
+        <Heading as="h3" variant="compact" className="text-base text-inherit">
           {uk ? "Товарний залишок з проблемами" : "Affected merchandise stock"}
-        </h3>
-        <p className="text-sm text-(--muted)">
+        </Heading>
+        <Text variant="body" className="leading-normal text-(--muted)">
           {uk
             ? "Кожен SKU враховано один раз. Групи нижче перетинаються — їх не можна додавати. Вартість наведено за собівартістю, окремо для кожної валюти."
             : "Each SKU is counted once. The groups below overlap and must not be added together. Stock is valued at cost, separately for each currency."}
-        </p>
+        </Text>
         {affectedStock.map((s) => (
-          <p key={s.currency ?? "unknown"} className="text-sm">
-            {figures(s)}
-          </p>
+          <Text variant="body" key={s.currency ?? "unknown"} className="leading-normal text-inherit">
+            <DataQualityStockFigures stock={s} lang={lang} />
+          </Text>
         ))}
         {!affectedStock.length && (
-          <p className="text-sm">
+          <Text variant="body" className="leading-normal text-inherit">
             {uk
               ? "Підтвердженого товарного залишку з оцінкою проблем немає. Перевірте типи позицій і наявність датованих залишків у групах нижче."
               : "No verified merchandise stock is available for an affected-stock total. Check product types and dated stock observations in the groups below."}
-          </p>
+          </Text>
         )}
       </div>
-      <button
-        className={button}
-        type="button"
+      <Button
+        variant="report"
         aria-pressed={!selected}
         onClick={() => onSelect("")}
       >
         {uk ? "Усі товари" : "All products"}
-      </button>
+      </Button>
       <ul className="divide-y divide-(--border)">
         {summary.map((s) => (
           <li key={s.code + ":" + s.currency} className="py-3 space-y-2">
@@ -101,10 +73,12 @@ export default function DataQualitySummary({
             >
               {qualityLabel(s.code, lang)}
             </button>
-            <p className="text-sm">{figures(s)}</p>
-            <p className="text-sm text-(--muted) max-w-prose">
+            <Text variant="body" className="leading-normal text-inherit">
+              <DataQualityStockFigures stock={s} lang={lang} />
+            </Text>
+            <Text variant="body" className="max-w-prose leading-normal text-(--muted)">
               {qualityGuidance(s.code, lang)}
-            </p>
+            </Text>
             <Link
               className="inline-flex min-h-11 items-center text-sm underline underline-offset-4 focus-visible:outline-solid"
               href={qualityFixHref(s.code)}

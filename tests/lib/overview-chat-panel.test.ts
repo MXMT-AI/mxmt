@@ -1,3 +1,4 @@
+import { WorkspaceLoading } from "@/components/merchandising/workspace-loading/workspace-loading";
 import { beforeEach, expect, it, vi } from "vitest";
 import { OverviewChatPanel } from "@/components/overview/overview-chat-panel/overview-chat-panel";
 import { readOverviewChatParams } from "@/components/overview/overview-chat-params";
@@ -70,7 +71,7 @@ it("keeps an activated chat loaded across report refreshes", () => {
   expect(chat.props.loaded).toBe(false);
   chat.props.onLoad();
   state.busy = true;
-  expect(OverviewWorkspace().props.role).toBe("status");
+  expect(OverviewWorkspace().type).toBe(WorkspaceLoading);
   state.busy = false;
   expect(OverviewWorkspace().props.children[2].props.loaded).toBe(true);
 });

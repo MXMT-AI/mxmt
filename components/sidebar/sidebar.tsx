@@ -1,6 +1,8 @@
 "use client";
 
-import { Link } from "@/i18n/navigation";
+import { Button } from "@/components/ui/button/button";
+import { Note } from "@/components/ui/note/note";
+import { SidebarNavItem } from "@/components/sidebar-nav-item/sidebar-nav-item";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { useSearchParams } from "next/navigation";
 import {
@@ -56,20 +58,11 @@ export default function Sidebar({
     { href: "/assortment", label: t.nav_assortment, icon: Package },
     { href: "/data-reporting", label: t.nav_data_reporting, icon: Database },
   ];
-  const item = ({ href, label, icon: Icon }: (typeof legacy)[number]) => {
-    const active = pathname === href || pathname.startsWith(href + "/");
-    return (
-      <Link
-        key={href}
-        href={merchandisingHref(href, new URLSearchParams(params))}
-        aria-current={active ? "page" : undefined}
-        className={`flex items-center gap-3 px-3 py-2.5 min-h-11 rounded-lg text-sm font-medium transition-colors touch-manipulation ${active ? "bg-(--nav-current) text-(--nav-ink)" : "text-(--muted) hover:text-(--text) hover:bg-(--input-bg)"}`}
-      >
-        <Icon size={16} aria-hidden="true" />
-        <span>{label}</span>
-      </Link>
-    );
-  };
+  const search = new URLSearchParams(params);
+  const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
+  const item = ({ href, label, icon }: (typeof legacy)[number]) => (
+    <SidebarNavItem key={href} href={merchandisingHref(href, search)} label={label} icon={icon} active={isActive(href)} />
+  );
   const navigation = (
     <nav aria-label={copy.primary} className="space-y-1 p-2">
       {features.merchandising ? (
@@ -77,9 +70,9 @@ export default function Sidebar({
           {MVP.slice(0, 3).map(({ screen, icon }) =>
             item({ href: `/${screen}`, label: copy[screen], icon }),
           )}
-          <p className="px-3 pt-5 pb-1 text-xs text-(--muted)">
+          <Note className="px-3 pt-5 pb-1 leading-normal">
             {copy.actions}
-          </p>
+          </Note>
           {MVP.slice(3).map(({ screen, icon }) =>
             item({ href: `/${screen}`, label: copy[screen], icon }),
           )}
@@ -87,7 +80,7 @@ export default function Sidebar({
       ) : null}
       {features.legacy ? (
         <details
-          open={legacy.some((entry) => pathname === entry.href)}
+          open={legacy.some(entry => isActive(entry.href))}
           className="pt-3"
         >
           <summary className="cursor-pointer rounded-lg px-3 py-2.5 text-xs text-(--muted) hover:text-(--text)">
@@ -131,14 +124,15 @@ export default function Sidebar({
             OpenAI
           </span>
         </div>
-        <button
+        <Button
+          variant="report"
           type="button"
           onClick={handleLogout}
-          className="flex items-center gap-3 px-3 py-2.5 min-h-11 rounded-lg text-sm text-(--muted) hover:text-(--text) hover:bg-(--input-bg) touch-manipulation"
+          className="justify-start gap-3 border-0 px-3 py-2.5 text-(--muted)"
         >
           <LogOut size={15} aria-hidden="true" />
           {t.nav_logout}
-        </button>
+        </Button>
       </div>
     </aside>
   );

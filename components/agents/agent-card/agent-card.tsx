@@ -4,7 +4,7 @@ import { agentStatusPresentation, getAgentRunState } from "../agent-status";
 import { Link } from "@/i18n/navigation";
 import { useState, useEffect } from "react";
 import { Play, RefreshCw, Table2, Eye, Code2 } from "lucide-react";
-import { getAgentProvider } from "@/components/settings/agent-providers-card/agent-providers-card";
+import { getAgentProvider } from "@/lib/client/agent-providers";
 import PromoTableModal, { type PromoSimParams } from "@/components/agents/promo-table-modal/promo-table-modal";
 import ReorderTableModal, { type ReorderSimParams } from "@/components/agents/reorder-table-modal/reorder-table-modal";
 import { AGENTS, AGENT_ROUTES } from "@/components/agents/agents.config";

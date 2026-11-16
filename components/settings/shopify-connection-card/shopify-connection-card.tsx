@@ -1,12 +1,15 @@
 "use client";
+import { Button } from "@/components/ui/button/button";
+import { Heading } from "@/components/ui/heading/heading";
+import { Text } from "@/components/ui/text/text";
+import { Note } from "@/components/ui/note/note";
+import { panel } from "@/components/ui/panel/panel-styles";
 import { useRef, type FormEvent } from "react";
 import { Field } from "@/components/ui/field/field";
 import { control } from "@/components/ui/control-styles/control-styles";
 import type { PublicConnection } from "@/lib/connectors/contract";
 import { useConnectorConnection } from "../use-connector-connection";
 import ConnectorDiagnostics from "../connector-diagnostics/connector-diagnostics";
-const button =
-  "min-h-11 rounded-lg border border-(--border) px-4 py-2 text-sm text-(--text) hover:bg-(--input-hover) focus-visible:outline-solid focus-visible:outline-2 disabled:opacity-50";
 export default function ShopifyConnectionCard({
   initial,
   lang,
@@ -59,34 +62,34 @@ export default function ShopifyConnectionCard({
       className="mb-10 scroll-mt-6 space-y-4"
     >
       <div>
-        <h2 id="shopify-heading" className="font-semibold text-(--text)">
+        <Heading as="h2" variant="compact" id="shopify-heading" className="text-base">
           Shopify
-        </h2>
-        <p className="mt-1 text-sm text-(--muted)">
+        </Heading>
+        <Text variant="body" className="leading-normal mt-1 text-sm text-(--muted)">
           {copy(
             "Лише читання через Shopify Admin API 2026-10. Вкладені сторінки зберігаються до завершення запису.",
             "Read-only Shopify Admin API 2026-10. Nested pages are retained until the record is complete.",
           )}
-        </p>
+        </Text>
       </div>
-      <div className="space-y-4 rounded-xl border border-(--border) bg-(--surface) p-4 sm:p-5">
-        <p className="wrap-break-word text-sm text-(--muted)">
+      <div className={panel + " space-y-4 p-4 sm:p-5"}>
+        <Text variant="body" className="leading-normal wrap-break-word text-sm text-(--muted)">
           {connection.configured
             ? copy("Налаштовано: ", "Configured: ") + connection.accountHost
             : copy("Не налаштовано", "Not configured")}
-        </p>
-        <p className="text-sm text-(--muted)">
+        </Text>
+        <Text variant="body" className="leading-normal text-sm text-(--muted)">
           {copy(
             "Використовуйте постійний домен myshopify.com і окремий токен із правами read_orders, read_products, read_inventory та read_locations. Вартість товарів потребує дозволу перегляду собівартості. Токен шифрується та не повертається у відповідях.",
             "Use the permanent myshopify.com domain and a separate token with read_orders, read_products, read_inventory and read_locations. Product costs require cost-view permission. The token is encrypted and never returned in responses.",
           )}
-        </p>
-        <p className="text-xs text-(--muted)">
+        </Text>
+        <Note className="leading-normal text-(--muted)">
           {copy(
             "Типовий доступ до замовлень охоплює 60 днів. Для старішої історії потрібні read_all_orders та погоджений еталон; порожня відповідь не підтверджує повноту. Перевірка читання не доводить відсутність прав запису. Приходи й історична собівартість недоступні; автоматична синхронізація вимкнена.",
             "Default order access covers 60 days. Older history requires read_all_orders and approved evidence; an empty response does not prove coverage. Successful reads do not prove the absence of write permissions. Receipts and historical COGS are unavailable; automatic sync is disabled.",
           )}
-        </p>
+        </Note>
         {canManage ? (
           <form
             ref={form}
@@ -255,12 +258,12 @@ export default function ShopifyConnectionCard({
                   </Field>
                 </div>
               </details>
-              <p className="text-xs text-(--muted)">
+              <Note className="leading-normal text-(--muted)">
                 {copy(
                   "Коди подій: 1 — повна оплата, 2 — повернення, 3 — непідтверджена/часткова оплата, 4 — скасування без оплати. Перевірте загальні правила статусів клієнта перед імпортом.",
                   "Event codes: 1 full payment, 2 refund, 3 unverified/partial payment, 4 unpaid cancellation. Review client-wide status rules before importing.",
                 )}
-              </p>
+              </Note>
               <label className="flex min-h-11 items-center gap-3 text-sm text-(--muted)">
                 <input type="checkbox" name="mappingApproved" required />
                 {copy(
@@ -269,37 +272,37 @@ export default function ShopifyConnectionCard({
                 )}
               </label>
               <div className="flex flex-wrap gap-3">
-                <button disabled={busy} className={button}>
+                <Button variant="report" type="submit" disabled={busy} className="text-(--text) hover:bg-(--input-hover)">
                   {busy
                     ? copy("Обробка…", "Processing…")
                     : copy("Зберегти Shopify", "Save Shopify")}
-                </button>
-                <button
+                </Button>
+                <Button variant="report"
                   type="button"
                   disabled={busy || dirty || !connection.configured}
                   onClick={() => void perform("check")}
-                  className={button}
+                  className="text-(--text) hover:bg-(--input-hover)"
                 >
                   {copy("Перевірити доступи", "Check read scopes")}
-                </button>
+                </Button>
               </div>
             </fieldset>
           </form>
         ) : null}
         {error ? (
-          <p
+          <Text variant="body"
             ref={alert}
             tabIndex={-1}
             role="alert"
-            className="text-sm text-(--text)"
+            className="leading-normal text-sm text-(--text)"
           >
             {error}
-          </p>
+          </Text>
         ) : null}
         {status ? (
-          <p role="status" className="text-sm text-(--muted)">
+          <Text variant="body" role="status" className="leading-normal text-sm text-(--muted)">
             {status}
-          </p>
+          </Text>
         ) : null}
         <ConnectorDiagnostics check={connection.lastCheck} lang={lang} />
       </div>

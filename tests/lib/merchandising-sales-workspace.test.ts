@@ -1,4 +1,4 @@
-import { createElement } from "react";
+import { createElement, isValidElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "../helpers/render-localized";
 import { beforeAll, afterAll, describe, it, expect, vi } from "vitest";
 vi.mock("server-only", () => ({}));
@@ -7,6 +7,8 @@ vi.mock("next/link", () => ({
   default: ({ children, ...props }: Record<string, unknown>) =>
     createElement("a", props, children as string),
 }));
+import { SalesCurrencySection } from "@/components/sales/sales-currency-section/sales-currency-section";
+import { salesCopy } from "@/lib/sales-copy";
 import SalesContent from "@/components/sales/sales-content/sales-content";
 import { createScreenDb, screenSelection } from "../helpers/screen-db";
 import {
@@ -523,3 +525,42 @@ it.each(["uk", "en"] as const)(
     }
   },
 );
+
+
+function currencyNodes(node: ReactNode): { type: unknown; props: Record<string, any> }[] {
+  if (Array.isArray(node)) return node.flatMap(currencyNodes);
+  if (!isValidElement<{ children?: ReactNode }>(node)) return [];
+  return [{ type: node.type, props: node.props }, ...currencyNodes(node.props.children)];
+}
+it("preserves absent, zero and unknown-history currency summaries", async () => {
+  const data = await read({ currency: "UAH" });
+  const model = data.workspace!, block = model.byCurrency[0];
+  const summary = data.sales!.summary.find(item => item.currency === block.currency)!;
+  const props = { block, model, copy: salesCopy.en, locale: "en-GB", showOthers: false, href: () => "/sales" };
+  const header = (summaryValue: typeof summary | undefined, hasHistory: boolean) => {
+    const section = SalesCurrencySection({ ...props, summary: summaryValue, model: { ...model, history: { ...model.history, current: hasHistory } } });
+    return section.props.children[0];
+  };
+  expect(currencyNodes(header(undefined, true)).some(node => node.type === "strong")).toBe(false);
+  const zero = { ...summary, current: { ...summary.current, orderCount: 0, units: "0" } };
+  const complete = currencyNodes(header(zero, true)).filter(node => node.type === "strong");
+  expect(complete.map(node => node.props.children)).toEqual(["0", "0"]);
+  const unavailable = currencyNodes(header(zero, false)).filter(node => node.type === "strong");
+  expect(unavailable.map(node => node.props.children)).toEqual(["0", "—"]);
+});
+it("scopes every sales section to its currency, including unknown currency", async () => {
+  const data = await read({});
+  const model = data.workspace!, block = model.byCurrency[0];
+  for (const currency of ["EUR", "UAH", null]) {
+    const href = vi.fn((values: Record<string, string | null>) => new URLSearchParams(Object.entries(values).filter((entry): entry is [string, string] => entry[1] !== null)).toString());
+    const tree = currencyNodes(SalesCurrencySection({ block: { ...block, currency }, model, copy: salesCopy.en, locale: "en-GB", showOthers: true, href }));
+    const sections = tree.filter(node => typeof node.props.href === "function");
+    expect(sections).toHaveLength(4);
+    for (const section of sections) {
+      const url = new URLSearchParams(section.props.href({ page: "2" }));
+      expect(url.get("currency")).toBe(currency ?? "__unassigned__");
+      expect(url.get("page")).toBe("2");
+    }
+    expect(tree[0].props["aria-label"]).toBe(currency ?? salesCopy.en.unassigned);
+  }
+});

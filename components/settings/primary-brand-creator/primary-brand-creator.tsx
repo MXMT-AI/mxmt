@@ -2,6 +2,10 @@
 import { useState, useRef } from "react";
 import { apiFetch } from "@/lib/fetch";
 import { readApiJson } from "@/lib/api-response";
+import { Field } from "@/components/ui/field/field";
+import { Button } from "@/components/ui/button/button";
+import { Text } from "@/components/ui/text/text";
+import { control } from "@/components/ui/control-styles/control-styles";
 export default function PrimaryBrandCreator({
   lang,
   disabled,
@@ -17,8 +21,10 @@ export default function PrimaryBrandCreator({
     [error, setError] = useState(""),
     [saved, setSaved] = useState(false);
   const nameRef = useRef<HTMLInputElement>(null);
+  const inFlight = useRef(false);
   async function create() {
-    if (busy || disabled) return;
+    if (busy || disabled || !name.trim() || inFlight.current) return;
+    inFlight.current = true;
     setBusy(true);
     setError("");
     setSaved(false);
@@ -41,18 +47,16 @@ export default function PrimaryBrandCreator({
           : "Could not create the brand. Check its name and try again.",
       );
     } finally {
+      inFlight.current = false;
       setBusy(false);
     }
   }
-  const input =
-    "min-h-11 rounded-lg border border-(--border) bg-(--surface) px-3 py-2 text-sm focus-visible:outline-solid focus-visible:outline-2";
   return (
     <details className="text-sm sm:col-span-2">
       <summary className="min-h-11 py-3 cursor-pointer focus-visible:outline-solid">
         {uk ? "Бренду ще немає в каталозі?" : "Brand not in the catalog yet?"}
       </summary>
-      <label className="block">
-        {uk ? "Назва основного бренду" : "Primary brand name"}
+      <Field label={uk ? "Назва основного бренду" : "Primary brand name"} className="gap-2 text-sm text-inherit">
         <input
           ref={nameRef}
           name="primary-brand-name"
@@ -67,12 +71,13 @@ export default function PrimaryBrandCreator({
           autoComplete="off"
           disabled={busy || disabled}
           onChange={(e) => setName(e.target.value)}
-          className={input + " block mt-2 w-full"}
+          className={control}
         />
-      </label>
-      <button
+      </Field>
+      <Button
+        variant="report"
         type="button"
-        className={input + " mt-3 disabled:opacity-50 touch-manipulation"}
+        className="mt-3 bg-(--surface) px-3"
         disabled={!name.trim() || busy || disabled}
         onClick={create}
       >
@@ -83,9 +88,9 @@ export default function PrimaryBrandCreator({
           : uk
             ? "Створити бренд"
             : "Create brand"}
-      </button>
-      {error && <p role="alert">{error}</p>}
-      <p role="status" className="mt-2 text-(--muted)">
+      </Button>
+      {error && <Text variant="body" role="alert" className="leading-normal text-inherit">{error}</Text>}
+      <Text variant="body" role="status" className="mt-2 leading-normal text-(--muted)">
         {saved
           ? uk
             ? "Бренд обрано. Збережіть профіль клієнта й окремо підтвердьте власність та умови."
@@ -93,7 +98,7 @@ export default function PrimaryBrandCreator({
           : uk
             ? "Створення бренду не підтверджує власність, комісію або постачальника."
             : "Creating a brand does not confirm ownership, commission or supplier terms."}
-      </p>
+      </Text>
     </details>
   );
 }

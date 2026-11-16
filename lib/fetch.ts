@@ -1,10 +1,10 @@
 import { localeFromPath, localizeHref, routing } from "@/i18n/routing";
+import { refreshAccessToken } from "./client/refresh-access-token";
 
 
 async function tryRefresh(): Promise<boolean> {
   try {
-    const res = await fetch("/api/auth/refresh", { method: "POST" });
-    return res.ok;
+    return await refreshAccessToken();
   } catch {
     return false;
   }

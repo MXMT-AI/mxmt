@@ -1,15 +1,18 @@
 "use client";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { Field } from "@/components/ui/field/field";
 import { control } from "@/components/ui/control-styles/control-styles";
-import { apiFetch } from "@/lib/fetch";
-import { readApiJson } from "@/lib/api-response";
+import { Button } from "@/components/ui/button/button";
+import { Heading } from "@/components/ui/heading/heading";
+import { Text } from "@/components/ui/text/text";
+import { Note } from "@/components/ui/note/note";
+import { panel } from "@/components/ui/panel/panel-styles";
+import { useConnectorConnection } from "../use-connector-connection";
+import { keyCrmConnectionMessages } from "./connection-messages";
+import { ChannelMappingFields } from "../channel-mapping-fields/channel-mapping-fields";
 import StatusMappingFields from "../status-mapping-fields/status-mapping-fields";
 import ConnectorDiagnostics from "../connector-diagnostics/connector-diagnostics";
-import { isPublicConnection } from "@/lib/connectors/public-connection";
 import type { PublicConnection } from "@/lib/connectors/contract";
-const button =
-  "min-h-11 rounded-lg border border-(--border) px-4 py-2 text-sm text-(--text) hover:bg-(--input-hover) disabled:opacity-50";
 export default function KeyCrmConnectionCard({
   initial,
   lang,
@@ -21,118 +24,33 @@ export default function KeyCrmConnectionCard({
 }) {
   const uk = lang === "uk",
     copy = (a: string, b: string) => (uk ? a : b);
-  const [connection, setConnection] = useState(initial),
-    [busy, setBusy] = useState(false),
-    [error, setError] = useState(""),
-    [status, setStatus] = useState(""),
-    [dirty, setDirty] = useState(false),
-    [approved, setApproved] = useState(false),
+  const { connection, busy, error, status, dirty, alert, setError, setDirty, perform: mutateConnection } =
+    useConnectorConnection("keycrm", initial, lang, keyCrmConnectionMessages[lang]);
+  const [approved, setApproved] = useState(false),
     [net, setNet] = useState(false),
     [cost, setCost] = useState(false),
     [paid, setPaid] = useState(false),
     [stock, setStock] = useState(false);
-  const form = useRef<HTMLFormElement>(null),
-    alert = useRef<HTMLParagraphElement>(null);
+  const form = useRef<HTMLFormElement>(null);
   const [statuses, setStatuses] = useState<Array<{ id: string; kind: string }>>(
       [],
     ),
     [channels, setChannels] = useState<Array<{ id: string; name: string }>>([]);
-  useEffect(() => {
-    if (error) alert.current?.focus();
-  }, [error]);
-  useEffect(() => {
-    if (!dirty) return;
-    const warn = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = "";
-    };
-    window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, [dirty]);
   const mutate = () => {
     setDirty(true);
     setApproved(false);
   };
   async function perform(action: "save" | "check", body?: unknown) {
-    setBusy(true);
-    setError("");
-    setStatus("");
-    try {
-      const r = await apiFetch("/api/connectors/keycrm", {
-        method: action === "save" ? "PUT" : "POST",
-        cache: "no-store",
-        headers: { "Content-Type": "application/json" },
-        ...(body ? { body: JSON.stringify(body) } : {}),
-      });
-      const payload = await readApiJson(r);
-      const d =
-        payload && typeof payload === "object" && !Array.isArray(payload)
-          ? payload
-          : {};
-      if (!r.ok) {
-        setError(
-          d.code === "VALIDATION_ERROR"
-            ? copy(
-                "Перевірте ID акаунту, ключ і підтвердження правил.",
-                "Check account ID, key and mapping confirmations.",
-              )
-            : d.code === "CONNECTOR_CONFIG_CHANGED"
-              ? copy(
-                  "Підвищіть версію зміненого мапінгу та перевірте підключення знову.",
-                  "Increase the revision of changed mappings and check again.",
-                )
-              : copy(
-                  "Операцію не завершено. Повторіть спробу або перевірте доступи. Код: ",
-                  "Operation failed. Retry or verify permissions. Code: ",
-                ) + String(typeof d.code === "string" ? d.code : r.status),
-        );
-        return;
-      }
-      if (!isPublicConnection(d)) {
-        setError(
-          copy(
-            "Відповідь сервера некоректна. Повторіть спробу.",
-            "The server response is invalid. Retry the operation.",
-          ),
-        );
-        return;
-      }
-      setConnection(d);
-      window.dispatchEvent(new Event("connector-connection-changed"));
-      setStatus(
-        action === "save"
-          ? copy(
-              "Збережено. Перевірте доступи, потім явно виберіть KeyCRM як джерело звітів.",
-              "Saved. Check read scopes, then explicitly select KeyCRM as the reporting source.",
-            )
-          : copy(
-              "Перевірки читання завершені. Перегляньте кожен ресурс нижче.",
-              "Read checks completed. Review each resource below.",
-            ),
-      );
-      if (action === "save") {
-        const key = form.current?.elements.namedItem("apiKey");
-        if (key instanceof HTMLInputElement) key.value = "";
-        setDirty(false);
-      } else {
-        if (!statuses.length)
-          setStatuses(
-            (d.lastCheck?.statuses.entries ?? [])
-              .slice(0, 100)
-              .map((s: { id: string }) => ({ id: s.id, kind: "" })),
-          );
-        if (!channels.length)
-          setChannels((d.lastCheck?.channels.entries ?? []).slice(0, 100));
-      }
-    } catch {
-      setError(
-        copy(
-          "Не вдалося підключитися. Повторіть спробу.",
-          "Could not connect. Retry the operation.",
-        ),
-      );
-    } finally {
-      setBusy(false);
+    const result = await mutateConnection(action, body);
+    if (!result) return;
+    if (action === "save") {
+      const key = form.current?.elements.namedItem("apiKey");
+      if (key instanceof HTMLInputElement) key.value = "";
+    } else {
+      if (!statuses.length)
+        setStatuses((result.lastCheck?.statuses.entries ?? []).slice(0, 100).map(s => ({ id: s.id, kind: "" })));
+      if (!channels.length)
+        setChannels((result.lastCheck?.channels.entries ?? []).slice(0, 100));
     }
   }
   function submit(e: FormEvent) {
@@ -193,18 +111,18 @@ export default function KeyCrmConnectionCard({
       aria-labelledby="keycrm-heading"
     >
       <div>
-        <h2 id="keycrm-heading" className="font-semibold text-(--text)">
+        <Heading as="h2" variant="compact" id="keycrm-heading" className="text-base">
           KeyCRM
-        </h2>
-        <p className="mt-1 max-w-3xl text-sm text-(--muted)">
+        </Heading>
+        <Text variant="body" className="mt-1 max-w-3xl leading-normal text-(--muted)">
           {copy(
             "Лише читання з фіксованого API KeyCRM. Ключ зберігається зашифрованим і не повертається у відповідях.",
             "Read-only requests to the fixed KeyCRM API. The key is encrypted and never returned in responses.",
           )}
-        </p>
+        </Text>
       </div>
-      <div className="space-y-4 rounded-xl border border-(--border) bg-(--surface) p-4 sm:p-5">
-        <p className="text-sm text-(--muted)">
+      <div className={panel + " space-y-4 p-4 sm:p-5"}>
+        <Text variant="body" className="leading-normal text-(--muted)">
           {connection.configured
             ? copy("Підключено: ", "Configured: ") + connection.accountHost
             : copy("Не налаштовано", "Not configured")}
@@ -213,13 +131,13 @@ export default function KeyCrmConnectionCard({
             "20 запитів/хв на ключ. Приходи й повернення не підтверджені; автоматична синхронізація вимкнена.",
             "20 requests/minute/key. Supplier receipts and refunds remain unverified; automatic sync is disabled.",
           )}
-        </p>
-        <p className="text-xs text-(--muted)">
+        </Text>
+        <Note className="leading-normal">
           {copy(
             "Успішне читання не доводить, що ключ не має прав запису. Перевірте права виданого ключа в KeyCRM. Власність брендів, комісії й умови постачальників задаються окремо в Settings.",
             "Successful reads do not prove the key has no write permissions. Verify issued-key permissions in KeyCRM. Configure brand ownership, commissions and supplier terms separately in Settings.",
           )}
-        </p>
+        </Note>
         {canManage && (
           <form
             ref={form}
@@ -290,61 +208,22 @@ export default function KeyCrmConnectionCard({
                   />
                 </Field>
               </div>
-              <p className="text-xs text-(--muted)">
+              <Note className="leading-normal">
                 {copy(
                   "Використовуйте стабільний ID і часовий пояс для цього акаунту. Для зміни мапінгу підвищуйте версію; після оновлення повторно введіть ключ. Перше збереження може бути без підтвердженої фінансової моделі.",
                   "Keep account ID and timezone stable. Increase the revision when changing mappings and re-enter the key on updates. The first save can omit verified financial mappings.",
                 )}
-              </p>
+              </Note>
               <StatusMappingFields rows={statuses} lang={lang} onChange={rows=>{mutate();setStatuses(rows);}} />
-              <fieldset className="space-y-3">
-                <legend className="text-sm text-(--text)">
-                  {copy("Канали", "Channels")}
-                </legend>
-                {channels.map((s, i) => (
-                  <div className="grid grid-cols-2 gap-3" key={i}>
-                    <Field label={copy("Код каналу", "Channel code")}>
-                      <input
-                        className={control}
-                        required
-                        value={s.id}
-                        onChange={(e) =>
-                          setChannels((rows) =>
-                            rows.map((x, j) =>
-                              i === j ? { ...x, id: e.target.value } : x,
-                            ),
-                          )
-                        }
-                      />
-                    </Field>
-                    <Field label={copy("Назва", "Name")}>
-                      <input
-                        className={control}
-                        required
-                        maxLength={200}
-                        value={s.name}
-                        onChange={(e) =>
-                          setChannels((rows) =>
-                            rows.map((x, j) =>
-                              i === j ? { ...x, name: e.target.value } : x,
-                            ),
-                          )
-                        }
-                      />
-                    </Field>
-                  </div>
-                ))}
-                <button
-                  className={button}
-                  type="button"
-                  onClick={() => {
-                    mutate();
-                    setChannels((s) => [...s, { id: "", name: "" }]);
-                  }}
-                >
-                  {copy("Додати канал", "Add channel")}
-                </button>
-              </fieldset>
+              <ChannelMappingFields
+                rows={channels.map(({ id, name }) => ({ code: id, name }))}
+                lang={lang}
+                buttonClassName="text-(--text) hover:bg-(--input-hover)"
+                onChange={rows => {
+                  mutate();
+                  setChannels(rows.map(({ code, name }) => ({ id: code, name })));
+                }}
+              />
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label={copy("Підтверджена валюта", "Verified currency")}>
                   <input
@@ -438,12 +317,12 @@ export default function KeyCrmConnectionCard({
                     "Verified accessible history interval (optional)",
                   )}
                 </summary>
-                <p>
+                <Text variant="body" className="leading-normal text-(--muted)">
                   {copy(
                     "Порожня відповідь не доводить повноту історії. Вкажіть лише звірений період і посилання на погоджені дані.",
                     "An empty response does not prove complete history. Enter only a reconciled interval and its approved evidence reference.",
                   )}
-                </p>
+                </Text>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Field label={copy("Від (ISO UTC)", "From (ISO UTC)")}>
                     <input
@@ -483,37 +362,39 @@ export default function KeyCrmConnectionCard({
                 )}
               </label>
               <div className="flex flex-wrap gap-3">
-                <button className={button} disabled={busy}>
+                <Button variant="report" type="submit" className="text-(--text) hover:bg-(--input-hover)" disabled={busy}>
                   {busy
                     ? copy("Обробка…", "Processing…")
                     : copy("Зберегти KeyCRM", "Save KeyCRM")}
-                </button>
-                <button
-                  className={button}
+                </Button>
+                <Button
+                  variant="report"
+                  className="text-(--text) hover:bg-(--input-hover)"
                   type="button"
                   disabled={busy || dirty || !connection.configured}
                   onClick={() => void perform("check")}
                 >
                   {copy("Перевірити доступи", "Check read scopes")}
-                </button>
+                </Button>
               </div>
             </fieldset>
           </form>
         )}
         {error && (
-          <p
+          <Text
+            variant="body"
             ref={alert}
             tabIndex={-1}
             role="alert"
-            className="text-sm text-(--text)"
+            className="leading-normal text-(--text)"
           >
             {error}
-          </p>
+          </Text>
         )}
         {status && (
-          <p role="status" className="text-sm text-(--muted)">
+          <Text variant="body" role="status" className="leading-normal text-(--muted)">
             {status}
-          </p>
+          </Text>
         )}
         <ConnectorDiagnostics check={connection.lastCheck} lang={lang} />
       </div>

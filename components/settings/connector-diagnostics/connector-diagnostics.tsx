@@ -1,3 +1,6 @@
+import { Note } from "@/components/ui/note/note";
+import type { Lang } from "@/lib/translations";
+import { diagnosticsCopy } from "./copy";
 import type { ConnectionCheck } from "@/lib/connectors/contract";
 import { connectorCheckLabels } from "@/lib/connectors/check-copy";
 export default function ConnectorDiagnostics({
@@ -5,25 +8,12 @@ export default function ConnectorDiagnostics({
   lang,
 }: {
   check: ConnectionCheck | null;
-  lang: "uk" | "en";
+  lang: Lang;
 }) {
   if (!check) return null;
-  const uk = lang === "uk",
-    codes = connectorCheckLabels(lang),
-    labels: Record<string, string> = {
-      identity: uk ? "Магазин і доступи" : "Shop and permissions",
-      history: uk ? "Повнота історії" : "History coverage",
-      locations: uk ? "Локації" : "Locations",
-      cost: uk ? "Доступ до вартості" : "Cost permission",
-      orders: uk ? "Замовлення" : "Orders",
-      statuses: uk ? "Статуси" : "Statuses",
-      channels: uk ? "Канали" : "Channels",
-      catalog: uk ? "Каталог" : "Catalog",
-      products: uk ? "Товари" : "Products",
-      offers: uk ? "Варіанти" : "Offers",
-      stock: uk ? "Залишки" : "Stock",
-      receipts: uk ? "Приходи" : "Receipts",
-    };
+  const copy = diagnosticsCopy[lang];
+  const codes = connectorCheckLabels(lang);
+  const labels: Record<string, string> = copy.resources;
   return (
     <div
       aria-live="polite"
@@ -32,9 +22,7 @@ export default function ConnectorDiagnostics({
       {check.metadata ? (
         <details>
           <summary className="cursor-pointer focus-visible:outline-solid">
-            {uk
-              ? "Магазин, версія API та дозволи"
-              : "Shop, API version and permissions"}
+            {copy.metadata}
           </summary>
           <p>
             {check.metadata.shopId} · {check.metadata.apiVersion} ·{" "}
@@ -56,15 +44,9 @@ export default function ConnectorDiagnostics({
             {labels[k]}
           </summary>
           {!check[k].complete ? (
-            <p className="mt-1 text-xs">
-              {check[k].reason === "UNSUPPORTED"
-                ? uk
-                  ? "Не підтримується джерелом."
-                  : "Unavailable from this source."
-                : uk
-                  ? "Довідник неповний. Повне читання виконується під час синхронізації."
-                  : "The dictionary is incomplete. Full reads run during synchronization."}
-            </p>
+            <Note className="mt-1 leading-normal text-inherit">
+              {check[k].reason === "UNSUPPORTED" ? copy.unsupported : copy.incomplete}
+            </Note>
           ) : null}
           <ul>
             {check[k].entries.slice(0, 100).map((d) => (

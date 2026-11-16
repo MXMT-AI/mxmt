@@ -1,22 +1,27 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { useRouter } from "@/i18n/navigation";
+import { refreshAccessToken } from "@/lib/client/refresh-access-token";
 
 
 function getExpCookie(): number | null {
   if (typeof document === "undefined") return null;
   const match = document.cookie.match(/(?:^|;\s*)access_token_exp=([^;]+)/);
-  return match ? parseInt(match[1], 10) : null;
+  if (!match || !/^\d+$/.test(match[1])) return null;
+  const value = Number(match[1]);
+  return Number.isSafeInteger(value) && value > 0 ? value : null;
 }
 
 export default function TokenRefreshProvider() {
   const router = useRouter();
-  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-
   useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let stopped = false;
+    let refreshing = false;
     function schedule() {
-      clearTimeout(timerRef.current);
+      if (stopped || refreshing) return;
+      clearTimeout(timer);
 
       const exp = getExpCookie();
       if (!exp) return;
@@ -24,17 +29,21 @@ export default function TokenRefreshProvider() {
       const msUntilRefresh = exp * 1000 - Date.now() - 2 * 60 * 1000;
 
       if (msUntilRefresh <= 0) {
-        doRefresh();
+        void doRefresh();
         return;
       }
 
-      timerRef.current = setTimeout(doRefresh, msUntilRefresh);
+      timer = setTimeout(doRefresh, msUntilRefresh);
     }
 
     async function doRefresh() {
+      if (stopped || refreshing) return;
+      refreshing = true;
       try {
-        const res = await fetch("/api/auth/refresh", { method: "POST" });
-        if (res.ok) {
+        const refreshed = await refreshAccessToken();
+        if (stopped) return;
+        if (refreshed) {
+          refreshing = false;
           schedule();
           router.refresh();
         } else {
@@ -42,7 +51,9 @@ export default function TokenRefreshProvider() {
           router.push(`/login?${new URLSearchParams({ next: pathname + search + hash })}`);
         }
       } catch {
-        timerRef.current = setTimeout(doRefresh, 30_000);
+        if (!stopped) timer = setTimeout(doRefresh, 30_000);
+      } finally {
+        refreshing = false;
       }
     }
 
@@ -54,7 +65,8 @@ export default function TokenRefreshProvider() {
     document.addEventListener("visibilitychange", onVisibilityChange);
 
     return () => {
-      clearTimeout(timerRef.current);
+      stopped = true;
+      clearTimeout(timer);
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, [router]);

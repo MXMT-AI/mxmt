@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { getAgentProvider } from "@/components/settings/agent-providers-card/agent-providers-card";
+import { getAgentProvider } from "@/lib/client/agent-providers";
 import { AGENT_ROUTES, COMING_SOON } from "@/components/agents/agents.config";
 import type { AgentRunInfo } from "@/components/agents/agents.types";
 import { apiFetch } from "@/lib/fetch";

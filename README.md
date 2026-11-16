@@ -2,7 +2,7 @@
 
 Мультитенантний застосунок для мерчандайзингу: продажі, маржа, запаси, переоцінка та дозамовлення. Дані з Google Sheets і CRM/commerce-конекторів проходять нормалізацію та спільні серверні розрахунки; AI пояснює збережені факти, а не обчислює фінансові показники.
 
-![MXMT Analytics](./mxmt-github-og-preview.png)
+![MXMT Analytics](./public/mxmt-github-og-preview.png)
 
 - [Інструкція користувача](user-instructions.md) — підключення, п’ять екранів і щоденні дії.
 - [Операційний runbook](operations-runbook.md) — деплой, міграції, worker, інциденти та відновлення.
@@ -272,7 +272,7 @@ npm audit
 
 | Тема                               | Документ                                                                                                                                                                                                                                                                                      |
 | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Модель, provenance та isolation    | [Data model](prisma/verification/data-model.md)                                                                                                                                                                                                                                                   |
+| Модель, provenance та isolation    | [Data model](prisma/verification/data-model.md)                                                                                                                                                                                                                                               |
 | Підключення та додаткові providers | [Onboarding](prisma/verification/29-connector-onboarding.md), [CSV](prisma/verification/82-csv-connector.md), [KeyCRM](prisma/verification/83-keycrm-connector.md), [Horoshop](prisma/verification/84-horoshop-connector.md), [Shopify](prisma/verification/85-shopify-connector.md)          |
 | Нормалізація й налаштування        | [Products](prisma/verification/33-product-normalization.md), [Settings](prisma/verification/34-merchandising-settings.md)                                                                                                                                                                     |
 | Серверні метрики                   | [Sales](prisma/verification/35-sales-financial-metrics.md), [Daily SKU](prisma/verification/36-daily-sku-metrics.md), [Classification](prisma/verification/37-sku-classification.md)                                                                                                          |

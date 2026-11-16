@@ -1,3 +1,8 @@
+import { Badge } from "@/components/ui/badge/badge";
+import { Heading } from "@/components/ui/heading/heading";
+import { Text } from "@/components/ui/text/text";
+import { SectionHeader } from "@/components/ui/section-header/section-header";
+import { panel } from "@/components/ui/panel/panel-styles";
 import { getLocale } from "next-intl/server";
 import { readSelectedSource } from "@/lib/connectors/source";
 import ShopifyConnectionCard from "@/components/settings/shopify-connection-card/shopify-connection-card";
@@ -23,6 +28,7 @@ import { getProviderConnection, getSalesDriveConnection } from "@/lib/connectors
 export default async function SettingsPage() {
   const user = await requireCurrentUser();
   const tenantId = user.tenantId;
+  const canManage = user.role === "ADMIN" || user.role === "SUPER_ADMIN";
   const lang = await getLocale();
   const t = getT(lang);
 
@@ -40,24 +46,14 @@ export default async function SettingsPage() {
   const generalContent = (
     <>
       <section className="mb-10">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-(--text) font-semibold">
-              {lang === "uk" ? "Бриф онбордингу" : "Onboarding brief"}
-            </h2>
-            <p className="text-(--muted) text-sm">
-              {lang === "uk" ? "Визначає логіку Агента Аналітика" : "Defines Analyst Agent logic"}
-            </p>
-          </div>
-          {onboarding && (
-            <span className="text-[10px] font-mono bg-accent-cyan/10 text-accent-cyan border border-accent-cyan/20 px-2.5 py-1 rounded-lg">
-              ✓ {lang === "uk" ? "Заповнено" : "Completed"}
-            </span>
-          )}
-        </div>
+        <SectionHeader
+          title={lang === "uk" ? "Бриф онбордингу" : "Onboarding brief"}
+          description={lang === "uk" ? "Визначає логіку Агента Аналітика" : "Defines Analyst Agent logic"}
+          action={onboarding && <Badge tone="positive" className="rounded-lg px-2.5 py-1">✓ {lang === "uk" ? "Заповнено" : "Completed"}</Badge>}
+        />
 
         {onboarding && (
-          <div className="bg-(--surface) border border-(--border) rounded-xl p-5 mb-4">
+          <div className={panel + " p-5 mb-4"}>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-1">
@@ -86,42 +82,34 @@ export default async function SettingsPage() {
         />
       </section>
 
-      <ConnectorSourceCard lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
-      <SheetsConnectionCard initial={sheetsConnection} lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
-      <SheetsMappingCard lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
-      <SalesDriveConnectionCard initial={salesDrive} lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
+      <ConnectorSourceCard lang={lang} canManage={canManage} />
+      <SheetsConnectionCard initial={sheetsConnection} lang={lang} canManage={canManage} />
+      <SheetsMappingCard lang={lang} canManage={canManage} />
+      <SalesDriveConnectionCard initial={salesDrive} lang={lang} canManage={canManage} />
 
-      <KeyCrmConnectionCard initial={keyCrm} lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
+      <KeyCrmConnectionCard initial={keyCrm} lang={lang} canManage={canManage} />
 
-      <HoroshopConnectionCard initial={horoshop} lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
+      <HoroshopConnectionCard initial={horoshop} lang={lang} canManage={canManage} />
 
-      <ShopifyConnectionCard initial={shopify} lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
+      <ShopifyConnectionCard initial={shopify} lang={lang} canManage={canManage} />
 
-      <CsvImportCard lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
+      <CsvImportCard lang={lang} canManage={canManage} />
 
-      <DataHealthSection manualUpload={selectedSource?.provider === "csv"} lang={lang} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
+      <DataHealthSection manualUpload={selectedSource?.provider === "csv"} lang={lang} canManage={canManage} />
 
       <section className="mb-10">
-        <div className="mb-4">
-          <h2 className="text-(--text) font-semibold">
-            {lang === "uk" ? "Google Drive синхронізація" : "Google Drive sync"}
-          </h2>
-          <p className="text-(--muted) text-sm">
-            {lang === "uk" ? "Автоматичний імпорт даних з Excel файлу" : "Auto-import data from Excel file"}
-          </p>
-        </div>
+        <SectionHeader
+          title={lang === "uk" ? "Google Drive синхронізація" : "Google Drive sync"}
+          description={lang === "uk" ? "Автоматичний імпорт даних з Excel файлу" : "Auto-import data from Excel file"}
+        />
         <DriveSyncCard lastSync={driveSync?.driveFileId === sheetsConnection?.fileId ? driveSync : null} lang={lang} driveMode={getDriveMode(sheetsConnection?.fileId ?? null)} />
       </section>
 
       <section className="mb-10">
-        <div className="mb-4">
-          <h2 className="text-(--text) font-semibold">
-            {lang === "uk" ? "AI Модель (глобально)" : "AI Model (global)"}
-          </h2>
-          <p className="text-(--muted) text-sm">
-            {lang === "uk" ? "Дефолтний провайдер якщо не вказано для агента" : "Default provider if not set per agent"}
-          </p>
-        </div>
+        <SectionHeader
+          title={lang === "uk" ? "AI Модель (глобально)" : "AI Model (global)"}
+          description={lang === "uk" ? "Дефолтний провайдер якщо не вказано для агента" : "Default provider if not set per agent"}
+        />
         <AIProviderCard lang={lang} />
       </section>
     </>
@@ -132,14 +120,14 @@ export default async function SettingsPage() {
       <div className="text-[10px] font-mono uppercase tracking-widest text-(--subtle) mb-2">
         {t.nav_settings}
       </div>
-      <h1 className="text-2xl font-bold text-(--text) mb-1">
+      <Heading as="h1" variant="page" className="mb-1 text-2xl tracking-normal">
         {lang === "uk" ? "Налаштування" : "Settings"}
-      </h1>
-      <p className="text-(--muted) text-sm mb-8">
+      </Heading>
+      <Text variant="body" className="mb-8 leading-normal text-(--muted)">
         {lang === "uk" ? "Онбординг, джерела даних, інтеграції" : "Onboarding, data sources, integrations"}
-      </p>
+      </Text>
 
-      <SettingsTabs lang={lang} generalContent={generalContent} canManage={user.role === "ADMIN" || user.role === "SUPER_ADMIN"} />
+      <SettingsTabs lang={lang} generalContent={generalContent} canManage={canManage} />
     </div>
   );
 }

@@ -2,14 +2,17 @@
 import { useRef, useState, type FormEvent } from "react";
 import { Field } from "@/components/ui/field/field";
 import { control } from "@/components/ui/control-styles/control-styles";
+import { Button } from "@/components/ui/button/button";
+import { Heading } from "@/components/ui/heading/heading";
+import { Text } from "@/components/ui/text/text";
+import { Note } from "@/components/ui/note/note";
+import { panel } from "@/components/ui/panel/panel-styles";
 import { useConnectorConnection } from "../use-connector-connection";
 import type { PublicConnection } from "@/lib/connectors/contract";
 import StatusMappingFields, {
   type StatusMappingRow,
 } from "../status-mapping-fields/status-mapping-fields";
 import ConnectorDiagnostics from "../connector-diagnostics/connector-diagnostics";
-const button =
-  "min-h-11 rounded-lg border border-(--border) px-4 py-2 text-sm text-(--text) hover:bg-(--input-hover) focus-visible:outline-solid focus-visible:outline-2 disabled:opacity-50";
 export default function HoroshopConnectionCard({
   initial,
   lang,
@@ -33,6 +36,11 @@ export default function HoroshopConnectionCard({
   } = useConnectorConnection("horoshop", initial, lang);
   const [statuses, setStatuses] = useState<StatusMappingRow[]>([]);
   const form = useRef<HTMLFormElement>(null);
+  function invalidateApproval() {
+    setDirty(true);
+    const approved = form.current?.elements.namedItem("mappingApproved");
+    if (approved instanceof HTMLInputElement) approved.checked = false;
+  }
   async function perform(action: "save" | "check", body?: unknown) {
     const result = await mutateConnection(action, body);
     if (!result) return;
@@ -94,34 +102,34 @@ export default function HoroshopConnectionCard({
       className="mb-10 scroll-mt-6 space-y-4"
     >
       <div>
-        <h2 id="horoshop-heading" className="font-semibold text-(--text)">
+        <Heading as="h2" variant="compact" id="horoshop-heading" className="text-base">
           Horoshop
-        </h2>
-        <p className="mt-1 max-w-3xl text-sm text-(--muted)">
+        </Heading>
+        <Text variant="body" className="mt-1 max-w-3xl leading-normal text-(--muted)">
           {copy(
             "Лише читання. Кожне оновлення повторно читає всю доступну історію замовлень.",
             "Read-only. Each refresh rescans the entire accessible order history.",
           )}
-        </p>
+        </Text>
       </div>
-      <div className="space-y-4 rounded-xl border border-(--border) bg-(--surface) p-4 sm:p-5">
-        <p className="wrap-break-word text-sm text-(--muted)">
+      <div className={panel + " space-y-4 p-4 sm:p-5"}>
+        <Text variant="body" className="wrap-break-word leading-normal text-(--muted)">
           {connection.configured
             ? copy("Налаштовано: ", "Configured: ") + connection.accountHost
             : copy("Не налаштовано", "Not configured")}
-        </p>
-        <p className="text-sm text-(--muted)">
+        </Text>
+        <Text variant="body" className="leading-normal text-(--muted)">
           {copy(
             "Адміністратор має дозволити точний HTTPS-домен магазину на сервері. Логін і пароль зберігаються зашифрованими та не повертаються у відповідях.",
             "An operator must allow the exact HTTPS shop origin on the server. Login and password are encrypted and never returned in responses.",
           )}
-        </p>
-        <p className="text-xs text-(--muted)">
+        </Text>
+        <Note className="leading-normal">
           {copy(
             "Ознака оплати не підтверджує дату повної оплати. Приходи, повернення, собівартість та історичні залишки недоступні; автоматична синхронізація вимкнена. Успішне читання не доводить відсутність прав запису — видайте окремий обмежений доступ.",
             "A paid flag does not establish a full-payment date. Receipts, refunds, costs and historical stock are unavailable; automatic sync is disabled. Successful reads do not prove the absence of write permissions: issue separate restricted credentials.",
           )}
-        </p>
+        </Note>
         {canManage ? (
           <form
             ref={form}
@@ -133,11 +141,7 @@ export default function HoroshopConnectionCard({
                 (e.target as unknown as HTMLInputElement).name !==
                 "mappingApproved"
               ) {
-                setDirty(true);
-                const approved =
-                  form.current?.elements.namedItem("mappingApproved");
-                if (approved instanceof HTMLInputElement)
-                  approved.checked = false;
+                invalidateApproval();
               }
             }}
           >
@@ -272,11 +276,7 @@ export default function HoroshopConnectionCard({
                 lang={lang}
                 onChange={(rows) => {
                   setStatuses(rows);
-                  setDirty(true);
-                  const approved =
-                    form.current?.elements.namedItem("mappingApproved");
-                  if (approved instanceof HTMLInputElement)
-                    approved.checked = false;
+                  invalidateApproval();
                 }}
               />
               <p className="text-xs text-(--muted)">
@@ -339,37 +339,39 @@ export default function HoroshopConnectionCard({
                 )}
               </label>
               <div className="flex flex-wrap gap-3">
-                <button className={button} disabled={busy}>
+                <Button variant="report" type="submit" className="text-(--text) hover:bg-(--input-hover)" disabled={busy}>
                   {busy
                     ? copy("Обробка…", "Processing…")
                     : copy("Зберегти Horoshop", "Save Horoshop")}
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="report"
                   type="button"
-                  className={button}
+                  className="text-(--text) hover:bg-(--input-hover)"
                   disabled={busy || dirty || !connection.configured}
                   onClick={() => void perform("check")}
                 >
                   {copy("Перевірити доступи", "Check read scopes")}
-                </button>
+                </Button>
               </div>
             </fieldset>
           </form>
         ) : null}
         {error ? (
-          <p
+          <Text
+            variant="body"
             ref={alert}
             tabIndex={-1}
             role="alert"
-            className="text-sm text-(--text)"
+            className="leading-normal text-(--text)"
           >
             {error}
-          </p>
+          </Text>
         ) : null}
         {status ? (
-          <p role="status" className="text-sm text-(--muted)">
+          <Text variant="body" role="status" className="leading-normal text-(--muted)">
             {status}
-          </p>
+          </Text>
         ) : null}
         <ConnectorDiagnostics check={connection.lastCheck} lang={lang} />
       </div>

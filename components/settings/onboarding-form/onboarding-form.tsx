@@ -1,96 +1,18 @@
 "use client";
 
+import { Button } from "@/components/ui/button/button";
+import { Text } from "@/components/ui/text/text";
+import { panel } from "@/components/ui/panel/panel-styles";
+import { Chip } from "@/components/ui/chip/chip";
+import { ChipGroup } from "@/components/ui/chip-group/chip-group";
+import { OnboardingQuestion as Question } from "../onboarding-question/onboarding-question";
 import { useState } from "react";
-import { apiFetch } from "@/lib/fetch";
+import type { Model, Answers } from "./onboarding-types";
+import { useOnboardingSave } from "./use-onboarding-save";
 import { useRouter } from "@/i18n/navigation";
 
 import { CheckCircle2, ChevronRight, ChevronLeft } from "lucide-react";
 import { useLang } from "@/components/language-provider/language-provider";
-
-
-type Model = "SEASONAL" | "CARRYOVER" | "HYBRID" | "";
-
-interface Answers {
-  storeType: string;
-  categories: string[];
-  channels: string[];
-  city: string;
-  seasonsPerYear: string;
-  ssArrival: string;
-  saleStart: string;
-  hitReorder: string;
-  batchesPerSeason: string;
-  replenishmentModel: string;
-  leadTimeType: string;
-  eolRisk: string;
-  minMargin: string;
-  currencyRisk: string;
-  logisticsRestrictions: string;
-}
-
-
-function Chip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
-  return (
-    <button type="button" onClick={onClick}
-      className={`px-3 py-1.5 rounded-lg text-sm border transition-colors ${
-        active
-          ? "bg-accent-cyan/10 border-accent-cyan/40 text-accent-cyan"
-          : "bg-white/3 border-(--border) text-(--muted) hover:border-white/15 hover:text-white"
-      }`}>
-      {label}
-    </button>
-  );
-}
-
-function MultiChip({ options, value, onChange }: {
-  options: { v: string; l: string }[];
-  value: string[];
-  onChange: (v: string[]) => void;
-}) {
-  const toggle = (v: string) =>
-    onChange(value.includes(v) ? value.filter((x) => x !== v) : [...value, v]);
-  return (
-    <div className="flex flex-wrap gap-2 mt-2">
-      {options.map((o) => (
-        <Chip key={o.v} label={o.l} active={value.includes(o.v)} onClick={() => toggle(o.v)} />
-      ))}
-    </div>
-  );
-}
-
-function SingleChip({ options, value, onChange }: {
-  options: { v: string; l: string }[];
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <div className="flex flex-wrap gap-2 mt-2">
-      {options.map((o) => (
-        <Chip key={o.v} label={o.l} active={value === o.v} onClick={() => onChange(o.v)} />
-      ))}
-    </div>
-  );
-}
-
-function Question({ num, label, hint, children }: {
-  num: string;
-  label: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="py-4 border-b border-white/5 last:border-0">
-      <div className="flex gap-3">
-        <span className="text-[10px] font-mono text-(--subtle) pt-1 w-6 shrink-0">{num}</span>
-        <div className="flex-1">
-          <p className="text-sm text-white font-medium">{label}</p>
-          {hint && <p className="text-[11px] text-(--subtle) font-mono mt-0.5">{hint}</p>}
-          {children}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 
 export default function OnboardingForm({
@@ -122,8 +44,6 @@ export default function OnboardingForm({
     logisticsRestrictions: "",
     ...(existing?.answers as Partial<Answers> ?? {}),
   });
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
 
   const set = (k: keyof Answers) => (v: string | string[]) =>
     setAnswers((prev) => ({ ...prev, [k]: v }));
@@ -136,23 +56,7 @@ export default function OnboardingForm({
     : true;
   const canSave = answers.minMargin !== "" && answers.currencyRisk !== "";
 
-  async function save() {
-    setSaving(true);
-    setError("");
-    try {
-      const res = await apiFetch("/api/onboarding", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ businessModel: model, answers }),
-      });
-      if (!res.ok) throw new Error(await res.text());
-      router.refresh();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Error");
-    } finally {
-      setSaving(false);
-    }
-  }
+  const { saving, error, save } = useOnboardingSave({ model, answers, enabled: canSave, onSaved: () => router.refresh() });
 
   const steps = [
     uk ? "Модель бізнесу" : "Business model",
@@ -166,20 +70,21 @@ export default function OnboardingForm({
         {steps.map((s, i) => (
           <div key={i} className="flex items-center gap-2">
             <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold transition-colors ${
-              step > i + 1 ? "bg-accent-fill text-[#0d1117]"
+              step > i + 1 ? "bg-accent-fill text-accent-fill-ink"
               : step === i + 1 ? "bg-accent-cyan/20 border border-accent-cyan/40 text-accent-cyan"
-              : "bg-white/5 border border-(--border) text-(--subtle)"
+              : "bg-(--input-bg) border border-(--border) text-(--subtle)"
             }`}>
               {step > i + 1 ? <CheckCircle2 size={12} /> : i + 1}
             </div>
-            <span className={`text-xs font-medium ${step === i + 1 ? "text-white" : "text-(--subtle)"}`}>{s}</span>
+            <span className={`text-xs font-medium ${step === i + 1 ? "text-(--text)" : "text-(--subtle)"}`}>{s}</span>
             {i < steps.length - 1 && <ChevronRight size={14} className="text-(--subtle)" />}
           </div>
         ))}
       </div>
 
+      <div className={panel + " p-6"}>
       {step === 1 && (
-        <div className="bg-(--surface) border border-(--border) rounded-xl p-6">
+        <>
           <Question num="01" label={uk ? "Яка модель асортименту у вашому бізнесі?" : "What is your assortment model?"} hint={uk ? "⚡ Це питання визначає всю логіку роботи агента" : "⚡ This defines the entire agent logic"}>
             <div className="flex flex-wrap gap-2 mt-2">
               {([
@@ -193,7 +98,7 @@ export default function OnboardingForm({
           </Question>
 
           <Question num="02" label={uk ? "Тип магазину" : "Store type"}>
-            <SingleChip options={[
+            <ChipGroup options={[
               { v: "mono",  l: uk ? "Монобренд" : "Monobrand" },
               { v: "multi", l: uk ? "Мультибренд" : "Multibrand" },
               { v: "own",   l: uk ? "Власне виробництво" : "Own production" },
@@ -202,7 +107,7 @@ export default function OnboardingForm({
           </Question>
 
           <Question num="03" label={uk ? "Категорії товарів" : "Product categories"}>
-            <MultiChip options={[
+            <ChipGroup multiple options={[
               { v: "clothes",    l: uk ? "Одяг" : "Clothing" },
               { v: "shoes",      l: uk ? "Взуття" : "Footwear" },
               { v: "accessories",l: uk ? "Аксесуари" : "Accessories" },
@@ -213,7 +118,7 @@ export default function OnboardingForm({
           </Question>
 
           <Question num="04" label={uk ? "Канали продажів" : "Sales channels"}>
-            <MultiChip options={[
+            <ChipGroup multiple options={[
               { v: "offline",    l: uk ? "Офлайн-магазин" : "Physical store" },
               { v: "website",    l: uk ? "Власний сайт" : "Own website" },
               { v: "instagram",  l: uk ? "Instagram / TikTok" : "Instagram / TikTok" },
@@ -222,7 +127,7 @@ export default function OnboardingForm({
           </Question>
 
           <Question num="05" label={uk ? "Місто / регіон" : "City / region"}>
-            <SingleChip options={[
+            <ChipGroup options={[
               { v: "kyiv",  l: uk ? "Київ" : "Kyiv" },
               { v: "lviv",  l: uk ? "Львів" : "Lviv" },
               { v: "kharkiv",l: uk ? "Харків" : "Kharkiv" },
@@ -232,38 +137,32 @@ export default function OnboardingForm({
             ]} value={answers.city} onChange={set("city")} />
           </Question>
 
-          <div className="mt-6 flex justify-end">
-            <button onClick={() => setStep(2)} disabled={!canProceed1}
-              className="flex items-center gap-2 px-5 py-2.5 bg-accent-fill hover:bg-[#00c9ab] disabled:opacity-40 text-[#0d1117] font-semibold rounded-lg text-sm transition-colors">
-              {uk ? "Далі" : "Next"} <ChevronRight size={16} />
-            </button>
-          </div>
-        </div>
+        </>
       )}
 
       {step === 2 && (
-        <div className="bg-(--surface) border border-(--border) rounded-xl p-6">
+        <>
           {(model === "SEASONAL" || model === "HYBRID") && (
             <>
               <div className="text-[9px] font-mono uppercase tracking-widest text-accent-cyan mb-4">
                 {uk ? "🌿 Сезонна модель" : "🌿 Seasonal model"}
               </div>
               <Question num="06" label={uk ? "Скільки сезонів на рік?" : "How many seasons per year?"}>
-                <SingleChip options={[
+                <ChipGroup options={[
                   { v: "2",     l: uk ? "2 сезони (SS + AW)" : "2 seasons (SS + AW)" },
                   { v: "4",     l: uk ? "4 сезони" : "4 seasons" },
                   { v: "drops", l: uk ? "Безперервні дропи" : "Continuous drops" },
                 ]} value={answers.seasonsPerYear} onChange={set("seasonsPerYear")} />
               </Question>
               <Question num="07" label={uk ? "Коли відкривається сейл?" : "When does sale start?"}>
-                <SingleChip options={[
+                <ChipGroup options={[
                   { v: "end-season",   l: uk ? "Кінець сезону" : "End of season" },
                   { v: "black-friday", l: uk ? "Чорна п'ятниця" : "Black Friday" },
                   { v: "rolling",      l: uk ? "Постійний rolling sale" : "Rolling sale" },
                 ]} value={answers.saleStart} onChange={set("saleStart")} />
               </Question>
               <Question num="08" label={uk ? "Можливе дозамовлення хітів?" : "Can you reorder hits?"} hint={uk ? "Якщо «Так» — агент відстежує хіти для дозамовлення" : "If yes — agent monitors hits for reorder"}>
-                <SingleChip options={[
+                <ChipGroup options={[
                   { v: "yes",     l: uk ? "Так" : "Yes" },
                   { v: "no",      l: uk ? "Ні" : "No" },
                   { v: "partial", l: uk ? "Частково" : "Partially" },
@@ -279,14 +178,14 @@ export default function OnboardingForm({
                 {uk ? "♻️ Керіовер модель" : "♻️ Carryover model"}
               </div>
               <Question num="09" label={uk ? "Як відбувається поповнення запасів?" : "How is replenishment done?"}>
-                <SingleChip options={[
+                <ChipGroup options={[
                   { v: "rop",      l: uk ? "По мінімальному залишку (ROP)" : "By reorder point (ROP)" },
                   { v: "fixed",    l: uk ? "Фіксований графік" : "Fixed schedule" },
                   { v: "preorder", l: uk ? "Pre-order модель" : "Pre-order model" },
                 ]} value={answers.replenishmentModel} onChange={set("replenishmentModel")} />
               </Question>
               <Question num="10" label={uk ? "Lead time від замовлення до отримання" : "Lead time from order to receipt"} hint={uk ? "Критично для розрахунку точки дозамовлення (ROP)" : "Critical for ROP calculation"}>
-                <SingleChip options={[
+                <ChipGroup options={[
                   { v: "local",        l: uk ? "До 2 тижнів (UA)" : "Up to 2 weeks (local)" },
                   { v: "turkey",       l: uk ? "2–4 тижні (Туреччина / Польща)" : "2–4 weeks (Turkey/Poland)" },
                   { v: "europe",       l: uk ? "4–6 тижнів (Італія / Європа)" : "4–6 weeks (Italy/Europe)" },
@@ -296,26 +195,17 @@ export default function OnboardingForm({
             </>
           )}
 
-          <div className="mt-6 flex justify-between">
-            <button onClick={() => setStep(1)} className="flex items-center gap-2 px-4 py-2 text-(--muted) hover:text-white text-sm transition-colors">
-              <ChevronLeft size={16} /> {uk ? "Назад" : "Back"}
-            </button>
-            <button onClick={() => setStep(3)} disabled={!canProceed2}
-              className="flex items-center gap-2 px-5 py-2.5 bg-accent-fill hover:bg-[#00c9ab] disabled:opacity-40 text-[#0d1117] font-semibold rounded-lg text-sm transition-colors">
-              {uk ? "Далі" : "Next"} <ChevronRight size={16} />
-            </button>
-          </div>
-        </div>
+        </>
       )}
 
       {step === 3 && (
-        <div className="bg-(--surface) border border-(--border) rounded-xl p-6">
+        <>
           <div className="text-[9px] font-mono uppercase tracking-widest text-accent-yellow mb-4">
             {uk ? "💰 Фінансові параметри" : "💰 Financial parameters"}
           </div>
 
           <Question num="11" label={uk ? "Мінімальна прийнятна маржа на товар" : "Minimum acceptable product margin"} hint={uk ? "Агент не рекомендує уцінку нижче цього порогу без підтвердження" : "Agent won't recommend discounts below this threshold"}>
-            <SingleChip options={[
+            <ChipGroup options={[
               { v: "30", l: "≥ 30%" },
               { v: "40", l: "≥ 40%" },
               { v: "50", l: "≥ 50%" },
@@ -323,33 +213,42 @@ export default function OnboardingForm({
           </Question>
 
           <Question num="12" label={uk ? "Закупки у валюті (UAH/EUR, UAH/USD)?" : "Purchasing in foreign currency?"}>
-            <SingleChip options={[
+            <ChipGroup options={[
               { v: "yes", l: uk ? "Так — є валютні ризики" : "Yes — currency risks" },
               { v: "no",  l: uk ? "Ні — постачальник в гривні" : "No — supplier in UAH" },
             ]} value={answers.currencyRisk} onChange={set("currencyRisk")} />
           </Question>
 
           <Question num="13" label={uk ? "Наявні логістичні обмеження (воєнний стан)?" : "Any logistics restrictions (wartime)?"}>
-            <SingleChip options={[
+            <ChipGroup options={[
               { v: "delays", l: uk ? "Є затримки з деяких напрямків" : "Delays from some routes" },
               { v: "stable", l: uk ? "Логістика стабільна" : "Logistics stable" },
               { v: "split",  l: uk ? "Частина складу в іншому місці" : "Split warehouse" },
             ]} value={answers.logisticsRestrictions} onChange={set("logisticsRestrictions")} />
           </Question>
 
-          {error && <p className="text-red-400 text-sm mt-3">{error}</p>}
+          {error && <Text variant="body" role="alert" className="mt-3 leading-normal text-red-400">{error}</Text>}
 
-          <div className="mt-6 flex justify-between">
-            <button onClick={() => setStep(2)} className="flex items-center gap-2 px-4 py-2 text-(--muted) hover:text-white text-sm transition-colors">
-              <ChevronLeft size={16} /> {uk ? "Назад" : "Back"}
-            </button>
-            <button onClick={save} disabled={!canSave || saving}
-              className="flex items-center gap-2 px-5 py-2.5 bg-accent-fill hover:bg-[#00c9ab] disabled:opacity-40 text-[#0d1117] font-semibold rounded-lg text-sm transition-colors">
-              {saving ? (uk ? "Зберігаємо…" : "Saving…") : (uk ? "✓ Зберегти бриф" : "✓ Save brief")}
-            </button>
-          </div>
-        </div>
+        </>
       )}
+      <div className={`mt-6 flex gap-3 ${step === 1 ? "justify-end" : "justify-between"}`}>
+        {step > 1 && (
+          <Button variant="report" className="min-h-0 gap-2 border-0 text-(--muted) hover:bg-transparent hover:text-(--text)" onClick={() => setStep(step === 3 ? 2 : 1)}>
+            <ChevronLeft size={16} aria-hidden="true" /> {uk ? "Назад" : "Back"}
+          </Button>
+        )}
+        <Button
+          variant="accent"
+          className="inline-flex items-center gap-2 px-5 disabled:opacity-40"
+          disabled={step === 1 ? !canProceed1 : step === 2 ? !canProceed2 : !canSave || saving}
+          onClick={() => { if (step === 1) setStep(2); else if (step === 2) setStep(3); else return save(); }}
+        >
+          {step === 3
+            ? saving ? (uk ? "Зберігаємо…" : "Saving…") : (uk ? "✓ Зберегти бриф" : "✓ Save brief")
+            : <>{uk ? "Далі" : "Next"} <ChevronRight size={16} aria-hidden="true" /></>}
+        </Button>
+      </div>
+      </div>
     </div>
   );
 }

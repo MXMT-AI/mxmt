@@ -1,20 +1,50 @@
 "use client";
 import { Field } from "@/components/ui/field/field";
+import { Button } from "@/components/ui/button/button";
 import { control } from "@/components/ui/control-styles/control-styles";
+import type { Lang } from "@/lib/translations";
 export interface StatusMappingRow {
   id: string;
   kind: string;
 }
+export interface StatusMappingConfig {
+  codePattern: string;
+  options: ReadonlyArray<{ value: string; uk: string; en: string }>;
+  newRowKind: string;
+  maxRows?: number;
+}
+
+const defaultConfig: StatusMappingConfig = {
+  codePattern: "[0-9]+",
+  options: [
+    { value: "", uk: "Не підтверджено", en: "Unverified" },
+    { value: "SALE", uk: "Продаж", en: "Sale" },
+    { value: "PREORDER", uk: "Передзамовлення", en: "Preorder" },
+    { value: "REFUSAL", uk: "Відмова", en: "Refusal" },
+  ],
+  newRowKind: "",
+  maxRows: 100,
+};
+
 export default function StatusMappingFields({
   rows,
   onChange,
   lang,
+  config = defaultConfig,
 }: {
+  config?: StatusMappingConfig;
   rows: StatusMappingRow[];
   onChange: (rows: StatusMappingRow[]) => void;
-  lang: "uk" | "en";
+  lang: Lang;
 }) {
   const copy = (uk: string, en: string) => (lang === "uk" ? uk : en);
+  const atLimit = config.maxRows !== undefined && rows.length >= config.maxRows;
+  function change(index: number, field: keyof StatusMappingRow, value: string) {
+    onChange(rows.map((row, i) => i === index ? { ...row, [field]: value } : row));
+  }
+  function add() {
+    if (!atLimit) onChange([...rows, { id: "", kind: config.newRowKind }]);
+  }
   return (
     <fieldset className="space-y-3">
       <legend className="text-sm text-(--text)">
@@ -30,14 +60,8 @@ export default function StatusMappingFields({
               className={control}
               value={s.id}
               required
-              pattern="[0-9]+"
-              onChange={(e) =>
-                onChange(
-                  rows.map((x, j) =>
-                    i === j ? { ...x, id: e.target.value } : x,
-                  ),
-                )
-              }
+              pattern={config.codePattern}
+              onChange={event => change(i, "id", event.target.value)}
             />
           </Field>
           <Field label={copy("Значення", "Meaning")}>
@@ -45,32 +69,23 @@ export default function StatusMappingFields({
               name={`status-meaning-${i}`}
               className={control}
               value={s.kind}
-              onChange={(e) =>
-                onChange(
-                  rows.map((x, j) =>
-                    i === j ? { ...x, kind: e.target.value } : x,
-                  ),
-                )
-              }
+              onChange={event => change(i, "kind", event.target.value)}
             >
-              <option value="">{copy("Не підтверджено", "Unverified")}</option>
-              <option value="SALE">{copy("Продаж", "Sale")}</option>
-              <option value="PREORDER">
-                {copy("Передзамовлення", "Preorder")}
-              </option>
-              <option value="REFUSAL">{copy("Відмова", "Refusal")}</option>
+              {config.options.map(option => (
+                <option key={option.value} value={option.value}>{copy(option.uk, option.en)}</option>
+              ))}
             </select>
           </Field>
         </div>
       ))}
-      <button
-        type="button"
-        disabled={rows.length >= 100}
-        className="min-h-11 rounded-lg border border-(--border) px-4 py-2 text-sm text-(--text) hover:bg-(--input-hover) focus-visible:outline-solid disabled:opacity-50"
-        onClick={() => onChange([...rows, { id: "", kind: "" }])}
+      <Button
+        variant="report"
+        disabled={atLimit}
+        className="text-(--text) hover:bg-(--input-hover)"
+        onClick={add}
       >
         {copy("Додати статус", "Add status")}
-      </button>
+      </Button>
     </fieldset>
   );
 }
