@@ -2,6 +2,7 @@ import { Fragment, type ReactNode } from "react";
 import { Badge, type BadgeTone } from "@/components/ui/badge/badge";
 import { Button } from "@/components/ui/button/button";
 import { Heading } from "@/components/ui/heading/heading";
+import { panel } from "@/components/ui/panel/panel-styles";
 import type { Locale } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
 import type { InsightItem, StockItem } from "../marketing-calendar/calendar-types";
@@ -14,11 +15,11 @@ const insightStyles = {
 };
 
 const stockStyles = {
-  ok: { label: "Норма", color: "bg-accent-positive", tone: "positive" },
-  warn: { label: "Мало", color: "bg-accent-yellow", tone: "warning" },
-  crit: { label: "Крит.", color: "bg-accent-negative", tone: "danger" },
-  excess: { label: "Надлишок", color: "bg-accent-info", tone: "report" },
-} satisfies Record<StockItem["status"], { label: string; color: string; tone: BadgeTone }>;
+  ok: { uk: "Норма", en: "Normal", color: "bg-accent-positive", tone: "positive" },
+  warn: { uk: "Мало", en: "Low", color: "bg-accent-yellow", tone: "warning" },
+  crit: { uk: "Крит.", en: "Critical", color: "bg-accent-negative", tone: "danger" },
+  excess: { uk: "Надлишок", en: "Excess", color: "bg-accent-info", tone: "report" },
+} satisfies Record<StockItem["status"], { uk: string; en: string; color: string; tone: BadgeTone }>;
 
 type PanelProps = {
   title: string;
@@ -36,7 +37,7 @@ function CalendarPanel<Item>({ title, locale, expanded, onToggle, items, renderI
   const hiddenCount = items.length - rowLimit;
 
   return (
-    <section className="rounded-xl border border-(--border) bg-(--surface) p-5">
+    <section className={cn(panel, "p-5")}>
       <div className="mb-4 flex items-center justify-between">
         <Heading as="h3" variant="compact" className="font-bold">{title}</Heading>
         {hiddenCount > 0 && <span className="font-mono text-[10px] text-(--subtle)">{visible.length}/{items.length}</span>}
@@ -81,22 +82,23 @@ export function CalendarInsightsPanel({ items, ...props }: PanelProps & { items:
   );
 }
 
-export function CalendarStockPanel({ items, ...props }: PanelProps & { items: StockItem[] }) {
+export function CalendarStockPanel({ items, locale, ...props }: PanelProps & { items: StockItem[] }) {
+  const uk = locale === "uk";
   return (
-    <CalendarPanel {...props} items={items} renderItem={(stock) => {
+    <CalendarPanel {...props} locale={locale} items={items} renderItem={(stock) => {
       const style = stockStyles[stock.status];
       const barWidth = Math.min(100, Math.max(4, (stock.woh ?? 0) * 0.8));
       return (
         <div className="flex items-center justify-between gap-3 border-b border-(--border-faint) py-2.5">
           <div className="min-w-0 flex-1">
             <div className="text-xs font-bold text-(--text)">{stock.brand}</div>
-            <div className="font-mono text-[10px] text-(--muted)">WOH {stock.woh ?? "—"}д · {stock.stock} шт</div>
+            <div className="font-mono text-[10px] text-(--muted)">WOH {stock.woh ?? "—"}{uk ? "д" : "d"} · {stock.stock} {uk ? "шт" : "pcs"}</div>
             <div className="mt-1 h-1 rounded-full bg-(--input-bg)">
               <div className={cn("h-full rounded-full transition-all", style.color)} style={{ width: `${barWidth}%` }} />
             </div>
           </div>
           <Badge tone={style.tone} size="small" outlined={false} className={cn("shrink-0 rounded-full font-sans font-bold", stock.status === "excess" && "bg-accent-info/10 text-accent-info")}>
-            {style.label}
+            {style[locale]}
           </Badge>
         </div>
       );

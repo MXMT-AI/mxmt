@@ -1,146 +1,52 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight, Eye, EyeOff, Sparkles } from "lucide-react";
+import { useMemo, useState } from "react";
 import { useLang } from "@/components/language-provider/language-provider";
-import { Button } from "@/components/ui/button/button";
 import { Heading } from "@/components/ui/heading/heading";
-import { cn } from "@/lib/utils";
+import { Note } from "@/components/ui/note/note";
+import { CalendarSummary } from "../calendar-summary/calendar-summary";
 import { CalendarEventDialog } from "../calendar-event-dialog/calendar-event-dialog";
+import { CalendarToolbar } from "../calendar-toolbar/calendar-toolbar";
+import { CalendarWeekNavigation } from "../calendar-week-navigation/calendar-week-navigation";
 import { CalendarGrid } from "../calendar-grid/calendar-grid";
 import { CalendarInsightsPanel, CalendarStockPanel } from "../calendar-panels/calendar-panels";
 import { calendarChipTypes } from "./calendar-chip-types";
-import { demoInsights, demoStock, mapCalendarDemoData } from "./calendar-demo-data";
-import type { AiPlanChip, Chip, DbEvent, EventDialogState, EventDraft, InsightItem, StockItem } from "./calendar-types";
-import { buildCalendarWeeks } from "./calendar-weeks";
+import { mapCalendarDemoData } from "./calendar-demo-data";
+import type { CalendarSchedule, CalendarTab, DbEvent, EventDialogState } from "./calendar-types";
+import { createCalendarChipLookup } from "./calendar-chips";
+import { useCalendarData } from "./use-calendar-data";
+import { useCalendarEvents } from "./use-calendar-events";
+import { useCalendarAiPlan } from "./use-calendar-ai-plan";
 
-const { weeks, holidayChips } = buildCalendarWeeks(new Date());
-const { demoEvents, demoAgentInsights } = mapCalendarDemoData(weeks);
 const visibleWeekCount = 4;
-const toolbarButtonClassName = "flex items-center gap-1.5 px-2.5 py-1.5 font-sans text-xs";
-const inactiveToolbarClassName = "bg-(--input-bg) text-(--subtle) hover:text-(--muted)";
 
-export default function MarketingCalendar({ initialEvents }: { initialEvents: DbEvent[] }) {
+export default function MarketingCalendar({ initialEvents, calendar }: { initialEvents: DbEvent[]; calendar: CalendarSchedule }) {
+  const { weeks, holidayChips } = calendar;
+  const { demoEvents, demoAgentInsights, demoEventCount } = useMemo(() => mapCalendarDemoData(weeks), [weeks]);
   const { lang } = useLang();
-  const [tab, setTab] = useState<"plan" | "agent" | "stock">("plan");
+  const [tab, setTab] = useState<CalendarTab>("plan");
   const [scrollStart, setScrollStart] = useState(0);
   const [eventDialog, setEventDialog] = useState<EventDialogState | null>(null);
-  const [dbEvents, setDbEvents] = useState<DbEvent[]>(initialEvents);
-  const [stockData, setStockData] = useState<StockItem[]>(demoStock);
-  const [insights, setInsights] = useState<InsightItem[]>(demoInsights);
-  const [aiChips, setAiChips] = useState<AiPlanChip[]>([]);
-  const [aiLoading, setAiLoading] = useState(false);
+  const { dbEvents, deleteError, saveEvent, deleteEvent } = useCalendarEvents(initialEvents);
+  const { stockData, insights } = useCalendarData();
+  const { aiChips, aiLoading, aiError, generate } = useCalendarAiPlan();
   const [showDemo, setShowDemo] = useState(false);
   const [showAllInsights, setShowAllInsights] = useState(false);
   const [showAllStock, setShowAllStock] = useState(false);
-  const [deleteError, setDeleteError] = useState(false);
-
-  useEffect(() => {
-    fetch("/api/calendar/stock")
-      .then((r) => r.json())
-      .then((data: StockItem[]) => { if (data.length > 0) setStockData(data); })
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    fetch("/api/calendar/insights")
-      .then((r) => r.json())
-      .then((data: InsightItem[]) => { if (data.length > 0) setInsights(data); })
-      .catch(() => {});
-  }, []);
 
   const visibleWeeks = weeks.slice(scrollStart, scrollStart + visibleWeekCount);
 
-  const getChips = (rowKey: string, weekKey: string): Chip[] => {
-    const demo = showDemo ? ((demoEvents[rowKey] ?? {})[weekKey] ?? []) : [];
-
-    const user = dbEvents
-      .filter((e) => e.rowKey === rowKey && e.weekKey === weekKey)
-      .map((e) => ({ t: e.type, l: e.label, id: e.id }));
-
-    const holidays = rowKey === "events" ? (holidayChips[weekKey] ?? []) : [];
-
-    let agent: Chip[] = [];
-    if (tab === "agent") {
-      const aiRowChips = aiChips
-        .filter((c) => c.weekKey === weekKey && c.rowKey === rowKey)
-        .map((c) => ({ t: c.type, l: c.label }));
-
-      const insightChips = insights
-        .filter((ins) => ins.weekKey === weekKey
-          && ins.rowKey === rowKey)
-        .map((ins) => ({
-          t: ins.type,
-          l: ins.brand.length > 18 ? ins.brand.slice(0, 16) + "…" : ins.brand,
-        }));
-
-      const fallback = showDemo ? (demoAgentInsights[`${weekKey}_${rowKey}`] ?? []) : [];
-
-      agent = aiRowChips.length > 0 ? aiRowChips
-        : insightChips.length > 0 ? insightChips
-        : fallback;
-    }
-
-    return [...holidays, ...demo, ...user, ...agent];
-  };
-
-  async function saveEvent(draft: EventDraft) {
-    if (!eventDialog) return;
-
-    const editing = eventDialog.mode === "edit";
-    const response = await fetch(editing ? `/api/calendar/events/${eventDialog.id}` : "/api/calendar/events", {
-      method: editing ? "PATCH" : "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(editing ? { type: draft.type, label: draft.label } : draft),
-    });
-    if (!response.ok) throw new Error("Calendar event save failed");
-
-    const saved: DbEvent = await response.json();
-    setDbEvents((previous) => editing
-      ? previous.map((event) => event.id === saved.id ? saved : event)
-      : [...previous, saved]);
-  }
-
-  async function deleteEvent(id: string) {
-    setDeleteError(false);
-    try {
-      const response = await fetch(`/api/calendar/events/${id}`, { method: "DELETE" });
-      if (!response.ok) throw new Error("Calendar event delete failed");
-
-      setDbEvents((previous) => previous.filter((event) => event.id !== id));
-    } catch {
-      setDeleteError(true);
-    }
-  }
+  const getChips = useMemo(() => createCalendarChipLookup({
+    dbEvents, aiChips, insights, holidayChips, demoEvents, demoAgentInsights,
+    showDemo, agentMode: tab === "agent",
+  }), [dbEvents, aiChips, insights, holidayChips, demoEvents, demoAgentInsights, showDemo, tab]);
 
   const generateAiPlan = async () => {
-    if (aiLoading) return;
-    setAiLoading(true);
-    try {
-      const res = await fetch("/api/calendar/ai-plan", { method: "POST" });
-      const data = await res.json();
-      if (data.chips?.length > 0) {
-        setAiChips(data.chips);
-        setTab("agent");
-      }
-    } catch {
-    } finally {
-      setAiLoading(false);
-    }
+    if (await generate()) setTab("agent");
   };
 
   const locale = lang === "uk" ? "uk" : "en";
-  const userCount = dbEvents.length;
   const labels = {
-    plan:  lang === "uk" ? "Мій план"       : "My Plan",
-    agent: lang === "uk" ? "Аналіз агента"  : "Agent Analysis",
-    stock: lang === "uk" ? "Залишки"        : "Stock",
-    addEvent: lang === "uk" ? "+ Додати подію" : "+ Add event",
-    earlier:  lang === "uk" ? "← Раніше"      : "← Earlier",
-    later:    lang === "uk" ? "Пізніше →"     : "Later →",
-    events_in_plan:   lang === "uk" ? "Подій у плані"     : "Events in plan",
-    agent_tips:       lang === "uk" ? "Порад агента"      : "Agent tips",
-    warnings:         lang === "uk" ? "Попереджень"       : "Warnings",
     agent_analysis:   lang === "uk" ? "Детальний аналіз агента" : "Detailed agent analysis",
     agent_insights_h: lang === "uk" ? "Інсайти агента"   : "Agent insights",
     stock_title:      lang === "uk" ? "Статус залишків (реальні дані)" : "Stock status (live data)",
@@ -156,77 +62,29 @@ export default function MarketingCalendar({ initialEvents }: { initialEvents: Db
           <Heading as="h1" variant="page" className="text-xl tracking-normal">
             {lang === "uk" ? "Календар активностей" : "Activity Calendar"}
           </Heading>
-          <p className="text-xs text-(--muted) mt-0.5 font-mono">
+          <Note className="mt-0.5 font-mono leading-4">
             {weeks[0] && weeks[weeks.length - 1]
               ? `${weeks[0].d.split("–")[0]} — ${weeks[weeks.length - 1].d.split("–")[1]}`
               : ""}
             {" · "}
             {lang === "uk" ? "Реальні дані" : "Live data"}
-          </p>
+          </Note>
         </div>
 
-        <div className="flex gap-2 items-center flex-wrap">
-          <Button
-            onClick={generateAiPlan}
-            disabled={aiLoading}
-            className={cn(toolbarButtonClassName,
-              aiChips.length > 0
-                ? "bg-accent-purple/10 border-accent-purple/30 text-accent-purple"
-                : inactiveToolbarClassName,
-            )}
-            title={lang === "uk" ? "Згенерувати план через AI" : "Generate AI plan"}
-          >
-            <Sparkles size={12} className={aiLoading ? "animate-pulse" : ""} />
-            {aiLoading
-              ? (lang === "uk" ? "Генеруємо…" : "Generating…")
-              : aiChips.length > 0
-              ? (lang === "uk" ? "AI план ✓" : "AI plan ✓")
-              : (lang === "uk" ? "AI план" : "AI plan")}
-          </Button>
-
-          <Button
-            onClick={() => setShowDemo((v) => !v)}
-            aria-pressed={showDemo}
-            title={showDemo
-              ? (lang === "uk" ? "Сховати демо-шаблон" : "Hide demo template")
-              : (lang === "uk" ? "Показати демо-шаблон" : "Show demo template")}
-            className={cn(toolbarButtonClassName,
-              showDemo
-                ? "bg-accent-yellow/10 border-accent-yellow/30 text-accent-yellow"
-                : inactiveToolbarClassName,
-            )}
-          >
-            {showDemo ? <Eye size={12} /> : <EyeOff size={12} />}
-            {lang === "uk" ? "Шаблон" : "Template"}
-          </Button>
-
-          <div className="flex bg-(--surface) border border-(--border) rounded-lg overflow-hidden">
-            {(["plan", "agent", "stock"] as const).map((t) => (
-              <Button key={t} onClick={() => setTab(t)} aria-pressed={tab === t}
-                className={cn("rounded-none border-0 px-3 py-1.5 font-sans text-xs font-medium", tab === t && "bg-accent-cyan/10 text-accent-cyan")}>
-                {labels[t]}
-              </Button>
-            ))}
-          </div>
-          <Button onClick={() => setEventDialog({ mode: "add", rowKey: "accent", weekKey: visibleWeeks[0]?.k ?? weeks[0]?.k ?? "w1" })}
-            className="px-3 py-1.5 font-sans text-xs font-medium bg-accent-cyan/10 text-accent-cyan border border-accent-cyan/20 rounded-lg hover:bg-accent-cyan/20 transition-colors">
-            {labels.addEvent}
-          </Button>
-        </div>
+        <CalendarToolbar
+          locale={locale}
+          tab={tab}
+          onTabChange={setTab}
+          showDemo={showDemo}
+          onToggleDemo={() => setShowDemo(value => !value)}
+          aiLoading={aiLoading}
+          hasAiPlan={aiChips.length > 0}
+          onGenerate={generateAiPlan}
+          onAdd={() => setEventDialog({ mode: "add", rowKey: "accent", weekKey: visibleWeeks[0]?.k ?? weeks[0]?.k ?? "w1" })}
+        />
       </div>
 
-      <div className="grid grid-cols-3 gap-3 mb-5">
-        {[
-          { v: `${(showDemo ? 68 : 0) + userCount}`, l: labels.events_in_plan, c: "text-(--text)" },
-          { v: String(insights.filter((i) => i.type === "agent").length), l: labels.agent_tips, c: "text-accent-positive" },
-          { v: String(insights.filter((i) => i.type === "warn").length),  l: labels.warnings,   c: "text-accent-negative" },
-        ].map((s, i) => (
-          <div key={i} className="bg-(--surface) border border-(--border) rounded-xl p-3 text-center">
-            <div className={`text-lg font-bold font-mono ${s.c}`}>{s.v}</div>
-            <div className="text-[10px] text-(--muted) mt-0.5">{s.l}</div>
-          </div>
-        ))}
-      </div>
+      <CalendarSummary eventCount={dbEvents.length + (showDemo ? demoEventCount : 0)} insights={insights} locale={locale} />
 
       <div className="flex gap-3 mb-3 flex-wrap">
         {Object.entries(calendarChipTypes).map(([key, chip]) => (
@@ -237,21 +95,16 @@ export default function MarketingCalendar({ initialEvents }: { initialEvents: Db
         ))}
       </div>
 
-      <div className="flex items-center justify-between mb-2">
-        <Button onClick={() => setScrollStart(Math.max(0, scrollStart - 1))} disabled={scrollStart === 0}
-          className="flex items-center gap-1 border-0 p-0 font-sans text-xs hover:bg-transparent disabled:opacity-30">
-          <ChevronLeft size={14} /> {labels.earlier}
-        </Button>
-        <span className="text-[10px] font-mono text-(--subtle)">
-          {visibleWeeks[0]?.d} — {visibleWeeks[visibleWeeks.length - 1]?.d}
-        </span>
-        <Button onClick={() => setScrollStart(Math.min(weeks.length - visibleWeekCount, scrollStart + 1))} disabled={scrollStart >= weeks.length - visibleWeekCount}
-          className="flex items-center gap-1 border-0 p-0 font-sans text-xs hover:bg-transparent disabled:opacity-30">
-          {labels.later} <ChevronRight size={14} />
-        </Button>
-      </div>
+      <CalendarWeekNavigation
+        weeks={weeks}
+        start={scrollStart}
+        visibleCount={visibleWeekCount}
+        locale={locale}
+        onChange={setScrollStart}
+      />
 
-      {deleteError && <p role="alert" className="mb-2 text-sm text-accent-danger">{lang === "uk" ? "Не вдалося видалити подію." : "Could not delete the event."}</p>}
+      {aiError && <Note role="alert" className="mb-2 text-sm leading-5 text-accent-danger">{lang === "uk" ? "Не вдалося згенерувати AI-план. Спробуйте ще раз." : "Could not generate the AI plan. Please try again."}</Note>}
+      {deleteError && <Note role="alert" className="mb-2 text-sm leading-5 text-accent-danger">{lang === "uk" ? "Не вдалося видалити подію." : "Could not delete the event."}</Note>}
       <CalendarGrid
         weeks={visibleWeeks}
         locale={locale}
@@ -287,7 +140,7 @@ export default function MarketingCalendar({ initialEvents }: { initialEvents: Db
           event={eventDialog}
           weeks={weeks}
           locale={locale}
-          onSave={saveEvent}
+          onSave={(draft) => saveEvent(eventDialog, draft)}
           onClose={() => setEventDialog(null)}
         />
       )}

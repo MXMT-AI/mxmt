@@ -43,11 +43,7 @@ function normalizeTablePreference(preference: TablePreferenceInput = {}): Initia
 export function normalizeTablePreferences(
   initial: Partial<Record<DataTableKey, TablePreferenceInput>>,
 ): Record<DataTableKey, InitialTablePreference> {
-  return {
-    product_yml: normalizeTablePreference(initial.product_yml),
-    zavod_api: normalizeTablePreference(initial.zavod_api),
-    article_report: normalizeTablePreference(initial.article_report),
-    by_brand: normalizeTablePreference(initial.by_brand),
-    by_category: normalizeTablePreference(initial.by_category),
-  };
+  return Object.fromEntries(
+    DATA_TABLE_KEYS.map(key => [key, normalizeTablePreference(initial[key])]),
+  ) as Record<DataTableKey, InitialTablePreference>;
 }

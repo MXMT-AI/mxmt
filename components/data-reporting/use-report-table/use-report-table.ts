@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import type { DataTableResponse } from "@/lib/data-table-api";
 import type { DataTableKey, InitialTablePreference } from "@/lib/data-table-preferences";
-import { responseMessage } from "./response-message";
+import { responseMessage } from "@/lib/client/data-reporting-response";
+import { apiFetch } from "@/lib/fetch";
 
 type TableResult = {
   key: string;
@@ -36,7 +37,7 @@ export function useReportTable({ activeTab, page, preference, reloadVersion, sea
 
     async function load() {
       try {
-        const response = await fetch(url, { cache: "no-store", signal });
+        const response = await apiFetch(url, { cache: "no-store", signal });
         if (!response.ok) throw new Error(await responseMessage(response));
         const table: DataTableResponse = await response.json();
         if (signal.aborted) return;

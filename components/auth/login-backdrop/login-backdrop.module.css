@@ -4,9 +4,6 @@
     radial-gradient(ellipse at 10% 100%, color-mix(in srgb, var(--violet-ink) 8%, transparent), transparent 48%);
 }
 .backdrop::before {
-  position: absolute;
-  inset: 0;
-  content: "";
   background-image:
     linear-gradient(to right, var(--border) 1px, transparent 1px),
     linear-gradient(to bottom, var(--border) 1px, transparent 1px);

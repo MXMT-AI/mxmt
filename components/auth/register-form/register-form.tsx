@@ -4,12 +4,12 @@ import { useState } from "react";
 import { Link } from "@/i18n/navigation";
 import { useLang } from "@/components/language-provider/language-provider";
 import { BrandMark } from "@/components/brand-mark/brand-mark";
-import { Button } from "@/components/ui/button/button";
 import { Heading } from "@/components/ui/heading/heading";
 import { Text } from "@/components/ui/text/text";
 import { AuthField } from "../auth-field/auth-field";
-import { AuthFormError } from "../auth-form-error/auth-form-error";
-import { useAuthNavigation } from "../use-auth-navigation";
+import { AuthForm } from "../auth-form/auth-form";
+import { useAuthNavigation } from "../use-auth-navigation/use-auth-navigation";
+import { useAuthSubmit } from "../use-auth-submit/use-auth-submit";
 
 const fields = [
   { field: "businessName", id: "register-business-name", label: "auth_business_name", type: "text", placeholder: "MXMT Store" },
@@ -23,8 +23,11 @@ export default function RegisterForm() {
   const { t, lang } = useLang();
   const { authQuery, navigateAfterAuth } = useAuthNavigation(lang);
   const [form, setForm] = useState({ businessName: "", name: "", email: "", password: "", confirmPassword: "" });
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const { error, loading, setError, submit } = useAuthSubmit({
+    endpoint: "/api/auth/register",
+    fallbackError: t.auth_err_network,
+    onSuccess: navigateAfterAuth,
+  });
 
   const set = (field: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
@@ -34,21 +37,7 @@ export default function RegisterForm() {
     setError("");
     if (form.password !== form.confirmPassword) { setError(t.auth_err_passwords); return; }
     if (form.password.length < 8) { setError(t.auth_err_short); return; }
-    setLoading(true);
-    try {
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ businessName: form.businessName, name: form.name, email: form.email, password: form.password }),
-      });
-      const data = await res.json();
-      if (!res.ok) { setError(data.error ?? t.auth_err_network); return; }
-      navigateAfterAuth();
-    } catch {
-      setError(t.auth_err_network);
-    } finally {
-      setLoading(false);
-    }
+    await submit({ businessName: form.businessName, name: form.name, email: form.email, password: form.password });
   }
 
   return (
@@ -64,25 +53,25 @@ export default function RegisterForm() {
           </Heading>
         </div>
 
-        <div className="bg-(--surface) border border-(--border) rounded-2xl p-7">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {fields.map(({ field, label, ...input }) => (
-              <AuthField
-                {...input}
-                key={field}
-                variant="register"
-                label={t[label]}
-                value={form[field]}
-                onChange={set(field)}
-                required
-              />
-            ))}
-            <AuthFormError message={error} />
-            <Button variant="accent" type="submit" disabled={loading} className="mt-2 w-full">
-              {loading ? t.auth_creating : t.auth_create_btn}
-            </Button>
-          </form>
-        </div>
+        <AuthForm
+          onSubmit={handleSubmit}
+          error={error}
+          loading={loading}
+          submitLabel={t.auth_create_btn}
+          pendingLabel={t.auth_creating}
+        >
+          {fields.map(({ field, label, ...input }) => (
+            <AuthField
+              {...input}
+              key={field}
+              variant="register"
+              label={t[label]}
+              value={form[field]}
+              onChange={set(field)}
+              required
+            />
+          ))}
+        </AuthForm>
 
         <div className="flex flex-wrap items-center justify-between gap-3 mt-5">
           <Text variant="body" className="leading-5">

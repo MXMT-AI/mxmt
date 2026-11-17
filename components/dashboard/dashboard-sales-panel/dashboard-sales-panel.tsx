@@ -1,5 +1,6 @@
 import { Link } from "@/i18n/navigation";
 import { Heading } from "@/components/ui/heading/heading";
+import { panel } from "@/components/ui/panel/panel-styles";
 import SalesSparkline from "../sales-sparkline/sales-sparkline";
 
 export function DashboardSalesPanel({ data, total, weekChange, uk }: {
@@ -9,7 +10,7 @@ export function DashboardSalesPanel({ data, total, weekChange, uk }: {
   uk: boolean;
 }) {
   return (
-    <section className="mb-6 rounded-xl border border-(--border) bg-(--surface) p-5">
+    <section className={panel + " mb-6 p-5"}>
       <div className="mb-3 flex items-start justify-between gap-3">
         <div>
           <Heading as="h2" variant="eyebrow" className="mb-1">{uk ? "Продажі — 30 днів" : "Sales — 30 days"}</Heading>

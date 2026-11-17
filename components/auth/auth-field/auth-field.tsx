@@ -1,4 +1,5 @@
 import type { ComponentProps } from "react";
+import { controlBase } from "@/components/ui/control-styles/control-styles";
 import { cn } from "@/lib/utils";
 
 const styles = {
@@ -28,7 +29,8 @@ export function AuthField({ id, label, variant = "login", className, ...props }:
         {...props}
         id={id}
         className={cn(
-          "w-full rounded-lg border border-(--border) bg-(--input-bg) px-4 py-2.5 text-(--text)",
+          controlBase,
+          "w-full bg-(--input-bg) px-4 py-2.5",
           styles[variant].input,
           className,
         )}

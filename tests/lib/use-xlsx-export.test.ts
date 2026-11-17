@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { beforeEach, expect, it, vi } from "vitest";
-import { useXlsxExport } from "@/components/ui/use-xlsx-export";
+import { useXlsxExport } from "@/components/ui/use-xlsx-export/use-xlsx-export";
 import type { WorkBook } from "xlsx";
 const xlsx = vi.hoisted(() => ({ writeFile: vi.fn() }));
 vi.mock("xlsx", () => ({ writeFile: xlsx.writeFile }));

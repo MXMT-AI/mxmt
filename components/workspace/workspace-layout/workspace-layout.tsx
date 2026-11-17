@@ -8,7 +8,7 @@ import { prisma } from "@/lib/prisma";
 import Sidebar from "@/components/sidebar/sidebar";
 import TokenRefreshProvider from "@/components/token-refresh-provider/token-refresh-provider";
 
-export default async function AppLayout({
+export default async function WorkspaceLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -17,14 +17,14 @@ export default async function AppLayout({
   const tenantId = h.get("x-tenant-id");
   const role = h.get("x-user-role");
 
-  if (!tenantId) return redirect({href: "/login", locale: await getLocale()});
+  const tenant = tenantId
+    ? await prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: { name: true },
+      })
+    : null;
 
-  const tenant = await prisma.tenant.findUnique({
-    where: { id: tenantId },
-    select: { name: true },
-  });
-
-  if (!tenant) return redirect({href: "/login", locale: await getLocale()});
+  if (!tenant) return redirect({ href: "/login", locale: await getLocale() });
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-(--bg)">

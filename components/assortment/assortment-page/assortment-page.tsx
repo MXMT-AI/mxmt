@@ -1,4 +1,4 @@
-import { headers } from "next/headers";
+import { requireWorkspaceTenantId } from "@/lib/workspace-request";
 import PlannerApp from "@/components/planner/planner-app";
 import type { CartItem } from "@/components/planner/planner-types";
 import { isRecord } from "@/lib/api-contracts";
@@ -23,8 +23,7 @@ function parseCartItems(items: unknown): CartItem[] {
 }
 
 export default async function AssortmentPage() {
-  const h = await headers();
-  const tenantId = h.get("x-tenant-id")!;
+  const tenantId = await requireWorkspaceTenantId();
 
   const [brands, catalogs, cart] = await Promise.all([
     prisma.brand.findMany({

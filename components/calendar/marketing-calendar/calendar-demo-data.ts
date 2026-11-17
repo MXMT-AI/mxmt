@@ -138,8 +138,14 @@ function remapAgentInsightKeys(
 
 export function mapCalendarDemoData(weeks: Week[]) {
   const keyMap = Object.fromEntries(DEMO_OLD_KEYS.map((key, index) => [key, weeks[index]?.k]));
+  const demoEvents = remapWeekKeys(DEMO_DATA, keyMap);
+  let demoEventCount = 0;
+  for (const row of Object.values(demoEvents)) {
+    for (const chips of Object.values(row)) demoEventCount += chips.length;
+  }
   return {
-    demoEvents: remapWeekKeys(DEMO_DATA, keyMap),
+    demoEvents,
+    demoEventCount,
     demoAgentInsights: remapAgentInsightKeys(AGENT_INSIGHTS, keyMap),
   };
 }

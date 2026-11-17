@@ -1,5 +1,3 @@
-"use client";
-
 import { useId } from "react";
 import type { OverviewCopy } from "@/lib/overview-copy";
 import type { OverviewModel } from "@/lib/merchandising-overview";

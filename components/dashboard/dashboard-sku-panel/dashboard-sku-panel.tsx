@@ -1,6 +1,7 @@
 import { Link } from "@/i18n/navigation";
 import { ActionLink } from "@/components/ui/action-link/action-link";
 import { Heading } from "@/components/ui/heading/heading";
+import { panel } from "@/components/ui/panel/panel-styles";
 import type { ClassifiedSku } from "@/lib/analyst-types";
 import type { Translations } from "@/lib/translations";
 import { cn } from "@/lib/utils";
@@ -28,7 +29,7 @@ export function DashboardSkuPanel({ items, total, kind, t, uk }: {
   const stockout = kind === "stockout";
   const style = styles[kind];
   return (
-    <section className={cn("rounded-xl border bg-(--surface) p-6", style.border)}>
+    <section className={cn(panel, "p-6", style.border)}>
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <div className={cn("mb-1 font-mono text-[9px] tracking-widest uppercase", style.ink)}>

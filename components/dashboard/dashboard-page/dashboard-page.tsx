@@ -1,5 +1,5 @@
 import { getLocale } from "next-intl/server";
-import { headers } from "next/headers";
+import { requireWorkspaceTenantId } from "@/lib/workspace-request";
 import { prisma } from "@/lib/prisma";
 import { getT } from "@/lib/translations";
 import { loadAnalystClassification } from "@/lib/analyst-classification";
@@ -11,17 +11,13 @@ import { DashboardSetupCard } from "../dashboard-setup-card/dashboard-setup-card
 import { DashboardSalesPanel } from "../dashboard-sales-panel/dashboard-sales-panel";
 
 export default async function DashboardPage() {
-  const requestHeaders = await headers();
-  const tenantId = requestHeaders.get("x-tenant-id")!;
-  const lang = await getLocale();
-  const t = getT(lang);
-  const uk = lang === "uk";
+  const tenantId = await requireWorkspaceTenantId();
   const now = new Date();
   const since30 = new Date(now.getTime() - 30 * 86400000);
   const since14 = new Date(now.getTime() - 14 * 86400000);
   const since7 = new Date(now.getTime() - 7 * 86400000);
 
-  const [classification, driveSync, catalogItemCount, dailySales] = await Promise.all([
+  const [classification, driveSync, catalogItemCount, dailySales, lang] = await Promise.all([
     loadAnalystClassification(tenantId),
     prisma.googleDriveSync.findFirst({
       where: { tenantId },
@@ -35,7 +31,10 @@ export default async function DashboardPage() {
       _sum: { qtySold: true },
       orderBy: { date: "asc" },
     }),
+    getLocale(),
   ]);
+  const t = getT(lang);
+  const uk = lang === "uk";
   const { skus, summary, businessModel, hasOnboarding, catalogSkuCount } = classification;
   const stockouts = skus.filter((sku) => sku.flag === "stockout").sort((a, b) => a.daysOfStock - b.daysOfStock).slice(0, 4);
   const hits = skus.filter((sku) => sku.flag === "hit").sort((a, b) => b.sold7 - a.sold7).slice(0, 4);

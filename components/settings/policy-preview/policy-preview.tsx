@@ -1,4 +1,5 @@
 "use client";
+import { Field } from "@/components/ui/field/field";
 import { Button } from "@/components/ui/button/button";
 import { Text } from "@/components/ui/text/text";
 import { Heading } from "@/components/ui/heading/heading";
@@ -18,6 +19,17 @@ export function PolicyPreview({
   canManage: boolean;
 }) {
   const uk = lang === "uk";
+  const labels: Record<string, string> = {
+    revenue: uk ? "Виручка" : "Revenue",
+    cost: uk ? "Відома собівартість" : "Known cost",
+    weeklyVelocity: uk
+      ? "Швидкість, шт/тиж"
+      : "Velocity, units/week",
+    stock: uk ? "Залишок, шт" : "Stock, units",
+    inTransit: uk
+      ? "У дорозі · порожньо — невідомо"
+      : "In transit · blank is unknown",
+  };
   const [result, setResult] = useState<Record<string, unknown> | null>(null),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
@@ -81,22 +93,7 @@ export function PolicyPreview({
       </Text>
       <div className="mt-3 grid grid-cols-2 gap-3">
         {Object.entries(values).map(([field, value]) => (
-          <label key={field} className="text-sm text-(--muted)">
-            {
-              (
-                {
-                  revenue: uk ? "Виручка" : "Revenue",
-                  cost: uk ? "Відома собівартість" : "Known cost",
-                  weeklyVelocity: uk
-                    ? "Швидкість, шт/тиж"
-                    : "Velocity, units/week",
-                  stock: uk ? "Залишок, шт" : "Stock, units",
-                  inTransit: uk
-                    ? "У дорозі · порожньо — невідомо"
-                    : "In transit · blank is unknown",
-                } as Record<string, string>
-              )[field]
-            }
+          <Field key={field} label={labels[field]} className="gap-0 text-sm">
             <input
               className={inputClass}
               name={`preview-${field}`}
@@ -106,7 +103,7 @@ export function PolicyPreview({
                 setValues((v) => ({ ...v, [field]: e.target.value }))
               }
             />
-          </label>
+          </Field>
         ))}
       </div>
       {canManage && (

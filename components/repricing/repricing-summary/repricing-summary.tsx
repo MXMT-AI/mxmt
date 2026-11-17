@@ -1,3 +1,4 @@
+import { Heading } from "@/components/ui/heading/heading";
 import { panel } from "@/components/ui/panel/panel-styles";
 import { Button } from "@/components/ui/button/button";
 import { MetricTile } from "@/components/ui/metric-tile/metric-tile";
@@ -39,9 +40,9 @@ export default function RepricingSummary({
       aria-busy={!current}
     >
       <div className="flex flex-wrap justify-between items-center gap-3">
-        <h2 id="repricing-summary" className="font-semibold">
+        <Heading as="h2" variant="compact" id="repricing-summary" className="text-base text-inherit">
           {copy.summary}
-        </h2>
+        </Heading>
         <Button
           variant="report"
           disabled={!onExport || exporting || !current}
@@ -70,9 +71,9 @@ export default function RepricingSummary({
         ))}
       </dl>
       <Note>{copy.basis}</Note>
-      <p id="repricing-export-note" className="text-xs text-(--muted)">
+      <Note id="repricing-export-note" className="leading-4">
         {copy.csvReady}
-      </p>
+      </Note>
     </section>
   );
 }

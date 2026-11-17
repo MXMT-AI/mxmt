@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button/button";
+import { panel } from "@/components/ui/panel/panel-styles";
 import type { ClassifySummary, SkuFlag } from "@/lib/analyst-types";
 import { cn } from "@/lib/utils";
 
@@ -12,7 +13,7 @@ interface AnalystFiltersProps {
 }
 
 const flags = Object.keys(SKU_FLAGS) as SkuFlag[];
-const filterButtonClassName = "rounded-lg border-transparent px-3 py-1.5 font-sans text-sm font-medium";
+const filterButtonClassName = "border-transparent px-3 py-1.5 font-sans text-sm font-medium";
 
 export function AnalystFilterCards({ summary, locale, activeFlag, onFilter }: AnalystFiltersProps) {
   return (
@@ -27,7 +28,8 @@ export function AnalystFilterCards({ summary, locale, activeFlag, onFilter }: An
             aria-pressed={selected}
             onClick={() => onFilter(selected ? "all" : flag)}
             className={cn(
-              "block rounded-xl bg-(--surface) p-4 text-left font-sans hover:border-(--muted)",
+              panel,
+              "block p-4 text-left font-sans hover:border-(--muted)",
               selected && "border-(--muted)",
             )}
           >

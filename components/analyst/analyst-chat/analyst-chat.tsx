@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Send, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button/button";
+import { controlBase } from "@/components/ui/control-styles/control-styles";
 import { Heading } from "@/components/ui/heading/heading";
+import { panel } from "@/components/ui/panel/panel-styles";
 import { Text } from "@/components/ui/text/text";
 import { cn } from "@/lib/utils";
 import type { ClassifiedSku, ClassifySummary } from "@/lib/analyst-types";
@@ -83,7 +85,7 @@ ${skus.filter(s => ["hit","stockout"].includes(s.flag)).slice(0,5)
   };
 
   return (
-    <section className="mb-6 overflow-hidden rounded-xl border border-(--border) bg-(--surface)">
+    <section className={cn(panel, "mb-6 overflow-hidden")}>
       <div className="flex items-center gap-2 border-b border-(--border) px-5 py-3">
         <Sparkles size={14} className="text-accent-yellow" aria-hidden="true" />
         <Heading as="h2" variant="compact" className="font-medium">{title}</Heading>
@@ -144,14 +146,15 @@ ${skus.filter(s => ["hit","stockout"].includes(s.flag)).slice(0,5)
           disabled={aiLoading}
           aria-label={inputLabel}
           placeholder={inputLabel}
-          className="min-w-0 flex-1 rounded-xl border border-(--border) bg-(--surface2) px-4 py-2.5 text-sm text-(--text) placeholder:text-(--subtle) focus:border-accent-cyan/40"
+          className={cn(controlBase, "flex-1 rounded-xl bg-(--surface2) px-4 py-2.5 text-sm placeholder:text-(--subtle) focus:border-accent-cyan/40")}
         />
         <Button
           type="submit"
           variant="icon"
+          tone="positive"
           aria-label={uk ? "Надіслати" : "Send"}
           disabled={aiLoading || !aiInput.trim()}
-          className="rounded-xl border-accent-cyan/20 bg-accent-cyan/10 px-4 text-accent-cyan hover:bg-accent-cyan/20 hover:text-accent-cyan"
+          className="rounded-xl px-4"
         >
           <Send size={15} aria-hidden="true" />
         </Button>

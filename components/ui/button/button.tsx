@@ -9,17 +9,24 @@ const variants = {
   accent: "border-0 bg-accent-fill px-4 py-2.5 text-sm font-semibold text-accent-fill-ink hover:bg-accent-fill-hover hover:text-accent-fill-ink",
 };
 
-type ButtonProps = ComponentProps<"button"> & {
-  variant?: keyof typeof variants;
+const tones = {
+  positive: "border-accent-cyan/20 bg-accent-cyan/10 text-accent-cyan hover:bg-accent-cyan/20 hover:text-accent-cyan",
+  accent: "border-accent-purple/20 bg-accent-purple/10 text-accent-purple hover:bg-accent-purple/20 hover:text-accent-purple",
 };
 
-export function Button({ variant = "compact", type = "button", className, ...props }: ButtonProps) {
+type ButtonProps = ComponentProps<"button"> & {
+  variant?: keyof typeof variants;
+  tone?: keyof typeof tones;
+};
+
+export function Button({ variant = "compact", tone, type = "button", className, ...props }: ButtonProps) {
   return (
     <button
       type={type}
       className={cn(
         "rounded-lg border border-(--border) text-(--muted) transition-colors hover:bg-(--input-bg) hover:text-(--text) disabled:cursor-not-allowed disabled:opacity-50",
         variants[variant],
+        tone && tones[tone],
         className,
       )}
       {...props}

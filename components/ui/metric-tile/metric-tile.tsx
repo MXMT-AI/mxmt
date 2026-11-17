@@ -1,9 +1,17 @@
 import type { CSSProperties, ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { panel } from "../panel/panel-styles";
+
+const panelTile = panel + " p-5";
 
 const styles = {
+  centered: {
+    tile: panel + " flex flex-col p-3 text-center",
+    label: "order-2 mt-0.5 text-[10px] text-(--muted)",
+    value: "order-1 font-mono text-lg font-bold",
+  },
   planner: {
-    tile: "rounded-xl border border-(--border) bg-(--surface) p-5",
+    tile: panelTile,
     label: "mb-2 font-mono text-[9px] tracking-widest text-(--subtle) uppercase",
     value: "font-mono text-2xl font-bold",
   },
@@ -18,7 +26,7 @@ const styles = {
     value: "mt-0.5 font-mono text-[13px]",
   },
   dashboard: {
-    tile: "rounded-xl border border-(--border) bg-(--surface) p-5",
+    tile: panelTile,
     label: "mb-3 font-mono text-[9px] tracking-widest text-(--subtle) uppercase",
     value: "mt-0.5 mb-1 font-mono text-2xl font-bold",
   },

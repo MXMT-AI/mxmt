@@ -1,5 +1,6 @@
 import type { ComponentProps } from "react";
 import { cn } from "@/lib/utils";
+import { controlBase } from "../control-styles/control-styles";
 
 type DateFieldProps = Omit<ComponentProps<"input">, "type"> & {
   id: string;
@@ -17,7 +18,8 @@ export function DateField({ id, label, variant = "inline", className, ...props }
         id={id}
         type="date"
         className={cn(
-          "rounded-lg border border-(--border) bg-(--input-bg) px-3 text-(--text)",
+          controlBase,
+          "bg-(--input-bg)",
           stacked ? "h-9 text-sm" : "min-h-11 py-1.5 font-mono text-xs",
           className,
         )}

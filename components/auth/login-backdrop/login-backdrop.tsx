@@ -17,7 +17,7 @@ const markers = [
 
 export function LoginBackdrop() {
   return (
-    <div className={`pointer-events-none absolute inset-0 -z-10 overflow-hidden ${styles.backdrop}`} aria-hidden="true">
+    <div className={`pointer-events-none absolute inset-0 -z-10 overflow-hidden before:absolute before:inset-0 before:content-[''] ${styles.backdrop}`} aria-hidden="true">
       <svg className={`absolute bottom-0 h-[min(100%,520px)] w-full ${styles.chart}`} viewBox={`0 0 1440 ${chartHeight}`} preserveAspectRatio="xMidYMax slice">
         <path className="fill-none stroke-(--accent) [stroke-width:13] [stroke-dasharray:3_3] opacity-[.19]" d={barPath} />
         <path className="fill-none stroke-(--violet-ink) [stroke-width:1.5] [stroke-dasharray:5_6] opacity-[.42]" d="M0 440 95 422 175 428 264 392 334 408 432 363 518 368 590 335 672 348 752 306 829 321 907 283 981 306 1053 264 1133 280 1216 233 1289 249 1366 194 1440 200" />

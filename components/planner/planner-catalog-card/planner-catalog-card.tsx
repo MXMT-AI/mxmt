@@ -57,7 +57,7 @@ export function PlannerCatalogCard({ item, addToCart }: {
           onInput={event => event.currentTarget.setCustomValidity("")}
           className={cn(control, "min-h-0 w-12 bg-white/5 text-xs rounded-sm px-1.5 py-1 text-center")}
         />
-        <Button variant="report" onClick={add} className="min-h-0 flex-1 bg-accent-cyan/10 border-accent-cyan/20 text-accent-cyan text-xs font-medium px-0 py-1.5 hover:bg-accent-cyan/20 hover:text-accent-cyan">
+        <Button variant="report" tone="positive" onClick={add} className="min-h-0 flex-1 text-xs font-medium px-0 py-1.5">
           + Додати
         </Button>
       </div>

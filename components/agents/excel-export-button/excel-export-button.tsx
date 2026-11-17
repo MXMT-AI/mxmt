@@ -3,7 +3,7 @@
 import { useId } from "react";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button/button";
-import { useXlsxExport } from "@/components/ui/use-xlsx-export";
+import { useXlsxExport } from "@/components/ui/use-xlsx-export/use-xlsx-export";
 import { buildXlsxWorkbook, type SheetCell } from "@/lib/xlsx-workbook";
 
 export function ExcelExportButton({ title, sheetName, buildValues, disabled }: {

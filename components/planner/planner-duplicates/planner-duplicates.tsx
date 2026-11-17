@@ -51,9 +51,9 @@ export function PlannerDuplicates({ groups, addToCart }: {
                 <p className="text-sm text-(--text) font-medium mb-1">{item.name}</p>
                 <p className="text-[11px] text-(--muted) mb-2 font-mono">{item.sku}</p>
                 <Button
-                  variant="report"
+                  variant="report" tone="positive"
                   onClick={() => addToCart(item, item.minOrder)}
-                  className="min-h-0 w-full text-[11px] bg-accent-cyan/10 border-accent-cyan/20 text-accent-cyan py-1.5 hover:bg-accent-cyan/20 hover:text-accent-cyan"
+                  className="min-h-0 w-full text-[11px] py-1.5"
                 >
                   До замовлення
                 </Button>

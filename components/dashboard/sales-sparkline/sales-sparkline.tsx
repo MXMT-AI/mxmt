@@ -1,5 +1,3 @@
-"use client";
-
 import { useId } from "react";
 
 interface Point { date: string; qty: number }

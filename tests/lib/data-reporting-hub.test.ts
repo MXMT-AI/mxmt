@@ -1,19 +1,30 @@
 import { createElement, isValidElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, expect, it, vi } from "vitest";
 import DataReportingHub from "@/components/data-reporting/data-reporting-hub/data-reporting-hub";
 import { Button } from "@/components/ui/button/button";
 
-const fixture = vi.hoisted(() => ({ search: "", replaceState: vi.fn() }));
+const fixture = vi.hoisted(() => ({ search: "", replaceState: vi.fn(), ready: [] as Promise<void>[] }));
 vi.mock("next/navigation", () => ({ useSearchParams: () => new URLSearchParams(fixture.search) }));
-vi.mock("next/dynamic", () => ({ default: () => () => "SalesDrive workspace" }));
+vi.mock("next/dynamic", async () => {
+  const { createElement } = await import("react");
+  return { default: (load: () => Promise<{ default: import("react").ComponentType<any> }>) => {
+    let component: import("react").ComponentType<any> | undefined;
+    fixture.ready.push(load().then(module => { component = module.default; }));
+    return (props: Record<string, unknown>) => component ? createElement(component, props) : null;
+  } };
+});
 vi.mock("@/components/language-provider/language-provider", () => ({ useLang: () => ({ lang: "en" }) }));
 vi.mock("@/components/merchandising/reporting-source-status/reporting-source-status", () => ({ default: () => null }));
 vi.mock("@/components/data-reporting/data-reporting-workspace/data-reporting-workspace", () => ({
   default: () => "Sheets workspace",
 }));
+vi.mock("@/components/data-reporting/sales-reporting-workspace/sales-reporting-workspace", () => ({
+  default: () => "SalesDrive workspace",
+}));
 
 const props = { userRole: "ADMIN", initialPreferences: {} };
+beforeAll(async () => { await Promise.all(fixture.ready); });
 
 beforeEach(() => {
   vi.resetAllMocks();

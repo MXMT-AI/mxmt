@@ -1,6 +1,10 @@
-import type { Chip, Week } from "./calendar-types";
+import type { CalendarSchedule, Chip, Week } from "./calendar-types";
+import type { Locale } from "@/i18n/routing";
 
-const MONTHS_UK = ["Січ","Лют","Бер","Кві","Тра","Чер","Лип","Сер","Вер","Жов","Лис","Гру"];
+const months = {
+  uk: ["Січ","Лют","Бер","Кві","Тра","Чер","Лип","Сер","Вер","Жов","Лис","Гру"],
+  en: ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
+};
 
 function getISOWeek(d: Date): number {
   const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
@@ -10,7 +14,7 @@ function getISOWeek(d: Date): number {
   return Math.ceil((((date.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
 }
 
-function generateWeeks(count: number, today: Date): Week[] {
+function generateWeeks(count: number, today: Date, locale: Locale): Week[] {
   const weeks: Week[] = [];
   const day = today.getDay();
   const monday = new Date(today);
@@ -26,9 +30,9 @@ function generateWeeks(count: number, today: Date): Week[] {
     const fmt = (d: Date) => `${d.getDate()}.${String(d.getMonth() + 1).padStart(2, "0")}`;
     weeks.push({
       k: `w${isoWeek}`,
-      l: `Тижд ${isoWeek}`,
+      l: `${locale === "uk" ? "Тижд" : "Week"} ${isoWeek}`,
       d: `${fmt(start)}–${fmt(end)}`,
-      m: MONTHS_UK[start.getMonth()],
+      m: months[locale][start.getMonth()],
     });
   }
   return weeks;
@@ -63,7 +67,7 @@ function buildHolidayChips(weeks: Week[], year: number): Record<string, Chip[]> 
   return chips;
 }
 
-export function buildCalendarWeeks(today: Date) {
-  const weeks = generateWeeks(13, today);
+export function buildCalendarWeeks(today: Date, locale: Locale = "uk"): CalendarSchedule {
+  const weeks = generateWeeks(13, today, locale);
   return { weeks, holidayChips: buildHolidayChips(weeks, today.getFullYear()) };
 }

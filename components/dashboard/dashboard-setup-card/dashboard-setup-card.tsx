@@ -2,6 +2,7 @@ import type { ComponentProps, ReactNode } from "react";
 import { ActionLink } from "@/components/ui/action-link/action-link";
 import { Heading } from "@/components/ui/heading/heading";
 import { Text } from "@/components/ui/text/text";
+import { panel } from "@/components/ui/panel/panel-styles";
 import { cn } from "@/lib/utils";
 
 const tones = {
@@ -21,7 +22,7 @@ export function DashboardSetupCard({ eyebrow, title, children, href, action, ton
 }) {
   const style = tones[tone];
   return (
-    <section className={cn("rounded-xl border bg-(--surface) p-6", style.border, !stacked && "flex flex-wrap items-start justify-between gap-4")}>
+    <section className={cn(panel, "p-6", style.border, !stacked && "flex flex-wrap items-start justify-between gap-4")}>
       <div>
         <div className={cn("mb-2 font-mono text-[9px] tracking-widest uppercase", style.ink)}>{eyebrow}</div>
         <Heading as="h2" variant="compact" className="mb-1 text-base">{title}</Heading>

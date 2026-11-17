@@ -1,4 +1,5 @@
 "use client";
+import { Heading } from "@/components/ui/heading/heading";
 
 import { panel } from "@/components/ui/panel/panel-styles";
 import { Button } from "@/components/ui/button/button";
@@ -36,12 +37,12 @@ export function RepricingFilters({ monobrand = false, draft, onChange, data, err
       aria-labelledby="repricing-filters"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 id="repricing-filters" className="font-semibold">
+        <Heading as="h2" variant="compact" id="repricing-filters" className="text-base text-inherit">
           {copy.filters}{" "}
           <span className="ml-2 text-xs font-normal text-(--muted)">
             {copy.active}: {activeRepricingFilters(f)}
           </span>
-        </h2>
+        </Heading>
         <Button
           variant="report"
           onClick={() =>

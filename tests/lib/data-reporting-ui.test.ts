@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { DataColumnMetadata } from "@/lib/data-table-api";
 import {
+  canSortReportColumn,
   currentKyivMonth,
   formatTableValue,
   nextSortDirection,
@@ -13,6 +14,18 @@ const columns: DataColumnMetadata[] = [
   { key: "sales", label: "Sales", type: "money", defaultVisible: true },
   { key: "source_a", label: "Source A", type: "source", defaultVisible: false },
 ];
+
+it.each(["product_yml", "zavod_api"] as const)("allows sorting raw table %s only by row number", table => {
+  expect(canSortReportColumn(table, { key: "rowNumber", sourceOnly: true })).toBe(true);
+  expect(canSortReportColumn(table, { key: "sales", sourceOnly: false })).toBe(false);
+  expect(canSortReportColumn(table, { key: "source_a", sourceOnly: true })).toBe(false);
+});
+
+it.each(["article_report", "by_brand", "by_category"] as const)("excludes source-only columns from sorting calculated table %s", table => {
+  expect(canSortReportColumn(table, { key: "sales" })).toBe(true);
+  expect(canSortReportColumn(table, { key: "stock", sourceOnly: false })).toBe(true);
+  expect(canSortReportColumn(table, { key: "source_a", sourceOnly: true })).toBe(false);
+});
 
 describe("data reporting UI helpers", () => {
   it("uses valid saved columns in their saved order", () => {

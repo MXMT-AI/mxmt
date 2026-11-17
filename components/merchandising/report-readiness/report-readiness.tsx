@@ -1,3 +1,4 @@
+import { Heading } from "@/components/ui/heading/heading";
 import { Link } from "@/i18n/navigation";
 import type { Lang } from "@/lib/translations";
 import type { readReportReadiness } from "@/lib/report-readiness";
@@ -21,7 +22,7 @@ export default function ReportReadiness({ data, lang }: {
 
   return (
     <aside className={panel + " p-4 space-y-3"} aria-label={copy.ariaLabel}>
-      <h2 className="font-semibold">{copy.heading}</h2>
+      <Heading as="h2" variant="compact" className="text-base text-inherit">{copy.heading}</Heading>
       <p className="text-xs text-(--muted)">{copy.scope}</p>
       {visibleReasons.length ? (
         <ul className="list-disc pl-5 space-y-2 text-sm">

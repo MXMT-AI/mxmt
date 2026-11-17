@@ -1,13 +1,16 @@
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button/button";
 import { Dialog } from "@/components/ui/dialog/dialog";
+import { Field } from "@/components/ui/field/field";
+import { controlBase } from "@/components/ui/control-styles/control-styles";
+import { cn } from "@/lib/utils";
 import type { Locale } from "@/i18n/routing";
 import { calendarChipTypes, calendarEventTypes } from "../marketing-calendar/calendar-chip-types";
 import { calendarRows } from "../marketing-calendar/calendar-rows";
 import type { EventDialogState, EventDraft, Week } from "../marketing-calendar/calendar-types";
 
-const controlClassName = "w-full rounded-lg border border-(--border) bg-(--surface2) px-3 py-2 text-sm text-(--text) focus:border-accent-cyan/40";
-const labelClassName = "flex flex-col gap-1.5 font-mono text-[10px] tracking-widest text-(--muted) uppercase";
+const controlClassName = cn(controlBase, "w-full bg-(--surface2) py-2 text-sm focus:border-accent-cyan/40");
+const labelClassName = "font-mono text-[10px] tracking-widest uppercase";
 
 function EventSelect({ label, value, options, onChange }: {
   label: string;
@@ -16,12 +19,11 @@ function EventSelect({ label, value, options, onChange }: {
   onChange: (value: string) => void;
 }) {
   return (
-    <label className={labelClassName}>
-      {label}
+    <Field label={label} className={labelClassName}>
       <select className={controlClassName} value={value} onChange={(event) => onChange(event.target.value)}>
         {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
-    </label>
+    </Field>
   );
 }
 
@@ -84,8 +86,7 @@ export function CalendarEventDialog({ event, weeks, locale, onSave, onClose }: {
               <EventSelect label={uk ? "Тиждень" : "Week"} value={draft.weekKey} options={weekOptions} onChange={(weekKey) => setDraft({ ...draft, weekKey })} />
             </>
           )}
-          <label className={labelClassName}>
-            {uk ? "Назва" : "Name"}
+          <Field label={uk ? "Назва" : "Name"} className={labelClassName}>
             <input
               type="text"
               value={draft.label}
@@ -94,7 +95,7 @@ export function CalendarEventDialog({ event, weeks, locale, onSave, onClose }: {
               placeholder={adding ? (uk ? "напр. -20% на годинники KOMONO" : "e.g. -20% on KOMONO watches") : undefined}
               required
             />
-          </label>
+          </Field>
         </fieldset>
 
         {error && <p role="alert" className="text-sm text-accent-danger">{uk ? "Не вдалося зберегти подію." : "Could not save the event."}</p>}

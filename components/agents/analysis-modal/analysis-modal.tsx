@@ -109,7 +109,7 @@ export function AnalysisModal({
                   <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-2">Бестселери</div>
                   <div className="flex flex-wrap gap-1.5">
                     {output.bestsellers.map((b: string) => (
-                      <span key={b} className="text-[10px] font-mono px-2 py-0.5 bg-accent-cyan/10 border border-accent-cyan/20 rounded-sm text-accent-cyan">{b}</span>
+                      <Badge key={b} tone="positive">{b}</Badge>
                     ))}
                   </div>
                 </div>
@@ -119,7 +119,7 @@ export function AnalysisModal({
                   <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-2">Dead Stock</div>
                   <div className="flex flex-wrap gap-1.5">
                     {output.dead_stock.map((d: string) => (
-                      <span key={d} className="text-[10px] font-mono px-2 py-0.5 bg-accent-danger/10 border border-accent-danger/20 rounded-sm text-accent-danger">{d}</span>
+                      <Badge key={d} tone="danger">{d}</Badge>
                     ))}
                   </div>
                 </div>
@@ -281,9 +281,9 @@ export function AnalysisModal({
                   <div className="px-4 py-3 bg-accent-yellow/5 border-b border-(--border)">
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-sm text-(--text)">{brand.brand_name}</span>
-                      <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded-sm ${brand.urgency === "critical" ? "bg-accent-danger/10 text-accent-danger" : "bg-accent-yellow/10 text-accent-yellow"}`}>
+                      <Badge size="small" outlined={false} tone={brand.urgency === "critical" ? "danger" : "warning"}>
                         {(brand.urgency ?? "").toUpperCase()}
-                      </span>
+                      </Badge>
                     </div>
                     {brand.decision_summary && <p className="text-[11px] text-(--muted) mt-0.5">{brand.decision_summary}</p>}
                     {brand.key_message && <p className="text-[12px] text-(--text) mt-1 italic">"{brand.key_message}"</p>}
@@ -373,10 +373,10 @@ export function AnalysisModal({
                           <p className="text-[12px] text-(--text)">{p.action}</p>
                           <div className="flex items-center gap-2 mt-1 flex-wrap">
                             {p.brand && p.brand !== "все" && <span className="text-[10px] font-mono text-(--subtle)">{p.brand}</span>}
-                            <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded-sm ${p.deadline === "today" ? "bg-accent-danger/10 text-accent-danger" : p.deadline === "tomorrow" ? "bg-accent-yellow/10 text-accent-yellow" : "bg-(--input-bg) text-(--muted)"}`}>
+                            <Badge size="small" outlined={false} tone={p.deadline === "today" ? "danger" : p.deadline === "tomorrow" ? "warning" : "neutral"}>
                               {p.deadline}
-                            </span>
-                            {p.type && <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm bg-accent-report/10 text-accent-report">{p.type}</span>}
+                            </Badge>
+                            {p.type && <Badge size="small" outlined={false} tone="report">{p.type}</Badge>}
                           </div>
                         </div>
                       </div>

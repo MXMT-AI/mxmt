@@ -1,11 +1,10 @@
-import { headers } from "next/headers";
+import { requireWorkspaceTenantId } from "@/lib/workspace-request";
 import AnalystApp from "@/components/analyst/analyst-app/analyst-app";
 import { loadAnalystClassification } from "@/lib/analyst-classification";
 import { prisma } from "@/lib/prisma";
 
 export default async function AnalystPage() {
-  const requestHeaders = await headers();
-  const tenantId = requestHeaders.get("x-tenant-id")!;
+  const tenantId = await requireWorkspaceTenantId();
 
   const [classification, tenant] = await Promise.all([
     loadAnalystClassification(tenantId),

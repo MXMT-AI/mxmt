@@ -1,4 +1,5 @@
 "use client";
+import { Heading } from "@/components/ui/heading/heading";
 
 import { panel } from "@/components/ui/panel/panel-styles";
 import { Button } from "@/components/ui/button/button";
@@ -33,9 +34,9 @@ export function RepricingParameters({ draft, onChange, error, copy }: {
       aria-labelledby="repricing-parameters"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 id="repricing-parameters" className="font-semibold">
+        <Heading as="h2" variant="compact" id="repricing-parameters" className="text-base text-inherit">
           {copy.parameters}
-        </h2>
+        </Heading>
         <div
           role="group"
           aria-label={copy.quick}

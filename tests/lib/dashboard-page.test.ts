@@ -11,14 +11,19 @@ const fixture = vi.hoisted(() => ({
   classify: vi.fn(),
   dailySales: vi.fn(),
   catalogCount: vi.fn(),
+  headers: vi.fn(),
+  locale: vi.fn(),
+  redirect: vi.fn(),
+  sync: vi.fn(),
 }));
 vi.mock("server-only", () => ({}));
-vi.mock("next/headers", () => ({ headers: async () => new Headers({ "x-tenant-id": "store" }) }));
-vi.mock("next-intl/server", () => ({ getLocale: async () => "en" }));
+vi.mock("next/headers", () => ({ headers: fixture.headers }));
+vi.mock("next-intl/server", () => ({ getLocale: fixture.locale }));
+vi.mock("@/i18n/navigation", () => ({ redirect: fixture.redirect }));
 vi.mock("@/lib/analyst-classification", () => ({ loadAnalystClassification: fixture.classify }));
 vi.mock("@/lib/prisma", () => ({
   prisma: {
-    googleDriveSync: { findFirst: async () => null },
+    googleDriveSync: { findFirst: fixture.sync },
     catalogItem: { count: fixture.catalogCount },
     salesRecord: { groupBy: fixture.dailySales },
   },
@@ -32,8 +37,22 @@ function nodes(node: ReactNode): { type: unknown; props: Record<string, any> }[]
 
 beforeEach(() => {
   vi.resetAllMocks();
+  fixture.headers.mockResolvedValue(new Headers({ "x-tenant-id": "store" }));
+  fixture.locale.mockResolvedValue("en");
+  fixture.redirect.mockImplementation(() => { throw new Error("REDIRECT"); });
+  fixture.sync.mockResolvedValue(null);
   fixture.catalogCount.mockResolvedValue(0);
   fixture.dailySales.mockResolvedValue([]);
+});
+
+it.each(["uk", "en"])("redirects missing tenant context before any report query in %s", async locale => {
+  fixture.headers.mockResolvedValue(new Headers());
+  fixture.locale.mockResolvedValue(locale);
+  await expect(DashboardPage()).rejects.toThrow("REDIRECT");
+  expect(fixture.redirect).toHaveBeenCalledWith({ href: "/login", locale });
+  for (const query of [fixture.classify, fixture.sync, fixture.catalogCount, fixture.dailySales]) {
+    expect(query).not.toHaveBeenCalled();
+  }
 });
 
 it("counts all alerts while showing four SKUs per panel with the existing sorting", async () => {

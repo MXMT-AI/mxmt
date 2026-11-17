@@ -1,5 +1,6 @@
 import { CheckCircle2, LoaderCircle } from "lucide-react";
 import { Badge, type BadgeTone } from "@/components/ui/badge/badge";
+import { panel } from "@/components/ui/panel/panel-styles";
 
 export function reportStatusTone(status: string | null | undefined): BadgeTone {
   if (status === "SUCCESS") return "positive";
@@ -16,7 +17,7 @@ export function ReportStatusCard({ label, value, detail, status, loading }: {
   loading: boolean;
 }) {
   return (
-    <div className="min-w-0 rounded-xl border border-(--border) bg-(--surface) p-4">
+    <div className={panel + " p-4"}>
       <p className="mb-2 font-mono text-[10px] tracking-widest text-(--subtle) uppercase">{label}</p>
       {loading ? (
         <div className="flex h-8 items-center">

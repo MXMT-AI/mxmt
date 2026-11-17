@@ -1,5 +1,8 @@
 import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button/button";
+import { controlBase } from "@/components/ui/control-styles/control-styles";
+import { Field } from "@/components/ui/field/field";
+import { panel } from "@/components/ui/panel/panel-styles";
 import type { ClassifiedSku } from "@/lib/analyst-types";
 import { cn } from "@/lib/utils";
 
@@ -38,22 +41,21 @@ export function AnalystSkuTable({ skus, locale, page, onPageChange, filters }: {
     <>
       <div className="mb-4 flex flex-wrap items-center gap-2">
         {filters}
-        <label className="ml-auto flex items-center gap-2 text-xs text-(--subtle)">
-          {uk ? "На сторінці:" : "Per page:"}
+        <Field label={uk ? "На сторінці:" : "Per page:"} className="ml-auto flex-row items-center gap-2 text-(--subtle)">
           <select
             value={pageSize}
             onChange={(event) => {
               setPageSize(Number(event.target.value));
               onPageChange(1);
             }}
-            className="rounded-lg border border-(--border) bg-(--surface) py-1.5 pr-7 pl-2 text-xs text-(--text)"
+            className={cn(controlBase, "bg-(--surface) py-1.5 pr-7 pl-2 text-xs")}
           >
             {pageSizes.map((size) => <option key={size} value={size}>{size}</option>)}
           </select>
-        </label>
+        </Field>
       </div>
 
-      <div className="mb-4 overflow-x-auto rounded-xl border border-(--border) bg-(--surface)">
+      <div className={cn(panel, "mb-4 overflow-x-auto")}>
         <table className="w-full text-sm">
           <thead className="font-mono text-[10px] tracking-widest text-(--subtle) uppercase">
             <tr className="border-b border-(--border)">

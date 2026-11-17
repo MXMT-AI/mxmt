@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { useReportTable } from "@/components/data-reporting/use-report-table";
+import { useReportTable } from "@/components/data-reporting/use-report-table/use-report-table";
 import { normalizeTablePreferences } from "@/lib/data-table-preferences";
 
 vi.mock("react", async (load) => ({
@@ -74,4 +74,20 @@ it("includes search, sorting and page size in the request and hides a result for
     page: "2", pageSize: "100", direction: "desc", search: "Test & SKU", sort: "name",
   });
   await vi.waitFor(() => expect(setResult).toHaveBeenCalledOnce());
+});
+
+it("retries the same report request after refreshing an expired session", async () => {
+  const fetchMock = vi.fn()
+    .mockResolvedValueOnce(new Response(null, { status: 401 }))
+    .mockResolvedValueOnce(new Response(null, { status: 204 }))
+    .mockResolvedValueOnce(Response.json({ pagination: { totalPages: 5 }, rows: [] }));
+  vi.stubGlobal("fetch", fetchMock);
+
+  start(defaultArgs);
+  await vi.waitFor(() => expect(setResult).toHaveBeenCalledOnce());
+
+  expect(fetchMock).toHaveBeenCalledTimes(3);
+  expect(fetchMock).toHaveBeenNthCalledWith(2, "/api/auth/refresh", { method: "POST" });
+  expect(fetchMock.mock.calls[2]).toEqual(fetchMock.mock.calls[0]);
+  expect(setResult.mock.calls[0][0]).toMatchObject({ table: { rows: [] }, error: null });
 });

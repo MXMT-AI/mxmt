@@ -1,4 +1,5 @@
 "use client";
+import { Heading } from "@/components/ui/heading/heading";
 import { useState } from "react";
 import ReportTable from "@/components/data-reporting/report-table/report-table";
 import { panel } from "@/components/ui/panel/panel-styles";
@@ -43,9 +44,9 @@ export function ReorderingSupplierGroups({
       aria-labelledby="reordering-suppliers"
     >
       <div className="p-5 space-y-2">
-        <h2 className="font-semibold" id="reordering-suppliers">
+        <Heading as="h2" variant="compact" className="text-base text-inherit" id="reordering-suppliers">
           {copy.suppliers}
-        </h2>
+        </Heading>
         <Note>{copy.supplierNote}</Note>
       </div>
       <ReportTable

@@ -65,6 +65,8 @@ describe("localized reordering UI", () => {
       expect(controls).toContain(copy.modes.shortage);
       expect(controls).toContain(copy.modes.brand);
       expect(controls).toContain(copy.inherit);
+      expect(controls).toContain('aria-describedby="reordering-settings-note"');
+      expect(controls).toContain('id="reordering-settings-note"');
       expect(controls).toContain('name="leadDays"');
       expect(controls).toContain("Play Studio");
       expect(controls).not.toContain("Calculate");
@@ -92,6 +94,8 @@ describe("localized reordering UI", () => {
       );
       expect(summary).toContain(copy.partial);
       expect(summary).toContain(copy.csvReady);
+      expect(summary).toContain('aria-describedby="reordering-csv-note"');
+      expect(summary).toContain('id="reordering-csv-note"');
       expect(summary).toContain("USD");
       expect(summary).toContain("UAH");
       const groups = renderToStaticMarkup(

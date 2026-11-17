@@ -1,4 +1,11 @@
 import type { DataColumnMetadata, DataColumnType } from "@/lib/data-table-api";
+import type { DataTableKey } from "@/lib/data-table-preferences";
+
+export function canSortReportColumn(table: DataTableKey, column: Pick<DataColumnMetadata, "key" | "sourceOnly">): boolean {
+  return table === "product_yml" || table === "zavod_api"
+    ? column.key === "rowNumber"
+    : !column.sourceOnly;
+}
 
 export type ReportPeriodIssue = "required" | "reversed" | null;
 

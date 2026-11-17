@@ -7,12 +7,14 @@ import { ActionLink } from "@/components/ui/action-link/action-link";
 import { Button } from "@/components/ui/button/button";
 import { Heading } from "@/components/ui/heading/heading";
 import { Text } from "@/components/ui/text/text";
+import { Note } from "@/components/ui/note/note";
 import type { ClassifiedSku, ClassifySummary } from "@/lib/analyst-types";
 
 import { AnalystChat } from "../analyst-chat/analyst-chat";
 import { AnalystFilterButtons, AnalystFilterCards } from "../analyst-filters/analyst-filters";
 import { AnalystSkuTable } from "../analyst-sku-table/analyst-sku-table";
 import type { AnalystFilter } from "../sku-flags";
+import { useAnalystClassification } from "./use-analyst-classification";
 
 interface Props {
   initialSkus: ClassifiedSku[];
@@ -26,25 +28,10 @@ export default function AnalystApp({ initialSkus, initialSummary, businessModel,
   const uk = lang === "uk";
   const locale: "uk" | "en" = uk ? "uk" : "en";
 
-  const [skus, setSkus] = useState(initialSkus);
-  const [summary, setSummary] = useState(initialSummary);
+  const { skus, summary, loading, error, reload } = useAnalystClassification(initialSkus, initialSummary);
   const [activeFlag, setActiveFlag] = useState<AnalystFilter>("all");
-  const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const empty = summary.total === 0 && !loading;
-
-  async function reload(flag: AnalystFilter) {
-    setLoading(true);
-    try {
-      const params = flag === "all" ? "" : `?flag=${flag}`;
-      const res = await fetch(`/api/analyst/classify${params}`);
-      const data = await res.json();
-      setSkus(data.skus);
-      setSummary(data.summary);
-    } finally {
-      setLoading(false);
-    }
-  }
 
   function setFilter(flag: AnalystFilter) {
     setActiveFlag(flag);
@@ -65,13 +52,19 @@ export default function AnalystApp({ initialSkus, initialSummary, businessModel,
             {uk ? "Агент Аналітик" : "Analyst Agent"}
           </Heading>
         </div>
-        {!empty && (
+        {(!empty || error) && (
           <Button onClick={() => void reload(activeFlag)} disabled={loading} className="px-3 py-2 font-sans text-sm">
             <RefreshCw size={13} className={loading ? "motion-safe:animate-spin" : undefined} aria-hidden="true" />
             {uk ? "Оновити" : "Refresh"}
           </Button>
         )}
       </header>
+
+      {error && (
+        <Note role="alert" className="mb-4 text-accent-danger">
+          {uk ? "Не вдалося оновити дані. Спробуйте ще раз." : "Could not refresh data. Please try again."}
+        </Note>
+      )}
 
       {empty ? (
         <section className="mt-8 rounded-xl border border-accent-yellow/20 bg-(--surface) p-8 text-center">

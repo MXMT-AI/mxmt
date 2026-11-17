@@ -4,8 +4,10 @@ import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { useLang } from "@/components/language-provider/language-provider";
 import { Button } from "@/components/ui/button/button";
-import DataReportingWorkspace from "../data-reporting-workspace/data-reporting-workspace";
 import type { DataTableKey, InitialTablePreference } from "@/lib/data-table-preferences";
+const DataReportingWorkspace = dynamic(
+  () => import("../data-reporting-workspace/data-reporting-workspace"),
+);
 const SalesReportingWorkspace = dynamic(
   () => import("../sales-reporting-workspace/sales-reporting-workspace"),
 );
@@ -33,9 +35,10 @@ export default function DataReportingHub(props: {
           <Button
             key={item.label}
             type="button"
+            variant="report"
             aria-pressed={sales === item.value}
             onClick={() => choose(item.value)}
-            className="touch-manipulation bg-(--surface) px-3 py-2 font-sans text-sm text-(--text) focus-visible:outline-solid focus-visible:outline-2 aria-pressed:border-(--text) aria-pressed:font-semibold"
+            className="bg-(--surface) px-3 font-sans text-(--text) aria-pressed:border-(--text) aria-pressed:font-semibold"
           >
             {item.label}
           </Button>

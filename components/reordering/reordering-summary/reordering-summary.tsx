@@ -1,4 +1,5 @@
 "use client";
+import { Heading } from "@/components/ui/heading/heading";
 import { panel } from "@/components/ui/panel/panel-styles";
 import { Button } from "@/components/ui/button/button";
 import { MetricTile } from "@/components/ui/metric-tile/metric-tile";
@@ -30,9 +31,9 @@ export default function ReorderingSummary({
       aria-busy={!current}
     >
       <div className="flex flex-wrap justify-between items-center gap-3">
-        <h2 className="font-semibold" id="reordering-summary">
+        <Heading as="h2" variant="compact" className="text-base text-inherit" id="reordering-summary">
           {copy.summary}
-        </h2>
+        </Heading>
         <Button
           variant="report"
           disabled={!onExport || exporting || !current}
@@ -80,9 +81,9 @@ export default function ReorderingSummary({
         </div>
       ))}
       <Note>{copy.globalBasis}</Note>
-      <p id="reordering-csv-note" className="text-xs text-(--muted)">
+      <Note id="reordering-csv-note" className="leading-4">
         {copy.csvReady}
-      </p>
+      </Note>
     </section>
   );
 }

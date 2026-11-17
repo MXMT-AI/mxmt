@@ -3,6 +3,8 @@
 import { useId, useState } from "react";
 import { control } from "../control-styles/control-styles";
 
+const optionLimit = 100;
+
 export function Choice({
   label,
   value,
@@ -21,11 +23,11 @@ export function Choice({
   const id = useId(),
     [search, setSearch] = useState("");
   const selected = options.find((o) => o.id === value);
-  const matching = options
-    .filter((o) =>
-      (o.name ?? o.id).toLocaleLowerCase().includes(search.toLocaleLowerCase()),
-    )
-    .slice(0, 100);
+  const searchable = options.length > optionLimit;
+  const query = search.toLocaleLowerCase();
+  const matching = (searchable
+    ? options.filter(option => (option.name ?? option.id).toLocaleLowerCase().includes(query))
+    : options).slice(0, optionLimit);
   const visible =
     selected && !matching.some((o) => o.id === value)
       ? [selected, ...matching]
@@ -33,7 +35,7 @@ export function Choice({
   return (
     <fieldset className="min-w-0 space-y-1.5 text-xs text-(--muted)">
       <legend>{label}</legend>
-      {options.length > 100 ? (
+      {searchable ? (
         <input
           className={control}
           name={id + "-search"}

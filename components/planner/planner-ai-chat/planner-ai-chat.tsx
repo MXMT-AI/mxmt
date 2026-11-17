@@ -73,11 +73,11 @@ export function PlannerAiChat({ messages, input, loading, onInputChange, onSend 
           className={cn(control, "flex-1 rounded-xl px-4 py-3 focus:border-accent-cyan/40 placeholder:text-(--subtle)")}
         />
         <Button
-          variant="report"
+          variant="report" tone="positive"
           type="submit"
           aria-label="Надіслати запит"
           disabled={loading || !input.trim()}
-          className="px-5 bg-accent-cyan/10 border-accent-cyan/20 text-accent-cyan rounded-xl font-medium hover:bg-accent-cyan/20 hover:text-accent-cyan"
+          className="px-5 rounded-xl font-medium"
         >
           <span aria-hidden="true">→</span>
         </Button>

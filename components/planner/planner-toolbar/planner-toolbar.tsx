@@ -16,7 +16,7 @@ const tabs = [
   { id: "brands", label: "Бренди", icon: Building2 },
 ] satisfies Array<{ id: PlannerSection; label: string; icon: LucideIcon }>;
 
-const accentAction = "min-h-0 gap-2 px-3 py-1.5 bg-accent-cyan/10 border-accent-cyan/20 text-accent-cyan font-medium hover:bg-accent-cyan/20 hover:text-accent-cyan";
+const actionClassName = "min-h-0 gap-2 px-3 py-1.5 font-medium";
 
 export function PlannerToolbar({
   section, onSectionChange, totalCartItems, totalSpent, totalBudget, fmt,
@@ -63,7 +63,7 @@ export function PlannerToolbar({
           ) : null}
         </div>
         {section === "catalog" ? (
-          <Button variant="report" onClick={onUpload} className={accentAction}>
+          <Button variant="report" tone="positive" onClick={onUpload} className={actionClassName}>
             <Upload size={13} aria-hidden="true" /> Завантажити
           </Button>
         ) : null}
@@ -73,12 +73,12 @@ export function PlannerToolbar({
           </Button>
         ) : null}
         {section === "cart" && hasCartItems ? (
-          <Button variant="report" onClick={onExport} disabled={exporting} className="min-h-0 gap-2 px-3 py-1.5 bg-accent-purple/10 border-accent-purple/20 text-accent-purple font-medium hover:bg-accent-purple/20 hover:text-accent-purple">
+          <Button variant="report" tone="accent" onClick={onExport} disabled={exporting} className={actionClassName}>
             <Download size={13} aria-hidden="true" /> {exporting ? "Готуємо Excel…" : "Експорт ЗП"}
           </Button>
         ) : null}
         {section === "brands" ? (
-          <Button variant="report" onClick={onAddBrand} className={accentAction}>
+          <Button variant="report" tone="positive" onClick={onAddBrand} className={actionClassName}>
             <Plus size={13} aria-hidden="true" /> Додати бренд
           </Button>
         ) : null}

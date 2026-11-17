@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button/button";
 import type { DataColumnMetadata } from "@/lib/data-table-api";
 import { formatTableValue } from "@/lib/data-reporting-ui";
 
+const cellBase = "border-r px-3 last:border-r-0";
+
 export interface ReportTableProps {
   columns: DataColumnMetadata[];
   rows: Array<Record<string, unknown>>;
@@ -35,6 +37,16 @@ export default function ReportTable({
   renderCell,
   getCellStyle,
 }: ReportTableProps) {
+  const ascending = direction === "asc";
+  const SortIcon = ascending ? ArrowUp : ArrowDown;
+  const sortOrder = ascending ? "ascending" : "descending";
+  const tableColumns = columns.map((column) => ({
+    column,
+    cellClassName: `${cellBase} max-w-md border-(--border-faint) py-2 text-(--text) ${
+      column.type === "text" || column.type === "source" ? "text-left" : "text-right tabular-nums"
+    }`,
+  }));
+
   return (
     <div
       className="max-h-[62vh] overflow-auto"
@@ -45,7 +57,7 @@ export default function ReportTable({
       <table className="w-full min-w-max border-collapse text-xs">
         <thead className="sticky top-0 z-10 bg-(--surface2)">
           <tr>
-            {columns.map((column) => {
+            {tableColumns.map(({ column }) => {
               const sortable = Boolean(onSort) && Boolean(isSortable?.(column));
               const selected = sortColumn === column.key;
 
@@ -53,8 +65,8 @@ export default function ReportTable({
                 <th
                   key={column.key}
                   scope="col"
-                  aria-sort={selected ? (direction === "asc" ? "ascending" : "descending") : undefined}
-                  className="border-r border-b border-(--border) px-3 py-2.5 text-left font-semibold whitespace-nowrap text-(--muted) last:border-r-0"
+                  aria-sort={selected ? sortOrder : undefined}
+                  className={`${cellBase} border-b border-(--border) py-2.5 text-left font-semibold whitespace-nowrap text-(--muted)`}
                 >
                   {sortable ? (
                     <Button
@@ -62,9 +74,7 @@ export default function ReportTable({
                       className="rounded-none border-0 p-0 font-[family-name:inherit] text-xs font-semibold hover:bg-transparent focus-visible:outline-solid focus-visible:outline-2"
                     >
                       {column.label}
-                      {selected && (direction === "asc"
-                        ? <ArrowUp aria-hidden="true" size={11} />
-                        : <ArrowDown aria-hidden="true" size={11} />)}
+                      {selected && <SortIcon aria-hidden="true" size={11} />}
                     </Button>
                   ) : column.label}
                 </th>
@@ -78,14 +88,14 @@ export default function ReportTable({
               key={`${String(row.id ?? index)}:${String(row.currency ?? "")}`}
               className="border-b border-(--border-faint) last:border-b-0 hover:bg-(--input-bg)"
             >
-              {columns.map((column) => {
+              {tableColumns.map(({ column, cellClassName }) => {
                 const formatted = renderCell ? undefined : formatTableValue(row[column.key], column.type, locale);
 
                 return (
                   <td
                     key={column.key}
                     style={getCellStyle?.(row, column)}
-                    className={`max-w-md border-r border-(--border-faint) px-3 py-2 text-(--text) last:border-r-0 ${column.type === "text" || column.type === "source" ? "text-left" : "text-right tabular-nums"}`}
+                    className={cellClassName}
                   >
                     {renderCell ? renderCell(row, column) : (
                       <span className="block truncate" title={formatted}>{formatted}</span>

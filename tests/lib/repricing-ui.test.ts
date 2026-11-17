@@ -151,6 +151,8 @@ it.each(["uk", "en"] as const)("preserves zero money, unavailable money and reve
   const copy = repricingCopy[lang];
   const zero = { ...data, counts: { ...data.counts, eligibleSkuCount: 1 }, totals: { ...data.totals, costCapital: "0", potentialRevenue: null, grossProfit: "0" } } as unknown as RepricingPreview;
   const html = renderToStaticMarkup(createElement(Summary, { data: zero, current: true, copy, locale: lang === "uk" ? "uk-UA" : "en-US" }));
+  expect(html).toContain('aria-describedby="repricing-export-note"');
+  expect(html).toContain('id="repricing-export-note"');
   expect((html.match(/<small class="ml-1 text-xs">UAH<\/small>/g) ?? [])).toHaveLength(2);
   const revenue = html.match(/<dd[^>]*scenario-key-value[^>]*>(.*?)<\/dd>/)![1];
   expect(revenue).toBe("—");

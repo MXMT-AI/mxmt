@@ -1,4 +1,5 @@
 "use client";
+import { Heading } from "@/components/ui/heading/heading";
 import { panel } from "@/components/ui/panel/panel-styles";
 import { Button } from "@/components/ui/button/button";
 import { Note } from "@/components/ui/note/note";
@@ -50,9 +51,9 @@ export default function ReorderingControls({
       aria-labelledby="reordering-controls"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="font-semibold" id="reordering-controls">
+        <Heading as="h2" variant="compact" className="text-base text-inherit" id="reordering-controls">
           {copy.mode}
-        </h2>
+        </Heading>
         <Button variant="report" onClick={onReset}>
           {copy.reset}
         </Button>
@@ -115,9 +116,9 @@ export default function ReorderingControls({
           );
         })}
       </div>
-      <p id="reordering-settings-note" className="text-xs text-(--muted)">
+      <Note id="reordering-settings-note" className="leading-4">
         {copy.inherit}
-      </p>
+      </Note>
       {parameterErrors.length > 0 ? (
         <p id="reordering-field-error" role="alert" className="text-sm">
           {copy.invalid}

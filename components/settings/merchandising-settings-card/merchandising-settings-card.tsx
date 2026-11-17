@@ -1,4 +1,5 @@
 "use client";
+import { Field } from "@/components/ui/field/field";
 import { Button } from "@/components/ui/button/button";
 import { Text } from "@/components/ui/text/text";
 import { Heading } from "@/components/ui/heading/heading";
@@ -134,8 +135,7 @@ export default function MerchandisingSettingsCard({
             }
           }}
         >
-          <label className="min-w-0 flex-1 text-sm text-(--muted)">
-            {uk ? "Пошук назви або SKU" : "Search name or SKU"}
+          <Field label={uk ? "Пошук назви або SKU" : "Search name or SKU"} className="flex-1 gap-0 text-sm">
             <input
               className={inputClass}
               name="merch-search"
@@ -144,7 +144,7 @@ export default function MerchandisingSettingsCard({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
-          </label>
+          </Field>
           <Button variant="report" type="submit" className={buttonClass}>{uk ? "Знайти" : "Search"}</Button>
         </form>
       )}
@@ -152,8 +152,7 @@ export default function MerchandisingSettingsCard({
         <>
           {resource !== "client" && (
             <div className="mt-4 flex flex-wrap items-end gap-2">
-              <label className="min-w-0 flex-1 text-sm text-(--muted)">
-                {labels[resource]}
+              <Field label={labels[resource]} className="flex-1 gap-0 text-sm">
                 <select
                   className={inputClass}
                   value={selected === "new" ? "new" : (item?.id ?? "")}
@@ -181,7 +180,7 @@ export default function MerchandisingSettingsCard({
                     </option>
                   ))}
                 </select>
-              </label>
+              </Field>
               {resource === "supplier" && canManage && (
                 <Button variant="report"
                   type="button"
