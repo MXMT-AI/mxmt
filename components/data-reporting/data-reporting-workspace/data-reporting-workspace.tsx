@@ -14,7 +14,7 @@ import { ReportPeriodControls } from "../report-period-controls/report-period-co
 import { ReportStatusSummary } from "../report-status-summary/report-status-summary";
 import { ReportTableTabs, reportTablePanelId, reportTabId } from "../report-table-tabs/report-table-tabs";
 import { ReportTableToolbar } from "../report-table-toolbar/report-table-toolbar";
-import { ReportTablePagination } from "../report-table-pagination/report-table-pagination";
+import { ReportTablePagination, reportPaginationCopy } from "../report-table-pagination/report-table-pagination";
 import { ReportTableState } from "../report-table-state/report-table-state";
 import { useReportPreferences } from "../use-report-preferences/use-report-preferences";
 import { useReportActions } from "../use-report-actions/use-report-actions";
@@ -195,7 +195,7 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
             pagination={table.pagination}
             requestedPage={page}
             locale={locale}
-            copy={copy}
+            copy={reportPaginationCopy[lang]}
             onPrevious={() => setPage(value => Math.max(1, value - 1))}
             onNext={() => setPage(value => value + 1)}
           />

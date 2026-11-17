@@ -4,8 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import type { Locale } from "@/i18n/routing";
 import { apiFetch } from "@/lib/fetch";
 import { readApiJson } from "@/lib/api-response";
+import { validateReportPeriod } from "@/lib/data-reporting-ui";
 import type { SalesView } from "@/lib/sales-report-view";
-import type { SalesReportData } from "./sales-reporting-workspace/sales-report-types";
+import type { SalesReportData } from "../sales-reporting-workspace/sales-report-types";
 
 type Period = { from: string; to: string };
 type Result = { key: string; data: SalesReportData | null; error: string };
@@ -25,17 +26,20 @@ export function useSalesReport({ view, page, search, sort, direction, locale }: 
   const [validation, setValidation] = useState<{ key: string; error: string } | null>(null);
   const snapshot = useRef<string | null>(null);
   const revision = useRef(0);
-  const key = JSON.stringify([view, page, search, sort, direction, applied.from, applied.to, reload]);
+  const query = new URLSearchParams({ view, q: search, sort, direction }).toString();
+  const { from, to } = applied;
+  const key = JSON.stringify([query, page, from, to, reload]);
 
   useEffect(() => {
     const controller = new AbortController();
     const requestRevision = revision.current;
     const currentRequest = () => !controller.signal.aborted && revision.current === requestRevision;
-    const params = new URLSearchParams({ view, page: String(page), q: search, sort, direction });
+    const params = new URLSearchParams(query);
+    params.set("page", String(page));
     if (snapshot.current) params.set("calculationRunId", snapshot.current);
-    else if (applied.from || applied.to) {
-      params.set("dateFrom", applied.from);
-      params.set("dateTo", applied.to);
+    else if (from || to) {
+      params.set("dateFrom", from);
+      params.set("dateTo", to);
     }
 
     async function load() {
@@ -57,7 +61,7 @@ export function useSalesReport({ view, page, search, sort, direction, locale }: 
 
     void load();
     return () => controller.abort();
-  }, [key, view, page, search, sort, direction, applied.from, applied.to, reload]);
+  }, [key, query, page, from, to]);
 
   function refresh() {
     snapshot.current = null;
@@ -66,7 +70,7 @@ export function useSalesReport({ view, page, search, sort, direction, locale }: 
   }
 
   function applyPeriod() {
-    if (!period.from || !period.to || period.from > period.to) {
+    if (validateReportPeriod(period.from, period.to)) {
       setValidation({ key, error: "INVALID_REPORT_PERIOD" });
       return false;
     }
@@ -79,15 +83,14 @@ export function useSalesReport({ view, page, search, sort, direction, locale }: 
   const current = result?.key === key ? result : null;
   const error = validation?.key === key ? validation.error : current?.error ?? "";
   const data = current?.data ?? null;
-  const exportParams = data ? new URLSearchParams({
-    view,
-    calculationRunId: data.calculationRunId,
-    q: search,
-    sort,
-    direction,
-    format: "csv",
-    locale,
-  }) : null;
+  let exportHref: string | null = null;
+  if (data) {
+    const exportParams = new URLSearchParams(query);
+    exportParams.set("calculationRunId", data.calculationRunId);
+    exportParams.set("format", "csv");
+    exportParams.set("locale", locale);
+    exportHref = `/api/data/sales?${exportParams}`;
+  }
 
   return {
     data,
@@ -97,6 +100,6 @@ export function useSalesReport({ view, page, search, sort, direction, locale }: 
     setPeriod,
     applyPeriod,
     refresh,
-    exportHref: exportParams ? `/api/data/sales?${exportParams}` : null,
+    exportHref,
   };
 }

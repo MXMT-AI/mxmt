@@ -4,7 +4,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { Button } from "@/components/ui/button/button";
 import type { DataColumnMetadata } from "@/lib/data-table-api";
-import { formatTableValue } from "@/lib/data-reporting-ui";
+import { createTableValueFormatter } from "@/lib/data-reporting-ui";
 
 const cellBase = "border-r px-3 last:border-r-0";
 
@@ -37,6 +37,7 @@ export default function ReportTable({
   renderCell,
   getCellStyle,
 }: ReportTableProps) {
+  const formatValue = renderCell ? null : createTableValueFormatter(locale);
   const ascending = direction === "asc";
   const SortIcon = ascending ? ArrowUp : ArrowDown;
   const sortOrder = ascending ? "ascending" : "descending";
@@ -89,7 +90,7 @@ export default function ReportTable({
               className="border-b border-(--border-faint) last:border-b-0 hover:bg-(--input-bg)"
             >
               {tableColumns.map(({ column, cellClassName }) => {
-                const formatted = renderCell ? undefined : formatTableValue(row[column.key], column.type, locale);
+                const formatted = formatValue?.(row[column.key], column.type);
 
                 return (
                   <td

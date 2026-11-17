@@ -3,9 +3,6 @@ import { useEffect, useRef } from "react";
 import { useRepricingEditor } from "../use-repricing-editor";
 import { repricingCopy } from "@/lib/repricing-copy";
 import type { Lang } from "@/lib/translations";
-import { Button } from "@/components/ui/button/button";
-import { AlertPanel } from "@/components/ui/alert-panel/alert-panel";
-import { Note } from "@/components/ui/note/note";
 import { useRepricingInputs, useRepricingPreview } from "../use-repricing-preview";
 import RepricingControls from "../repricing-controls/repricing-controls";
 import RepricingTable from "../repricing-table/repricing-table";
@@ -13,6 +10,9 @@ import RepricingSummary from "../repricing-summary/repricing-summary";
 import { useScenarioExportPermission } from "@/components/merchandising/merchandising-shell/merchandising-shell";
 import { useScenarioExport } from "@/components/merchandising/use-scenario-export";
 import ScenarioExportPanel from "@/components/merchandising/scenario-export-panel/scenario-export-panel";
+import { ScenarioPreviewError } from "@/components/merchandising/scenario-preview-error/scenario-preview-error";
+import { ScenarioPreviewStatus } from "@/components/merchandising/scenario-preview-status/scenario-preview-status";
+import { ScenarioSnapshotNote } from "@/components/merchandising/scenario-snapshot-note/scenario-snapshot-note";
 export default function RepricingEditor({
   snapshotId,
   monobrand = false,
@@ -58,22 +58,14 @@ export default function RepricingEditor({
         error={error}
         copy={copy}
       />
-      <div
-        role="status"
-        aria-live="polite"
-        className="text-sm text-(--muted)"
-      >
-        {!inputs.data
-          ? copy.loading
-          : preview.busy
-            ? copy.updating
-            : preview.current
-              ? copy.ready
-              : ""}
-      </div>
+      <ScenarioPreviewStatus
+        prerequisite={!error && !inputs.data ? copy.loading : undefined}
+        busy={!error && preview.busy}
+        ready={ready}
+        copy={copy}
+      />
       {error ? (
-        <AlertPanel
-          className="bg-transparent p-4"
+        <ScenarioPreviewError
           message={error.code === "REPRICING_SOURCE_CHANGED" ||
             error.code === "SCREEN_SELECTION_MISMATCH"
               ? copy.sourceChanged
@@ -83,27 +75,13 @@ export default function RepricingEditor({
                     error.code === "INVALID_MANUAL_REPRICING_PRICE"
                   ? copy.invalid
                   : copy.error}
-        >
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant="report"
-              onClick={inputs.error ? inputs.retry : preview.retry}
-            >
-              {copy.retry}
-            </Button>
-            <Button variant="report" onClick={onRefresh}>
-              {copy.refresh}
-            </Button>
-          </div>
-        </AlertPanel>
+          copy={copy}
+          onRetry={inputs.error ? inputs.retry : preview.retry}
+          onRefresh={onRefresh}
+        />
       ) : null}
       {inputs.data ? (
-        <Note>
-          {copy.allChannels} · {copy.asOf}:{" "}
-          {new Intl.DateTimeFormat(locale, { timeZone: "UTC" }).format(
-            new Date(inputs.data.context.asOf + "T00:00:00Z"),
-          )}
-        </Note>
+        <ScenarioSnapshotNote asOf={inputs.data.context.asOf} locale={locale} copy={copy} />
       ) : null}
       {inputs.data?.historyUnavailableReason ? (
         <p className="text-sm" role="status">

@@ -7,13 +7,15 @@ import { Heading } from "@/components/ui/heading/heading";
 import { Text } from "@/components/ui/text/text";
 import { Note } from "@/components/ui/note/note";
 import { Pager } from "@/components/ui/pager/pager";
-import { PartialMarker } from "@/components/ui/partial-marker/partial-marker";
 import type { OverviewResponse } from "@/components/merchandising/use-merchandising-screen";
 import type { StockCopy } from "@/lib/stock-copy";
 import { stockStatusLabel as statusName } from "@/lib/merchandising-stock-display";
-import { formatTableValue as format } from "@/lib/data-reporting-ui";
+import { createTableValueFormatter } from "@/lib/data-reporting-ui";
 import type { Href } from "../stock-content/stock-content-types";
+import { StockMetricCell } from "../stock-metric-cell/stock-metric-cell";
 import { stockSkuLinks } from "./stock-sku-links";
+
+const skuActions = ["repricing", "reordering"] as const;
 
 export function StockSkuTable({ table, monobrand, params, href, copy, locale }: {
   table: NonNullable<OverviewResponse["table"]>;
@@ -23,6 +25,7 @@ export function StockSkuTable({ table, monobrand, params, href, copy, locale }: 
   copy: StockCopy;
   locale: string;
 }) {
+  const formatValue = createTableValueFormatter(locale);
   return (
     <section className={panel}>
       <div className="p-5 space-y-2">
@@ -62,19 +65,14 @@ export function StockSkuTable({ table, monobrand, params, href, copy, locale }: 
             const links = stockSkuLinks(row, params, monobrand);
             return (
               <div className="flex flex-wrap gap-2">
-                {(["repricing", "reordering"] as const).map(action => (
+                {skuActions.map(action => (
                   <Link key={action} className={button} href={links[action]}>{copy[action]}</Link>
                 ))}
               </div>
             );
           }
           return (
-            <>
-              {format(row[col.key], col.type, locale)}
-              {col.key === "sellThroughRatio" && !row.strComplete ? (
-                <PartialMarker label={copy.strPartial} />
-              ) : null}
-            </>
+            <StockMetricCell row={row} column={col} formatValue={formatValue} partialLabel={copy.strPartial} />
           );
         }}
       />
@@ -85,7 +83,7 @@ export function StockSkuTable({ table, monobrand, params, href, copy, locale }: 
         copy={copy}
       />
       {!table.rows.length ? (
-        <Text variant="body" className="leading-normal text-base text-inherit p-5 text-sm">{copy.empty}</Text>
+        <Text variant="body" className="p-5 leading-normal text-inherit">{copy.empty}</Text>
       ) : null}
     </section>
   );

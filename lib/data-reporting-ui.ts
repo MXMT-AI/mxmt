@@ -57,63 +57,75 @@ export function formatTableValue(
   type: DataColumnType,
   locale: string,
 ): string {
-  if (value === null || value === undefined || value === "") return "—";
-  if (type === "source" || type === "text") {
-    if (typeof value === "object") return JSON.stringify(value);
-    return String(value);
-  }
-  if (type === "date") {
-    const date = new Date(String(value));
-    return Number.isNaN(date.getTime())
-      ? String(value)
-      : new Intl.DateTimeFormat(locale).format(date);
-  }
+  return createTableValueFormatter(locale)(value, type);
+}
 
-  if (
-    (type === "money" || type === "quantity" || type === "number") &&
-    typeof value === "string" &&
-    /^-?\d+(\.\d+)?$/.test(value)
-  ) {
-    const places = type === "quantity" ? 4 : 2,
-      negative = value.startsWith("-"),
-      [integer, fraction = ""] = (negative ? value.slice(1) : value).split(".");
-    const scale = BigInt(10) ** BigInt(places);
-    let scaled =
-      BigInt(integer) * scale +
-      BigInt((fraction + "0".repeat(places)).slice(0, places));
-    if (Number(fraction[places] ?? "0") >= 5) scaled += BigInt(1);
-    const whole = scaled / scale,
-      tail = (scaled % scale)
-        .toString()
-        .padStart(places, "0")
-        .replace(/0+$/, "");
-    const grouped = new Intl.NumberFormat(locale, {
-      maximumFractionDigits: 0,
-    }).format(whole);
-    const decimalSeparator =
-      new Intl.NumberFormat(locale)
-        .formatToParts(1.1)
-        .find((p) => p.type === "decimal")?.value ?? ".";
-    return (
-      (negative && scaled !== BigInt(0) ? "-" : "") +
-      grouped +
-      (tail ? decimalSeparator + tail : "")
-    );
-  }
+export function createTableValueFormatter(locale: string) {
+  let dates: Intl.DateTimeFormat | undefined;
+  let integers: Intl.NumberFormat | undefined;
+  let numbers: Intl.NumberFormat | undefined;
+  let quantities: Intl.NumberFormat | undefined;
+  let percentages: Intl.NumberFormat | undefined;
+  let decimalSeparator: string | undefined;
 
-  const numeric = typeof value === "number" ? value : Number(value);
-  if (!Number.isFinite(numeric)) return String(value);
-  if (type === "percentage") {
-    return new Intl.NumberFormat(locale, {
-      style: "percent",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2,
-    }).format(numeric);
-  }
-  return new Intl.NumberFormat(locale, {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: type === "quantity" ? 4 : 2,
-  }).format(numeric);
+  return (value: unknown, type: DataColumnType): string => {
+    if (value === null || value === undefined || value === "") return "—";
+    if (type === "source" || type === "text") {
+      if (typeof value === "object") return JSON.stringify(value);
+      return String(value);
+    }
+    if (type === "date") {
+      const date = new Date(String(value));
+      return Number.isNaN(date.getTime())
+        ? String(value)
+        : (dates ??= new Intl.DateTimeFormat(locale)).format(date);
+    }
+
+    if (
+      (type === "money" || type === "quantity" || type === "number") &&
+      typeof value === "string" &&
+      /^-?\d+(\.\d+)?$/.test(value)
+    ) {
+      const places = type === "quantity" ? 4 : 2,
+        negative = value.startsWith("-"),
+        [integer, fraction = ""] = (negative ? value.slice(1) : value).split(".");
+      const scale = BigInt(10) ** BigInt(places);
+      let scaled =
+        BigInt(integer) * scale +
+        BigInt((fraction + "0".repeat(places)).slice(0, places));
+      if (Number(fraction[places] ?? "0") >= 5) scaled += BigInt(1);
+      const whole = scaled / scale,
+        tail = (scaled % scale)
+          .toString()
+          .padStart(places, "0")
+          .replace(/0+$/, "");
+      const grouped = (integers ??= new Intl.NumberFormat(locale, { maximumFractionDigits: 0 })).format(whole);
+      if (tail) {
+        decimalSeparator ??= new Intl.NumberFormat(locale)
+          .formatToParts(1.1)
+          .find((part) => part.type === "decimal")?.value ?? ".";
+      }
+      return (
+        (negative && scaled !== BigInt(0) ? "-" : "") +
+        grouped +
+        (tail ? decimalSeparator + tail : "")
+      );
+    }
+
+    const numeric = typeof value === "number" ? value : Number(value);
+    if (!Number.isFinite(numeric)) return String(value);
+    if (type === "percentage") {
+      return (percentages ??= new Intl.NumberFormat(locale, {
+        style: "percent",
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      })).format(numeric);
+    }
+    if (type === "quantity") {
+      return (quantities ??= new Intl.NumberFormat(locale, { maximumFractionDigits: 4 })).format(numeric);
+    }
+    return (numbers ??= new Intl.NumberFormat(locale, { maximumFractionDigits: 2 })).format(numeric);
+  };
 }
 
 export function nextSortDirection(

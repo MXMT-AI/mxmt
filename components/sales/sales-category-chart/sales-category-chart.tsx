@@ -3,7 +3,7 @@
 import { useId } from "react";
 import { Link } from "@/i18n/navigation";
 import { Note } from "@/components/ui/note/note";
-import { formatTableValue } from "@/lib/data-reporting-ui";
+import { createTableValueFormatter } from "@/lib/data-reporting-ui";
 import type { SalesCopy } from "@/lib/sales-copy";
 import type { SalesCurrencyBlock, SalesHref } from "../sales-types";
 import { SalesMatrix } from "../sales-matrix/sales-matrix";
@@ -28,6 +28,8 @@ export function SalesCategoryChart({
   units: boolean;
   href: SalesHref;
 }) {
+  const formatValue = createTableValueFormatter(locale);
+  const valueType = units ? "quantity" : "money";
   const titleId = useId(),
     groups = rows
       .filter((r) => r.kind !== "TOTAL")
@@ -104,7 +106,7 @@ export function SalesCategoryChart({
                       height={Math.abs(n) * scale}
                       fill={categoryColors[j]}
                     >
-                      <title>{`${r.kind === "OTHERS" ? copy.others : r.name} · ${month}: ${formatTableValue(r.cells[i].value, units ? "quantity" : "money", locale)}`}</title>
+                      <title>{`${r.kind === "OTHERS" ? copy.others : r.name} · ${month}: ${formatValue(r.cells[i].value, valueType)}`}</title>
                     </rect>
                   );
                 })}

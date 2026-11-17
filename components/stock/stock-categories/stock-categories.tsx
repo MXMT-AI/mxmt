@@ -10,6 +10,7 @@ import { StockCost } from "../stock-cost/stock-cost";
 import type { StockCopy } from "@/lib/stock-copy";
 import type { Block, Group, Href } from "../stock-content/stock-content-types";
 import type { DataColumnMetadata } from "@/lib/data-table-api";
+import { createTableValueFormatter } from "@/lib/data-reporting-ui";
 import type { StockWorkspaceModel } from "@/lib/merchandising-stock-workspace";
 import { StockStructure } from "../stock-structure/stock-structure";
 import { primaryStockStatuses as primary, stockStatusLabel as statusName } from "@/lib/merchandising-stock-display";
@@ -22,6 +23,7 @@ export function StockCategories({ groups, model, copy, locale, href: scoped, onN
   href: Href;
   onNavigate?: (href: string) => void;
 }) {
+  const formatValue = createTableValueFormatter(locale);
   const columns: DataColumnMetadata[] = [
     { key: "name", label: copy.name, type: "text" },
     ...primary.map((key) => ({
@@ -33,37 +35,24 @@ export function StockCategories({ groups, model, copy, locale, href: scoped, onN
     { key: "stockCost", label: copy.total, type: "money" },
     { key: "structure", label: copy.structure, type: "text" },
   ];
+  const sortLabel = columns.find((column) => column.key === model.categorySort)?.label
+    ?? statusName(copy, model.categorySort);
   return (
     <section className={panel}>
       <div className="p-5 space-y-2">
         <Heading as="h3" variant="compact" className="text-base text-inherit">K3 · {copy.categories}</Heading>
         <Note>{copy.categoryBasis}</Note>
         <Note>
-          {copy.sortBy}:{" "}
-          {model.categorySort === "name"
-            ? copy.name
-            : model.categorySort === "stockCost"
-              ? copy.total
-              : model.categorySort === "OTHER"
-                ? copy.other
-                : statusName(copy, model.categorySort)}{" "}
-          {model.categoryDirection === "desc" ? "↓" : "↑"}
+          {copy.sortBy}: {sortLabel} {model.categoryDirection === "desc" ? "↓" : "↑"}
         </Note>
         {model.selectedStatus ? <Note>{copy.groupFilter}</Note> : null}
       </div>
       <ReportTable
         columns={columns}
-        rows={groups.rows.map((r) => ({
-          ...r,
-          id: r.id ?? "__unassigned__",
-          source: r,
-          ...Object.fromEntries(
-            primary.map((s) => [
-              s,
-              r.statuses.find((c) => c.status === s)?.stockCost ?? null,
-            ]),
-          ),
-          OTHER: r.otherCost,
+        rows={groups.rows.map((group) => ({
+          id: group.id ?? "__unassigned__",
+          currency: group.currency,
+          source: group,
         }))}
         locale={locale}
         sortColumn={model.categorySort}
@@ -85,47 +74,36 @@ export function StockCategories({ groups, model, copy, locale, href: scoped, onN
           )
         }
         renderCell={(row, col) => {
-          const r = row.source as Group;
-          if (col.key === "name")
-            return (
-              <Link
-                className="underline underline-offset-4"
-                href={scoped({
-                  categoryId: r.id ?? "__unassigned__",
-                  groupBy: "sku",
-                  page: null,
-                })}
-              >
-                {r.id === null ? copy.unassigned : r.name}
-              </Link>
-            );
+          const group = row.source as Group;
           if (col.key === "structure")
-            return <StockStructure row={r} copy={copy} locale={locale} />;
-          const status = r.statuses.find((s) => s.status === col.key);
+            return <StockStructure statuses={group.statuses} copy={copy} formatValue={formatValue} />;
+
+          const drillDown = {
+            categoryId: group.id ?? "__unassigned__",
+            groupBy: "sku",
+            page: null,
+          };
+          const isName = col.key === "name";
+          const isTotal = col.key === "stockCost";
+          const isOther = col.key === "OTHER";
+          const status = isName ? undefined : group.statuses.find((entry) => entry.status === col.key);
+          const value = isTotal ? group.stockCost : isOther ? group.otherCost : status?.stockCost ?? null;
           return (
             <Link
               className="underline underline-offset-4"
-              href={scoped({
-                categoryId: r.id ?? "__unassigned__",
-                groupBy: "sku",
-                classification: status
-                  ? status.status
-                  : col.key === "OTHER"
-                    ? null
-                    : model.selectedStatus,
-                page: null,
+              href={scoped(isName ? drillDown : {
+                ...drillDown,
+                classification: status?.status ?? (isOther ? null : model.selectedStatus),
               })}
             >
-              <StockCost
-                value={row[col.key] as string | null}
-                covered={
-                  col.key === "stockCost"
-                    ? r.coveredStockCost
-                    : status?.coveredStockCost
-                }
-                locale={locale}
-                copy={copy}
-              />
+              {isName ? (group.id === null ? copy.unassigned : group.name) : (
+                <StockCost
+                  value={value}
+                  covered={isTotal ? group.coveredStockCost : status?.coveredStockCost}
+                  formatValue={formatValue}
+                  copy={copy}
+                />
+              )}
             </Link>
           );
         }}

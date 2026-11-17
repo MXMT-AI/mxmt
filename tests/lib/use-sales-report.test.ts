@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { useSalesReport } from "@/components/data-reporting/use-sales-report";
+import { useSalesReport } from "@/components/data-reporting/use-sales-report/use-sales-report";
 
 const hooks = vi.hoisted(() => ({
   values: [] as unknown[],

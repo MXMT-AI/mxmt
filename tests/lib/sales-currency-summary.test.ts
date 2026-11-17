@@ -26,6 +26,9 @@ it.each([true, false])("keeps currency summaries separate and retains coverage a
   uah.current.coverage = "PARTIAL";
   uah.current.missingProfitCount = 3;
   uah.current.missingRevenueCount = 2;
+  uah.current.units = "1.2345";
+  uah.current.gmPct = "0.125";
+  usd.current.gmPct = null;
   const html = renderToStaticMarkup(createElement(Fragment, null,
     createElement(SalesCurrencySummary, { row: uah, uk }),
     createElement(SalesCurrencySummary, { row: usd, uk }),
@@ -34,6 +37,13 @@ it.each([true, false])("keeps currency summaries separate and retains coverage a
   expect(html).toContain('aria-label="USD"');
   expect(html.match(/<dl/g)).toHaveLength(2);
   expect(html.match(/<dt/g)).toHaveLength(18);
+  expect(html).toContain(uk ? ">1,2345</dd>" : ">1.2345</dd>");
+  const coverageLabel = uk ? "Маржа покритих рядків" : "Covered GM";
+  const percent = new Intl.NumberFormat(uk ? "uk-UA" : "en-GB", {
+    style: "percent", maximumFractionDigits: 2,
+  }).format(0.125);
+  const margins = [...html.matchAll(new RegExp(`${coverageLabel}</dt><dd[^>]*>([^<]*)</dd>`, "g"))];
+  expect(margins.map((match) => match[1])).toEqual([percent, "—"]);
   expect(html).toContain(uk ? "Часткові дані." : "Partial data.");
   expect(html).toContain(uk ? "Задати план і валюту" : "Set plan and currency");
 });

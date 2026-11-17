@@ -19,35 +19,26 @@ export function Pager({
   href: Href;
   copy: { page: string; previous: string; next: string };
 }) {
-  if (pagination.totalPages <= 1 && pagination.page <= 1) return null;
+  const { page, totalPages } = pagination;
+  if (totalPages <= 1 && page <= 1) return null;
+
+  const lastPage = Math.max(1, totalPages);
+  const pageLink = (target: number, label: string) => (
+    <Link className={button} href={href({ [control]: String(target) })}>
+      {label}
+    </Link>
+  );
+
   return (
     <nav
       aria-label={copy.page}
       className="flex flex-wrap items-center gap-3 border-t border-(--border) p-3 text-xs"
     >
-      {pagination.page > 1 ? (
-        <Link
-          className={button}
-          href={href({
-            [control]: String(
-              Math.min(pagination.page - 1, Math.max(1, pagination.totalPages)),
-            ),
-          })}
-        >
-          {copy.previous}
-        </Link>
-      ) : null}
+      {page > 1 ? pageLink(Math.min(page - 1, lastPage), copy.previous) : null}
       <span>
-        {copy.page} {pagination.page} / {Math.max(1, pagination.totalPages)}
+        {copy.page} {page} / {lastPage}
       </span>
-      {pagination.page < pagination.totalPages ? (
-        <Link
-          className={button}
-          href={href({ [control]: String(pagination.page + 1) })}
-        >
-          {copy.next}
-        </Link>
-      ) : null}
+      {page < totalPages ? pageLink(page + 1, copy.next) : null}
     </nav>
   );
 }

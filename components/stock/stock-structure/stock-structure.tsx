@@ -1,43 +1,24 @@
-import { stockStatusColors, stockStatusLabel as statusName } from "@/lib/merchandising-stock-display";
+import { stockStatusLabel as statusName } from "@/lib/merchandising-stock-display";
 import type { Group } from "../stock-content/stock-content-types";
 import type { StockCopy } from "@/lib/stock-copy";
-import { formatTableValue as format } from "@/lib/data-reporting-ui";
+import type { createTableValueFormatter } from "@/lib/data-reporting-ui";
+import { StockShareBar } from "../stock-share-bar/stock-share-bar";
 
 export function StockStructure({
-  row,
+  statuses,
   copy,
-  locale,
+  formatValue,
 }: {
-  row: Group;
+  statuses: readonly Pick<Group["statuses"][number], "status" | "share" | "skuCount">[];
   copy: StockCopy;
-  locale: string;
+  formatValue: ReturnType<typeof createTableValueFormatter>;
 }) {
-  const label = row.statuses
+  const label = statuses
     .filter((s) => s.skuCount > 0)
     .map(
       (s) =>
-        `${statusName(copy, s.status)} ${format(s.share, "percentage", locale)}`,
+        `${statusName(copy, s.status)} ${formatValue(s.share, "percentage")}`,
     )
     .join(", ");
-  return (
-    <span
-      role="img"
-      aria-label={label || copy.empty}
-      className="block h-2 w-36 rounded-sm overflow-hidden bg-(--input-bg)"
-    >
-      {row.statuses
-        .filter((s) => s.share !== null && s.share !== "0")
-        .map((s) => (
-          <span
-            key={s.status}
-            aria-hidden="true"
-            className="inline-block h-full align-top"
-            style={{
-              width: `${Number(s.share) * 100}%`,
-              background: stockStatusColors[s.status],
-            }}
-          />
-        ))}
-    </span>
-  );
+  return <StockShareBar statuses={statuses} label={label || copy.empty} className="w-36" />;
 }

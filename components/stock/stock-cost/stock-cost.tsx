@@ -1,27 +1,27 @@
 import { PartialMarker } from "@/components/ui/partial-marker/partial-marker";
 import type { StockCopy } from "@/lib/stock-copy";
-import { formatTableValue as format } from "@/lib/data-reporting-ui";
+import type { createTableValueFormatter } from "@/lib/data-reporting-ui";
 
 export function StockCost({
   value,
   covered,
-  locale,
+  formatValue,
   copy,
 }: {
   value: string | null;
   covered?: string;
-  locale: string;
-  copy: StockCopy;
+  formatValue: ReturnType<typeof createTableValueFormatter>;
+  copy: Pick<StockCopy, "partial" | "covered">;
 }) {
   return (
     <>
-      {format(value, "money", locale)}
+      {formatValue(value, "money")}
       {value === null ? (
         <>
           <PartialMarker label={copy.partial} />
           {covered !== undefined ? (
             <small className="block text-(--muted)">
-              {copy.covered}: {format(covered, "money", locale)}
+              {copy.covered}: {formatValue(covered, "money")}
             </small>
           ) : null}
         </>

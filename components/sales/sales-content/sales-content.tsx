@@ -12,6 +12,9 @@ import { SalesHeader } from "../sales-header/sales-header";
 import { SalesControls } from "../sales-controls/sales-controls";
 import type { SalesHref } from "../sales-types";
 
+const scopeKeys = ["brandId", "categoryId", "skuId", "currency"];
+type CurrencySummary = NonNullable<OverviewResponse["sales"]>["summary"][number];
+
 export default function SalesContent({
   data,
   lang,
@@ -31,14 +34,19 @@ export default function SalesContent({
   params.set("snapshotId", data.context.snapshotId);
   params.set("dateFrom", data.context.period.from);
   params.set("dateTo", data.context.period.to);
+  const pageControls = {
+    ...(params.has("page") ? { page: params.get("page") } : {}),
+    ...(params.has("channelPage") ? { channelPage: params.get("channelPage") } : {}),
+  };
+  const showOthers = params.has("others");
+  const summariesByCurrency = new Map<string | null, CurrencySummary>();
+  for (const summary of data.sales?.summary ?? []) {
+    if (!summariesByCurrency.has(summary.currency)) {
+      summariesByCurrency.set(summary.currency, summary);
+    }
+  }
   const href: SalesHref = (values) =>
-    merchandisingHref("/sales", params, {
-      ...(params.has("page") ? { page: params.get("page") } : {}),
-      ...(params.has("channelPage")
-        ? { channelPage: params.get("channelPage") }
-        : {}),
-      ...values,
-    });
+    merchandisingHref("/sales", params, { ...pageControls, ...values });
   const mono = model.monobrand;
   const allHref = href({
     brandId: null,
@@ -61,9 +69,7 @@ export default function SalesContent({
       />
       <Note>{freshnessLabel(data.freshness.status, lang)}</Note>
       <SalesControls model={model} copy={copy} href={href} />
-      {["brandId", "categoryId", "skuId", "currency"].some((k) =>
-        params.has(k),
-      ) ? (
+      {scopeKeys.some((key) => params.has(key)) ? (
         <p className="flex flex-wrap items-center gap-3 text-sm">
           {copy.filtered}{" "}
           <Link className="underline underline-offset-4" href={allHref}>
@@ -85,9 +91,9 @@ export default function SalesContent({
         <SalesCurrencySection
           key={block.currency ?? "unknown"}
           block={block}
-          summary={data.sales?.summary.find(summary => summary.currency === block.currency)}
+          summary={summariesByCurrency.get(block.currency)}
           model={model}
-          showOthers={params.has("others")}
+          showOthers={showOthers}
           copy={copy}
           locale={locale}
           href={href}

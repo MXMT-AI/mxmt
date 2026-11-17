@@ -1,10 +1,7 @@
-import { formatTableValue as format } from "@/lib/data-reporting-ui";
 import type { StockHistoryCopy } from "../stock-history/copy";
-import type { HistoryPoints } from "../stock-history/stock-history-types";
-import { stockHistoryFormatters } from "../stock-history/stock-history-format";
+import type { FormattedHistoryPoints } from "../stock-history/stock-history-format";
 
-export function StockHistoryTable({ points, copy, locale }: { points: HistoryPoints; copy: StockHistoryCopy; locale: string }) {
-  const { date, time } = stockHistoryFormatters(locale);
+export function StockHistoryTable({ points, copy }: { points: FormattedHistoryPoints; copy: StockHistoryCopy }) {
   return (
     <details>
       <summary className="cursor-pointer py-2 text-sm focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-(--accent)">{copy.table}</summary>
@@ -15,11 +12,11 @@ export function StockHistoryTable({ points, copy, locale }: { points: HistoryPoi
           <tbody>
             {points.flatMap(point => [point.current, point.priorYear]).map(point => (
               <tr key={point.date} className="border-t border-(--border)">
-                <th scope="row" className="p-2 text-left font-normal whitespace-nowrap">{date(point.date)}</th>
-                <td className="p-2">{point.stockCost === null ? copy.none : format(point.stockCost, "money", locale)}</td>
-                <td className="p-2">{format(point.quantity, "quantity", locale)}</td>
+                <th scope="row" className="p-2 text-left font-normal whitespace-nowrap">{point.dateLabel}</th>
+                <td className="p-2">{point.costLabel ?? copy.none}</td>
+                <td className="p-2">{point.quantityLabel}</td>
                 <td className="p-2">{point.observedCount} / {point.cohortSize}</td>
-                <td className="p-2 whitespace-nowrap">{time(point.firstObservedAt)}<br />{time(point.lastObservedAt)}</td>
+                <td className="p-2 whitespace-nowrap">{point.firstObservedLabel}<br />{point.lastObservedLabel}</td>
               </tr>
             ))}
           </tbody>

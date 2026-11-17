@@ -1,8 +1,16 @@
 import { expect, it } from "vitest";
-import { buildScreenSelection, buildScreenReadParams } from "@/lib/client/merchandising-screen-request";
+import { buildScreenSelection, buildScreenReadParams, readScreenControls } from "@/lib/client/merchandising-screen-request";
 import { MVP_SCREENS } from "@/lib/merchandising-navigation";
 const filters = { period: "month" as const, dateFrom: "2026-09-01", dateTo: "2026-09-30", channelId: "2" };
 const params = new URLSearchParams("asOf=2026-10-01&brandId=b&categoryId=c&skuId=s&currency=UAH&channelId=2&snapshotId=old&page=9");
+
+it("retains explicit empty stock controls for links and omits them by default", () => {
+  const query = new URLSearchParams("page=2&direction=&categorySort=DEAD&measure=units");
+  expect(readScreenControls("stock", query)).toEqual({ page: "2", categorySort: "DEAD" });
+  expect(readScreenControls("stock", query, { includeEmpty: true })).toEqual({
+    page: "2", direction: "", categorySort: "DEAD",
+  });
+});
 it.each(MVP_SCREENS)("preserves selection rules and control precedence for %s", screen => {
   const selection = buildScreenSelection(filters, screen, params, { page: "3", currency: "EUR" });
   expect(selection.get("dateFrom")).toBe(filters.dateFrom);

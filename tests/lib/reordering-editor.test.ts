@@ -3,6 +3,8 @@ import { beforeEach, expect, it, vi } from "vitest";
 import Editor from "@/components/reordering/reordering-editor/reordering-editor";
 import Summary from "@/components/reordering/reordering-summary/reordering-summary";
 import { ReorderingSupplierGroups } from "@/components/reordering/reordering-supplier-groups/reordering-supplier-groups";
+import { ScenarioPreviewStatus } from "@/components/merchandising/scenario-preview-status/scenario-preview-status";
+import { reorderingCopy } from "@/lib/reordering-copy";
 import { initialReorderingState } from "@/lib/reordering-workspace";
 const mocks = vi.hoisted(() => ({ preview: vi.fn(), allowed: true, prepare: vi.fn(), editor: vi.fn() }));
 vi.mock("@/components/reordering/use-reordering-editor", () => ({ useReorderingEditor: mocks.editor }));
@@ -38,4 +40,12 @@ it("exports the current request and passes supplier scope separately", () => {
   expect(mocks.prepare).toHaveBeenLastCalledWith("preview", expect.objectContaining({ snapshotId: "s", page: 1 }));
   tree.find(node => node.type === ReorderingSupplierGroups)!.props.onExport("supplier", "EUR");
   expect(mocks.prepare).toHaveBeenLastCalledWith("preview", expect.any(Object), { supplierId: "supplier", currency: "EUR" });
+});
+it("prompts for a brand while loading brand options", () => {
+  mocks.editor().state.draft.mode = "brand";
+  mocks.preview().busy = true;
+  const tree = nodes(Editor({ snapshotId: "s", asOf: "2026-11-15", lang: "en", onRefresh: vi.fn() }));
+  const status = tree.find(node => node.type === ScenarioPreviewStatus)!.props;
+  expect(ScenarioPreviewStatus(status as Parameters<typeof ScenarioPreviewStatus>[0]).props.children)
+    .toBe(reorderingCopy.en.chooseBrand);
 });

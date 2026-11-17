@@ -1,8 +1,10 @@
 import { Link } from "@/i18n/navigation";
+import { Heading } from "@/components/ui/heading/heading";
 import { Note } from "@/components/ui/note/note";
+import { StockShareBar } from "@/components/stock/stock-share-bar/stock-share-bar";
 import type { Lang } from "@/lib/translations";
 import { overviewCopy } from "@/lib/overview-copy";
-import { formatTableValue } from "@/lib/data-reporting-ui";
+import { createTableValueFormatter } from "@/lib/data-reporting-ui";
 import { stockStatusColors as statusColors } from "@/lib/merchandising-stock-display";
 import type { OverviewResponse, CurrencyBlock, OverviewLink } from "../overview-types";
 import { OverviewMetric } from "../overview-metric/overview-metric";
@@ -31,6 +33,7 @@ export function OverviewCurrencySection({ block, view, sales, stock: stockData, 
 }) {
   const copy = overviewCopy[lang];
   const locale = lang === "uk" ? "uk-UA" : "en-GB";
+  const formatValue = createTableValueFormatter(locale);
   const sale = sales?.summary.find(
     (s) => s.currency === block.currency,
   );
@@ -41,15 +44,15 @@ export function OverviewCurrencySection({ block, view, sales, stock: stockData, 
   const money = (v: string | null | undefined) =>
     v == null
       ? copy.unavailable
-      : `${formatTableValue(v, "money", locale)} ${currency}`;
+      : `${formatValue(v, "money")} ${currency}`;
   const pct = (v: string | null | undefined) =>
     v == null
       ? copy.unavailable
-      : formatTableValue(v, "percentage", locale);
+      : formatValue(v, "percentage");
   const num = (v: string | number | null | undefined) =>
     v == null
       ? copy.unavailable
-      : formatTableValue(v, "quantity", locale);
+      : formatValue(v, "quantity");
   const link = (
     path: string,
     detail: Record<string, string | null> = {},
@@ -70,7 +73,7 @@ export function OverviewCurrencySection({ block, view, sales, stock: stockData, 
   };
   return (
     <section aria-label={currency} className="space-y-6">
-      <h2 className="text-sm font-semibold">{currency}</h2>
+      <Heading as="h2" variant="compact" className="text-inherit">{currency}</Heading>
       {block.currency === null ? <Note className="mt-2">{lang === "uk" ? "Окрема група без підтвердженої валюти або залишку. Ці записи не скасовують відомі суми UAH нижче; невідомі дані не замінюються нулями." : "Separate records with unverified currency or stock. They do not invalidate the known UAH amounts below; unknown data is not replaced with zero."}</Note> : null}
       <OverviewSummary block={block} sale={sale} monobrand={monobrand} copy={copy} locale={locale} money={money} pct={pct} />
       <section
@@ -232,9 +235,7 @@ export function OverviewCurrencySection({ block, view, sales, stock: stockData, 
             block.ownership.some((o) => o.unknownBrands > 0) ? (
               <Link
                 href={href("/settings")}
-                className={
-                  "underline underline-offset-4 " + "text-report-warning"
-                }
+                className="underline underline-offset-4 text-report-warning"
               >
                 {copy.unknownOwnership}
                 {!monobrand && (
@@ -261,22 +262,7 @@ export function OverviewCurrencySection({ block, view, sales, stock: stockData, 
               {copy.partial}
             </Note>
           ) : null}
-          <div
-            className="mt-4 flex h-2 overflow-hidden rounded-sm bg-(--input-hover)"
-            aria-hidden="true"
-          >
-            {block.statuses
-              .filter((s) => s.share !== null && s.share !== "0")
-              .map((s) => (
-                <span
-                  key={s.status}
-                  style={{
-                    width: `${Number(s.share) * 100}%`,
-                    background: statusColors[s.status],
-                  }}
-                />
-              ))}
-          </div>
+          <StockShareBar statuses={block.statuses} className="mt-4 flex bg-(--input-hover)" />
           <Note className="mt-2">{copy.structureBasis}</Note>
           <ul className="mt-4 space-y-2 text-xs">
             {block.statuses

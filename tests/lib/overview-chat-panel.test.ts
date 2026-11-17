@@ -3,6 +3,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { OverviewChatPanel } from "@/components/overview/overview-chat-panel/overview-chat-panel";
 import { readOverviewChatParams } from "@/components/overview/overview-chat-params";
 import OverviewWorkspace from "@/components/overview/overview-workspace/overview-workspace";
+import { ReportWorkspaceFrame } from "@/components/merchandising/report-workspace-frame/report-workspace-frame";
 const state = vi.hoisted(() => ({
   query: "snapshotId=pinned&channelId=2&currency=UAH", replace: vi.fn(),
   loaded: undefined as boolean | undefined, busy: false,
@@ -45,9 +46,26 @@ it("does not navigate when the toggle matches the URL and forwards viewer access
   const panel = OverviewChatPanel({ ...props, loaded: true });
   panel.props.onToggle!({ currentTarget: { open: true } } as never);
   expect(state.replace).not.toHaveBeenCalled();
+  expect(onLoad).not.toHaveBeenCalled();
   const chat = panel.props.children[1];
   expect(chat && chat.props.allowed).toBe(false);
   expect(chat && chat.props.snapshotId).toBe("pinned");
+});
+it("renders chat immediately when the URL opens a previously unloaded panel", () => {
+  state.query += "&chat=1&chatTopic=stock";
+  const panel = OverviewChatPanel(props);
+  expect(panel.props.open).toBe(true);
+  expect(panel.props.children[1]?.props).toMatchObject({
+    snapshotId: "pinned",
+    filters: { channelId: "2", currency: "UAH" },
+    initialTopic: "stock",
+  });
+});
+it("closes to the plain overview URL when the open flag is the only parameter", () => {
+  state.query = "chat=1";
+  const panel = OverviewChatPanel({ ...props, loaded: true });
+  panel.props.onToggle!({ currentTarget: { open: false } } as never);
+  expect(state.replace).toHaveBeenCalledWith("/overview", { scroll: false });
 });
 it("reads supported filters, retains empty values and ignores unknown topics", () => {
   const chat = readOverviewChatParams(new URLSearchParams("brandId=b&search=&chatTopic=invalid&chatExportId=export&unexpected=secret"), "pinned");
@@ -65,17 +83,18 @@ it.each(["snapshot", "filters", "topic", "export"])("changes the dialog key when
   expect(after.scope).not.toBe(before.scope);
 });
 it("keeps an activated chat loaded across report refreshes", () => {
-  const workspace = OverviewWorkspace();
-  const chat = workspace.props.children[2];
+  const renderWorkspace = () => ReportWorkspaceFrame(OverviewWorkspace().props);
+  const chat = renderWorkspace().props.children[1].props.children[1];
   expect(chat.type).toBe(OverviewChatPanel);
   expect(chat.props.loaded).toBe(false);
   chat.props.onLoad();
   state.busy = true;
-  expect(OverviewWorkspace().type).toBe(WorkspaceLoading);
+  expect(renderWorkspace().type).toBe(WorkspaceLoading);
   state.busy = false;
-  expect(OverviewWorkspace().props.children[2].props.loaded).toBe(true);
+  expect(renderWorkspace().props.children[1].props.children[1].props.loaded).toBe(true);
 });
 it("initializes chat loading from a direct chat URL", () => {
   state.query += "&chat=1";
-  expect(OverviewWorkspace().props.children[2].props.loaded).toBe(true);
+  const workspace = ReportWorkspaceFrame(OverviewWorkspace().props);
+  expect(workspace.props.children[1].props.children[1].props.loaded).toBe(true);
 });

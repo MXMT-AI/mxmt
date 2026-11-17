@@ -19,60 +19,68 @@ export function OverviewTrend({
   copy: OverviewCopy;
 }) {
   const titleId = useId();
-  const hasNegative = rows.some(
-    (r) => Number(r.current.revenue ?? 0) < 0 || Number(r.ly.revenue ?? 0) < 0,
-  );
+  const monthFormatter = new Intl.DateTimeFormat(locale, { month: "short", timeZone: "UTC" });
+  const yearLabels = `${copy.currentYear} / ${copy.priorYear}`;
+  const chartWidth = rows.length * 26;
+  let hasNegative = false;
+  let max = 1;
+  const months = rows.map(({ month, current, ly }) => {
+    const currentValue = current.revenue === null ? null : Number(current.revenue);
+    const priorValue = ly.revenue === null ? null : Number(ly.revenue);
+    hasNegative ||= (currentValue ?? 0) < 0 || (priorValue ?? 0) < 0;
+    max = Math.max(max, Math.abs(currentValue ?? 0), Math.abs(priorValue ?? 0));
+    return {
+      month,
+      currentValue,
+      priorValue,
+      currentLabel: money(current.revenue),
+      priorLabel: money(ly.revenue),
+    };
+  });
   const baseline = hasNegative ? 50 : 80;
   const maxHeight = hasNegative ? 38 : 65;
-  const max = Math.max(
-    1,
-    ...rows.flatMap((r) => [
-      Math.abs(Number(r.current.revenue ?? 0)),
-      Math.abs(Number(r.ly.revenue ?? 0)),
-    ]),
-  );
   return (
     <figure className="mt-5">
       <figcaption className="text-xs text-(--muted)">
         {copy.trend} · {rows[0]?.month.slice(0, 4)}
       </figcaption>
       <svg
-        viewBox={`0 0 ${rows.length * 26} 100`}
+        viewBox={`0 0 ${chartWidth} 100`}
         role="img"
         aria-labelledby={titleId}
         className="mt-2 w-full max-h-28 overflow-visible"
       >
-        <title id={titleId}>{`${copy.currentYear} / ${copy.priorYear}`}</title>
+        <title id={titleId}>{yearLabels}</title>
         <line
           x1="0"
-          x2={rows.length * 26}
+          x2={chartWidth}
           y1={baseline}
           y2={baseline}
           stroke="var(--border)"
         />
-        {rows.map((r, i) => (
-          <g key={r.month}>
+        {months.map(({ month, currentValue, priorValue, currentLabel, priorLabel }, i) => (
+          <g key={month}>
             {[
-              { value: r.ly.revenue, x: i * 26 + 3, fill: "var(--muted)" },
+              { value: priorValue, label: priorLabel, x: i * 26 + 3, fill: "var(--muted)" },
               {
-                value: r.current.revenue,
+                value: currentValue,
+                label: currentLabel,
                 x: i * 26 + 13,
-                fill: i === rows.length - 1 ? "var(--accent)" : "var(--trend-fill)",
+                fill: i === months.length - 1 ? "var(--accent)" : "var(--trend-fill)",
               },
-            ].map((bar) => {
-              if (bar.value === null) return null;
-              const value = Number(bar.value),
-                height = (Math.abs(value) / max) * maxHeight;
+            ].map(({ value, label, x, fill }) => {
+              if (value === null) return null;
+              const height = (Math.abs(value) / max) * maxHeight;
               return (
                 <rect
-                  key={bar.x}
-                  x={bar.x}
+                  key={x}
+                  x={x}
                   y={value < 0 ? baseline : baseline - height}
                   width="8"
                   height={height}
-                  fill={bar.fill}
+                  fill={fill}
                 >
-                  <title>{`${r.month}: ${money(bar.value)}`}</title>
+                  <title>{`${month}: ${label}`}</title>
                 </rect>
               );
             })}
@@ -83,17 +91,12 @@ export function OverviewTrend({
               fontSize="9"
               fill="var(--muted)"
             >
-              {new Intl.DateTimeFormat(locale, {
-                month: "short",
-                timeZone: "UTC",
-              }).format(new Date(r.month + "-01T12:00:00Z"))}
+              {monthFormatter.format(new Date(month + "-01T12:00:00Z"))}
             </text>
           </g>
         ))}
       </svg>
-      <Note className="mt-2">
-        {copy.currentYear} / {copy.priorYear}
-      </Note>
+      <Note className="mt-2">{yearLabels}</Note>
       {!history?.current ||
       !history?.ly ||
       rows.some(
@@ -113,11 +116,11 @@ export function OverviewTrend({
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => (
-              <tr key={r.month}>
-                <th scope="row">{r.month}</th>
-                <td>{money(r.current.revenue)}</td>
-                <td>{money(r.ly.revenue)}</td>
+            {months.map(({ month, currentLabel, priorLabel }) => (
+              <tr key={month}>
+                <th scope="row">{month}</th>
+                <td>{currentLabel}</td>
+                <td>{priorLabel}</td>
               </tr>
             ))}
           </tbody>

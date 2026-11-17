@@ -5,7 +5,7 @@ import { Heading } from "@/components/ui/heading/heading";
 import { Note } from "@/components/ui/note/note";
 import { PartialMarker } from "@/components/ui/partial-marker/partial-marker";
 import { Pager } from "@/components/ui/pager/pager";
-import { formatTableValue } from "@/lib/data-reporting-ui";
+import { createTableValueFormatter } from "@/lib/data-reporting-ui";
 import type { SalesCopy } from "@/lib/sales-copy";
 import type { SalesCurrencyBlock, SalesHref } from "../sales-types";
 
@@ -17,6 +17,7 @@ export function SalesChannelsSection({ channels, copy, locale, href }: {
   locale: string;
   href: SalesHref;
 }) {
+  const formatValue = createTableValueFormatter(locale);
   return (
     <section className={panel}>
       <div className="p-5 space-y-2">
@@ -60,7 +61,7 @@ export function SalesChannelsSection({ channels, copy, locale, href }: {
                   : undefined
               }
             >
-              {formatTableValue(row[col.key], col.type, locale)}
+              {formatValue(row[col.key], col.type)}
               {col.key === "revenue" &&
               (row.source as SalesChannelRow).total.partial ? (
                 <PartialMarker label={copy.partial} />

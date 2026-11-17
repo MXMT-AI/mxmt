@@ -11,8 +11,8 @@ const filters = { period: "month" as const, dateFrom: "2026-09-01", dateTo: "202
 const report = (snapshotId = "pinned") => ({ context: { snapshotId, period: { from: filters.dateFrom, to: filters.dateTo }, asOf: "2026-10-01" } });
 const setResult = vi.fn(), setError = vi.fn(), setBusy = vi.fn(), setReload = vi.fn();
 let force: { current: boolean }, loaded: { current: string };
-function start() {
-  vi.mocked(useState).mockReturnValueOnce([null, setResult]).mockReturnValueOnce(["", setError]).mockReturnValueOnce([true, setBusy]).mockReturnValueOnce([0, setReload]);
+function start(previousError: unknown = null, reload = 0) {
+  vi.mocked(useState).mockReturnValueOnce([null, setResult]).mockReturnValueOnce([previousError, setError]).mockReturnValueOnce([true, setBusy]).mockReturnValueOnce([reload, setReload]);
   vi.mocked(useRef).mockReturnValueOnce(force).mockReturnValueOnce(loaded);
   const state = useMerchandisingScreen(filters, "sales", { groupBy: "sku" });
   const cleanup = vi.mocked(useEffect).mock.lastCall![0]();
@@ -52,15 +52,64 @@ it.each(["missing", "refresh"])("creates a snapshot for %s and preserves URL con
   expect(url.searchParams.get("channelId")).toBe("2");
   expect(context.replace.mock.calls[0][1]).toEqual({ scroll: false });
 });
-it.each(["period", "asOf"])("rejects a report with a mismatched %s", async mismatch => {
+it.each(["period", "asOf", "snapshotId"])("rejects a report with a mismatched %s", async mismatch => {
   if (mismatch === "asOf") context.query += "&asOf=2026-10-02";
   const data = report();
   if (mismatch === "period") data.context.period.to = "2026-09-29";
+  if (mismatch === "snapshotId") data.context.snapshotId = "other";
   vi.mocked(apiFetch).mockResolvedValueOnce(Response.json(data));
   start();
-  await vi.waitFor(() => expect(setError).toHaveBeenCalledWith("SCREEN_SELECTION_MISMATCH"));
+  await vi.waitFor(() => expect(setError).toHaveBeenCalledWith(expect.objectContaining({ message: "SCREEN_SELECTION_MISMATCH" })));
   expect(setResult).not.toHaveBeenCalled();
   expect(context.replace).not.toHaveBeenCalled();
+});
+
+it("does not fetch a report when a cancelled snapshot request resolves late", async () => {
+  context.query = "brandId=b&channelId=2";
+  let resolveSnapshot!: (response: Response) => void;
+  vi.mocked(apiFetch).mockReturnValueOnce(new Promise<Response>((resolve) => {
+    resolveSnapshot = resolve;
+  }));
+
+  const request = start();
+  request.cleanup?.();
+  resolveSnapshot(Response.json({ snapshotId: "late" }));
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  expect(apiFetch).toHaveBeenCalledOnce();
+  expect(apiFetch).toHaveBeenCalledWith("/api/merchandising/snapshots", expect.objectContaining({
+    signal: expect.objectContaining({ aborted: true }),
+  }));
+  expect(setResult).not.toHaveBeenCalled();
+  expect(context.replace).not.toHaveBeenCalled();
+});
+
+it("reports an error when the snapshot response has no ID", async () => {
+  context.query = "brandId=b";
+  vi.mocked(apiFetch).mockResolvedValueOnce(Response.json({}));
+
+  start();
+
+  await vi.waitFor(() => expect(setError).toHaveBeenCalledWith(expect.objectContaining({ message: "SCREEN_DATA_UNAVAILABLE" })));
+  expect(apiFetch).toHaveBeenCalledOnce();
+  expect(context.replace).not.toHaveBeenCalled();
+});
+
+it.each(["filter", "snapshot", "retry"])("scopes an error to the failed request when changing %s", async change => {
+  vi.mocked(apiFetch).mockResolvedValueOnce(Response.json({ code: "FAILED" }, { status: 500 }));
+  const first = start();
+  await vi.waitFor(() => expect(setError).toHaveBeenCalledWith(expect.objectContaining({ message: "FAILED" })));
+  const failure = setError.mock.lastCall![0];
+  first.cleanup?.();
+  const sameRequest = start(failure);
+  expect(sameRequest.state.error).toBe("FAILED");
+  sameRequest.cleanup?.();
+
+  if (change === "filter") context.query = context.query.replace("brandId=b", "brandId=other");
+  if (change === "snapshot") context.query = context.query.replace("snapshotId=pinned", "snapshotId=new");
+  const next = start(failure, change === "retry" ? 1 : 0);
+  expect(next.state.error).toBe("");
+  next.cleanup?.();
 });
 it.each([false, true])("ignores a cancelled delayed report (failure: %s)", async failure => {
   let release!: () => void;

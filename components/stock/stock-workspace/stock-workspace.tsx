@@ -1,7 +1,5 @@
 "use client";
-import { WorkspaceLoading } from "@/components/merchandising/workspace-loading/workspace-loading";
-import ReportingError from "@/components/merchandising/reporting-error/reporting-error";
-import ReportReadiness from "@/components/merchandising/report-readiness/report-readiness";
+import { ReportWorkspaceFrame } from "@/components/merchandising/report-workspace-frame/report-workspace-frame";
 import { useRouter } from "@/i18n/navigation";
 import { useSearchParams } from "next/navigation";
 import { useLang } from "@/components/language-provider/language-provider";
@@ -16,26 +14,19 @@ export default function StockWorkspace() {
     router = useRouter(),
     { lang } = useLang();
   const controls = stockWorkspaceControls(params);
-  const { data, busy, error, refresh } = useMerchandisingScreen(
-      filters,
-      "stock",
-      controls,
-    ),
-    copy = stockCopy[lang];
-  if (error) return <ReportingError code={error} lang={lang} title={copy.title} onRetry={refresh}/>;
-  if (busy || !data)
-    return <WorkspaceLoading title={copy.title} message={copy.loading} />;
+  const state = useMerchandisingScreen(filters, "stock", controls);
 
   return (
-    <div className="space-y-5">
-      <ReportReadiness data={data.readiness} lang={lang}/>
-      <StockContent
-        data={data}
-        lang={lang}
-        query={params.toString()}
-        onRefresh={refresh}
-        onNavigate={(url) => router.push(url, { scroll: false })}
-      />
-    </div>
+    <ReportWorkspaceFrame state={state} lang={lang} copy={stockCopy[lang]}>
+      {(data, refresh) => (
+        <StockContent
+          data={data}
+          lang={lang}
+          query={params.toString()}
+          onRefresh={refresh}
+          onNavigate={(url) => router.push(url, { scroll: false })}
+        />
+      )}
+    </ReportWorkspaceFrame>
   );
 }

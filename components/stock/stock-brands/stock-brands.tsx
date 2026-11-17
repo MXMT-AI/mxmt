@@ -9,8 +9,16 @@ import { Pager } from "@/components/ui/pager/pager";
 import { StockCost } from "../stock-cost/stock-cost";
 import type { StockCopy } from "@/lib/stock-copy";
 import type { Block, Group, Href } from "../stock-content/stock-content-types";
-import { PartialMarker } from "@/components/ui/partial-marker/partial-marker";
-import { formatTableValue as format } from "@/lib/data-reporting-ui";
+import { createTableValueFormatter } from "@/lib/data-reporting-ui";
+import { StockMetricCell } from "../stock-metric-cell/stock-metric-cell";
+
+const signalClass: Partial<Record<NonNullable<Group["signal"]>, string>> = {
+  DEAD: "text-report-negative",
+  RISK: "text-report-warning",
+  HEALTHY: "text-report-positive",
+  NEW: "text-report-info",
+  OFF_SEASON: "text-report-info",
+};
 
 export function StockBrands({ groups, selectedStatus, copy, locale, href: scoped, date }: {
   groups: Block["brands"];
@@ -20,6 +28,7 @@ export function StockBrands({ groups, selectedStatus, copy, locale, href: scoped
   href: Href;
   date: (value: string) => string;
 }) {
+  const formatValue = createTableValueFormatter(locale);
   return (
     <section className={panel}>
       <div className="p-5 space-y-2">
@@ -63,26 +72,12 @@ export function StockBrands({ groups, selectedStatus, copy, locale, href: scoped
                 {r.id === null ? copy.unassigned : r.name}
               </Link>
             );
-          if (col.key === "signal")
+          if (col.key === "signal") {
+            const signal = r.signal ?? "UNAVAILABLE";
             return (
-              <span
-                className={
-                  r.signal === "DEAD"
-                    ? "text-report-negative"
-                    : r.signal === "RISK"
-                      ? "text-report-warning"
-                      : r.signal === "HEALTHY"
-                        ? "text-report-positive"
-                        : r.signal === "NEW" ||
-                            r.signal === "OFF_SEASON"
-                          ? "text-report-info"
-                          : "text-(--muted)"
-                }
-              >
-                {copy.signals[
-                  r.signal as keyof StockCopy["signals"]
-                ] ?? copy.signals.UNAVAILABLE}
-                {r.signal === "NEW" && r.firstReceiptDate ? (
+              <span className={signalClass[signal] ?? "text-(--muted)"}>
+                {copy.signals[signal as keyof StockCopy["signals"]] ?? copy.signals.UNAVAILABLE}
+                {signal === "NEW" && r.firstReceiptDate ? (
                   <small className="block">
                     {copy.firstReceipt}: {date(r.firstReceiptDate)}
                   </small>
@@ -94,27 +89,23 @@ export function StockBrands({ groups, selectedStatus, copy, locale, href: scoped
                 ) : null}
               </span>
             );
+          }
           if (col.key === "stockCost")
             return (
               <StockCost
                 value={r.stockCost}
                 covered={r.coveredStockCost}
-                locale={locale}
+                formatValue={formatValue}
                 copy={copy}
               />
             );
           return (
-            <>
-              {format(row[col.key], col.type, locale)}
-              {col.key === "sellThroughRatio" && !r.strComplete ? (
-                <PartialMarker label={copy.strPartial} />
-              ) : null}
-            </>
+            <StockMetricCell row={row} column={col} formatValue={formatValue} partialLabel={copy.strPartial} />
           );
         }}
       />
       {!groups.rows.length ? (
-        <Text variant="body" className="leading-normal text-base text-inherit p-5 text-sm text-(--muted)">
+        <Text variant="body" className="p-5 leading-normal text-(--muted)">
           {copy.empty}
         </Text>
       ) : null}

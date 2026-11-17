@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { DataColumnMetadata } from "@/lib/data-table-api";
 import {
   canSortReportColumn,
+  createTableValueFormatter,
   currentKyivMonth,
   formatTableValue,
   nextSortDirection,
@@ -71,4 +72,19 @@ it("formats long financial decimal strings without binary floating-point roundin
   );
   expect(formatTableValue("-1000.005", "money", "en-GB")).toBe("-1,000.01");
   expect(formatTableValue("1.12345", "quantity", "en-GB")).toBe("1.1235");
+});
+
+it("keeps formats and locales separate when formatting a mixed report", () => {
+  const formatEnglish = createTableValueFormatter("en-GB");
+  const formatUkrainian = createTableValueFormatter("uk-UA");
+  const date = "2026-11-17T12:00:00Z";
+
+  expect(formatEnglish("1000.12345", "money")).toBe("1,000.12");
+  expect(formatEnglish("1000.12345", "quantity")).toBe("1,000.1235");
+  expect(formatUkrainian("1000.12345", "money")).toBe("1\u00a0000,12");
+  expect(formatEnglish(0.125, "percentage")).toBe("12.5%");
+  expect(formatEnglish(0.125, "number")).toBe("0.13");
+  expect(formatEnglish(date, "date")).toBe(new Intl.DateTimeFormat("en-GB").format(new Date(date)));
+  expect(formatEnglish("invalid date", "date")).toBe("invalid date");
+  expect(formatEnglish("0", "money")).toBe("0");
 });

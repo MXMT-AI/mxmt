@@ -25,14 +25,16 @@ export function useMerchandisingScreen(
     signature: string;
     data: OverviewResponse;
   } | null>(null);
-  const [error, setError] = useState("");
+  const [failure, setFailure] = useState<{ key: string; message: string } | null>(null);
   const [busy, setBusy] = useState(true),
     [reload, setReload] = useState(0);
   const force = useRef(false),
     loaded = useRef("");
   const queryString = params.toString();
+  const requestKey = JSON.stringify([screen, signature, snapshotId, reload]);
   useEffect(() => {
     const controller = new AbortController();
+    const { signal } = controller;
     const refresh = force.current;
     force.current = false;
     const source = new URLSearchParams(signature);
@@ -44,13 +46,13 @@ export function useMerchandisingScreen(
     )
       return;
     setBusy(true);
-    setError("");
+    setFailure(null);
     async function load() {
       let id = snapshotId;
       if (!id || refresh) {
         const created = await apiFetch("/api/merchandising/snapshots", {
           method: "POST",
-          signal: controller.signal,
+          signal,
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             dateFrom: source.get("dateFrom"),
@@ -65,39 +67,43 @@ export function useMerchandisingScreen(
           throw new Error(body.code ?? "SCREEN_DATA_UNAVAILABLE");
         id = body.snapshotId;
       }
-      readParams.set("snapshotId", id!);
+      if (signal.aborted) return;
+      if (typeof id !== "string" || !id) throw new Error("SCREEN_DATA_UNAVAILABLE");
+      readParams.set("snapshotId", id);
       const response = await apiFetch(
         `/api/merchandising/${screen}?${readParams}`,
-        { signal: controller.signal, cache: "no-store" },
+        { signal, cache: "no-store" },
       );
       const data = await readApiJson<OverviewResponse & { code?: string }>(
         response,
       );
       if (!response.ok) throw new Error(data.code ?? "SCREEN_DATA_UNAVAILABLE");
       if (
+        data.context.snapshotId !== id ||
         data.context.period.from !== source.get("dateFrom") ||
         data.context.period.to !== source.get("dateTo") ||
         (source.has("asOf") && data.context.asOf !== source.get("asOf"))
       )
         throw new Error("SCREEN_SELECTION_MISMATCH");
-      if (controller.signal.aborted) return;
+      if (signal.aborted) return;
       loaded.current = signature + "|" + readParams.toString();
       setResult({ signature, data });
       setBusy(false);
       if (id !== snapshotId) {
         const next = new URLSearchParams(queryString);
         next.set("period", filters.period);
-        next.set("snapshotId", id!);
+        next.set("snapshotId", id);
         next.set("dateFrom", data.context.period.from);
         next.set("dateTo", data.context.period.to);
         router.replace(`/${screen}?${next}`, { scroll: false });
       }
     }
     load().catch((cause) => {
-      if (!controller.signal.aborted) {
-        setError(
-          cause instanceof Error ? cause.message : "SCREEN_DATA_UNAVAILABLE",
-        );
+      if (!signal.aborted) {
+        setFailure({
+          key: requestKey,
+          message: cause instanceof Error ? cause.message : "SCREEN_DATA_UNAVAILABLE",
+        });
         setBusy(false);
       }
     });
@@ -110,6 +116,7 @@ export function useMerchandisingScreen(
     queryString,
     filters.period,
     screen,
+    requestKey,
   ]);
   const visible =
     result?.signature === signature &&
@@ -118,7 +125,7 @@ export function useMerchandisingScreen(
       : null;
   return {
     data: visible,
-    error,
+    error: failure?.key === requestKey ? failure.message : "",
     busy,
     refresh: () => {
       force.current = true;

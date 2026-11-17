@@ -13,7 +13,8 @@ import type { Lang } from "@/lib/translations";
 import { stockCopy } from "@/lib/stock-copy";
 import { freshnessLabel } from "@/lib/freshness-label";
 import { merchandisingHref } from "@/lib/merchandising-navigation";
-import { formatTableValue as format } from "@/lib/data-reporting-ui";
+import { readScreenControls } from "@/lib/client/merchandising-screen-request";
+import { createTableValueFormatter } from "@/lib/data-reporting-ui";
 
 import type { Href } from "./stock-content-types";
 import { StockCost } from "../stock-cost/stock-cost";
@@ -21,6 +22,8 @@ import { StockQualityRing } from "../stock-quality-ring/stock-quality-ring";
 import { StockCategories } from "../stock-categories/stock-categories";
 import { StockSkuTable } from "../stock-sku-table/stock-sku-table";
 import { StockBrands } from "../stock-brands/stock-brands";
+
+const scopeKeys = ["brandId", "categoryId", "skuId", "currency"];
 
 export default function StockContent({
   data,
@@ -43,32 +46,16 @@ export default function StockContent({
   params.set("snapshotId", data.context.snapshotId);
   params.set("dateFrom", data.context.period.from);
   params.set("dateTo", data.context.period.to);
+  const linkControls = readScreenControls("stock", params, { includeEmpty: true });
   const href: Href = (values) =>
-    merchandisingHref("/stock", params, {
-      ...Object.fromEntries(
-        [
-          "groupBy",
-          "classification",
-          "ownership",
-          "supplierId",
-          "page",
-          "sort",
-          "direction",
-          "categoryPage",
-          "brandPage",
-          "categorySort",
-          "categoryDirection",
-        ]
-          .filter((k) => params.has(k))
-          .map((k) => [k, params.get(k)]),
-      ),
-      ...values,
-    });
+    merchandisingHref("/stock", params, { ...linkControls, ...values });
+  const formatValue = createTableValueFormatter(locale);
+  const reportDate = new Intl.DateTimeFormat(locale, {
+    dateStyle: "medium",
+    timeZone: "Europe/Kyiv",
+  });
   const date = (value: string) =>
-    new Intl.DateTimeFormat(locale, {
-      dateStyle: "medium",
-      timeZone: "Europe/Kyiv",
-    }).format(new Date(value.length === 10 ? value + "T12:00:00Z" : value));
+    reportDate.format(new Date(value.length === 10 ? value + "T12:00:00Z" : value));
   return (
     <div className="space-y-6">
       <ReportHeader
@@ -80,10 +67,7 @@ export default function StockContent({
         action={onRefresh && <Button variant="report" onClick={onRefresh}>{copy.refresh}</Button>}
       />
       <Note>{freshnessLabel(data.freshness.status, lang)}</Note>
-      {params.has("brandId") ||
-      params.has("categoryId") ||
-      params.has("skuId") ||
-      params.has("currency") ? (
+      {scopeKeys.some((key) => params.has(key)) ? (
         <Link
           className="inline-block underline underline-offset-4 text-sm"
           href={href({
@@ -101,7 +85,7 @@ export default function StockContent({
         </Link>
       ) : null}
       {!model.classificationAvailable ? (
-        <Text variant="body" role="status" className="leading-normal text-base text-inherit text-sm">
+        <Text variant="body" role="status" className="leading-normal text-inherit">
           {copy.legacy}
         </Text>
       ) : null}
@@ -126,12 +110,12 @@ export default function StockContent({
                   <StockCost
                     value={block.stockCost}
                     covered={block.coveredStockCost}
-                    locale={locale}
+                    formatValue={formatValue}
                     copy={copy}
                   />
                 </strong>
                 <span className="ml-3 text-(--muted)">
-                  {copy.quantity}: {format(block.quantity, "quantity", locale)}
+                  {copy.quantity}: {formatValue(block.quantity, "quantity")}
                 </span>
               </div>
             </div>

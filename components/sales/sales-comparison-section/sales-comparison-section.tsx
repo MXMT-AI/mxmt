@@ -4,7 +4,7 @@ import { panel } from "@/components/ui/panel/panel-styles";
 import { Heading } from "@/components/ui/heading/heading";
 import { Note } from "@/components/ui/note/note";
 import { PartialMarker } from "@/components/ui/partial-marker/partial-marker";
-import { formatTableValue } from "@/lib/data-reporting-ui";
+import { createTableValueFormatter } from "@/lib/data-reporting-ui";
 import type { SalesCopy } from "@/lib/sales-copy";
 import type { SalesWorkspaceModel } from "@/lib/merchandising-sales-workspace";
 import type { SalesCurrencyBlock, SalesHref } from "../sales-types";
@@ -23,6 +23,7 @@ export function SalesComparisonSection({ comparison, period, history, oneOffAvai
   locale: string;
   href: SalesHref;
 }) {
+  const formatValue = createTableValueFormatter(locale);
   const lyRows = [
     ...comparison.rows.map((r) => ({
       ...r,
@@ -119,7 +120,7 @@ export function SalesComparisonSection({ comparison, period, history, oneOffAvai
               row[col.key] !== ""
                 ? "+"
                 : ""}
-              {formatTableValue(row[col.key], col.type, locale)}
+              {formatValue(row[col.key], col.type)}
               {(col.key === "current" && row.currentPartial) ||
               (col.key === "ly" && row.lyPartial) ? (
                 <PartialMarker label={copy.partial} />

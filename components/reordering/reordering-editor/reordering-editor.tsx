@@ -1,9 +1,6 @@
 "use client";
 import { useReorderingEditor } from "../use-reordering-editor";
 import { useScenarioPreview } from "@/components/merchandising/use-scenario-preview";
-import { Button } from "@/components/ui/button/button";
-import { AlertPanel } from "@/components/ui/alert-panel/alert-panel";
-import { Note } from "@/components/ui/note/note";
 import { reorderingRequest } from "@/lib/reordering-workspace";
 import { reorderingCopy } from "@/lib/reordering-copy";
 import type { getReorderingPreview } from "@/lib/reordering-store";
@@ -12,6 +9,9 @@ import Controls from "../reordering-controls/reordering-controls";
 import { useScenarioExportPermission } from "@/components/merchandising/merchandising-shell/merchandising-shell";
 import { useScenarioExport } from "@/components/merchandising/use-scenario-export";
 import ScenarioExportPanel from "@/components/merchandising/scenario-export-panel/scenario-export-panel";
+import { ScenarioPreviewError } from "@/components/merchandising/scenario-preview-error/scenario-preview-error";
+import { ScenarioPreviewStatus } from "@/components/merchandising/scenario-preview-status/scenario-preview-status";
+import { ScenarioSnapshotNote } from "@/components/merchandising/scenario-snapshot-note/scenario-snapshot-note";
 import Table from "../reordering-table/reordering-table";
 import Summary from "../reordering-summary/reordering-summary";
 import { ReorderingSupplierGroups } from "../reordering-supplier-groups/reordering-supplier-groups";
@@ -72,43 +72,24 @@ export default function ReorderingEditor({
         onChange={change}
         onReset={reset}
       />
-      <Note>
-        {copy.allChannels} · {copy.asOf}:{" "}
-        {new Intl.DateTimeFormat(locale, { timeZone: "UTC" }).format(
-          new Date(asOf + "T00:00:00Z"),
-        )}
-      </Note>
-      <p
-        role="status"
-        aria-live="polite"
-        className="text-sm text-(--muted)"
-      >
-        {needsBrand
-          ? copy.chooseBrand
-          : preview.busy
-            ? copy.updating
-            : current
-              ? copy.ready
-              : ""}
-      </p>
+      <ScenarioSnapshotNote asOf={asOf} locale={locale} copy={copy} />
+      <ScenarioPreviewStatus
+        prerequisite={needsBrand ? copy.chooseBrand : undefined}
+        busy={!error && preview.busy}
+        ready={ready}
+        copy={copy}
+      />
       {error ? (
-        <AlertPanel
-          className="bg-transparent p-4"
+        <ScenarioPreviewError
           message={error.code === "INVALID_REORDERING_REQUEST"
               ? copy.invalid
               : error.code === "REORDERING_OVERRIDE_INELIGIBLE"
                 ? copy.filterError
                 : copy.error}
-        >
-          <div className="flex flex-wrap gap-2">
-            <Button variant="report" onClick={preview.retry}>
-              {copy.retry}
-            </Button>
-            <Button variant="report" onClick={onRefresh}>
-              {copy.refresh}
-            </Button>
-          </div>
-        </AlertPanel>
+          copy={copy}
+          onRetry={preview.retry}
+          onRefresh={onRefresh}
+        />
       ) : null}
       {!needsBrand && preview.data && preview.sameControls ? (
         <Table

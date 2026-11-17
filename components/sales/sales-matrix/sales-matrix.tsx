@@ -3,7 +3,7 @@ import ReportTable from "@/components/data-reporting/report-table/report-table";
 import { PartialMarker } from "@/components/ui/partial-marker/partial-marker";
 import type { SalesCell, SalesWorkspaceModel } from "@/lib/merchandising-sales-workspace";
 import type { DataColumnMetadata } from "@/lib/data-table-api";
-import { formatTableValue } from "@/lib/data-reporting-ui";
+import { createTableValueFormatter } from "@/lib/data-reporting-ui";
 import type { SalesCopy } from "@/lib/sales-copy";
 import type { SalesMatrixRow, SalesHref } from "../sales-types";
 import { salesTone } from "../sales-tone";
@@ -25,6 +25,7 @@ export function SalesMatrix({
   locale: string;
   href: SalesHref;
 }) {
+  const formatValue = createTableValueFormatter(locale);
   const months = (total ?? rows[0])?.cells.map((c) => c.month) ?? [];
   const type: DataColumnMetadata["type"] =
     metric === "gmPct"
@@ -115,7 +116,7 @@ export function SalesMatrix({
             className={salesTone(c.tone)}
             title={c.partial ? copy.partial : undefined}
           >
-            {formatTableValue(c.value, col.type, locale)}
+            {formatValue(c.value, col.type)}
             {c.partial ? <PartialMarker label={copy.partial} /> : null}
           </span>
         );

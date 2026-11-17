@@ -6,22 +6,29 @@ import { ukSalesColumns } from "@/lib/sales-report-labels";
 import { nextSortDirection } from "@/lib/data-reporting-ui";
 import type { SalesView } from "@/lib/sales-report-view";
 import { Button } from "@/components/ui/button/button";
+import { controlBase } from "@/components/ui/control-styles/control-styles";
 import { DateField } from "@/components/ui/date-field/date-field";
+import { Field } from "@/components/ui/field/field";
 import { Heading } from "@/components/ui/heading/heading";
+import { Note } from "@/components/ui/note/note";
 import { Text } from "@/components/ui/text/text";
-import { useSalesReport } from "../use-sales-report";
+import { useSalesReport } from "../use-sales-report/use-sales-report";
 import { SalesCurrencySummary } from "../sales-currency-summary/sales-currency-summary";
 import { SalesReportDetails } from "../sales-report-details/sales-report-details";
-import { salesReportReason } from "./sales-report-copy";
+import { salesReportErrorMessage, salesReportReason, salesWorkspaceCopy } from "./sales-report-copy";
 import ReportTable from "../report-table/report-table";
+import { ReportTablePagination, reportPaginationCopy } from "../report-table-pagination/report-table-pagination";
+
 const control =
-  "rounded-lg border border-(--border) bg-(--surface) px-3 py-2 font-sans text-sm text-(--text) focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50 touch-manipulation aria-pressed:border-(--text) aria-pressed:font-semibold";
-const field = "mt-1 block w-full " + control;
+  controlBase + " bg-(--surface) py-2 font-sans text-sm touch-manipulation";
+const viewControl = control + " aria-pressed:border-(--text) aria-pressed:font-semibold";
+const field = control + " w-full";
 
 export default function SalesReportingWorkspace() {
   const { lang } = useLang(),
     uk = lang === "uk",
     locale = uk ? "uk-UA" : "en-GB";
+  const copy = salesWorkspaceCopy[lang];
   const [view, setView] = useState<SalesView>("articles");
   const [page, setPage] = useState(1);
   const [q, setQ] = useState("");
@@ -35,24 +42,14 @@ export default function SalesReportingWorkspace() {
   useEffect(() => {
     if (error) errorRef.current?.focus();
   }, [error]);
-  const text = (code: string) => salesReportReason(code, uk);
   const apply = (event: FormEvent) => {
     event.preventDefault();
     if (applyPeriod()) setPage(1);
   };
-  const labels: Record<SalesView, string> = uk
-    ? {
-        articles: "SKU",
-        brands: "Бренди",
-        categories: "Категорії",
-        channels: "Канали",
-      }
-    : {
-        articles: "SKUs",
-        brands: "Brands",
-        categories: "Categories",
-        channels: "Channels",
-      };
+  const periodFields = [
+    { key: "from", label: copy.dateFrom },
+    { key: "to", label: copy.dateTo },
+  ] as const;
   const columns =
     data?.table.columns.map((c) => ({
       ...c,
@@ -61,20 +58,11 @@ export default function SalesReportingWorkspace() {
   const rows =
     data?.table.rows.map((row) => ({
       ...row,
-      coverage:
-        row.coverage === "COMPLETE"
-          ? uk
-            ? "Повне"
-            : "Complete"
-          : row.coverage === "PARTIAL"
-            ? uk
-              ? "Часткове"
-              : "Partial"
-            : uk
-              ? "Недоступне"
-              : "Unavailable",
+      coverage: copy.coverage[
+        row.coverage === "COMPLETE" || row.coverage === "PARTIAL" ? row.coverage : "UNAVAILABLE"
+      ],
       comparisonReason: row.comparisonReason
-        ? text(String(row.comparisonReason))
+        ? salesReportReason(String(row.comparisonReason), uk)
         : "",
     })) ?? [];
   return (
@@ -90,28 +78,23 @@ export default function SalesReportingWorkspace() {
         </Text>
       </header>
       <form onSubmit={apply} className="flex flex-wrap items-end gap-3">
-        <DateField
-          id="sales-from" name="sales-from" variant="stacked"
-          label={uk ? "Дата від" : "Date from"}
-          value={period.from}
-          onChange={(event) => setPeriod((current) => ({ ...current, from: event.target.value }))}
-          className="h-auto py-2"
-        />
-        <DateField
-          id="sales-to" name="sales-to" variant="stacked"
-          label={uk ? "Дата до" : "Date to"}
-          value={period.to}
-          onChange={(event) => setPeriod((current) => ({ ...current, to: event.target.value }))}
-          className="h-auto py-2"
-        />
+        {periodFields.map(({ key, label }) => (
+          <DateField
+            key={key}
+            id={`sales-${key}`}
+            name={`sales-${key}`}
+            variant="stacked"
+            label={label}
+            value={period[key]}
+            onChange={(event) => {
+              const value = event.target.value;
+              setPeriod((current) => ({ ...current, [key]: value }));
+            }}
+            className="h-auto py-2"
+          />
+        ))}
         <Button type="submit" className={control} disabled={busy}>
-          {busy
-            ? uk
-              ? "Розрахунок…"
-              : "Calculating…"
-            : uk
-              ? "Застосувати період"
-              : "Apply period"}
+          {busy ? copy.calculating : copy.applyPeriod}
         </Button>
         <Button
           type="button"
@@ -134,21 +117,7 @@ export default function SalesReportingWorkspace() {
           role="alert"
           className="text-sm text-accent-danger"
         >
-          {error === "INVALID_REPORT_PERIOD"
-            ? uk
-              ? "Перевірте обидві дати: період до 366 днів, без майбутніх дат."
-              : "Check both dates: up to 366 days, without future dates."
-            : error === "SALESDRIVE_NOT_CONFIGURED"
-              ? uk
-                ? "Налаштуйте SalesDrive у налаштуваннях."
-                : "Configure SalesDrive in Settings."
-              : error === "SALES_IMPORT_NOT_READY"
-                ? uk
-                  ? "Дочекайтесь завершення першого імпорту замовлень."
-                  : "Wait for the first order import to finish."
-                : uk
-                  ? "Не вдалося завантажити звіт. Повторіть після синхронізації."
-                  : "Could not load the report. Retry after synchronization."}{" "}
+          {salesReportErrorMessage(error, lang)}{" "}
           <Link className="underline" href="/settings">
             {uk ? "Налаштування" : "Settings"}
           </Link>
@@ -174,11 +143,11 @@ export default function SalesReportingWorkspace() {
             aria-label={uk ? "Фінансові зрізи" : "Financial views"}
             className="flex flex-wrap gap-2"
           >
-            {Object.entries(labels).map(([key, label]) => (
+            {Object.entries(copy.views).map(([key, label]) => (
               <Button
                 key={key}
                 type="button"
-                className={control}
+                className={viewControl}
                 aria-pressed={view === key}
                 onClick={() => {
                   setPage(1);
@@ -197,8 +166,7 @@ export default function SalesReportingWorkspace() {
             }}
             className="flex flex-wrap items-end gap-2"
           >
-            <label className="min-w-0 flex-1 text-sm text-(--muted)">
-              {uk ? "Пошук у зрізі" : "Search this view"}
+            <Field label={uk ? "Пошук у зрізі" : "Search this view"} className="flex-1 gap-1 text-sm">
               <input
                 name="sales-search"
                 autoComplete="off"
@@ -207,7 +175,7 @@ export default function SalesReportingWorkspace() {
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
               />
-            </label>
+            </Field>
             <Button type="submit" className={control}>{uk ? "Знайти" : "Search"}</Button>
             {exportHref && (
               <a className={control} href={exportHref}>
@@ -236,37 +204,23 @@ export default function SalesReportingWorkspace() {
                 : "No rows match these filters."}
             </p>
           )}
-          <div className="flex flex-wrap items-center gap-3 text-sm text-(--muted)">
-            <Button
-              type="button"
-              className={control}
-              disabled={page <= 1}
-              onClick={() => setPage((p) => p - 1)}
-            >
-              {uk ? "Назад" : "Previous"}
-            </Button>
-            <span>
-              {page} / {Math.max(1, data.table.pagination.totalPages)} ·{" "}
-              {data.table.pagination.totalRows}
-            </span>
-            <Button
-              type="button"
-              className={control}
-              disabled={page >= data.table.pagination.totalPages}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              {uk ? "Далі" : "Next"}
-            </Button>
-          </div>
+          <ReportTablePagination
+            pagination={{ ...data.table.pagination, page }}
+            requestedPage={page}
+            locale={locale}
+            copy={reportPaginationCopy[lang]}
+            onPrevious={() => setPage((current) => current - 1)}
+            onNext={() => setPage((current) => current + 1)}
+          />
           <SalesReportDetails data={data} uk={uk} />
-          <p className="break-all text-xs text-(--muted)">
+          <Note className="break-all leading-4">
             {uk ? "Розрахунок" : "Calculation"}: {data.calculationRunId} ·{" "}
             {uk ? "Версія формул" : "Formula version"} {data.calculationVersion}
             .{" "}
             {uk
               ? "29 лютого → 28 лютого LY. Діапазон історії базується на імпорті за датами створення замовлень, не на підтвердженому бухгалтерському звірянні."
               : "29 February → 28 February LY. History coverage follows imported order-creation windows, not verified accounting reconciliation."}
-          </p>
+          </Note>
         </>
       )}
     </div>

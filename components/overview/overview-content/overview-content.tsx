@@ -2,6 +2,8 @@
 import { Link } from "@/i18n/navigation";
 import { Note } from "@/components/ui/note/note";
 import { Button } from "@/components/ui/button/button";
+import { Heading } from "@/components/ui/heading/heading";
+import { Text } from "@/components/ui/text/text";
 import { panel } from "@/components/ui/panel/panel-styles";
 import { button as reportButton } from "@/components/ui/button/button-styles";
 import { cn } from "@/lib/utils";
@@ -35,39 +37,42 @@ export default function OverviewContent({
   if (!params.has("period")) params.set("period", "custom");
   const href = (path: string, detail?: Record<string, string | null>) =>
     merchandisingHref(path, params, detail);
+  const settingsHref = href("/settings");
+  const reportDate = new Intl.DateTimeFormat(locale, {
+    dateStyle: "medium",
+    timeZone: "UTC",
+  });
   const date = (s: string) =>
-    new Intl.DateTimeFormat(locale, {
-      dateStyle: "medium",
-      timeZone: "UTC",
-    }).format(new Date(s + "T12:00:00Z"));
-  const stamp = (s: string | null) =>
-    s
-      ? new Intl.DateTimeFormat(locale, {
-          dateStyle: "medium",
-          timeStyle: "short",
-          timeZone: data.context.timezone,
-        }).format(new Date(s))
-      : copy.unavailable;
+    reportDate.format(new Date(s + "T12:00:00Z"));
+  const { sourceObservedAt } = data.freshness;
+  const observedAt = sourceObservedAt
+    ? new Intl.DateTimeFormat(locale, {
+        dateStyle: "medium",
+        timeStyle: "short",
+        timeZone: data.context.timezone,
+      }).format(new Date(sourceObservedAt))
+    : copy.unavailable;
+  const issueCount = (data.sales?.issues.length ?? 0) + (data.stock?.issues.length ?? 0);
   const view = data.overview;
   return (
     <div className="space-y-5">
       <header className="flex flex-wrap justify-between items-start gap-4">
         <div>
-          <p className="text-xs text-(--muted)">
+          <Note className="leading-normal">
             {data.freshness.freshnessBasis === "SHEETS_IMPORT"
               ? copy.sheetsImported
-              : copy.observed}: {stamp(data.freshness.sourceObservedAt)}
-          </p>
-          <h1 className="mt-2 text-2xl font-bold tracking-tight text-balance">{copy.title}</h1>
-          <p className="mt-1 text-sm text-(--muted)">
+              : copy.observed}: {observedAt}
+          </Note>
+          <Heading as="h1" variant="page" className="mt-2 text-2xl text-inherit text-balance">{copy.title}</Heading>
+          <Text variant="body" className="mt-1 leading-normal text-(--muted)">
             {copy.snapshot}: {date(data.context.asOf)} · {copy.allChannels}
-          </p>
-          <p className="mt-1 text-xs text-(--muted)">
+          </Text>
+          <Note className="mt-1 leading-normal">
             {freshnessLabel(data.freshness.status, lang)}
             {data.freshness.historical && data.freshness.sourceStale
               ? ` · ${copy.stale}`
               : ""}
-          </p>
+          </Note>
         </div>
         {onRefresh ? (
           <Button variant="report" className="justify-start font-medium" onClick={onRefresh}>
@@ -75,8 +80,7 @@ export default function OverviewContent({
           </Button>
         ) : null}
       </header>
-      {(data.sales?.issues.length ?? 0) > 0 ||
-      (data.stock?.issues.length ?? 0) > 0 ? (
+      {issueCount > 0 ? (
         <div
           role="status"
           className={
@@ -85,15 +89,9 @@ export default function OverviewContent({
           }
         >
           <p className="font-medium">{copy.partial}</p>
-          <Note className="mt-2">
-            {copy.diagnostics}:{" "}
-            {
-              [...(data.sales?.issues ?? []), ...(data.stock?.issues ?? [])]
-                .length
-            }
-          </Note>
+          <Note className="mt-2">{copy.diagnostics}: {issueCount}</Note>
           <Link
-            href={href("/settings")}
+            href={settingsHref}
             className="inline-block min-h-8 py-2 underline underline-offset-4"
           >
             {copy.settings}
@@ -102,9 +100,9 @@ export default function OverviewContent({
       ) : null}
       {data.dataState === "EMPTY" ? (
         <section className={panel + " p-6"}>
-          <h2 className="font-semibold">{copy.empty}</h2>
+          <Heading as="h2" variant="compact" className="text-base text-inherit">{copy.empty}</Heading>
           <Note className="mt-2">{copy.emptyHint}</Note>
-          <Link className={button + " mt-4"} href={href("/settings")}>
+          <Link className={button + " mt-4"} href={settingsHref}>
             {copy.settings}
           </Link>
         </section>

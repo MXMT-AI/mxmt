@@ -9,6 +9,7 @@ import OverviewContent from "@/components/overview/overview-content/overview-con
 import { WorkspaceLoading } from "@/components/merchandising/workspace-loading/workspace-loading";
 import ReportingError from "@/components/merchandising/reporting-error/reporting-error";
 import ReportReadiness from "@/components/merchandising/report-readiness/report-readiness";
+import { ReportWorkspaceFrame } from "@/components/merchandising/report-workspace-frame/report-workspace-frame";
 import { salesWorkspaceControls } from "@/components/sales/sales-workspace-controls";
 import { stockWorkspaceControls } from "@/components/stock/stock-workspace-controls";
 const mocks = vi.hoisted(() => ({ screen: vi.fn(), refresh: vi.fn(), push: vi.fn(), lang: "en", monobrand: true }));
@@ -31,13 +32,18 @@ beforeEach(() => { vi.clearAllMocks(); mocks.lang = "en"; mocks.monobrand = true
 for (const [Workspace, Content, name] of [[SalesWorkspace, SalesContent, "sales"], [StockWorkspace, StockContent, "stock"], [OverviewWorkspace, OverviewContent, "overview"]] as const) {
   it.each(["uk", "en"])(`preserves ${name} error/loading/ready states in %s`, lang => {
     mocks.lang = lang;
+    const renderWorkspace = () => {
+      const workspace = Workspace();
+      expect(workspace.type).toBe(ReportWorkspaceFrame);
+      return nodes(ReportWorkspaceFrame(workspace.props));
+    };
     mocks.screen.mockReturnValue({ data, busy: true, error: "FAILED", refresh: mocks.refresh });
-    const error = nodes(Workspace());
+    const error = renderWorkspace();
     expect(error[0].type).toBe(ReportingError);
     expect(error[0].props.onRetry).toBe(mocks.refresh);
     for (const state of [{ data, busy: true }, { data: null, busy: false }]) {
       mocks.screen.mockReturnValue({ ...state, error: "", refresh: mocks.refresh });
-      const loading = nodes(Workspace());
+      const loading = renderWorkspace();
       expect(loading[0].type).toBe(WorkspaceLoading);
       expect(loading.some(node => node.type === Content)).toBe(false);
       expect(nodes(WorkspaceLoading(loading[0].props as Parameters<typeof WorkspaceLoading>[0]))[0].props.role).toBe("status");
@@ -45,7 +51,7 @@ for (const [Workspace, Content, name] of [[SalesWorkspace, SalesContent, "sales"
       if (name === "overview") expect(loading[0].props).toMatchObject({ className: "py-6", "aria-live": "polite" });
     }
     mocks.screen.mockReturnValue({ data, busy: false, error: "", refresh: mocks.refresh });
-    const ready = nodes(Workspace());
+    const ready = renderWorkspace();
     expect(ready.some(node => node.type === ReportReadiness)).toBe(true);
     expect(ready.find(node => node.type === Content)!.props).toMatchObject({ data, lang, onRefresh: mocks.refresh, query: "groupBy=brand&measure=units&page=2&channelPage=3" });
   });

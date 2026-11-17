@@ -1,7 +1,5 @@
 "use client";
-import { WorkspaceLoading } from "@/components/merchandising/workspace-loading/workspace-loading";
-import ReportingError from "@/components/merchandising/reporting-error/reporting-error";
-import ReportReadiness from "@/components/merchandising/report-readiness/report-readiness";
+import { ReportWorkspaceFrame } from "@/components/merchandising/report-workspace-frame/report-workspace-frame";
 import { useSearchParams } from "next/navigation";
 import { useLang } from "@/components/language-provider/language-provider";
 import {
@@ -18,25 +16,13 @@ export default function SalesWorkspace() {
     params = useSearchParams(),
     { lang } = useLang();
   const controls = salesWorkspaceControls(new URLSearchParams(params), options?.monobrand ?? true);
-  const { data, busy, error, refresh } = useMerchandisingScreen(
-      filters,
-      "sales",
-      controls,
-    ),
-    copy = salesCopy[lang];
-  if (error) return <ReportingError code={error} lang={lang} title={copy.title} onRetry={refresh}/>;
-  if (busy || !data)
-    return <WorkspaceLoading title={copy.title} message={copy.loading} messageClassName="mt-4 text-base" />;
+  const state = useMerchandisingScreen(filters, "sales", controls);
 
   return (
-    <div className="space-y-5">
-      <ReportReadiness data={data.readiness} lang={lang}/>
-      <SalesContent
-        data={data}
-        lang={lang}
-        query={params.toString()}
-        onRefresh={refresh}
-      />
-    </div>
+    <ReportWorkspaceFrame state={state} lang={lang} copy={salesCopy[lang]} loadingProps={{ messageClassName: "mt-4 text-base" }}>
+      {(data, refresh) => (
+        <SalesContent data={data} lang={lang} query={params.toString()} onRefresh={refresh} />
+      )}
+    </ReportWorkspaceFrame>
   );
 }

@@ -1,3 +1,56 @@
+import type { Locale } from "@/i18n/routing";
+import type { SalesView } from "@/lib/sales-report-view";
+
+export const salesWorkspaceCopy = {
+  uk: {
+    views: { articles: "SKU", brands: "Бренди", categories: "Категорії", channels: "Канали" },
+    coverage: { COMPLETE: "Повне", PARTIAL: "Часткове", UNAVAILABLE: "Недоступне" },
+    dateFrom: "Дата від",
+    dateTo: "Дата до",
+    calculating: "Розрахунок…",
+    applyPeriod: "Застосувати період",
+  },
+  en: {
+    views: { articles: "SKUs", brands: "Brands", categories: "Categories", channels: "Channels" },
+    coverage: { COMPLETE: "Complete", PARTIAL: "Partial", UNAVAILABLE: "Unavailable" },
+    dateFrom: "Date from",
+    dateTo: "Date to",
+    calculating: "Calculating…",
+    applyPeriod: "Apply period",
+  },
+} satisfies Record<Locale, {
+  views: Record<SalesView, string>;
+  coverage: Record<"COMPLETE" | "PARTIAL" | "UNAVAILABLE", string>;
+  dateFrom: string;
+  dateTo: string;
+  calculating: string;
+  applyPeriod: string;
+}>;
+
+const reportErrors = new Map<string, Record<Locale, string>>([
+  ["INVALID_REPORT_PERIOD", {
+    uk: "Перевірте обидві дати: період до 366 днів, без майбутніх дат.",
+    en: "Check both dates: up to 366 days, without future dates.",
+  }],
+  ["SALESDRIVE_NOT_CONFIGURED", {
+    uk: "Налаштуйте SalesDrive у налаштуваннях.",
+    en: "Configure SalesDrive in Settings.",
+  }],
+  ["SALES_IMPORT_NOT_READY", {
+    uk: "Дочекайтесь завершення першого імпорту замовлень.",
+    en: "Wait for the first order import to finish.",
+  }],
+]);
+
+const fallbackError = {
+  uk: "Не вдалося завантажити звіт. Повторіть після синхронізації.",
+  en: "Could not load the report. Retry after synchronization.",
+};
+
+export function salesReportErrorMessage(code: string, locale: Locale): string {
+  return (reportErrors.get(code) ?? fallbackError)[locale];
+}
+
 const reasons: Record<string, [string, string]> = {
   IMPORT_QUARANTINED: [
     "В імпорті є ізольовані замовлення: перевірте якість даних",

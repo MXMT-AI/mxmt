@@ -1,6 +1,7 @@
 import { Heading } from "@/components/ui/heading/heading";
+import { Note } from "@/components/ui/note/note";
 import { panel } from "@/components/ui/panel/panel-styles";
-import { formatTableValue } from "@/lib/data-reporting-ui";
+import { createTableValueFormatter } from "@/lib/data-reporting-ui";
 import type { OverviewResponse } from "@/components/merchandising/use-merchandising-screen";
 import type { SalesWorkspaceModel } from "@/lib/merchandising-sales-workspace";
 import type { SalesCopy } from "@/lib/sales-copy";
@@ -21,37 +22,31 @@ export function SalesCurrencySection({ block, summary, model, showOthers, copy, 
 }) {
   const group = model.groupBy;
   const units = model.measure === "units";
+  const currencyLabel = block.currency ?? copy.unassigned;
+  const formatValue = createTableValueFormatter(locale);
   const scopedHref: SalesHref = values =>
     href({ currency: block.currency ?? "__unassigned__", ...values });
 
   return (
     <section
-      aria-label={block.currency ?? copy.unassigned}
+      aria-label={currencyLabel}
       className="space-y-5"
     >
       <div className="flex flex-wrap justify-between gap-3 items-baseline border-b border-(--border) pb-3">
         <Heading as="h2" variant="page" className="text-lg tracking-normal text-inherit">
-          {block.currency ?? copy.unassigned}
+          {currencyLabel}
         </Heading>
         {summary ? (
-          <p className="text-xs text-(--muted)">
+          <Note className="leading-normal">
             {copy.orders}:{" "}
             <strong className="text-(--text)">
-              {formatTableValue(
-                summary.current.orderCount,
-                "number",
-                locale,
-              )}
+              {formatValue(summary.current.orderCount, "number")}
             </strong>{" "}
             · {copy.qty}:{" "}
             <strong className="text-(--text)">
-              {formatTableValue(
-                model.history.current ? summary.current.units : null,
-                "quantity",
-                locale,
-              )}
+              {formatValue(model.history.current ? summary.current.units : null, "quantity")}
             </strong>
-          </p>
+          </Note>
         ) : null}
       </div>
       <SalesMonthlySection

@@ -1,8 +1,6 @@
 "use client";
 
-import { WorkspaceLoading } from "@/components/merchandising/workspace-loading/workspace-loading";
-import ReportingError from "@/components/merchandising/reporting-error/reporting-error";
-import ReportReadiness from "@/components/merchandising/report-readiness/report-readiness";
+import { ReportWorkspaceFrame } from "@/components/merchandising/report-workspace-frame/report-workspace-frame";
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useLang } from "@/components/language-provider/language-provider";
@@ -19,23 +17,22 @@ export default function OverviewWorkspace() {
   const params = useSearchParams();
   const allowed = useScenarioExportPermission();
   const [chatLoaded, setChatLoaded] = useState(params.get("chat") === "1");
-  const { data, busy, error, refresh } = useMerchandisingScreen(filters, "overview");
-
-  if (error) return <ReportingError code={error} lang={lang} title={copy.title} onRetry={refresh} />;
-  if (busy || !data)
-    return <WorkspaceLoading title={copy.title} message={copy.loading} aria-live="polite" className="py-6" />;
+  const state = useMerchandisingScreen(filters, "overview");
 
   return (
-    <div className="space-y-6">
-      <ReportReadiness data={data.readiness} lang={lang} />
-      <OverviewContent
-        data={data}
-        lang={lang}
-        query={params.toString()}
-        monobrand={data.context.profileMode === "MONOBRAND"}
-        onRefresh={refresh}
-      />
-      <OverviewChatPanel snapshotId={data.context.snapshotId} lang={lang} allowed={allowed} loaded={chatLoaded} onLoad={() => setChatLoaded(true)} />
-    </div>
+    <ReportWorkspaceFrame state={state} lang={lang} copy={copy} className="space-y-6" loadingProps={{ className: "py-6", "aria-live": "polite" }}>
+      {(data, refresh) => (
+        <>
+          <OverviewContent
+            data={data}
+            lang={lang}
+            query={params.toString()}
+            monobrand={data.context.profileMode === "MONOBRAND"}
+            onRefresh={refresh}
+          />
+          <OverviewChatPanel snapshotId={data.context.snapshotId} lang={lang} allowed={allowed} loaded={chatLoaded} onLoad={() => setChatLoaded(true)} />
+        </>
+      )}
+    </ReportWorkspaceFrame>
   );
 }

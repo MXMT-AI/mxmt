@@ -6,6 +6,7 @@ import { Text } from "@/components/ui/text/text";
 import { StockHistoryChart } from "../stock-history-chart/stock-history-chart";
 import { StockHistoryTable } from "../stock-history-table/stock-history-table";
 import { stockHistoryCopy } from "./copy";
+import { formatStockHistoryPoints } from "./stock-history-format";
 
 export default function StockHistory({ history, currency, lang }: {
   history: History & { unavailableReason?: "COHORT_LIMIT" };
@@ -28,10 +29,11 @@ export default function StockHistory({ history, currency, lang }: {
       </div>
     );
   }
+  const points = formatStockHistoryPoints(block.points, locale);
   return (
     <div className="mt-4 min-w-0 space-y-4">
       <Text variant="body" className="leading-normal text-(--muted)">{copy.basis}</Text>
-      <StockHistoryChart points={block.points} currency={currency} copy={copy} locale={locale} />
+      <StockHistoryChart points={points} currency={currency} copy={copy} />
       <Text variant="body" className="flex flex-wrap gap-4 leading-normal text-inherit">
         {[
           { label: copy.current, color: "bg-(--accent)" },
@@ -41,7 +43,7 @@ export default function StockHistory({ history, currency, lang }: {
         ))}
         <span>{copy.cost} · {currency ?? "—"}</span>
       </Text>
-      <StockHistoryTable points={block.points} copy={copy} locale={locale} />
+      <StockHistoryTable points={points} copy={copy} />
     </div>
   );
 }

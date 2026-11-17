@@ -21,7 +21,21 @@ it("preserves real zero, unknown cost and missing LY independently without carry
  const b=buildStockHistory(asOf,r).byCurrency[0];expect(b.state).toBe("READY");expect(b.points.at(-1)).toMatchObject({current:{quantity:"3",stockCost:null,coveredStockCost:"2.5"},priorYear:{quantity:null,stockCost:null}});expect(b.points[0].current.stockCost).toBe("0");
 });
 it.each(["uk","en"] as const)("renders a responsive chart with exact-value table and provenance (%s)",lang=>{
- const html=renderToStaticMarkup(createElement(StockHistory,{history:buildStockHistory(asOf,rows()),currency:"UAH",lang}));expect(html).toContain('role="img"');expect(html).toContain("<table");expect(html).toContain("<summary");expect(html).toContain('scope="col"');expect(html).not.toMatch(/NaN|Infinity|<polyline/);
+ const observations = rows();
+ observations.find(({date}) => date === "2025-09-30")!.costCount = 1;
+ const html=renderToStaticMarkup(createElement(StockHistory,{history:buildStockHistory(asOf,observations),currency:"UAH",lang}));expect(html).toContain('role="img"');expect(html).toContain("<table");expect(html).toContain("<summary");expect(html).toContain('scope="col"');expect(html).not.toMatch(/NaN|Infinity|<polyline/);
+ const date = new Intl.DateTimeFormat(lang === "uk" ? "uk-UA" : "en-GB", {
+   year: "numeric", month: "short", day: "numeric", timeZone: "UTC",
+ });
+ const currentDate = date.format(new Date("2026-09-30T12:00:00Z"));
+ const priorDate = date.format(new Date("2025-09-30T12:00:00Z"));
+ const missing = lang === "uk" ? "Немає підтвердженого спостереження" : "No verified observation";
+ const chartTitle = lang === "uk" ? "Спостереження вартості стоку за місяцями" : "Monthly observed stock cost";
+ expect(html).toContain(`>${chartTitle} · UAH</title>`);
+ expect(html).toContain(`<title>${currentDate}: 0</title>`);
+ expect(html).toContain(`${currentDate}</th><td class="p-2">0</td>`);
+ expect(html).toContain(`${priorDate}</th><td class="p-2">${missing}</td>`);
+ expect(html).not.toContain(`<title>${priorDate}:`);
  const empty=renderToStaticMarkup(createElement(StockHistory,{history:buildStockHistory(asOf,[]),currency:"UAH",lang}));expect(empty).not.toContain("<svg");expect(empty).toContain("30");
 });
 let f:Awaited<ReturnType<typeof createScreenDb>>,snapshot:ScreenSnapshot;
