@@ -23,6 +23,8 @@ export const merchandisingCopy = {
     channel: "Канал продажів",
     allChannels: "Усі канали",
     apply: "Застосувати",
+    publish: "Оновити зріз",
+    publishing: "Готуємо зріз на вибрану дату…",
     stockScope:
       "Залишки — за всіма каналами. Вибраний канал застосовується лише до продажів.",
     loading: "Завантажуємо налаштування…",
@@ -69,6 +71,8 @@ export const merchandisingCopy = {
     channel: "Sales channel",
     allChannels: "All channels",
     apply: "Apply",
+    publish: "Update snapshot",
+    publishing: "Preparing the snapshot for the selected date…",
     stockScope:
       "Stock covers all channels. The selected channel applies to sales only.",
     loading: "Loading settings…",

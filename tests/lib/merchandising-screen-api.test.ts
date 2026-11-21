@@ -1,3 +1,8 @@
+import { createHash } from "node:crypto";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { localReportStorage } from "@/lib/merchandising-publication-storage";
 import { NextRequest } from "next/server";
 import { beforeEach, afterEach, describe, it, expect, vi } from "vitest";
 vi.mock("server-only", () => ({}));
@@ -74,7 +79,7 @@ beforeEach(() => {
     settings: { clientConfigId: "client", configIds: ["client"] },
   });
 });
-afterEach(() => vi.unstubAllEnvs());
+afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
 describe("merchandising API snapshot and RBAC boundary", () => {
   it("denies forged identity headers without a signed session", async () => {
     expect((await route()).status).toBe(401);
@@ -89,6 +94,7 @@ describe("merchandising API snapshot and RBAC boundary", () => {
       const response = await route(screen);
       expect(response.status).toBe(200);
       expect(response.headers.get("Cache-Control")).toBe("no-store");
+      expect(response.headers.get("X-MXMT-Report-Source")).toBe("postgres");
       expect(m.read).toHaveBeenCalledWith(
         "a",
         screen,
@@ -97,6 +103,57 @@ describe("merchandising API snapshot and RBAC boundary", () => {
       expect(m.create).not.toHaveBeenCalled();
     },
   );
+  it("serves a warm Redis hit and a Redis outage from the published snapshot without Postgres", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "mxmt-report-cache-"));
+    const hash = createHash("sha256").update("a").digest("hex");
+    const version = "69c81de3-1d8d-4eec-a691-01642d0b2bbf";
+    const path = `merchandising/v1/${hash}`;
+    const publication = localReportStorage(directory);
+    const report = { screen: "overview", context: { snapshotId: "snapshot" } };
+    const publishedAt = "2026-10-29T12:00:00Z";
+    try {
+      await publication.write(`${path}/active.json`, JSON.stringify({
+        version, snapshotId: "snapshot", navigation: { monobrand: false }, publishedAt,
+      }));
+      await publication.write(`${path}/${version}/overview.json`, JSON.stringify(report));
+      vi.stubEnv("VERCEL", "");
+      vi.stubEnv("MERCHANDISING_PUBLISHED_TENANTS", "a");
+      vi.stubEnv("MERCHANDISING_PUBLICATION_DIR", directory);
+      vi.stubEnv("UPSTASH_REDIS_REST_URL", "http://127.0.0.1:3199");
+      vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", "test-cache-token");
+
+      const commands: string[] = [];
+      let cached: string | null = null;
+      let offline = false;
+      const fetchRedis = vi.fn(async (url: string, init: RequestInit) => {
+        expect(url).toBe("http://127.0.0.1:3199/pipeline");
+        expect(new Headers(init.headers).get("authorization")).toBe("Bearer test-cache-token");
+        const [[command, key, value, expiry, seconds]] = JSON.parse(String(init.body));
+        expect(key).toBe(`${path}/${version}/overview.json`);
+        commands.push(command);
+        if (offline) return Response.json({ error: "Redis unavailable" }, { status: 503 });
+        if (command === "get") return Response.json([{ result: cached }]);
+        expect([command, expiry, seconds]).toEqual(["set", "ex", 2592000]);
+        cached = value;
+        return Response.json([{ result: "OK" }]);
+      });
+      vi.stubGlobal("fetch", fetchRedis);
+      await login();
+
+      for (const cacheOffline of [false, false, true]) {
+        offline = cacheOffline;
+        const response = await route("overview");
+        expect(response.status).toBe(200);
+        expect(response.headers.get("X-MXMT-Report-Source")).toBe("published");
+        expect(await response.json()).toEqual({ ...report, publishedAt });
+      }
+      expect(commands).toEqual(["get", "set", "get", "get"]);
+      expect(m.read).not.toHaveBeenCalled();
+      expect(m.create).not.toHaveBeenCalled();
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
   it("allows a viewer to create a derived context without source/settings activation", async () => {
     await login();
     const response = await POST(
@@ -119,6 +176,14 @@ describe("merchandising API snapshot and RBAC boundary", () => {
       sales: "sales",
       stock: "daily",
     });
+  });
+  it("rejects publishing a shared snapshot as a viewer", async () => {
+    await login();
+    const response = await POST(request("", JSON.stringify({
+      publish: true, dateFrom: "2026-09-01", dateTo: "2026-09-30",
+    })));
+    expect(response.status).toBe(403);
+    expect(m.create).not.toHaveBeenCalled();
   });
   it("rejects unrecognized signed roles", async () => {
     await login("UNKNOWN");

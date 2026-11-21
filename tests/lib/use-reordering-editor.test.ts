@@ -65,3 +65,11 @@ it("normalizes monobrand controls without modifying the stored draft", () => {
   expect(render(true).draft.filters.brandId).toBeUndefined();
   expect(state.draft.filters.brandId).toBe("b");
 });
+
+it("keeps confirmed transit when only the shared snapshot changes", () => {
+  render().changeTransit("sku", "4");
+  navigation.query = "supplierId=s&leadDays=0&snapshotId=new&asOf=2026-10-29";
+  render();
+  expect(state.page).toBe(1);
+  expect(state.transit).toEqual({ sku: "4" });
+});

@@ -1,4 +1,4 @@
-import { isValidElement, useEffect, useRef, type ReactNode } from "react";
+import { isValidElement, useEffect, useState, type ReactNode } from "react";
 import { beforeEach, expect, it, vi } from "vitest";
 import Editor from "@/components/repricing/repricing-editor/repricing-editor";
 import Summary from "@/components/repricing/repricing-summary/repricing-summary";
@@ -8,7 +8,7 @@ import { ScenarioSnapshotNote } from "@/components/merchandising/scenario-snapsh
 import { initialRepricingState, readRepricingDraft } from "@/lib/repricing-workspace";
 import { repricingCopy } from "@/lib/repricing-copy";
 const mocks = vi.hoisted(() => ({ preview: vi.fn(), inputs: vi.fn(), allowed: true, prepare: vi.fn(), editor: vi.fn(), retryInputs: vi.fn(), retryPreview: vi.fn() }));
-vi.mock("react", async load => ({ ...await load<typeof import("react")>(), useEffect: vi.fn(), useRef: vi.fn() }));
+vi.mock("react", async load => ({ ...await load<typeof import("react")>(), useEffect: vi.fn(), useState: vi.fn() }));
 vi.mock("@/components/repricing/use-repricing-editor", () => ({ useRepricingEditor: mocks.editor }));
 vi.mock("@/components/repricing/use-repricing-preview", () => ({ useRepricingInputs: mocks.inputs, useRepricingPreview: mocks.preview }));
 vi.mock("@/components/merchandising/merchandising-shell/merchandising-shell", () => ({ useScenarioExportPermission: () => mocks.allowed }));
@@ -18,14 +18,16 @@ function nodes(node: ReactNode): { type: unknown; props: Record<string, any> }[]
   if (!isValidElement<{ children?: ReactNode }>(node)) return [];
   return [{ type: node.type, props: node.props }, ...nodes(node.props.children)];
 }
-let context: { current: string | undefined };
+let context: { inputSetId: string; editContext: string } | null;
 const refresh = vi.fn();
 function render() { return nodes(Editor({ snapshotId: "s", lang: "en", onRefresh: refresh })); }
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.allowed = true;
-  context = { current: undefined };
-  vi.mocked(useRef).mockReturnValue(context);
+  context = null;
+  vi.mocked(useState).mockImplementation(((initial: unknown) =>
+    initial === null ? [context, (next: typeof context) => { context = next; }] : [initial, vi.fn()]
+  ) as typeof useState);
   const state = initialRepricingState(readRepricingDraft(new URLSearchParams()));
   mocks.editor.mockReturnValue({ state, draft: state.draft });
   mocks.inputs.mockReturnValue({ data: { inputSetId: "inputs", context: { asOf: "2026-11-15" } }, error: null, retry: mocks.retryInputs });
@@ -75,15 +77,35 @@ it("keeps edit context from settled previews and includes it only with manual ed
   render();
   expect(mocks.preview.mock.lastCall![0]).not.toHaveProperty("editContext");
   vi.mocked(useEffect).mock.lastCall![0]();
-  expect(context.current).toBe("ctx");
+  expect(context?.editContext).toBe("ctx");
   mocks.editor().state.edits.manualPrices = [{ skuId: "sku", price: "12" }];
   mocks.preview().current = false;
   mocks.preview().data.editContext = "pending-context";
   render();
   vi.mocked(useEffect).mock.lastCall![0]();
-  expect(context.current).toBe("ctx");
+  expect(context?.editContext).toBe("ctx");
   expect(mocks.preview.mock.lastCall![0].editContext).toBe("ctx");
   mocks.preview().current = true;
   render().find(node => node.type === Summary)!.props.onExport();
   expect(mocks.prepare).toHaveBeenCalledWith("preview", expect.objectContaining({ inputSetId: "inputs", editContext: "ctx" }));
+});
+
+it("waits for the edit context of the new snapshot before sending retained prices", () => {
+  render();
+  vi.mocked(useEffect).mock.lastCall![0]();
+  mocks.editor().state.edits.manualPrices = [{ skuId: "sku", price: "12" }];
+  mocks.inputs().data.inputSetId = "new-inputs";
+  mocks.preview().current = false;
+
+  render();
+  expect(mocks.preview.mock.lastCall![0]).toMatchObject({ inputSetId: "new-inputs", manualPrices: [] });
+  expect(mocks.preview.mock.lastCall![0]).not.toHaveProperty("editContext");
+  mocks.preview().current = true;
+  mocks.preview().data.editContext = "new-ctx";
+  render();
+  vi.mocked(useEffect).mock.lastCall![0]();
+  render();
+  expect(mocks.preview.mock.lastCall![0]).toMatchObject({
+    editContext: "new-ctx", manualPrices: [{ skuId: "sku", price: "12" }],
+  });
 });

@@ -9,6 +9,8 @@ import {
 import { getMerchandisingScreen } from "@/lib/merchandising-screen";
 import { merchandisingApiError } from "@/lib/merchandising-api-error";
 import { createRequestContext, withRequestId } from "@/lib/observability";
+import { configuredReportStorage } from "@/lib/merchandising-publication-storage";
+import { readPublishedScreen } from "@/lib/merchandising-publication";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -27,9 +29,15 @@ export async function GET(
       request.nextUrl.searchParams,
       screen as ScreenName,
     );
+    const name = screen as ScreenName;
+    const storage = configuredReportStorage(user.tenantId);
+    const published = storage && await readPublishedScreen(user.tenantId, name, query, storage);
     return NextResponse.json(
-      await getMerchandisingScreen(user.tenantId, screen as ScreenName, query),
-      { headers: { "Cache-Control": "no-store" } },
+      published ?? await getMerchandisingScreen(user.tenantId, name, query),
+      { headers: {
+        "Cache-Control": "no-store",
+        "X-MXMT-Report-Source": published ? "published" : "postgres",
+      } },
     );
   } catch (error) {
     return withRequestId(merchandisingApiError(error, context), context.requestId);

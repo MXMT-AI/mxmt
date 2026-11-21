@@ -30,12 +30,13 @@ export function readScreenControls(
 }
 
 export function buildScreenSelection(
-  filters: MerchandisingFilters,
+  filters: MerchandisingFilters & { publishedAsOf?: string },
   screen: MvpScreen,
   params: Pick<URLSearchParams, "get">,
   controls: Record<string, string>,
 ) {
   const selection = new URLSearchParams({ dateFrom: filters.dateFrom, dateTo: filters.dateTo });
+  if (filters.publishedAsOf) selection.set("asOf", filters.publishedAsOf);
   for (const key of ["asOf", ...selectionFilterKeys[screen]]) {
     const value = params.get(key);
     if (value) selection.set(key, value);

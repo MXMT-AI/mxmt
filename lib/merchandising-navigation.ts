@@ -168,8 +168,10 @@ export function applyMerchandisingFilters(
   if (
     previous.dateFrom !== filters.dateFrom ||
     previous.dateTo !== filters.dateTo
-  )
+  ) {
     next.delete("snapshotId");
+    next.delete("asOf");
+  }
   next.set("period", filters.period);
   next.set("dateFrom", filters.dateFrom);
   next.set("dateTo", filters.dateTo);

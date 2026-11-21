@@ -7,8 +7,8 @@ import RepricingEditor from "../repricing-editor/repricing-editor";
 export default function RepricingWorkspace() {
   return (
     <ScenarioWorkspaceFrame screen="repricing" translations={repricingCopy}>
-      {({ snapshotId, monobrand, lang, onRefresh }) => (
-        <RepricingEditor key={snapshotId} snapshotId={snapshotId} monobrand={monobrand} lang={lang} onRefresh={onRefresh} />
+      {({ snapshotId, published, monobrand, lang, onRefresh }) => (
+        <RepricingEditor key={published ? "published" : snapshotId} snapshotId={snapshotId} monobrand={monobrand} lang={lang} onRefresh={onRefresh} />
       )}
     </ScenarioWorkspaceFrame>
   );

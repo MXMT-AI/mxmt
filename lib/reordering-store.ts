@@ -22,9 +22,10 @@ export async function calculateReorderingInSnapshot(
   tenantId: string,
   request: ReorderingRequest,
   tx: SqlClient,
+  sourceCheck: { published?: boolean } = {},
 ) {
   const snapshot = await readScreenSnapshot(tenantId, request.snapshotId, tx);
-  await assertSelectedSource(tenantId, snapshot.sourceId, snapshot.sourceState.selectionRevision, tx);
+  if (!sourceCheck.published) await assertSelectedSource(tenantId, snapshot.sourceId, snapshot.sourceState.selectionRevision, tx);
   if (snapshot.modelVersion < 2 || snapshot.stock.calculationVersion !== 2)
     throw new ReorderingError("REORDERING_SNAPSHOT_REFRESH_REQUIRED", 409);
   const records = await tx.$queryRaw<
@@ -129,11 +130,12 @@ export async function getReorderingPreview(
   tenantId: string,
   value: unknown,
   db: SqlDatabase = prisma,
+  sourceCheck: { published?: boolean } = {},
 ) {
   const request = parseReorderingRequest(value);
   return withCalculationSnapshot(db, async (tx) => {
     await tx.$executeRaw(Prisma.sql`SET TRANSACTION READ ONLY`);
-    const result = await calculateReorderingInSnapshot(tenantId, request, tx);
+    const result = await calculateReorderingInSnapshot(tenantId, request, tx, sourceCheck);
     return {
       ...result,
       rows: result.rows.slice(

@@ -284,6 +284,8 @@ npm audit
 | Дії та ретроспективи               | [GMROI](prisma/verification/108-retrospective-evidence-gmroi.md), [Price write-back](prisma/verification/109-salesdrive-price-writeback.md), [Supplier delivery](prisma/verification/110-supplier-order-delivery.md)                                                                          |
 | Release gates                      | [Zavod reconciliation](prisma/verification/38-zavod-reconciliation.md), [MVP acceptance](prisma/verification/51-mvp-acceptance-rollout.md), [DB readiness](prisma/verification/database-schema-startup.md)                                                                                    |
 
+[План збережених зрізів і кешування Upstash](docs/merchandising-publication-plan.md) містить етапи впровадження та перевірку на навчальному CSV.
+
 Ці tracked документи містять історичні validation snapshots своїх задач; для поточного toolchain використовуйте `package-lock.json`, цю інструкцію та фінальний dependency report. Старі посилання на Prisma 5 не означають дозвіл запускати старий CLI на новій схемі.
 
 ## Ліцензія та доступ

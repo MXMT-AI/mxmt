@@ -7,6 +7,7 @@ import { ScenarioPreviewStatus } from "@/components/merchandising/scenario-previ
 import { reorderingCopy } from "@/lib/reordering-copy";
 import { initialReorderingState } from "@/lib/reordering-workspace";
 const mocks = vi.hoisted(() => ({ preview: vi.fn(), allowed: true, prepare: vi.fn(), editor: vi.fn() }));
+vi.mock("react", async load => ({ ...await load<typeof import("react")>(), useState: (initial: unknown) => [initial, vi.fn()] }));
 vi.mock("@/components/reordering/use-reordering-editor", () => ({ useReorderingEditor: mocks.editor }));
 vi.mock("@/components/merchandising/use-scenario-preview", () => ({ useScenarioPreview: mocks.preview }));
 vi.mock("@/components/merchandising/merchandising-shell/merchandising-shell", () => ({ useScenarioExportPermission: () => mocks.allowed }));

@@ -11,10 +11,14 @@ const filters = { period: "month" as const, dateFrom: "2026-09-01", dateTo: "202
 const report = (snapshotId = "pinned") => ({ context: { snapshotId, period: { from: filters.dateFrom, to: filters.dateTo }, asOf: "2026-10-01" } });
 const setResult = vi.fn(), setError = vi.fn(), setBusy = vi.fn(), setReload = vi.fn();
 let force: { current: boolean }, loaded: { current: string };
-function start(previousError: unknown = null, reload = 0) {
+function start(
+  previousError: unknown = null,
+  reload = 0,
+  selection: Parameters<typeof useMerchandisingScreen>[0] = filters,
+) {
   vi.mocked(useState).mockReturnValueOnce([null, setResult]).mockReturnValueOnce([previousError, setError]).mockReturnValueOnce([true, setBusy]).mockReturnValueOnce([reload, setReload]);
   vi.mocked(useRef).mockReturnValueOnce(force).mockReturnValueOnce(loaded);
-  const state = useMerchandisingScreen(filters, "sales", { groupBy: "sku" });
+  const state = useMerchandisingScreen(selection, "sales", { groupBy: "sku" });
   const cleanup = vi.mocked(useEffect).mock.lastCall![0]();
   return { state, cleanup };
 }
@@ -126,4 +130,32 @@ it.each([false, true])("ignores a cancelled delayed report (failure: %s)", async
   expect(setError).not.toHaveBeenCalled();
   expect(setBusy).not.toHaveBeenCalled();
   expect(context.replace).not.toHaveBeenCalled();
+});
+
+it("opens the published period directly without requesting a new calculation", async () => {
+  context.query = "";
+  vi.mocked(apiFetch).mockResolvedValue(Response.json({
+    ...report(), publishedAt: "2026-10-01T09:00:00Z",
+  }));
+  start(null, 0, { ...filters, publishedSnapshotId: "pinned", publishedAsOf: "2026-10-01" });
+  await vi.waitFor(() => expect(context.replace).toHaveBeenCalledOnce());
+  expect(apiFetch).toHaveBeenCalledOnce();
+  expect(apiFetch).toHaveBeenCalledWith("/api/merchandising/sales?snapshotId=pinned&groupBy=sku", expect.objectContaining({ cache: "no-store" }));
+  const url = new URL(context.replace.mock.calls[0][0], "https://example.test");
+  expect(url.searchParams.get("asOf")).toBe("2026-10-01");
+  expect(url.searchParams.get("snapshotId")).toBe("pinned");
+});
+
+it("re-reads ready data when the same snapshot is first published", async () => {
+  const first = start();
+  await vi.waitFor(() => expect(setResult).toHaveBeenCalledOnce());
+  first.cleanup?.();
+  vi.mocked(apiFetch).mockResolvedValueOnce(Response.json({
+    ...report(), publishedAt: "2026-10-01T09:00:00Z",
+  }));
+
+  start(null, 0, { ...filters, publishedVersion: "publication" });
+  await vi.waitFor(() => expect(setResult).toHaveBeenCalledTimes(2));
+  expect(apiFetch).toHaveBeenCalledTimes(2);
+  expect(setResult.mock.lastCall?.[0].data.publishedAt).toBe("2026-10-01T09:00:00Z");
 });

@@ -8,10 +8,12 @@ import ReportingError from "@/components/merchandising/reporting-error/reporting
 import ReportReadiness from "@/components/merchandising/report-readiness/report-readiness";
 import { ScenarioWorkspaceHeader } from "@/components/merchandising/scenario-workspace-header/scenario-workspace-header";
 import { ScenarioWorkspaceFrame } from "@/components/merchandising/scenario-workspace-frame/scenario-workspace-frame";
+import { useScenarioDraftVersion } from "@/components/merchandising/scenario-draft-transfer/scenario-draft-transfer";
 import { Button } from "@/components/ui/button/button";
 import { reorderingCopy } from "@/lib/reordering-copy";
 import { repricingCopy } from "@/lib/repricing-copy";
-const mocks = vi.hoisted(() => ({ screen: vi.fn(), refresh: vi.fn(), lang: "en" }));
+const mocks = vi.hoisted(() => ({ screen: vi.fn(), refresh: vi.fn(), lang: "en", draftVersion: undefined as unknown, setVersion: vi.fn() }));
+vi.mock("react", async load => ({ ...await load<typeof import("react")>(), useState: (initial: unknown) => [mocks.draftVersion ?? initial, mocks.setVersion] }));
 vi.mock("next/navigation", async load => ({ ...await load<typeof import("next/navigation")>(), useSearchParams: () => new URLSearchParams("period=custom&dateFrom=2026-10-01&dateTo=2026-10-31&channelId=c&snapshotId=s&mode=brand&page=2") }));
 vi.mock("@/components/language-provider/language-provider", () => ({ useLang: () => ({ lang: mocks.lang }) }));
 vi.mock("@/components/merchandising/merchandising-shell/merchandising-shell", () => ({ useMerchandisingFilters: () => ({ channelId: "c" }) }));
@@ -26,6 +28,7 @@ function nodes(node: ReactNode): { type: unknown; props: Record<string, any>; ke
 const report = { context: { snapshotId: "s", asOf: "2026-11-01", profileMode: "MONOBRAND" }, readiness: {} };
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.draftVersion = undefined;
   mocks.screen.mockReturnValue({ data: report, busy: false, error: "", refresh: mocks.refresh });
 });
 for (const [Workspace, Editor, copy, screen] of [
@@ -74,3 +77,15 @@ for (const [Workspace, Editor, copy, screen] of [
     }
   });
 }
+
+it("retains the old version until draft transfer is confirmed", () => {
+  const previous = { snapshotId: "old", asOf: "2026-10-28" };
+  const current = { snapshotId: "new", asOf: "2026-10-29" };
+  mocks.draftVersion = previous;
+  const draft = useScenarioDraftVersion(current, true);
+  expect(draft.version).toEqual(previous);
+  expect(draft.pending).toBe(true);
+  expect(mocks.setVersion).not.toHaveBeenCalled();
+  draft.transfer();
+  expect(mocks.setVersion).toHaveBeenCalledWith(current);
+});

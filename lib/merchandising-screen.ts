@@ -59,6 +59,7 @@ export async function getMerchandisingScreen(
   q: ScreenQuery,
   db: SqlDatabase = prisma,
   now = new Date(),
+  options: { published?: boolean } = {},
 ) {
   return withCalculationSnapshot(db, async (tx) => {
     await tx.$executeRaw(Prisma.sql`SET TRANSACTION READ ONLY`);
@@ -72,7 +73,9 @@ export async function getMerchandisingScreen(
         page: q.groupBy === "brand" || q.brandId ? 1 : q.page,
         mode: q.mode === "brand" ? "all" : q.mode,
       };
-    const live = await readScreenSourceState(tenantId, snapshot.sourceId, tx);
+    const live = options.published
+      ? snapshot.sourceState
+      : await readScreenSourceState(tenantId, snapshot.sourceId, tx);
     const [sales, stock, readiness] = await Promise.all([
       screen === "sales" || screen === "overview"
         ? readScreenSales(

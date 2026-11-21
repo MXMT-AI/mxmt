@@ -7,8 +7,8 @@ import ReorderingEditor from "../reordering-editor/reordering-editor";
 export default function ReorderingWorkspace() {
   return (
     <ScenarioWorkspaceFrame screen="reordering" translations={reorderingCopy}>
-      {(context) => (
-        <ReorderingEditor key={context.snapshotId} {...context} />
+      {({ published, ...context }) => (
+        <ReorderingEditor key={published ? "published" : context.snapshotId} {...context} />
       )}
     </ScenarioWorkspaceFrame>
   );

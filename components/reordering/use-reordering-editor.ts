@@ -18,8 +18,12 @@ export function useReorderingEditor(monobrand: boolean) {
   );
   useEffect(() => {
     if (query !== lastUrl.current) {
+      const previous = initialReorderingState(new URLSearchParams(lastUrl.current));
+      const next = initialReorderingState(new URLSearchParams(query));
       lastUrl.current = query;
-      dispatch({ type: "restore", query });
+      if (JSON.stringify(previous.draft) === JSON.stringify(next.draft))
+        dispatch({ type: "page", page: next.page });
+      else dispatch({ type: "restore", query });
     }
   }, [query]);
 

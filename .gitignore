@@ -24,6 +24,10 @@ next-env.d.ts
 service-account.json
 *.json.key
 
-/docs/
+/docs/*
+!/docs/merchandising-publication-plan.md
 
 /.local/reconciliation/
+
+/.local/merchandising-reports/
+/.local/merchandising-backups/

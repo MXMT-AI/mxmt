@@ -257,13 +257,14 @@ export async function calculateRepricingInSnapshot(
   tenantId: string,
   request: RepricingRequest,
   tx: SqlClient,
+  options: { published?: boolean } = {},
 ) {
   const inputs = await readManifest(tenantId, tx, request.inputSetId);
   if (!inputs) throw new RepricingError("REPRICING_INPUTS_NOT_FOUND", 404);
   const snapshot = await readScreenSnapshot(tenantId, inputs.snapshotId, tx),
     rows = await frozenSkus(tenantId, snapshot, tx),
     sold = new Map(inputs.soldBySku.map((r) => [r.skuId, r.sold]));
-  await assertSelectedSource(tenantId, snapshot.sourceId, snapshot.sourceState.selectionRevision, tx);
+  if (!options.published) await assertSelectedSource(tenantId, snapshot.sourceId, snapshot.sourceState.selectionRevision, tx);
   request = {
     ...request,
     filters: profileFilters(
@@ -292,11 +293,12 @@ export async function getRepricingPreview(
   tenantId: string,
   value: unknown,
   db: SqlDatabase = prisma,
+  options: { published?: boolean } = {},
 ) {
   const request = parseRepricingRequest(value);
   return withCalculationSnapshot(db, async (tx) => {
     await tx.$executeRaw(Prisma.sql`SET TRANSACTION READ ONLY`);
-    const result = await calculateRepricingInSnapshot(tenantId, request, tx);
+    const result = await calculateRepricingInSnapshot(tenantId, request, tx, options);
     return {
       ...result,
       rows: result.rows.slice(

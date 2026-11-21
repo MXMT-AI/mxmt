@@ -2,11 +2,13 @@ import { isValidElement, type ReactNode } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { MerchandisingFiltersForm } from "@/components/merchandising/merchandising-filters-form/merchandising-filters-form";
 import { readMerchandisingFilters } from "@/lib/merchandising-navigation";
+import { apiFetch } from "@/lib/fetch";
 import { Button } from "@/components/ui/button/button";
 
 const state = vi.hoisted(() => ({
-  values: [] as any[], index: 0, pending: false,
-  push: vi.fn(), focus: vi.fn(),
+  values: [] as any[], index: 0, pending: false, refIndex: 0,
+  publicationRequest: { current: null as AbortController | null },
+  push: vi.fn(), refresh: vi.fn(), focus: vi.fn(),
   query: "period=custom&dateFrom=2026-09-01&dateTo=2026-09-30&channelId=external&snapshotId=pinned&brandId=brand-a&page=8",
 }));
 vi.mock("react", async load => ({
@@ -17,9 +19,11 @@ vi.mock("react", async load => ({
     return [state.values[index], (next: any) => { state.values[index] = typeof next === "function" ? next(state.values[index]) : next; }];
   },
   useTransition: () => [state.pending, (callback: () => void) => callback()],
-  useRef: () => ({ current: { focus: state.focus } }),
+  useEffect: vi.fn(),
+  useRef: () => state.refIndex++ === 0 ? state.publicationRequest : { current: { focus: state.focus } },
 }));
-vi.mock("@/i18n/navigation", () => ({ Link: () => null, usePathname: () => "/stock", useRouter: () => ({ push: state.push }) }));
+vi.mock("@/i18n/navigation", () => ({ Link: () => null, usePathname: () => "/stock", useRouter: () => ({ push: state.push, refresh: state.refresh }) }));
+vi.mock("@/lib/fetch", () => ({ apiFetch: vi.fn() }));
 vi.mock("next/navigation", () => ({ useSearchParams: () => new URLSearchParams(state.query) }));
 vi.mock("@/components/language-provider/language-provider", () => ({ useLang: () => ({ lang: "uk" }) }));
 function nodes(node: ReactNode): { type: unknown; props: Record<string, any> }[] {
@@ -28,11 +32,12 @@ function nodes(node: ReactNode): { type: unknown; props: Record<string, any> }[]
   return [{ type: node.type, props: node.props }, ...nodes(node.props.children)];
 }
 const onApply = vi.fn();
-function render() {
+function render(publishAllowed = false) {
   state.index = 0;
+  state.refIndex = 0;
   return nodes(MerchandisingFiltersForm({
     filters: readMerchandisingFilters(new URLSearchParams(state.query)),
-    options: { monobrand: false, channels: [{ id: "1" }], truncated: false }, onApply,
+    options: { monobrand: false, channels: [{ id: "1" }], truncated: false }, onApply, publishAllowed,
   }));
 }
 function change(name: string, value: string) {
@@ -41,6 +46,7 @@ function change(name: string, value: string) {
 function submit() { render().find(node => node.type === "form")!.props.onSubmit({ preventDefault: vi.fn() }); }
 beforeEach(() => {
   state.values = []; state.pending = false;
+  state.publicationRequest.current = null;
   vi.clearAllMocks();
   vi.stubGlobal("requestAnimationFrame", (callback: () => void) => { callback(); return 1; });
 });
@@ -92,4 +98,22 @@ it("disables apply while navigation is pending", () => {
   const tree = render();
   expect(tree.find(node => node.type === "form")!.props["aria-busy"]).toBe(true);
   expect(tree.find(node => node.type === Button)!.props.disabled).toBe(true);
+});
+
+it("publishes the selected dates without navigating when the refresh fails", async () => {
+  change("dateTo", "2026-09-29");
+  vi.mocked(apiFetch).mockResolvedValueOnce(Response.json({ code: "PUBLISHED_DATE_INCOMPLETE" }, { status: 409 }));
+  const form = render(true).find(node => node.type === "form")!;
+  form.props.onSubmit({
+    preventDefault: vi.fn(),
+    nativeEvent: { submitter: { getAttribute: () => "publishSnapshot" } },
+  });
+  await vi.waitFor(() => expect(state.publicationRequest.current).toBeNull());
+  const [path, init] = vi.mocked(apiFetch).mock.calls[0];
+  expect(path).toBe("/api/merchandising/snapshots");
+  expect(JSON.parse(init!.body as string)).toEqual({
+    publish: true, dateFrom: "2026-09-01", dateTo: "2026-09-29",
+  });
+  expect(state.push).not.toHaveBeenCalled();
+  expect(render(true).some(node => node.props.role === "alert")).toBe(true);
 });

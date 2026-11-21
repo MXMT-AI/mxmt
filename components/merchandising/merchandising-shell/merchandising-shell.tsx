@@ -20,12 +20,19 @@ import {
   readMerchandisingFilters,
   type MerchandisingFilters,
 } from "@/lib/merchandising-navigation";
+import type { ReportPublication } from "@/lib/merchandising-publication";
 import type { NavigationOptions } from "@/lib/merchandising-navigation-store";
 
 const Options = createContext<NavigationOptions | null>(null);
 const ExportPermission = createContext(false);
 export const useScenarioExportPermission = () => useContext(ExportPermission);
-const Filters = createContext<MerchandisingFilters | null>(null);
+export type WorkspaceFilters = MerchandisingFilters & {
+  publishedSnapshotId?: string;
+  publishedAsOf?: string;
+  publishedVersion?: string;
+  publishAllowed?: boolean;
+};
+const Filters = createContext<WorkspaceFilters | null>(null);
 export const useMerchandisingFilters = () => useContext(Filters);
 export const useMerchandisingOptions = () => useContext(Options);
 
@@ -34,8 +41,12 @@ export default function MerchandisingShell({
   now,
   children,
   exportAllowed = false,
+  publication = null,
+  publishAllowed = false,
 }: {
   exportAllowed?: boolean;
+  publication?: ReportPublication | null;
+  publishAllowed?: boolean;
   options: NavigationOptions | null;
   now: string;
   children: ReactNode;
@@ -49,12 +60,32 @@ export default function MerchandisingShell({
   const readingClock = new Date(
     Math.max(Date.parse(now), Date.parse(appliedAt ?? now)),
   );
-  let filters: MerchandisingFilters | null = null;
+  const usePublished = publication && !params.has("snapshotId") &&
+    !params.has("dateFrom") && !params.has("dateTo") &&
+    !params.has("period") && !params.has("asOf");
+  const pinnedId = params.get("snapshotId");
+  const pinnedPublication = usePublished || publication?.snapshotId === pinnedId
+    ? publication
+    : publication?.previous?.snapshotId === pinnedId
+      ? publication.previous
+      : null;
+  const selected = new URLSearchParams(params);
+  if (usePublished) {
+    selected.set("period", "custom");
+    selected.set("dateFrom", publication.dateFrom);
+    selected.set("dateTo", publication.dateTo);
+  }
+  let filters: WorkspaceFilters | null = null;
   try {
-    filters = readMerchandisingFilters(
-      new URLSearchParams(params),
-      readingClock,
-    );
+    filters = {
+      ...readMerchandisingFilters(selected, readingClock),
+      publishAllowed,
+      publishedVersion: pinnedPublication?.version,
+      ...(usePublished ? {
+        publishedSnapshotId: publication.snapshotId,
+        publishedAsOf: publication.asOf,
+      } : {}),
+    };
   } catch {
   }
   return (
@@ -81,12 +112,13 @@ export default function MerchandisingShell({
             ) : (
               <>
                 <MerchandisingFiltersForm
-                  key={params.toString()}
+                  key={JSON.stringify([filters.period, filters.dateFrom, filters.dateTo, filters.channelId])}
                   filters={filters}
                   onApply={setAppliedAt}
                   options={options}
+                  publishAllowed={publishAllowed}
                 />
-                <ReportingSourceStatus compact/>
+                {pinnedPublication ? null : <ReportingSourceStatus compact />}
                 {children}
               </>
             )}

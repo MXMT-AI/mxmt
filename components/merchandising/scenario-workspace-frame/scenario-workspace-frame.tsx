@@ -1,9 +1,10 @@
-import type { ComponentProps, ReactNode } from "react";
+import { useState, type ComponentProps, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
 import { useLang } from "@/components/language-provider/language-provider";
 import { merchandisingHref } from "@/lib/merchandising-navigation";
 import type { Lang } from "@/lib/translations";
 import { useMerchandisingFilters } from "../merchandising-shell/merchandising-shell";
+import { PublishedReportStatus } from "../published-report-status/published-report-status";
 import ReportReadiness from "../report-readiness/report-readiness";
 import ReportingError from "../reporting-error/reporting-error";
 import { ScenarioWorkspaceHeader } from "../scenario-workspace-header/scenario-workspace-header";
@@ -16,6 +17,7 @@ export function ScenarioWorkspaceFrame({ screen, translations, children }: {
   translations: Record<Lang, ScenarioCopy>;
   children: (context: {
     snapshotId: string;
+    published: boolean;
     asOf: string;
     monobrand: boolean;
     lang: Lang;
@@ -27,10 +29,16 @@ export function ScenarioWorkspaceFrame({ screen, translations, children }: {
   const { lang } = useLang();
   const copy = translations[lang];
   const { data, busy, error, refresh } = useMerchandisingScreen(filters, screen);
-  const ready = !busy && !error ? data : null;
+  const [lastPublished, setLastPublished] = useState(data?.publishedAt ? data : null);
+  if (data?.publishedAt && data !== lastPublished) setLastPublished(data);
+  const ready = data?.publishedAt || (!busy && !error)
+    ? data
+    : null;
+  const editor = ready ?? (!data ? lastPublished : null);
 
   return (
     <div className="space-y-5">
+      {ready?.publishedAt ? <PublishedReportStatus publishedAt={ready.publishedAt} busy={busy} lang={lang} /> : null}
       {ready ? <ReportReadiness data={ready.readiness} lang={lang} /> : null}
       <ScenarioWorkspaceHeader
         backHref={merchandisingHref("/overview", new URLSearchParams(params))}
@@ -38,19 +46,19 @@ export function ScenarioWorkspaceFrame({ screen, translations, children }: {
         busy={busy}
         onRefresh={refresh}
       />
-      {error ? (
-        <ReportingError code={error} lang={lang} onRetry={refresh} />
-      ) : ready ? (
+      {error ? <ReportingError code={error} lang={lang} onRetry={refresh} /> : null}
+      {editor ? (
         children({
-          snapshotId: ready.context.snapshotId,
-          asOf: ready.context.asOf,
-          monobrand: ready.context.profileMode === "MONOBRAND",
+          snapshotId: editor.context.snapshotId,
+          published: Boolean(editor.publishedAt),
+          asOf: editor.context.asOf,
+          monobrand: editor.context.profileMode === "MONOBRAND",
           lang,
           onRefresh: refresh,
         })
-      ) : (
+      ) : !error ? (
         <p role="status">{copy.loading}</p>
-      )}
+      ) : null}
     </div>
   );
 }

@@ -5,14 +5,15 @@ import { useSearchParams } from "next/navigation";
 import { apiFetch } from "@/lib/fetch";
 import { readApiJson } from "@/lib/api-response";
 import { buildScreenSelection, buildScreenReadParams } from "@/lib/client/merchandising-screen-request";
-import type { MerchandisingFilters, MvpScreen } from "@/lib/merchandising-navigation";
+import type { WorkspaceFilters } from "./merchandising-shell/merchandising-shell";
+import type { MvpScreen } from "@/lib/merchandising-navigation";
 import type { getMerchandisingScreen } from "@/lib/merchandising-screen";
 export type OverviewResponse = Awaited<
   ReturnType<typeof getMerchandisingScreen>
->;
+> & { publishedAt?: string };
 
 export function useMerchandisingScreen(
-  filters: MerchandisingFilters,
+  filters: WorkspaceFilters,
   screen: MvpScreen,
   controls: Record<string, string> = {},
 ) {
@@ -20,7 +21,10 @@ export function useMerchandisingScreen(
     router = useRouter();
   const selection = buildScreenSelection(filters, screen, params, controls);
   const signature = selection.toString(),
-    snapshotId = params.get("snapshotId");
+    urlSnapshotId = params.get("snapshotId"),
+    snapshotId = urlSnapshotId ?? filters.publishedSnapshotId ?? null,
+    publishAllowed = Boolean(filters.publishAllowed),
+    publishedVersion = filters.publishedVersion;
   const [result, setResult] = useState<{
     signature: string;
     data: OverviewResponse;
@@ -31,7 +35,7 @@ export function useMerchandisingScreen(
   const force = useRef(false),
     loaded = useRef("");
   const queryString = params.toString();
-  const requestKey = JSON.stringify([screen, signature, snapshotId, reload]);
+  const requestKey = JSON.stringify([screen, signature, snapshotId, publishedVersion, reload]);
   useEffect(() => {
     const controller = new AbortController();
     const { signal } = controller;
@@ -39,10 +43,11 @@ export function useMerchandisingScreen(
     force.current = false;
     const source = new URLSearchParams(signature);
     const readParams = buildScreenReadParams(screen, source, snapshotId);
+    const loadKey = () => JSON.stringify([signature, publishedVersion, readParams.toString()]);
     if (
       !refresh &&
       snapshotId &&
-      loaded.current === signature + "|" + readParams.toString()
+      loaded.current === loadKey()
     )
       return;
     setBusy(true);
@@ -57,6 +62,7 @@ export function useMerchandisingScreen(
           body: JSON.stringify({
             dateFrom: source.get("dateFrom"),
             dateTo: source.get("dateTo"),
+            ...(refresh && publishAllowed ? { publish: true } : {}),
             ...(source.has("asOf") ? { asOf: source.get("asOf") } : {}),
           }),
         });
@@ -86,17 +92,19 @@ export function useMerchandisingScreen(
       )
         throw new Error("SCREEN_SELECTION_MISMATCH");
       if (signal.aborted) return;
-      loaded.current = signature + "|" + readParams.toString();
+      loaded.current = loadKey();
       setResult({ signature, data });
       setBusy(false);
-      if (id !== snapshotId) {
+      if (id !== urlSnapshotId) {
         const next = new URLSearchParams(queryString);
         next.set("period", filters.period);
         next.set("snapshotId", id);
         next.set("dateFrom", data.context.period.from);
         next.set("dateTo", data.context.period.to);
+        if (data.publishedAt || (refresh && publishAllowed)) next.set("asOf", data.context.asOf);
         router.replace(`/${screen}?${next}`, { scroll: false });
       }
+      if (refresh && publishAllowed) router.refresh();
     }
     load().catch((cause) => {
       if (!signal.aborted) {
@@ -111,6 +119,9 @@ export function useMerchandisingScreen(
   }, [
     signature,
     snapshotId,
+    urlSnapshotId,
+    publishAllowed,
+    publishedVersion,
     reload,
     router,
     queryString,
@@ -128,6 +139,7 @@ export function useMerchandisingScreen(
     error: failure?.key === requestKey ? failure.message : "",
     busy,
     refresh: () => {
+      if (publishAllowed && (force.current || (busy && visible))) return;
       force.current = true;
       loaded.current = "";
       setReload((n) => n + 1);

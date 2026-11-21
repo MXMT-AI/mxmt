@@ -26,6 +26,27 @@ export function reportingErrorHelp(
         ? "Джерело звітів не вибрано або воно недоступне. У налаштуваннях підключіть джерело та виберіть його для звітів."
         : "The reporting source is not selected or is unavailable. Connect a source in Settings and select it for reporting.",
     };
+  if (code === "PUBLICATION_INPUT_LIMIT")
+    return {
+      ...settings,
+      message: uk
+        ? "Зріз перевищує допустимий обсяг. Виберіть коротший звітний період."
+        : "The snapshot exceeds the data size limit. Choose a shorter reporting period.",
+    };
+  if (code === "PUBLISHED_DATE_INCOMPLETE")
+    return {
+      ...settings,
+      message: uk
+        ? "Для вибраної дати ще бракує підтверджених продажів або залишків. Перевірте імпорт і спробуйте ще раз."
+        : "Verified sales or inventory is missing for the selected date. Check the import and try again.",
+    };
+  if (code === "PUBLICATION_CONFLICT" || code === "PUBLISHED_SOURCE_CHANGED")
+    return {
+      ...settings,
+      message: uk
+        ? "Під час підготовки зрізу дані змінилися. Спробуйте оновити звіт ще раз."
+        : "The source changed while the snapshot was being prepared. Try refreshing again.",
+    };
   if (code === "SHEETS_MAPPING_REQUIRED")
     return {
       ...settings,

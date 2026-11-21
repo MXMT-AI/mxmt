@@ -26,13 +26,13 @@ export function useRepricingEditor(monobrand: boolean) {
   const lastUrl = useRef(query);
   useEffect(() => {
     if (query !== lastUrl.current) {
+      const previous = readRepricingDraft(new URLSearchParams(lastUrl.current));
+      const params = new URLSearchParams(query);
+      const next = readRepricingDraft(params);
       lastUrl.current = query;
-      dispatch({
-        type: "draft",
-        draft: readRepricingDraft(new URLSearchParams(query)),
-      });
-      const page = new URLSearchParams(query).get("page");
-      if (page) dispatch({ type: "page", page: Number(page) });
+      if (JSON.stringify(previous) !== JSON.stringify(next))
+        dispatch({ type: "draft", draft: next });
+      dispatch({ type: "page", page: Number(params.get("page") ?? 1) });
     }
   }, [query]);
   function save(next: URLSearchParams) {

@@ -60,3 +60,15 @@ it("normalizes monobrand filters without mutating stored state", () => {
   expect(render(true).draft.filters.brandId).toBeUndefined();
   expect(state.draft.filters.brandId).toBe("b");
 });
+
+it("keeps manual prices and selection when the shared snapshot changes", () => {
+  render().changePrice("sku", "12.50");
+  render().changeSelection("sku", true);
+  navigation.query = "brandId=b&snapshotId=new&asOf=2026-10-29";
+  render();
+  expect(state.page).toBe(1);
+  expect(state.edits).toEqual({
+    manualPrices: [{ skuId: "sku", price: "12.50" }],
+    selection: [{ skuId: "sku", included: true }],
+  });
+});

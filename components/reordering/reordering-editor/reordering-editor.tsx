@@ -1,7 +1,7 @@
 "use client";
 import { useReorderingEditor } from "../use-reordering-editor";
 import { useScenarioPreview } from "@/components/merchandising/use-scenario-preview";
-import { reorderingRequest } from "@/lib/reordering-workspace";
+import { readReorderingDraft, reorderingRequest } from "@/lib/reordering-workspace";
 import { reorderingCopy } from "@/lib/reordering-copy";
 import type { getReorderingPreview } from "@/lib/reordering-store";
 import type { Lang } from "@/lib/translations";
@@ -11,6 +11,7 @@ import { useScenarioExport } from "@/components/merchandising/use-scenario-expor
 import ScenarioExportPanel from "@/components/merchandising/scenario-export-panel/scenario-export-panel";
 import { ScenarioPreviewError } from "@/components/merchandising/scenario-preview-error/scenario-preview-error";
 import { ScenarioPreviewStatus } from "@/components/merchandising/scenario-preview-status/scenario-preview-status";
+import { ScenarioDraftTransfer, useScenarioDraftVersion } from "@/components/merchandising/scenario-draft-transfer/scenario-draft-transfer";
 import { ScenarioSnapshotNote } from "@/components/merchandising/scenario-snapshot-note/scenario-snapshot-note";
 import Table from "../reordering-table/reordering-table";
 import Summary from "../reordering-summary/reordering-summary";
@@ -18,6 +19,8 @@ import { ReorderingSupplierGroups } from "../reordering-supplier-groups/reorderi
 export type ReorderingPreview = Awaited<
   ReturnType<typeof getReorderingPreview>
 >;
+const defaultDraft = JSON.stringify(readReorderingDraft(new URLSearchParams()));
+
 export default function ReorderingEditor({
   snapshotId,
   monobrand = false,
@@ -32,13 +35,16 @@ export default function ReorderingEditor({
   onRefresh: () => void;
 }) {
   const { state, draft, change, reset, changePage, changeTransit, restoreTransit } = useReorderingEditor(monobrand);
+  const hasDraft = JSON.stringify(state.draft) !== defaultDraft || Object.values(state.transit).some(Boolean);
+  const version = useScenarioDraftVersion({ snapshotId, asOf }, hasDraft);
+  const scenarioSnapshotId = version.version.snapshotId;
   const copy = reorderingCopy[lang];
   const locale = lang === "uk" ? "uk-UA" : "en-GB";
   const needsBrand =
     !monobrand && state.draft.mode === "brand" && !state.draft.filters.brandId;
   const request = needsBrand
     ? {
-        snapshotId,
+        snapshotId: scenarioSnapshotId,
         mode: "shortage",
         filters: {},
         parameters: {},
@@ -46,14 +52,14 @@ export default function ReorderingEditor({
         page: 1,
         pageSize: 25,
       }
-    : reorderingRequest(snapshotId, {
+    : reorderingRequest(scenarioSnapshotId, {
         ...state,
         draft,
       });
   const preview = useScenarioPreview<ReorderingPreview>(
     "/api/merchandising/reordering/preview",
     request,
-    JSON.stringify([snapshotId, needsBrand ? "brand-options" : state.draft]),
+    JSON.stringify([scenarioSnapshotId, needsBrand ? "brand-options" : state.draft]),
     "snapshotId",
   );
   const allowed = useScenarioExportPermission(),
@@ -63,6 +69,9 @@ export default function ReorderingEditor({
   const ready = current && !error;
   return (
     <div className="space-y-5">
+      {version.pending ? (
+        <ScenarioDraftTransfer key={snapshotId} lang={lang} onTransfer={version.transfer} />
+      ) : null}
       <Controls
         monobrand={monobrand}
         draft={draft}
@@ -72,7 +81,7 @@ export default function ReorderingEditor({
         onChange={change}
         onReset={reset}
       />
-      <ScenarioSnapshotNote asOf={asOf} locale={locale} copy={copy} />
+      <ScenarioSnapshotNote asOf={version.version.asOf ?? asOf} locale={locale} copy={copy} />
       <ScenarioPreviewStatus
         prerequisite={needsBrand ? copy.chooseBrand : undefined}
         busy={!error && preview.busy}

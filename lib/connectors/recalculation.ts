@@ -7,6 +7,7 @@ import { calculateSkuDaily } from "@/lib/sku-daily-store";
 import { getSalesReport } from "@/lib/sales-report";
 import { logInfo } from "@/lib/observability";
 import type { SqlDatabase } from "./database";
+import { publishFirstCsvReport } from "./csv/first-report-publication";
 
 const engines = { daily: calculateSkuDaily, sales: getSalesReport };
 type Intent = {
@@ -87,6 +88,16 @@ export async function processConnectorRecalculation(
       UPDATE "ConnectorRecalculation" SET state=${phase === "DAILY" ? "PENDING" : "COMPLETE"},
       "inputProvenance"=("inputProvenance"-'leaseToken'-'leaseUntil'-'availableAt'-'errorCode')||${JSON.stringify(publication)}::jsonb||jsonb_build_object('engine','salesdrive-v2','phaseCompletedAt',now(),'inputConsistency','separate-immutable-phase-calculations')
       WHERE "importRunId"=${intent.importRunId} AND "tenantId"=${intent.tenantId} AND state='RUNNING' AND "inputProvenance"->>'leaseToken'=${token} AND (EXISTS(SELECT 1 FROM "ConnectorConnection" c WHERE c."tenantId"=${intent.tenantId} AND c."sourceId"=${intent.sourceId} AND ${selectedConnection()}) OR EXISTS(SELECT 1 FROM "DataSource" s JOIN "ConnectorSelection" x ON x."tenantId"=s."tenantId" AND x."sourceId"=s.id WHERE s.kind='GOOGLE_SHEETS' AND s."tenantId"=${intent.tenantId} AND s.id=${intent.sourceId} AND s."activeImportRunId"=${intent.importRunId}))`);
+    if (updated === 1 && phase === "SALES" && intent.inputProvenance.resource === "csv") {
+      try {
+        await publishFirstCsvReport(intent, db);
+      } catch (error) {
+        logInfo("connector.csv.first_report_publication.failed", {
+          importRunId: intent.importRunId,
+          errorCode: error instanceof Error && "code" in error ? error.code : "PUBLICATION_UNAVAILABLE",
+        });
+      }
+    }
     return { processed: true, phase, published: updated === 1 };
   } catch (error) {
     const errorCode =

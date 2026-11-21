@@ -4,6 +4,9 @@ import { parseJsonBody, apiError } from "@/lib/api-contracts";
 import { getReorderingPreview } from "@/lib/reordering-store";
 import { ReorderingError } from "@/lib/reorder-calc";
 import { merchandisingApiError } from "@/lib/merchandising-api-error";
+import { configuredReportStorage } from "@/lib/merchandising-publication-storage";
+import { readPublishedReorderingPreview } from "@/lib/merchandising-publication";
+import { parseReorderingRequest } from "@/lib/reorder-calc";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -17,8 +20,13 @@ export async function POST(request: NextRequest) {
   );
   if (invalid) return invalid;
   try {
-    return NextResponse.json(await getReorderingPreview(user.tenantId, data), {
-      headers: { "Cache-Control": "no-store" },
+    const storage = configuredReportStorage(user.tenantId);
+    const published = storage && await readPublishedReorderingPreview(user.tenantId, parseReorderingRequest(data), storage);
+    return NextResponse.json(published ?? await getReorderingPreview(user.tenantId, data), {
+      headers: {
+        "Cache-Control": "no-store",
+        "X-MXMT-Report-Source": published ? "published" : "postgres",
+      },
     });
   } catch (error) {
     return error instanceof ReorderingError
