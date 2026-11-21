@@ -67,3 +67,13 @@ export function selectCurrentDependencyRun<TRun extends { status: string; input:
   }
   return { run: current, ready: true, reason: null };
 }
+
+export function selectAgentDisplayRun<TRun extends { status: string; input: unknown }>(
+  runs: TRun[],
+  context: AgentRunContext,
+) {
+  const attempt = runs.find((run) => isAgentRunCurrent(run, context));
+  const success = runs.find((run) => run.status === "done" && isAgentRunCurrent(run, context));
+  const run = success ?? attempt ?? runs[0];
+  return { run, attempt: attempt === run ? undefined : attempt, isCurrent: Boolean(attempt) };
+}

@@ -1,19 +1,20 @@
 import { spawn, spawnSync } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
 import { once } from "node:events";
-import { access, mkdtemp, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
+import { access, mkdtemp, readFile, readdir, rename, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PGlite } from "@electric-sql/pglite";
 import { PGLiteSocketServer } from "@electric-sql/pglite-socket";
 import { hash } from "bcryptjs";
+import { seedDemoAgentData } from "./merchandising-demo-agents.mjs";
 
 const project = fileURLToPath(new URL("../", import.meta.url));
 const host = "127.0.0.1";
 const email = "presenter@mxmt.test";
 
-async function prepareLoginDatabase(db, tenantId, password) {
+async function prepareLoginDatabase(db, tenantId, password, role) {
   const migrations = join(project, "prisma/migrations");
   for (const name of (await readdir(migrations, { withFileTypes: true }))
     .filter((entry) => entry.isDirectory())
@@ -27,16 +28,59 @@ async function prepareLoginDatabase(db, tenantId, password) {
   );
   await db.query(
     `INSERT INTO "User" (id,email,"passwordHash",name,role,"tenantId","updatedAt")
-      VALUES ('offline-presenter',$1,$2,'Ведучий','VIEWER',$3,now())`,
-    [email, await hash(password, 10), tenantId],
+      VALUES ('offline-presenter',$1,$2,'Ведучий',$4::"Role",$3,now())`,
+    [email, await hash(password, 10), tenantId, role],
   );
 }
 
-async function run(tenantId, backup, port) {
+async function openDemoDatabase(tenantId, password, databasePath, fixture, checksum) {
+  if (!fixture) {
+    const db = new PGlite();
+    try {
+      await prepareLoginDatabase(db, tenantId, password, "VIEWER");
+      return db;
+    } catch (error) {
+      await db.close();
+      throw error;
+    }
+  }
+
+  const exists = await access(databasePath).then(() => true, (error) => {
+    if (error.code === "ENOENT") return false;
+    throw error;
+  });
+  if (!exists) {
+    const stage = await mkdtemp(join(dirname(databasePath), ".la310-stage-"));
+    try {
+      const initial = new PGlite(stage);
+      try {
+        await prepareLoginDatabase(initial, tenantId, password, "ANALYST");
+        await seedDemoAgentData(initial, tenantId, fixture, checksum);
+      } finally {
+        await initial.close();
+      }
+      await rename(stage, databasePath);
+    } finally {
+      await rm(stage, { recursive: true, force: true });
+    }
+  }
+
+  const db = new PGlite(databasePath);
+  try {
+    await db.query(`UPDATE "User" SET "passwordHash"=$1,"updatedAt"=now()
+      WHERE id='offline-presenter' AND "tenantId"=$2`, [await hash(password, 10), tenantId]);
+    return db;
+  } catch (error) {
+    await db.close();
+    throw error;
+  }
+}
+
+async function run(tenantId, backup, port, fixturePath) {
   await access(join(project, ".next/BUILD_ID"));
   const runtime = await mkdtemp(join(tmpdir(), "mxmt-demo-"));
   const password = process.env.MXMT_REHEARSAL_PASSWORD ?? randomBytes(18).toString("base64url");
-  const db = new PGlite();
+  let db;
   let socket;
   let server;
   let stop;
@@ -56,7 +100,15 @@ async function run(tenantId, backup, port) {
     if (manifest.dataVersion !== 1)
       throw new Error("Republish the snapshot with filter and scenario inputs before making the backup");
 
-    await prepareLoginDatabase(db, tenantId, password);
+    const fixtureText = fixturePath ? await readFile(resolve(fixturePath), "utf8") : null;
+    const fixture = fixtureText ? JSON.parse(fixtureText) : null;
+    const checksum = fixtureText && createHash("sha256").update(fixtureText).digest("hex");
+    if (fixture && (fixture.version !== "LA-310" || fixture.synthetic !== true ||
+      fixture.asof !== manifest.asOf || fixture.asof !== manifest.dateTo ||
+      !Array.isArray(fixture.products) || !Array.isArray(fixture.events)))
+      throw new Error("Expected the synthetic LA-310 fixture matching the published report date");
+    const databasePath = join(dirname(resolve(backup)), `.la310-agents-${tenantHash.slice(0, 10)}-${checksum?.slice(0, 12)}`);
+    db = await openDemoDatabase(tenantId, password, databasePath, fixture, checksum);
     socket = new PGLiteSocketServer({
       db, path: join(runtime, ".s.PGSQL.5432"), maxConnections: 1,
     });
@@ -92,6 +144,10 @@ async function run(tenantId, backup, port) {
         MERCHANDISING_PUBLISHED_TENANTS: tenantId,
         NEXT_PUBLIC_APP_URL: url,
         LEGACY_NAVIGATION_ENABLED: "false",
+        ...(fixture && {
+          MXMT_DEMO_AGENT_DATE: manifest.asOf,
+          OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+        }),
       },
     });
     stop = () => {
@@ -110,22 +166,26 @@ async function run(tenantId, backup, port) {
       process.removeListener("SIGTERM", stop);
     }
     try {
-      // Socket handlers can still be detaching after the listener stops.
-      // The launcher owns this in-memory PGlite instance until process exit.
-      if (socket) await socket.stop();
-      else await db.close();
+      if (socket) {
+        await socket.stop();
+        // The socket server can still be detaching a PGlite handler.
+        // Sync the persisted demo database and let the owning process exit.
+        if (fixturePath) await db.syncToFs();
+      } else if (db) {
+        await db.close();
+      }
     } finally {
       await rm(runtime, { recursive: true, force: true });
     }
   }
 }
 
-const [tenantId, backup, port = "3112", ...extra] = process.argv.slice(2);
+const [tenantId, backup, port = "3112", fixturePath, ...extra] = process.argv.slice(2);
 try {
   if (!tenantId || !backup || extra.length || !/^\d+$/.test(port) ||
       Number(port) < 1024 || Number(port) > 65535)
-    throw new Error("Usage: npm run reports:demo -- <tenant-id> <backup-dir> [port]");
-  await run(tenantId, backup, Number(port));
+    throw new Error("Usage: npm run reports:demo -- <tenant-id> <backup-dir> [port] [LA-310.json]");
+  await run(tenantId, backup, Number(port), fixturePath);
 } catch (error) {
   console.error(error instanceof Error ? error.message : String(error));
   process.exitCode = 1;

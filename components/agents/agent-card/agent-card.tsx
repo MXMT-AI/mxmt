@@ -43,6 +43,8 @@ export function AgentCard({
   const toggleExpanded = () => setExpanded((value) => !value);
   const Icon = agent.icon;
   const { status: s, isStale } = getAgentRunState(run);
+  const isRunning = s === "running" || run?.latestAttempt?.status === "running";
+  const runLabel = s === "done" ? "Перезапустити" : "Запустити";
   const { color: statusTextColor, label: statusLabel } = agentStatusPresentation[s];
   const output = isStale ? {} : (run?.output ?? {});
 
@@ -128,17 +130,17 @@ export function AgentCard({
             <button
               type="button"
               onClick={onRun}
-              disabled={s === "running" || !dependenciesReady}
+              disabled={isRunning || !dependenciesReady}
               title={!dependenciesReady ? "Спочатку завершіть залежні агенти для поточного періоду" : undefined}
-              aria-label={`${s === "running" ? "Агент працює" : "Запустити агента"} ${agent.label}`}
+              aria-label={`${isRunning ? "Агент працює" : runLabel} ${agent.label}`}
               className="flex min-h-11 items-center gap-1.5 rounded-lg border border-(--signal-line) bg-(--signal-wash) px-2.5 py-1.5 text-xs font-semibold text-(--signal-ink) transition-colors touch-manipulation enabled:hover:bg-(--signal-hover) disabled:cursor-not-allowed disabled:border-(--border) disabled:bg-(--input-bg) disabled:text-(--muted)"
             >
-              {s === "running" ? (
+              {isRunning ? (
                 <RefreshCw size={11} className="motion-safe:animate-spin" aria-hidden="true" />
               ) : (
                 <Play size={11} aria-hidden="true" />
               )}
-              {s === "running" ? "Працює…" : !dependenciesReady ? "Очікує дані" : "Запустити"}
+              {isRunning ? "Працює…" : !dependenciesReady ? "Очікує дані" : runLabel}
             </button>
           </div>
         </div>
@@ -151,7 +153,9 @@ export function AgentCard({
             </span>
           </span>
           {run?.finishedAt && (
-            <span>Останній запуск: <span className="text-(--muted)">{fmtDate(run.finishedAt)}</span></span>
+            <span>{s === "done" ? "Збережений результат:" : "Останній запуск:"}{" "}
+              <span className="text-(--muted)">{fmtDate(run.finishedAt)}</span>
+            </span>
           )}
           {duration(run) && (
             <span>Час: <span className="text-(--muted)">{duration(run)}</span></span>
@@ -307,6 +311,12 @@ export function AgentCard({
 
         {s === "error" && run?.errorMsg && (
           <p className="mt-2 text-[11px] text-accent-danger font-mono">{run.errorMsg}</p>
+        )}
+        {run?.latestAttempt?.status === "error" && (
+          <p role="status" className="mt-2 text-xs text-accent-danger">
+            Повторний запуск завершився помилкою. Показано останній успішний результат.
+            {run.latestAttempt.errorMsg ? ` ${run.latestAttempt.errorMsg}` : ""}
+          </p>
         )}
 
         {s === "done" && brands.length === 0 && decisionBrands.length === 0 && marketerBrands.length === 0 && annotations.length === 0 && campaigns.length === 0 && !isWeeklyReport && run?.output?.message && (

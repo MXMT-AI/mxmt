@@ -37,6 +37,7 @@ export interface AgentRunInfo {
   finishedAt?: string;
   output?: { brands?: BrandResult[]; message?: string; [key: string]: any };
   errorMsg?: string;
+  latestAttempt?: { status: AgentStatus; errorMsg?: string | null };
   input?: { importRunId?: string | null; asOf?: string; dateFrom?: string | null; [key: string]: any };
   isCurrent?: boolean;
   staleReason?: string | null;

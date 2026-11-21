@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildAgentRunContext,
   isAgentRunCurrent,
+  selectAgentDisplayRun,
   selectCurrentDependencyRun,
 } from "@/lib/agent-context";
 
@@ -45,5 +46,16 @@ describe("agent run context", () => {
       ready: false,
       reason: "error",
     });
+    expect(selectAgentDisplayRun(runs, context)).toEqual({
+      run: runs[1],
+      attempt: runs[0],
+      isCurrent: true,
+    });
+  });
+
+  it("replaces the saved result when the newest attempt succeeds", () => {
+    const run = { status: "done", input: context };
+    expect(selectAgentDisplayRun([run, { status: "done", input: context }], context))
+      .toEqual({ run, attempt: undefined, isCurrent: true });
   });
 });

@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { closeStaleAgentRuns } from "@/lib/agent-runs";
 import { requireApiUser } from "@/lib/server-auth";
 import { resolveAgentRunContext } from "@/lib/agent-dependencies";
-import { selectCurrentDependencyRun } from "@/lib/agent-context";
+import { selectAgentDisplayRun } from "@/lib/agent-context";
 
 export const runtime = "nodejs";
 
@@ -38,13 +38,15 @@ export async function GET(req: NextRequest) {
   const latest = Object.fromEntries(
     AGENT_TYPES.flatMap((agentType) => {
       const agentRuns = runs.filter((item) => item.agentType === agentType);
-      const state = selectCurrentDependencyRun(agentRuns, context);
-      const run = state.run ?? agentRuns[0];
+      const { run, attempt, isCurrent } = selectAgentDisplayRun(agentRuns, context);
       return run
         ? [[agentType, {
             ...run,
-            isCurrent: state.run?.id === run.id,
-            staleReason: state.run?.id === run.id ? null : state.reason,
+            ...(attempt && {
+              latestAttempt: { status: attempt.status, errorMsg: attempt.errorMsg },
+            }),
+            isCurrent,
+            staleReason: isCurrent ? null : "stale",
           }]]
         : [];
     })

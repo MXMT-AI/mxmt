@@ -8,7 +8,7 @@ export function areAgentDependenciesReady(
 ): boolean {
   return agent.dependsOn.every((dependency) => {
     const run = runs[dependency];
-    return run?.status === "done" && run.isCurrent === true;
+    return run?.status === "done" && run.isCurrent === true && !run.latestAttempt;
   });
 }
 

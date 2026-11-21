@@ -52,7 +52,8 @@ export function useAgentRuns({
   }, [enabled, fetchStatus]);
 
   useEffect(() => {
-    const isRunning = Object.values(runs).some((run) => run.status === "running");
+    const isRunning = Object.values(runs).some((run) =>
+      run.status === "running" || run.latestAttempt?.status === "running");
     if (!isRunning) return;
     const intervalId = setInterval(fetchStatus, 3000);
     return () => clearInterval(intervalId);
@@ -81,13 +82,15 @@ export function useAgentRuns({
     const provider = getAgentProvider(agentId);
     setRuns((prev) => ({
       ...prev,
-      [agentId]: {
-        id: "pending",
-        status: "running" as const,
-        startedAt: new Date().toISOString(),
-        output: prev[agentId]?.output,
-        isCurrent: true,
-      },
+      [agentId]: prev[agentId]?.status === "done" && prev[agentId]?.isCurrent
+        ? { ...prev[agentId], latestAttempt: { status: "running" } }
+        : {
+          id: "pending",
+          status: "running" as const,
+          startedAt: new Date().toISOString(),
+          output: prev[agentId]?.output,
+          isCurrent: true,
+        },
     }));
 
     try {
@@ -103,14 +106,17 @@ export function useAgentRuns({
       const data = await readApiJson<{ error?: string }>(res);
 
       if (!res.ok) {
+        const errorMsg = data?.error ?? "Невідома помилка";
         setRuns((prev) => ({
           ...prev,
-          [agentId]: {
-            ...prev[agentId],
-            status: "error" as const,
-            errorMsg: data.error ?? "Невідома помилка",
-            finishedAt: new Date().toISOString(),
-          },
+          [agentId]: prev[agentId]?.status === "done" && prev[agentId]?.isCurrent
+            ? { ...prev[agentId], latestAttempt: { status: "error", errorMsg } }
+            : {
+              ...prev[agentId],
+              status: "error" as const,
+              errorMsg,
+              finishedAt: new Date().toISOString(),
+            },
         }));
         return;
       }
@@ -119,12 +125,14 @@ export function useAgentRuns({
     } catch (error) {
       setRuns((prev) => ({
         ...prev,
-        [agentId]: {
-          ...prev[agentId],
-          status: "error" as const,
-          errorMsg: String(error),
-          finishedAt: new Date().toISOString(),
-        },
+        [agentId]: prev[agentId]?.status === "done" && prev[agentId]?.isCurrent
+          ? { ...prev[agentId], latestAttempt: { status: "error", errorMsg: String(error) } }
+          : {
+            ...prev[agentId],
+            status: "error" as const,
+            errorMsg: String(error),
+            finishedAt: new Date().toISOString(),
+          },
       }));
     }
   }, [analysisDate, dateFrom, enabled, fetchStatus, hasDateFrom, isHistoricalDate]);

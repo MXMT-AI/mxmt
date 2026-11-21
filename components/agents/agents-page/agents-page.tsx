@@ -13,10 +13,10 @@ import { AgentPeriodControls } from "./agent-period-controls/agent-period-contro
 import { AgentCard } from "../agent-card/agent-card";
 import { PipelineDiagram } from "../pipeline-diagram/pipeline-diagram";
 
-export default function AgentsPage() {
+export default function AgentsPage({ demoDate }: { demoDate?: string }) {
   const todayStr = new Date().toISOString().slice(0, 10);
-  const [analysisDate, setAnalysisDate] = useState(todayStr);
-  const [dateFrom, setDateFrom] = useState("");
+  const [analysisDate, setAnalysisDate] = useState(demoDate ?? todayStr);
+  const [dateFrom, setDateFrom] = useState(demoDate ? demoDate.slice(0, 7) + "-01" : "");
   const [periodRestored, setPeriodRestored] = useState(false);
 
   useEffect(() => {
@@ -25,7 +25,7 @@ export default function AgentsPage() {
         localStorage.getItem(AGENT_PERIOD_STORAGE_KEY),
         todayStr
       );
-      if (stored) {
+      if (stored && !demoDate) {
         setAnalysisDate(stored.analysisDate);
         setDateFrom(stored.dateFrom);
       }
@@ -33,7 +33,7 @@ export default function AgentsPage() {
     } finally {
       setPeriodRestored(true);
     }
-  }, [todayStr]);
+  }, [demoDate, todayStr]);
 
   useEffect(() => {
     if (!periodRestored) return;
