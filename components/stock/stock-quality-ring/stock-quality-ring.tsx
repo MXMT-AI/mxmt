@@ -11,7 +11,8 @@ import type { Block, Href } from "../stock-content/stock-content-types";
 import type { StockCopy } from "@/lib/stock-copy";
 import { createTableValueFormatter } from "@/lib/data-reporting-ui";
 
-const radius = 64;
+const radius = 70;
+const strokeWidth = 18;
 const circumference = 2 * Math.PI * radius;
 
 export function StockQualityRing({
@@ -74,7 +75,7 @@ export function StockQualityRing({
               r={radius}
               fill="none"
               stroke="var(--border)"
-              strokeWidth="30"
+              strokeWidth={strokeWidth}
             />
             {segments.map(({ status, color, length, start, label, amount, share }) => (
               <circle
@@ -84,7 +85,7 @@ export function StockQualityRing({
                 r={radius}
                 fill="none"
                 stroke={color}
-                strokeWidth="30"
+                strokeWidth={strokeWidth}
                 strokeDasharray={`${length} ${circumference - length}`}
                 strokeDashoffset={-start}
                 transform="rotate(-90 90 90)"
@@ -93,8 +94,8 @@ export function StockQualityRing({
               </circle>
             ))}
           </svg>
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-10">
-            <strong className="text-xl tabular-nums leading-tight wrap-break-word">
+          <div className="absolute inset-y-0 inset-x-8 flex flex-col items-center justify-center px-2 text-center">
+            <strong className="max-w-full text-xl tabular-nums leading-tight wrap-break-word">
               {active ? active.share : formatValue(block.ringCost, "money")}
             </strong>
             <span className="mt-1 text-xs text-(--muted)">
