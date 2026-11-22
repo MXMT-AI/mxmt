@@ -3,6 +3,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { prisma } from "./prisma";
 import { readPublicationData, withPublicationDatabase } from "./merchandising-publication-data";
 import type { SqlDatabase } from "./connectors/database";
+import { readSelectedSource } from "./connectors/source";
 import { getMerchandisingScreen } from "./merchandising-screen";
 import { createScreenSnapshot, ScreenApiError } from "./merchandising-snapshot";
 import {
@@ -35,6 +36,7 @@ interface ReportPublicationVersion {
   navigation: NavigationOptions;
   repricingInputSetId: string;
   dataVersion?: 1;
+  agentSource?: { importRunId: string; reportSourceId: string };
 }
 
 export interface ReportPublication extends ReportPublicationVersion {
@@ -240,12 +242,15 @@ export async function publishMerchandisingReports(
 ) {
   const previous = await readManifest(tenantId, storage);
   if (options.firstOnly && previous) return previous.publication;
+  const expectedSourceId = options.expectedSourceId ?? previous?.publication.agentSource?.reportSourceId;
+  if (expectedSourceId && (await readSelectedSource(tenantId, db))?.id !== expectedSourceId)
+    throw new ScreenApiError("PUBLISHED_SOURCE_CHANGED");
   const snapshot = await createScreenSnapshot(
     tenantId,
     { ...input, asOf: input.asOf ?? input.dateTo },
     db,
   );
-  if (options.expectedSourceId && snapshot.sourceId !== options.expectedSourceId)
+  if (expectedSourceId && snapshot.sourceId !== expectedSourceId)
     throw new ScreenApiError("PUBLISHED_SOURCE_CHANGED");
   if (previous?.publication.dataVersion === 1 && snapshot.snapshotId === previous.publication.snapshotId)
     return previous.publication;
@@ -295,6 +300,9 @@ export async function publishMerchandisingReports(
     navigation,
     repricingInputSetId: inputs.inputSetId,
     dataVersion: 1,
+    ...(previous?.publication.agentSource?.reportSourceId === snapshot.sourceId
+      ? { agentSource: previous.publication.agentSource }
+      : {}),
   };
   if (previous) {
     const { previous: _history, ...priorVersion } = previous.publication;

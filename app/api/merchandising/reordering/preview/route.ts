@@ -4,7 +4,7 @@ import { parseJsonBody, apiError } from "@/lib/api-contracts";
 import { getReorderingPreview } from "@/lib/reordering-store";
 import { ReorderingError } from "@/lib/reorder-calc";
 import { merchandisingApiError } from "@/lib/merchandising-api-error";
-import { configuredReportStorage } from "@/lib/merchandising-publication-storage";
+import { workspaceReportStorage } from "@/lib/workspace-report-storage";
 import { readPublishedReorderingPreview } from "@/lib/merchandising-publication";
 import { parseReorderingRequest } from "@/lib/reorder-calc";
 import { apiMerchandisingReorderingPreviewRouteMessages as englishCopy } from "@/messages/en.json";
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
   );
   if (invalid) return invalid;
   try {
-    const storage = configuredReportStorage(user.tenantId);
+    const storage = await workspaceReportStorage(user.tenantId);
     const published = storage && await readPublishedReorderingPreview(user.tenantId, parseReorderingRequest(data), storage);
     return NextResponse.json(published ?? await getReorderingPreview(user.tenantId, data), {
       headers: {

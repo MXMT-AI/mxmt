@@ -60,20 +60,17 @@ export default function MerchandisingShell({
   const readingClock = new Date(
     Math.max(Date.parse(now), Date.parse(appliedAt ?? now)),
   );
-  const usePublished = publication && !params.has("snapshotId") &&
-    !params.has("dateFrom") && !params.has("dateTo") &&
-    !params.has("period") && !params.has("asOf");
   const pinnedId = params.get("snapshotId");
-  const pinnedPublication = usePublished || publication?.snapshotId === pinnedId
-    ? publication
-    : publication?.previous?.snapshotId === pinnedId
-      ? publication.previous
-      : null;
+  const pinnedPublication = publication?.previous?.snapshotId === pinnedId
+    ? publication.previous
+    : publication;
   const selected = new URLSearchParams(params);
-  if (usePublished) {
-    selected.set("period", "custom");
-    selected.set("dateFrom", publication.dateFrom);
-    selected.set("dateTo", publication.dateTo);
+  if (pinnedPublication) {
+    if (selected.get("dateFrom") !== pinnedPublication.dateFrom ||
+        selected.get("dateTo") !== pinnedPublication.dateTo) selected.set("period", "custom");
+    selected.set("dateFrom", pinnedPublication.dateFrom);
+    selected.set("dateTo", pinnedPublication.dateTo);
+    selected.set("asOf", pinnedPublication.asOf);
   }
   let filters: WorkspaceFilters | null = null;
   try {
@@ -81,9 +78,9 @@ export default function MerchandisingShell({
       ...readMerchandisingFilters(selected, readingClock),
       publishAllowed,
       publishedVersion: pinnedPublication?.version,
-      ...(usePublished ? {
-        publishedSnapshotId: publication.snapshotId,
-        publishedAsOf: publication.asOf,
+      ...(pinnedPublication ? {
+        publishedSnapshotId: pinnedPublication.snapshotId,
+        publishedAsOf: pinnedPublication.asOf,
       } : {}),
     };
   } catch {
@@ -117,6 +114,8 @@ export default function MerchandisingShell({
                   onApply={setAppliedAt}
                   options={options}
                   publishAllowed={publishAllowed}
+                  savedSnapshotId={filters.publishedSnapshotId}
+                  savedAsOf={filters.publishedAsOf}
                 />
                 {pinnedPublication ? null : <ReportingSourceStatus compact />}
                 {children}

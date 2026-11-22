@@ -5,7 +5,7 @@ import { RefreshCw, AlertTriangle, Zap } from "lucide-react";
 import { AGENTS, AGENT_BLOCKS } from "@/components/agents/agents.config";
 import { areAgentDependenciesReady } from "@/components/agents/agents.utils";
 import { useAgentRuns } from "@/components/agents/use-agent-runs";
-import { AGENT_PERIOD_STORAGE_KEY, parseStoredAgentPeriod } from "@/lib/agent-period";
+import { AGENT_PERIOD_STORAGE_KEY, parseStoredAgentPeriod, type StoredAgentPeriod } from "@/lib/agent-period";
 import { Button } from "@/components/ui/button/button";
 import { Heading } from "@/components/ui/heading/heading";
 import { agentStatusPresentation } from "../agent-status";
@@ -15,19 +15,21 @@ import { PipelineDiagram } from "../pipeline-diagram/pipeline-diagram";
 import { agentsAgentsPageMessages as englishCopy } from "@/messages/en.json";
 import { agentsAgentsPageMessages as ukrainianCopy } from "@/messages/uk.json";
 
-export default function AgentsPage({ demoDate }: { demoDate?: string }) {
+export default function AgentsPage({ savedPeriod }: { savedPeriod?: StoredAgentPeriod }) {
   const todayStr = new Date().toISOString().slice(0, 10);
-  const [analysisDate, setAnalysisDate] = useState(demoDate ?? todayStr);
-  const [dateFrom, setDateFrom] = useState(demoDate ? demoDate.slice(0, 7) + "-01" : "");
-  const [periodRestored, setPeriodRestored] = useState(false);
+  const [analysisDate, setAnalysisDate] = useState(savedPeriod?.analysisDate ?? todayStr);
+  const [dateFrom, setDateFrom] = useState(savedPeriod?.dateFrom ?? "");
+  const [periodRestored, setPeriodRestored] = useState(Boolean(savedPeriod));
+  const useBrowserPeriod = !savedPeriod;
 
   useEffect(() => {
+    if (!useBrowserPeriod) return;
     try {
       const stored = parseStoredAgentPeriod(
         localStorage.getItem(AGENT_PERIOD_STORAGE_KEY),
         todayStr
       );
-      if (stored && !demoDate) {
+      if (stored) {
         setAnalysisDate(stored.analysisDate);
         setDateFrom(stored.dateFrom);
       }
@@ -35,10 +37,10 @@ export default function AgentsPage({ demoDate }: { demoDate?: string }) {
     } finally {
       setPeriodRestored(true);
     }
-  }, [demoDate, todayStr]);
+  }, [useBrowserPeriod, todayStr]);
 
   useEffect(() => {
-    if (!periodRestored) return;
+    if (!periodRestored || !useBrowserPeriod) return;
     try {
       localStorage.setItem(
         AGENT_PERIOD_STORAGE_KEY,
@@ -46,13 +48,14 @@ export default function AgentsPage({ demoDate }: { demoDate?: string }) {
       );
     } catch {
     }
-  }, [analysisDate, dateFrom, periodRestored]);
+  }, [analysisDate, dateFrom, periodRestored, useBrowserPeriod]);
 
   const { runs, loading, statusError, fetchStatus, handleRun } = useAgentRuns({
     analysisDate,
     dateFrom,
     todayStr,
     enabled: periodRestored,
+    preferSaved: Boolean(savedPeriod),
   });
   const totalDone = Object.values(runs).filter((r) => r.status === "done").length;
   const totalError = Object.values(runs).filter((r) => r.status === "error").length;
@@ -72,7 +75,7 @@ export default function AgentsPage({ demoDate }: { demoDate?: string }) {
               <Zap size={11} className="text-accent-yellow" aria-hidden="true" />{englishCopy.openAIGPT4oGPT4oMini}</div>
             <Button
               variant="icon"
-              onClick={fetchStatus}
+              onClick={() => void fetchStatus(true)}
               aria-label={ukrainianCopy.ariaLabelОновитиСтатусАгентів}
               title={ukrainianCopy.titleОновитиСтатус}
             >

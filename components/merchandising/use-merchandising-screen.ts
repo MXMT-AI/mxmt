@@ -22,7 +22,7 @@ export function useMerchandisingScreen(
   const selection = buildScreenSelection(filters, screen, params, controls);
   const signature = selection.toString(),
     urlSnapshotId = params.get("snapshotId"),
-    snapshotId = urlSnapshotId ?? filters.publishedSnapshotId ?? null,
+    snapshotId = filters.publishedSnapshotId ?? urlSnapshotId,
     publishAllowed = Boolean(filters.publishAllowed),
     publishedVersion = filters.publishedVersion;
   const [result, setResult] = useState<{
@@ -54,7 +54,7 @@ export function useMerchandisingScreen(
     setFailure(null);
     async function load() {
       let id = snapshotId;
-      if (!id || refresh) {
+      if (!id || (refresh && (publishAllowed || !publishedVersion))) {
         const created = await apiFetch("/api/merchandising/snapshots", {
           method: "POST",
           signal,

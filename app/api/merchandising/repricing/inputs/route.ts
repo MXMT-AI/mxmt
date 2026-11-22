@@ -3,7 +3,7 @@ import { requireApiUser } from "@/lib/server-auth";
 import { parseJsonBody, isRecord, apiError } from "@/lib/api-contracts";
 import { createRepricingInputs } from "@/lib/repricing-store";
 import { repricingApiError } from "@/lib/repricing-api-error";
-import { configuredReportStorage } from "@/lib/merchandising-publication-storage";
+import { workspaceReportStorage } from "@/lib/workspace-report-storage";
 import { readPublishedRepricingInputs } from "@/lib/merchandising-publication";
 import { apiMerchandisingRepricingInputsRouteMessages as englishCopy } from "@/messages/en.json";
 export const dynamic = "force-dynamic";
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
       "INVALID_REPRICING_INPUT_REQUEST",
     );
   try {
-    const storage = configuredReportStorage(user.tenantId);
+    const storage = await workspaceReportStorage(user.tenantId);
     const published = storage && await readPublishedRepricingInputs(user.tenantId, data.snapshotId, storage);
     return NextResponse.json(
       published ?? await createRepricingInputs(user.tenantId, data.snapshotId),

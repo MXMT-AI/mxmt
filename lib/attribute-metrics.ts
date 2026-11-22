@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getActiveAgentImportRunId } from "@/lib/agent-data-source";
+import { readPublishedAgentData } from "@/lib/published-agent-data";
 import { attributeMetricsMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export interface AttributeMetric {
@@ -55,7 +56,10 @@ export async function getAttributeMetrics(
     return { byCategory: [], bySubcategory: [], topCategories: [], deadCategories: [] };
   }
 
-  const [products, sales] = await Promise.all([
+  const published = await readPublishedAgentData(tenantId, importRunId, d30, asOf);
+  const [products, sales] = published
+    ? [published.products, published.sales] as const
+    : await Promise.all([
     prisma.sourceProduct.findMany({
       where: { tenantId, importRunId },
       select: {

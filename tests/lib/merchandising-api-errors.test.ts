@@ -1,7 +1,7 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 vi.mock("server-only", () => ({}));
-vi.mock("@/lib/prisma", () => ({ prisma: {} }));
+vi.mock("@/lib/prisma", () => ({ prisma: { $queryRaw: async () => [] } }));
 const mocks = vi.hoisted(() => ({ read: vi.fn() }));
 vi.mock("@/lib/server-auth", () => ({ requireApiUser: async () => ({ user: { tenantId: "a" }, response: null }) }));
 vi.mock("@/lib/merchandising-screen", () => ({ getMerchandisingScreen: mocks.read }));

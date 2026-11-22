@@ -31,3 +31,4 @@ service-account.json
 
 /.local/merchandising-reports/
 /.local/merchandising-backups/
+/.local/database-backups/

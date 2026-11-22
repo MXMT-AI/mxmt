@@ -58,6 +58,18 @@ async function readPublication(root, tenantHash) {
   return { active, files };
 }
 
+export async function readVerifiedBackup(directory, tenantId) {
+  const root = await realpath(directory);
+  const tenantHash = sha256(tenantId);
+  const { active, files } = await readPublication(root, tenantHash);
+  const index = JSON.parse((await readLocalFile(root, backupIndex)).toString("utf8"));
+  if (index.version !== 1 || index.tenantHash !== tenantHash ||
+      Object.keys(index.checksums ?? {}).length !== files.size ||
+      [...files].some(([path, bytes]) => index.checksums[path] !== sha256(bytes)))
+    throw new Error("Backup verification failed");
+  return { active, files };
+}
+
 async function run(action, tenantId, sourceDirectory, outputDirectory) {
   const source = await realpath(sourceDirectory);
   const output = resolve(outputDirectory);
@@ -101,12 +113,14 @@ async function run(action, tenantId, sourceDirectory, outputDirectory) {
   }) + "\n");
 }
 
-const [action, tenantId, source, destination, ...extra] = process.argv.slice(2);
-try {
-  if (!["backup", "restore"].includes(action) || !tenantId || !source || !destination || extra.length)
-    throw new Error("Usage: npm run reports:backup -- <backup|restore> <tenant-id> <source-dir> <new-dir>");
-  await run(action, tenantId, source, destination);
-} catch (error) {
-  console.error(error instanceof Error ? error.message : String(error));
-  process.exitCode = 1;
+if (import.meta.main) {
+  const [action, tenantId, source, destination, ...extra] = process.argv.slice(2);
+  try {
+    if (!["backup", "restore"].includes(action) || !tenantId || !source || !destination || extra.length)
+      throw new Error("Usage: npm run reports:backup -- <backup|restore> <tenant-id> <source-dir> <new-dir>");
+    await run(action, tenantId, source, destination);
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exitCode = 1;
+  }
 }

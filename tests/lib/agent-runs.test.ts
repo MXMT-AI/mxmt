@@ -1,5 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { AGENT_RUN_STALE_AFTER_MS, getStaleAgentRunCutoff } from "@/lib/agent-runs";
+
+vi.mock("server-only", () => ({}));
 
 describe("agent run timeout", () => {
   it("marks runs stale after five minutes", () => {

@@ -3,7 +3,7 @@ import { requireApiUser } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-contracts";
 import { getRepricingPreview } from "@/lib/repricing-store";
 import { repricingApiError } from "@/lib/repricing-api-error";
-import { configuredReportStorage } from "@/lib/merchandising-publication-storage";
+import { workspaceReportStorage } from "@/lib/workspace-report-storage";
 import { readPublishedRepricingPreview } from "@/lib/merchandising-publication";
 import { parseRepricingRequest } from "@/lib/repricing";
 export const dynamic = "force-dynamic";
@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
   );
   if (invalid) return invalid;
   try {
-    const storage = configuredReportStorage(user.tenantId);
+    const storage = await workspaceReportStorage(user.tenantId);
     const published = storage && await readPublishedRepricingPreview(user.tenantId, parseRepricingRequest(data), storage);
     return NextResponse.json(published ?? await getRepricingPreview(user.tenantId, data), {
       headers: {

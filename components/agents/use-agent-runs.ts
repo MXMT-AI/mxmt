@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getAgentProvider } from "@/lib/client/agent-providers";
 import { AGENT_ROUTES, COMING_SOON } from "@/components/agents/agents.config";
 import type { AgentRunInfo } from "@/components/agents/agents.types";
@@ -14,39 +14,48 @@ export function useAgentRuns({
   dateFrom,
   todayStr,
   enabled = true,
+  preferSaved = false,
 }: {
   analysisDate: string;
   dateFrom: string;
   todayStr: string;
   enabled?: boolean;
+  preferSaved?: boolean;
 }) {
   const [runs, setRuns] = useState<Record<string, AgentRunInfo>>({});
   const [loading, setLoading] = useState(true);
   const [statusError, setStatusError] = useState<string | null>(null);
   const isHistoricalDate = analysisDate !== todayStr;
   const hasDateFrom = dateFrom !== "";
+  const statusRequest = useRef(0);
 
-  const fetchStatus = useCallback(async () => {
+  const fetchStatus = useCallback(async (fresh = false) => {
     if (!enabled) return;
+    const request = ++statusRequest.current;
 
     try {
       const params = new URLSearchParams({ asOf: analysisDate });
       if (hasDateFrom) params.set("dateFrom", dateFrom);
+      if (preferSaved) params.set("saved", "1");
+      if (fresh) params.set("fresh", "1");
       const res = await apiFetch(`/api/agents/status?${params.toString()}`);
+      if (request !== statusRequest.current) return;
       if (!res.ok) {
         setStatusError(formatMessage(ukrainianCopy.неВдалосяОновитиСтатусАгентів, { status: res.status }));
         return;
       }
 
       const data = await readApiJson<Record<string, AgentRunInfo>>(res);
+      if (request !== statusRequest.current) return;
       setRuns(data ?? {});
       setStatusError(null);
     } catch (error) {
+      if (request !== statusRequest.current) return;
       setStatusError(error instanceof Error ? error.message : ukrainianCopy.неВдалосяОновитиСтатусАгентів2);
     } finally {
-      setLoading(false);
+      if (request === statusRequest.current) setLoading(false);
     }
-  }, [analysisDate, dateFrom, enabled, hasDateFrom]);
+  }, [analysisDate, dateFrom, enabled, hasDateFrom, preferSaved]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -57,7 +66,7 @@ export function useAgentRuns({
     const isRunning = Object.values(runs).some((run) =>
       run.status === "running" || run.latestAttempt?.status === "running");
     if (!isRunning) return;
-    const intervalId = setInterval(fetchStatus, 3000);
+    const intervalId = setInterval(() => void fetchStatus(true), 3000);
     return () => clearInterval(intervalId);
   }, [runs, fetchStatus]);
 
@@ -123,7 +132,7 @@ export function useAgentRuns({
         return;
       }
 
-      await fetchStatus();
+      await fetchStatus(true);
     } catch (error) {
       setRuns((prev) => ({
         ...prev,

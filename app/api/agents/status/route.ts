@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { closeStaleAgentRuns } from "@/lib/agent-runs";
 import { requireApiUser } from "@/lib/server-auth";
 import { resolveAgentRunContext } from "@/lib/agent-dependencies";
-import { selectAgentDisplayRun } from "@/lib/agent-context";
+import { selectAgentDisplayRun, type AgentRunContext } from "@/lib/agent-context";
 
 export const runtime = "nodejs";
 
@@ -19,15 +19,7 @@ const AGENT_TYPES = [
   "weekly_report",
 ];
 
-export async function GET(req: NextRequest) {
-  const { user, response } = await requireApiUser();
-  if (response) return response;
-  const { tenantId } = user;
-  const context = await resolveAgentRunContext(tenantId, {
-    asOf: req.nextUrl.searchParams.get("asOf"),
-    dateFrom: req.nextUrl.searchParams.get("dateFrom"),
-  });
-
+async function readAgentStatus(tenantId: string, context: AgentRunContext) {
   await closeStaleAgentRuns(tenantId);
 
   const runs = await prisma.agentRun.findMany({
@@ -35,7 +27,7 @@ export async function GET(req: NextRequest) {
     orderBy: { startedAt: "desc" },
   });
 
-  const latest = Object.fromEntries(
+  return Object.fromEntries(
     AGENT_TYPES.flatMap((agentType) => {
       const agentRuns = runs.filter((item) => item.agentType === agentType);
       const { run, attempt, isCurrent } = selectAgentDisplayRun(agentRuns, context);
@@ -52,5 +44,40 @@ export async function GET(req: NextRequest) {
     })
   );
 
-  return NextResponse.json(latest);
+}
+
+const statusCache = new Map<string, {
+  expiresAt: number;
+  data: ReturnType<typeof readAgentStatus>;
+}>();
+
+export async function GET(req: NextRequest) {
+  const { user, response } = await requireApiUser();
+  if (response) return response;
+  const { tenantId } = user;
+  const query = req.nextUrl.searchParams;
+  const context = await resolveAgentRunContext(tenantId, {
+    asOf: query.get("asOf"),
+    dateFrom: query.get("dateFrom"),
+  });
+  const headers = { "Cache-Control": "private, no-store" };
+  if (query.get("saved") !== "1" && query.get("fresh") !== "1") {
+    return NextResponse.json(await readAgentStatus(tenantId, context), { headers });
+  }
+
+  const key = JSON.stringify([tenantId, context]);
+  const cached = statusCache.get(key);
+  if (cached && cached.expiresAt > Date.now() && query.get("fresh") !== "1")
+    return NextResponse.json(await cached.data, { headers });
+
+  statusCache.delete(key);
+  if (statusCache.size >= 48) statusCache.delete(statusCache.keys().next().value!);
+  const data = readAgentStatus(tenantId, context);
+  statusCache.set(key, { data, expiresAt: Date.now() + 15_000 });
+  try {
+    return NextResponse.json(await data, { headers });
+  } catch (error) {
+    if (statusCache.get(key)?.data === data) statusCache.delete(key);
+    throw error;
+  }
 }

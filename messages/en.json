@@ -3719,6 +3719,7 @@
     "allChannels": "All channels",
     "apply": "Apply",
     "publish": "Update snapshot",
+    "savedPeriodHint": "Reports show the saved period. To change it, choose the dates and select Update snapshot.",
     "publishing": "Preparing the snapshot for the selected date…",
     "stockScope": "Stock covers all channels. The selected channel applies to sales only.",
     "loading": "Loading settings…",

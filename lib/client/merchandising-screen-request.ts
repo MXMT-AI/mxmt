@@ -36,11 +36,11 @@ export function buildScreenSelection(
   controls: Record<string, string>,
 ) {
   const selection = new URLSearchParams({ dateFrom: filters.dateFrom, dateTo: filters.dateTo });
-  if (filters.publishedAsOf) selection.set("asOf", filters.publishedAsOf);
   for (const key of ["asOf", ...selectionFilterKeys[screen]]) {
     const value = params.get(key);
     if (value) selection.set(key, value);
   }
+  if (filters.publishedAsOf) selection.set("asOf", filters.publishedAsOf);
   for (const [key, value] of Object.entries(controls)) selection.set(key, value);
   return selection;
 }

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getActiveAgentImportRunId } from "@/lib/agent-data-source";
+import { readPublishedAgentData } from "@/lib/published-agent-data";
 import { financialDecimal as D } from "./merchandising-policy";
 import {
   classifyWoh,
@@ -278,7 +279,10 @@ export async function getBrandMetrics(
   const importRunId = await getActiveAgentImportRunId(tenantId);
   if (!importRunId) return [];
 
-  const [products, sales] = await Promise.all([
+  const published = await readPublishedAgentData(tenantId, importRunId, w.windowStart, asOf);
+  const [products, sales] = published
+    ? [published.products, published.sales] as const
+    : await Promise.all([
     prisma.sourceProduct.findMany({
       where: { tenantId, importRunId },
       select: { productId: true, brand: true, costPrice: true, retailPrice: true, stockUnits: true },
@@ -303,7 +307,7 @@ export async function getBrandMetrics(
     }),
   ]);
 
-  const grouped = new Map<string | null, typeof products>();
+  const grouped = new Map<string | null, Array<(typeof products)[number]>>();
   for (const product of products) {
     const group = grouped.get(product.brand) ?? [];
     group.push(product);

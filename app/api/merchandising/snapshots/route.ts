@@ -5,7 +5,7 @@ import { createScreenSnapshot } from "@/lib/merchandising-snapshot";
 import { screenSnapshotContext } from "@/lib/merchandising-screen";
 import { merchandisingApiError } from "@/lib/merchandising-api-error";
 import { hasRole } from "@/lib/roles";
-import { configuredReportStorage } from "@/lib/merchandising-publication-storage";
+import { workspaceReportStorage } from "@/lib/workspace-report-storage";
 import { publishMerchandisingReports } from "@/lib/merchandising-publication";
 import { apiMerchandisingSnapshotsRouteMessages as englishCopy } from "@/messages/en.json";
 export const dynamic = "force-dynamic";
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     if (data.publish === true) {
       if (!hasRole(user.role, "ADMIN"))
         return apiError(englishCopy.publishingRequiresAnAdministrator, 403, "FORBIDDEN");
-      const storage = configuredReportStorage(user.tenantId);
+      const storage = await workspaceReportStorage(user.tenantId);
       if (!storage)
         return apiError(englishCopy.reportPublicationIsUnavailable, 409, "PUBLICATION_UNAVAILABLE");
       const publication = await publishMerchandisingReports(

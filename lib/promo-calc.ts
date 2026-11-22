@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { brandValueFromAgentId, getActiveAgentImportRunId } from "@/lib/agent-data-source";
+import { readPublishedAgentData } from "@/lib/published-agent-data";
 import { promoCalcMessages as ukrainianCopy } from "@/messages/uk.json";
 
 const ELASTICITY = 2;
@@ -74,7 +75,10 @@ export async function simulatePromo(input: PromoSimulationInput): Promise<PromoS
   const brand = brandValueFromAgentId(brandId);
   const brandName = brand ?? ukrainianCopy.brandNameБезБренда;
 
-  const [products, sales] = await Promise.all([
+  const published = await readPublishedAgentData(tenantId, importRunId, windowStart, input.asOf);
+  const [products, sales] = published
+    ? [published.products.filter((product) => product.brand === brand), published.sales] as const
+    : await Promise.all([
     prisma.sourceProduct.findMany({
       where: { tenantId, importRunId, brand },
       select: {

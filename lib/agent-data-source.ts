@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { SHEETS_SOURCE_FILTER } from "@/lib/data-source";
 import { agentDataSourceMessages as ukrainianCopy } from "@/messages/uk.json";
+import { workspaceReportStorage } from "@/lib/workspace-report-storage";
+import { readReportPublication } from "@/lib/merchandising-publication";
 
 export async function getActiveAgentImportRunId(tenantId: string): Promise<string | null> {
   if (process.env.MXMT_DEMO_AGENT_DATE) {
@@ -15,6 +17,9 @@ export async function getActiveAgentImportRunId(tenantId: string): Promise<strin
     });
     return demo?.activeImportRunId ?? null;
   }
+  const storage = await workspaceReportStorage(tenantId);
+  const publication = storage && await readReportPublication(tenantId, storage);
+  if (publication?.agentSource) return publication.agentSource.importRunId;
   const source = await prisma.dataSource.findFirst({
     where: {
       ...SHEETS_SOURCE_FILTER,

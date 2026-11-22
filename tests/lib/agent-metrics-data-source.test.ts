@@ -7,6 +7,8 @@ const mocks = vi.hoisted(() => ({
   dataSheetSnapshotFindUnique: vi.fn(),
 }));
 
+vi.mock("@/lib/published-agent-data", () => ({ readPublishedAgentData: async () => null }));
+
 vi.mock("@/lib/agent-data-source", () => ({
   getActiveAgentImportRunId: mocks.getActiveAgentImportRunId,
   brandValueFromAgentId: (brandId: string) => {

@@ -4,6 +4,11 @@ import { MVP_SCREENS } from "@/lib/merchandising-navigation";
 const filters = { period: "month" as const, dateFrom: "2026-09-01", dateTo: "2026-09-30", channelId: "2" };
 const params = new URLSearchParams("asOf=2026-10-01&brandId=b&categoryId=c&skuId=s&currency=UAH&channelId=2&snapshotId=old&page=9");
 
+it("uses the saved stock date when a bookmarked URL carries an older date", () => {
+  const selection = buildScreenSelection({ ...filters, publishedAsOf: "2026-09-30" }, "overview", params, {});
+  expect(selection.get("asOf")).toBe("2026-09-30");
+});
+
 it("retains explicit empty stock controls for links and omits them by default", () => {
   const query = new URLSearchParams("page=2&direction=&categorySort=DEAD&measure=units");
   expect(readScreenControls("stock", query)).toEqual({ page: "2", categorySort: "DEAD" });

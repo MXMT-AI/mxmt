@@ -4,7 +4,7 @@ import { getLocale } from "next-intl/server";
 import { requireCurrentUser } from "@/lib/server-auth";
 import { hasRole } from "@/lib/roles";
 import { readNavigationOptions } from "@/lib/merchandising-navigation-store";
-import { configuredReportStorage } from "@/lib/merchandising-publication-storage";
+import { workspaceReportStorage } from "@/lib/workspace-report-storage";
 import { readReportPublication } from "@/lib/merchandising-publication";
 import MerchandisingShell from "@/components/merchandising/merchandising-shell/merchandising-shell";
 import MerchandisingLoading from "@/components/merchandising/merchandising-loading/merchandising-loading";
@@ -40,7 +40,7 @@ async function NavigationContent({
   publishAllowed: boolean;
   children: React.ReactNode;
 }) {
-  const storage = configuredReportStorage(tenantId);
+  const storage = await workspaceReportStorage(tenantId);
   const publication = storage
     ? await readReportPublication(tenantId, storage).catch(() => null)
     : null;

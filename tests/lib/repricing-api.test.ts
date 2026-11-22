@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { beforeEach, afterEach, describe, it, expect, vi } from "vitest";
 vi.mock("server-only", () => ({}));
-vi.mock("@/lib/prisma", () => ({ prisma: {} }));
+vi.mock("@/lib/prisma", () => ({ prisma: { $queryRaw: async () => [] } }));
 const m = vi.hoisted(() => ({
   cookies: new Map<string, string>(),
   create: vi.fn(),

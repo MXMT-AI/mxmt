@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { brandValueFromAgentId, getActiveAgentImportRunId } from "@/lib/agent-data-source";
+import { readPublishedAgentData } from "@/lib/published-agent-data";
 import { legacyReorderCalcMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export const REORDER_COVER_DAYS = 45;
@@ -60,7 +61,10 @@ export async function simulateReorder(input: ReorderSimulationInput): Promise<Re
   const brandName = brand ?? ukrainianCopy.brandNameБезБренда;
   const leadTimeDays: number | null = null;
 
-  const [products, sales] = await Promise.all([
+  const published = await readPublishedAgentData(tenantId, importRunId, windowStart, input.asOf);
+  const [products, sales] = published
+    ? [published.products.filter((product) => product.brand === brand), published.sales] as const
+    : await Promise.all([
     prisma.sourceProduct.findMany({
       where: { tenantId, importRunId, brand },
       select: {

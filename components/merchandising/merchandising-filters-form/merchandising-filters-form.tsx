@@ -24,11 +24,15 @@ export function MerchandisingFiltersForm({
   options,
   onApply,
   publishAllowed = false,
+  savedSnapshotId,
+  savedAsOf,
 }: {
   filters: MerchandisingFilters;
   options: NavigationOptions;
   onApply: (appliedAt: string) => void;
   publishAllowed?: boolean;
+  savedSnapshotId?: string;
+  savedAsOf?: string;
 }) {
   const { lang } = useLang(),
     copy = merchandisingCopy[lang];
@@ -62,6 +66,13 @@ export function MerchandisingFiltersForm({
       if (publish) {
         void publishSelection(selection);
         return;
+      }
+      if (savedSnapshotId) {
+        selection.query.set("period", filters.period);
+        selection.query.set("dateFrom", filters.dateFrom);
+        selection.query.set("dateTo", filters.dateTo);
+        selection.query.set("snapshotId", savedSnapshotId);
+        if (savedAsOf) selection.query.set("asOf", savedAsOf);
       }
       onApply(selection.appliedAt);
       startTransition(() =>
@@ -216,6 +227,9 @@ export function MerchandisingFiltersForm({
           </Button>
         ) : null}
       </form>
+      {savedSnapshotId && publishAllowed ? (
+        <p className="mt-2 text-sm text-(--muted)">{copy.savedPeriodHint}</p>
+      ) : null}
       {publishAllowed ? (
         <p role="status" className="mt-2 text-sm text-(--muted) empty:sr-only">
           {publishing ? copy.publishing : null}

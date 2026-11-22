@@ -9,7 +9,7 @@ import {
 import { getMerchandisingScreen } from "@/lib/merchandising-screen";
 import { merchandisingApiError } from "@/lib/merchandising-api-error";
 import { createRequestContext, withRequestId } from "@/lib/observability";
-import { configuredReportStorage } from "@/lib/merchandising-publication-storage";
+import { workspaceReportStorage } from "@/lib/workspace-report-storage";
 import { readPublishedScreen } from "@/lib/merchandising-publication";
 import { apiMerchandisingScreenRouteMessages as englishCopy } from "@/messages/en.json";
 export const dynamic = "force-dynamic";
@@ -31,7 +31,7 @@ export async function GET(
       screen as ScreenName,
     );
     const name = screen as ScreenName;
-    const storage = configuredReportStorage(user.tenantId);
+    const storage = await workspaceReportStorage(user.tenantId);
     const published = storage && await readPublishedScreen(user.tenantId, name, query, storage);
     return NextResponse.json(
       published ?? await getMerchandisingScreen(user.tenantId, name, query),

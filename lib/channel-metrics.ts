@@ -1,6 +1,7 @@
 import {calculateSalesGroupedRows} from "./grouped-reports";
 import { prisma } from "@/lib/prisma";
 import { getActiveAgentImportRunId } from "@/lib/agent-data-source";
+import { readPublishedAgentData } from "@/lib/published-agent-data";
 import { channelMetricsMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export interface ChannelMetric {
@@ -65,7 +66,10 @@ export async function getChannelMetrics(
     return { channels: [], totalStock: 0, topChannel: "—", bottomChannel: "—", periodDays };
   }
 
-  const [sales, products, snapshot] = await Promise.all([
+  const published = await readPublishedAgentData(tenantId, importRunId, d30, asOf);
+  const [sales, products, snapshot] = published
+    ? [published.sales, published.products, null] as const
+    : await Promise.all([
     prisma.sourceSaleLine.findMany({
       where: {
         tenantId,
