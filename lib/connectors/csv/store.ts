@@ -55,9 +55,13 @@ async function audit(
 }
 export async function csvSource(tenantId: string, db: SqlClient = prisma) {
   const [row] = await db.$queryRaw<
-    Array<{ sourceId: string; timezone: string }>
+    Array<{ sourceId: string; timezone: string; replacePrevious: boolean }>
   >(
-    Prisma.sql`SELECT c."sourceId",s.timezone FROM "ConnectorConnection" c JOIN "DataSource" s ON s.id=c."sourceId" AND s."tenantId"=c."tenantId" WHERE c."tenantId"=${tenantId} AND c.provider='csv'`,
+    Prisma.sql`SELECT c."sourceId",s.timezone,COALESCE(u.options->>'replacePrevious'='true',false) "replacePrevious"
+      FROM "ConnectorConnection" c
+      JOIN "DataSource" s ON s.id=c."sourceId" AND s."tenantId"=c."tenantId"
+      LEFT JOIN "CsvImport" u ON u."tenantId"=s."tenantId" AND u."sourceId"=s.id AND u."importRunId"=s."activeImportRunId"
+      WHERE c."tenantId"=${tenantId} AND c.provider='csv'`,
   );
   return row ?? null;
 }
@@ -146,7 +150,7 @@ export async function previewCsv(
         throw new CsvStoreError("CSV_TIMEZONE_IMMUTABLE");
       if (!source) {
         const sourceId = randomUUID();
-        source = { sourceId, timezone: options.timezone };
+        source = { sourceId, timezone: options.timezone, replacePrevious: false };
         await tx.$executeRaw(
           Prisma.sql`INSERT INTO "DataSource" (id,"tenantId",kind,"sourceKey",name,timezone,"updatedAt") VALUES (${sourceId},${tenantId},'CSV','manual','CSV upload',${options.timezone},now())`,
         );

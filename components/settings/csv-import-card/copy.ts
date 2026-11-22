@@ -33,6 +33,9 @@ export const rowErrorCopy: Record<string, [string, string]> = {
   ],
 };
 export const csvErrorCopy: Record<string, [string, string]> = {
+  CSV_REPLACEMENT_REQUIRES_FULL_DATASET: [csvImportCopyUk.replacementRequiresFullDataset, csvImportCopyEn.replacementRequiresFullDataset],
+  CSV_REPLACEMENT_REQUIRES_NEWER_DATE: [csvImportCopyUk.replacementRequiresNewerDate, csvImportCopyEn.replacementRequiresNewerDate],
+  CSV_REPLACEMENT_BUSY: [csvImportCopyUk.replacementBusy, csvImportCopyEn.replacementBusy],
   CSV_SELECT_SOURCE_FIRST: [
     ukrainianCopy.cSVSELECTSOURCEFIRSTСпочаткуВиберітьCSVЯкДжерело,
     englishCopy.cSVSELECTSOURCEFIRSTFirstSelectCSVAsThe,

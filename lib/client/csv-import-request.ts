@@ -2,7 +2,7 @@ import type { CsvPacketAction, CsvPreview } from "@/components/settings/csv-impo
 import type { buildCsvPreviewPacket } from "@/components/settings/csv-import-card/build-csv-preview-packet";
 
 export interface CsvUploadsResponse {
-  source: { sourceId: string; timezone: string } | null;
+  source: { sourceId: string; timezone: string; replacePrevious?: boolean } | null;
   uploads: CsvPreview[];
   suppliers: Array<{ id: string; name: string }>;
 }

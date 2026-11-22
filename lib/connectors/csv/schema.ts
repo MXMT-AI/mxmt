@@ -90,6 +90,7 @@ export interface CsvOptions {
   stock: "complete" | "partial";
   history: { from: string; to: string; complete: boolean } | null;
   receiptHistory: { from: string; to: string; complete: boolean } | null;
+  replacePrevious?: boolean;
   discountUnit: "amount" | "percentage";
   policy: {
     statuses: Record<

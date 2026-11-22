@@ -6,6 +6,7 @@ import {
   csvOptions,
   csvPacket,
   csvOrders,
+  csvStock,
   csvFile,
 } from "../fixtures/csv-connector";
 import {
@@ -14,6 +15,7 @@ import {
   readCsvImport,
   readCsvFiles,
   expireCsvPreviews,
+  listCsvImports,
 } from "@/lib/connectors/csv/store";
 import { processCsvJob } from "@/lib/connectors/csv/worker";
 import {
@@ -21,6 +23,7 @@ import {
   listConnectorSources,
 } from "@/lib/connectors/source";
 import { getSalesReport } from "@/lib/sales-report";
+import type { CsvOptions } from "@/lib/connectors/csv/schema";
 let f: Awaited<ReturnType<typeof createScreenDb>>,
   upload: Awaited<ReturnType<typeof previewCsv>>;
 beforeAll(async () => {
@@ -596,3 +599,73 @@ it("fences a claimed CSV job after source selection changes and refuses tampered
     f.db,
   );
 });
+
+it("replaces previous CSV imports only after a complete, newer package succeeds", async () => {
+  const { pg, db } = await createScreenDb();
+  try {
+    const { rows: [{ count: otherSourceStock }] } = await pg.query<{ count: number }>(
+      `SELECT count(*)::int FROM "InventorySnapshot" WHERE "tenantId"='a' AND "sourceId"='source'`,
+    );
+    const previous = await previewCsv("a", "owner", null, csvOptions, csvPacket(), db);
+    await selectConnectorSource("a", "owner", previous.sourceId, 0, db);
+    const activate = async (draft: typeof previous) => {
+      const job = await csvImportAction("a", "owner", draft.id, draft.contentHash, "activate", db);
+      await processCsvJob("a", db, undefined, job.jobId);
+      return (await pg.query<{ state: string; errorCode: string | null }>(
+        'SELECT state, "errorCode" FROM "ConnectorSyncJob" WHERE id=$1', [job.jobId],
+      )).rows[0];
+    };
+    expect(await activate(previous)).toMatchObject({ state: "COMPLETE" });
+
+    const replacementOptions = { ...csvOptions, replacePrevious: true };
+    const put = (options: CsvOptions, files = csvPacket()) =>
+      previewCsv("a", "owner", previous.sourceId, options, files, db);
+    const active = async () => (await pg.query<{ activeImportRunId: string }>(
+      'SELECT "activeImportRunId" FROM "DataSource" WHERE id=$1', [previous.sourceId],
+    )).rows[0].activeImportRunId;
+
+    const incomplete = await put(replacementOptions, [csvFile("orders", csvOrders)]);
+    expect(incomplete.preview.errors).toContainEqual(expect.objectContaining({
+      code: "CSV_REPLACEMENT_REQUIRES_FULL_DATASET",
+    }));
+    const sameDate = await put(replacementOptions);
+    expect(await activate(sameDate)).toMatchObject({ errorCode: "CSV_REPLACEMENT_REQUIRES_NEWER_DATE" });
+    await csvImportAction("a", "owner", sameDate.id, sameDate.contentHash, "cancel", db);
+
+    const newerFiles = csvPacket().map(file => file.resource === "stock" ? csvFile("stock", [{
+      ...csvStock[0], observedAt: "2026-10-26T06:00:00.000Z", quantity: "20",
+    }]) : file);
+    const badMapping = await put({
+      ...replacementOptions,
+      policy: { ...replacementOptions.policy, channels: { "1": "Renamed shop" } },
+    }, newerFiles);
+    expect(await activate(badMapping)).toMatchObject({ errorCode: "CSV_MAPPING_REVISION" });
+    expect(await active()).toBe(previous.importRunId);
+    expect((await readCsvFiles(previous, db))).toHaveLength(3);
+    expect((await pg.query(
+      'SELECT quantity::text FROM "InventorySnapshot" WHERE "sourceId"=$1 AND "importRunId"=$2',
+      [previous.sourceId, previous.importRunId],
+    )).rows).toEqual([{ quantity: "12.0000" }]);
+    await csvImportAction("a", "owner", badMapping.id, badMapping.contentHash, "cancel", db);
+
+    const newer = await put(replacementOptions, newerFiles);
+    expect(await activate(newer)).toMatchObject({ state: "COMPLETE", errorCode: null });
+    expect(await active()).toBe(newer.importRunId);
+    expect((await listCsvImports("a", db)).source?.replacePrevious).toBe(true);
+    await expect(readCsvImport("a", previous.id, db)).rejects.toMatchObject({ code: "CSV_NOT_FOUND" });
+    const { rows } = await pg.query(`SELECT
+      (SELECT count(*)::int FROM "DataImportRun" WHERE id=$1) old_runs,
+      (SELECT count(*)::int FROM "DataSourceRecord" WHERE "importRunId"=$1) old_payloads,
+      (SELECT count(*)::int FROM "OrderLine" WHERE "importRunId"=$2) new_orders,
+      (SELECT count(*)::int FROM "InventorySnapshot" WHERE "tenantId"='a' AND "sourceId"='source') other_source_stock,
+      (SELECT "businessDate"::text FROM "DataImportRun" WHERE id=$2) new_date
+    `, [previous.importRunId, newer.importRunId]);
+    expect(rows).toEqual([{
+      old_runs: 0, old_payloads: 0, new_orders: 1, other_source_stock: otherSourceStock, new_date: "2026-10-26",
+    }]);
+    expect(await csvImportAction("a", "owner", newer.id, newer.contentHash, "activate", db))
+      .toMatchObject({ state: "ACTIVE" });
+  } finally {
+    await pg.close();
+  }
+}, 20_000);

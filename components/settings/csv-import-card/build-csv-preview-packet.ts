@@ -18,8 +18,10 @@ export function buildCsvPreviewPacket({ sourceId, options, files, statuses, chan
       new Set(channels.map(row => row.code)).size !== channels.length) {
     throw new Error("DUPLICATE_MAPPING");
   }
+  const { replacePrevious, ...otherOptions } = options;
   const packetOptions: CsvOptions = {
-    ...options,
+    ...otherOptions,
+    ...(replacePrevious ? { replacePrevious } : {}),
     history: history.orders ? { from: history.from, to: history.to, complete: true } : null,
     receiptHistory: history.receipts ? { from: history.from, to: history.to, complete: true } : null,
     receiptBaseline: history.receipts && history.receiptBaseline,

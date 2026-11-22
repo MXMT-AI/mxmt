@@ -111,6 +111,7 @@ export default function CsvImportCard({
   });
   const messageRef = useRef<HTMLParagraphElement>(null),
     previewRef = useRef<HTMLDivElement>(null);
+  const loadedReplacementMode = useRef(false);
   useEffect(() => {
     if (message) messageRef.current?.focus();
   }, [message]);
@@ -118,9 +119,15 @@ export default function CsvImportCard({
     if (preview) previewRef.current?.focus();
   }, [preview?.id]);
   const onUploadsLoaded = useCallback((data: CsvUploadsResponse) => {
-    if (data.source) {
-      const timezone = data.source.timezone;
-      setOptions(options => ({ ...options, timezone }));
+    const source = data.source;
+    const initial = !loadedReplacementMode.current;
+    loadedReplacementMode.current = true;
+    if (source) {
+      setOptions(options => ({
+        ...options,
+        timezone: source.timezone,
+        ...(initial && source.replacePrevious ? { replacePrevious: true } : {}),
+      }));
     }
   }, []);
   const onUploadsError = useCallback(() => {
@@ -299,6 +306,23 @@ export default function CsvImportCard({
                   setHistoryRules(value);
                 }}
               />
+              <div>
+                <label className="flex min-h-12 items-center gap-2 text-sm text-(--text)">
+                  <input
+                    type="checkbox"
+                    name="replacePrevious"
+                    aria-describedby="csv-replacement-hint"
+                    checked={options.replacePrevious === true}
+                    onChange={event => {
+                      const replacePrevious = event.target.checked;
+                      changed();
+                      setOptions(previous => ({ ...previous, replacePrevious }));
+                    }}
+                  />
+                  {labels.replacePrevious}
+                </label>
+                <p id="csv-replacement-hint" className="text-sm text-(--muted)">{labels.replacePreviousHelp}</p>
+              </div>
               <CsvImportConfirmation
                 approved={options.approved}
                 busy={busy}

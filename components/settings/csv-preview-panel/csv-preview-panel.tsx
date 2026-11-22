@@ -3,7 +3,7 @@ import { Heading } from "@/components/ui/heading/heading";
 import type { Lang } from "@/lib/translations";
 import type { CsvResource } from "@/lib/connectors/csv/schema";
 import type { CsvPreview, CsvPacketAction } from "../csv-import-card/csv-import-types";
-import { csvResourceNames as names, rowErrorCopy } from "../csv-import-card/copy";
+import { csvErrorCopy, csvImportCopy, csvResourceNames as names, rowErrorCopy } from "../csv-import-card/copy";
 import { csvButton as button } from "../csv-import-card/csv-import-styles";
 import { settingsCsvPreviewPanelMessages as englishCopy } from "@/messages/en.json";
 import { settingsCsvPreviewPanelMessages as ukrainianCopy } from "@/messages/uk.json";
@@ -50,6 +50,9 @@ export function CsvPreviewPanel({ preview, lang, busy, suppliers, panelRef, onAc
       </p>
       <p className="break-all text-xs text-(--muted)">{englishCopy.sHA256}{preview.contentHash}
       </p>
+      {preview.options?.replacePrevious && preview.state !== "ACTIVE" && (
+        <p className="text-sm text-(--text)">{csvImportCopy[lang].replacePreviousHelp}</p>
+      )}
       {preview.options && (
         <details className="text-sm text-(--muted)">
           <summary className="cursor-pointer">
@@ -165,7 +168,7 @@ export function CsvPreviewPanel({ preview, lang, busy, suppliers, panelRef, onAc
                 {names[lang][e.resource as CsvResource]} ·{" "}
                 {copy(ukrainianCopy.row, englishCopy.row)} {e.row || "—"}{" "}
                 {e.field ? `(${e.field})` : ""}:{" "}
-                {rowErrorCopy[e.code]?.[uk ? 0 : 1] ??
+                {(rowErrorCopy[e.code] ?? csvErrorCopy[e.code])?.[uk ? 0 : 1] ??
                   copy(
                     ukrainianCopy.correctTheRowOrMapping,
                     englishCopy.correctTheRowOrMapping,
@@ -193,7 +196,7 @@ export function CsvPreviewPanel({ preview, lang, busy, suppliers, panelRef, onAc
       {preview.job?.errorCode && (
         <p role="alert" className="text-sm text-(--text)">
           {copy(ukrainianCopy.importPaused, englishCopy.importPaused)}{" "}
-          {preview.job.errorCode}
+          {csvErrorCopy[preview.job.errorCode]?.[uk ? 0 : 1] ?? preview.job.errorCode}
         </p>
       )}
       <div className="flex flex-wrap gap-3">

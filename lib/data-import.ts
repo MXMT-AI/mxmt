@@ -128,6 +128,7 @@ async function pruneInactiveImportRuns(
       cursors: { none: {} },
       connectorJobs: { none: {} },
       orderImportStates: { none: {} },
+      activeForSource: { is: null },
       ...(activeImportRunId ? { id: { not: activeImportRunId } } : {}),
     },
   });

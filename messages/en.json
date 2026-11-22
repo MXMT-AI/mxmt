@@ -2063,7 +2063,12 @@
     "formatHint": "UTF-8, up to 256 KiB per file, 1 MiB and 500 rows per packet. Decimals use a dot and up to 4 fractional digits. Dates: YYYY-MM-DD; update/observation timestamps: ISO UTC with Z. Empty means unknown, not zero.",
     "approval": "I confirm the columns, currency, dates, statuses, discounts, unit prices and file completeness. Brand ownership is not inferred from CSV.",
     "processing": "Processing…",
-    "preview": "Preview packet"
+    "preview": "Preview packet",
+    "replacePrevious": "Replace the previous CSV dataset",
+    "replacePreviousHelp": "Activating a complete package with a newer stock date removes earlier CSV imports for this source, including their sales, stock and receipts. Include all history you want to keep.",
+    "replacementRequiresFullDataset": "To replace the dataset, include the full catalog, stock and sales files and confirm complete sales history.",
+    "replacementRequiresNewerDate": "The new package must have a stock date later than the latest date for the active source.",
+    "replacementBusy": "The previous import is still processing. Retry activation after it finishes."
   },
   "settingsCsvImportCardCopyMessages": {
     "dUPLICATEIDПовторенийІдентифікаторЗалиштеОдинРядок": "Повторений ідентифікатор. Залиште один рядок для цієї позиції.",

@@ -59,6 +59,7 @@ export function parseCsvOptions(v: unknown): CsvOptions {
       "policy",
       "approved",
       "receiptBaseline",
+      "replacePrevious",
     ]) ||
     v.schemaVersion !== 1 ||
     !Number.isSafeInteger(v.mappingRevision) ||
@@ -72,6 +73,8 @@ export function parseCsvOptions(v: unknown): CsvOptions {
     v.approved !== true ||
     (v.receiptBaseline !== undefined &&
       typeof v.receiptBaseline !== "boolean") ||
+    (v.replacePrevious !== undefined &&
+      typeof v.replacePrevious !== "boolean") ||
     !isRecord(v.policy) ||
     !keys(v.policy, ["statuses", "channels", "amounts", "receipts"])
   )
@@ -568,6 +571,14 @@ export function compileCsv(
       resource: "receipts",
       row: 0,
       code: "HISTORY_REQUIRES_FILE",
+    });
+  if (options.replacePrevious &&
+      (options.catalog !== "complete" || options.stock !== "complete" ||
+        !options.history?.complete || !bundle.catalogs.length || !bundle.orders.length))
+    preview.errors.unshift({
+      resource: "stock",
+      row: 0,
+      code: "CSV_REPLACEMENT_REQUIRES_FULL_DATASET",
     });
   preview.errors = preview.errors.slice(0, 50);
   return { bundle, preview, files: files as CsvFileInput[] };

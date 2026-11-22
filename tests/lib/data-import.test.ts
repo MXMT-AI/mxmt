@@ -227,6 +227,7 @@ describe("atomic raw import", () => {
         cursors: { none: {} },
         connectorJobs: { none: {} },
         orderImportStates: { none: {} },
+        activeForSource: { is: null },
         id: { not: "active-run" },
       },
     });
@@ -244,6 +245,7 @@ describe("atomic raw import", () => {
         cursors: { none: {} },
         connectorJobs: { none: {} },
         orderImportStates: { none: {} },
+        activeForSource: { is: null },
         id: { not: "run-1" },
       },
     });

@@ -1,5 +1,6 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
+import { Temporal } from "@js-temporal/polyfill";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import type { SqlDatabase } from "../database";
@@ -26,6 +27,7 @@ import { inventoryPolicy } from "../inventory-normalization";
 import { readClientSettings } from "@/lib/merchandising-settings-store";
 import { applyClientOrderSettings } from "@/lib/merchandising-order-policy";
 import { completeConnectorInputs } from "@/lib/data-pipeline";
+import { removeSupersededCsvInputs, removeSupersededCsvRuns } from "./replacement";
 export interface CsvJob extends ConnectorJob {
   checkpoint: {
     uploadId: string;
@@ -92,13 +94,13 @@ export async function processCsvJob(
         const { bundle, preview } = compileCsv(files, options);
         if (preview.errors.length)
           throw new CsvStoreError("CSV_VALIDATION_FAILED");
-        if (options.history?.complete) {
+        if (!options.replacePrevious && options.history?.complete) {
           const [missing] = await tx.$queryRaw<Array<{ n: number }>>(
             Prisma.sql`SELECT count(DISTINCT "externalOrderId")::int n FROM "OrderLine" WHERE "tenantId"=${job.tenantId} AND "sourceId"=${job.sourceId} AND "orderedAt">=${options.history.from}::timestamptz AND "orderedAt"<=${options.history.to}::timestamptz AND "externalOrderId" NOT IN (SELECT jsonb_array_elements_text(${JSON.stringify(bundle.orders.map((o) => o.externalId))}::jsonb))`,
           );
           if (missing.n) throw new CsvStoreError("CSV_HISTORY_OMITS_DOCUMENTS");
         }
-        if (options.receiptHistory?.complete) {
+        if (!options.replacePrevious && options.receiptHistory?.complete) {
           const [missing] = await tx.$queryRaw<Array<{ n: number }>>(
             Prisma.sql`SELECT count(*)::int n FROM "Receipt" WHERE "tenantId"=${job.tenantId} AND "sourceId"=${job.sourceId} AND "receivedAt">=${options.receiptHistory.from}::timestamptz AND "receivedAt"<=${options.receiptHistory.to}::timestamptz AND "externalId" NOT IN (SELECT jsonb_array_elements_text(${JSON.stringify(bundle.receipts.map((r) => r.externalId))}::jsonb))`,
           );
@@ -112,6 +114,14 @@ export async function processCsvJob(
             timezone: options.timezone,
             provider: "csv",
           };
+        const latestStock = bundle.catalogs.at(-1);
+        const replacementDate = options.replacePrevious && latestStock
+          ? Temporal.Instant.from(latestStock.observationId ?? latestStock.observedAt)
+              .toZonedDateTimeISO(options.timezone).toPlainDate().toString()
+          : null;
+        const previousRunIds = replacementDate
+          ? await removeSupersededCsvInputs(tx, scope, replacementDate)
+          : [];
         const client = await readClientSettings(job.tenantId, tx),
           policy = client.id
             ? applyClientOrderSettings(options.policy, client.values, {
@@ -182,7 +192,8 @@ export async function processCsvJob(
             );
         await recordIssues(tx, job, issues);
         await tx.$executeRaw(
-          Prisma.sql`UPDATE "DataImportRun" SET status='WARNING',stats=${JSON.stringify(stats)}::jsonb,"completedAt"=now(),"errorMessage"=NULL,"updatedAt"=now() WHERE id=${job.importRunId} AND "tenantId"=${job.tenantId}`,
+          Prisma.sql`UPDATE "DataImportRun" SET status='WARNING',stats=${JSON.stringify(stats)}::jsonb,"completedAt"=now(),"errorMessage"=NULL,"updatedAt"=now(),
+          "businessDate"=COALESCE(${replacementDate}::date,"businessDate") WHERE id=${job.importRunId} AND "tenantId"=${job.tenantId}`,
         );
         if (options.history?.complete) {
           const through = options.history.to;
@@ -205,6 +216,7 @@ export async function processCsvJob(
         await tx.$executeRaw(
           Prisma.sql`UPDATE "CsvImport" SET state='ACTIVE',"activatedAt"=now() WHERE id=${upload.id} AND "tenantId"=${job.tenantId}`,
         );
+        await removeSupersededCsvRuns(tx, scope, previousRunIds);
         await tx.$executeRaw(
           Prisma.sql`INSERT INTO "MerchandisingAction" (id,"tenantId","actorId",action,"entityType","entityId","idempotencyKey",context) VALUES (${randomUUID()},${job.tenantId},${job.checkpoint.activationActorId},'CSV_ACTIVATED','CSV_IMPORT',${upload.id},${`CSV_ACTIVATED:${upload.id}`},${JSON.stringify({ hash: upload.contentHash, jobId: job.id })}::jsonb) ON CONFLICT DO NOTHING`,
         );
