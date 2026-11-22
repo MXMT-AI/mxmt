@@ -14,6 +14,7 @@ import { RangeField } from "@/components/ui/range-field/range-field";
 import { activeRepricingFilters, defaultRepricingFilters } from "@/lib/repricing-workspace";
 import type { RepricingFilters as FilterValues } from "@/lib/repricing-contract";
 import type { RepricingPreview } from "../use-repricing-preview";
+import { repricingRepricingFiltersMessages as englishCopy } from "@/messages/en.json";
 
 export function RepricingFilters({ monobrand = false, draft, onChange, data, error, copy }: {
   monobrand?: boolean;
@@ -128,7 +129,7 @@ export function RepricingFilters({ monobrand = false, draft, onChange, data, err
             inputMode="decimal"
             autoComplete="off"
             value={f.soldMax ?? ""}
-            placeholder="0…"
+            placeholder={englishCopy.placeholder0}
             onChange={(e) => setFilter("soldMax", e.target.value)}
           />
         </Field>

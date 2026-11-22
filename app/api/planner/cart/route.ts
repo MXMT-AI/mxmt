@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiUser } from "@/lib/server-auth";
 import { isRecord, parseJsonBody, validationError } from "@/lib/api-contracts";
+import { apiPlannerCartRouteMessages as englishCopy } from "@/messages/en.json";
 
 export async function GET() {
   const { user, response } = await requireApiUser();
@@ -21,12 +22,12 @@ export async function PUT(request: NextRequest) {
   if (parseResponse) return parseResponse;
 
   if (!isRecord(data)) {
-    return validationError(["body must be an object"]);
+    return validationError([englishCopy.bodyMustBeAnObject]);
   }
 
   const items = data.items;
   if (!Array.isArray(items)) {
-    return validationError(["items must be an array"]);
+    return validationError([englishCopy.itemsMustBeAnArray]);
   }
 
   await prisma.plannerCart.upsert({

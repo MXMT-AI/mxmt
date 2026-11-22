@@ -4,6 +4,8 @@ import { apiFetch } from "@/lib/fetch";
 import { readApiJson } from "@/lib/api-response";
 import type { Lang } from "@/lib/translations";
 import type { Progress, ImportResponse } from "./import-types";
+import { settingsSalesDriveImportCardUseImportProgressMessages as englishCopy } from "@/messages/en.json";
+import { settingsSalesDriveImportCardUseImportProgressMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export const isImportRunning = (job: Progress | null) =>
   Boolean(job && ["PENDING", "RUNNING", "RETRY"].includes(job.state));
@@ -50,8 +52,8 @@ export function useImportProgress({ lang, canManage, resource, generic, onComple
       if (!controller.signal.aborted) {
         setError(
           uk
-            ? "Не вдалося завантажити прогрес."
-            : "Could not load import progress.",
+            ? ukrainianCopy.couldNotLoadImportProgress
+            : englishCopy.couldNotLoadImportProgress,
         );
         setLoaded(true);
       }
@@ -97,8 +99,8 @@ export function useImportProgress({ lang, canManage, resource, generic, onComple
         if (!controller.signal.aborted)
           setError(
             uk
-              ? "Не вдалося оновити прогрес. Наступна спроба — автоматично."
-              : "Could not refresh progress. Retrying automatically.",
+              ? ukrainianCopy.couldNotRefreshProgressRetrying
+              : englishCopy.couldNotRefreshProgressRetrying,
           );
       } finally {
         if (!controller.signal.aborted) timer = setTimeout(poll, 10_000);
@@ -136,15 +138,15 @@ export function useImportProgress({ lang, canManage, resource, generic, onComple
       setError(
         error instanceof Error && error.message === "IMPORT_BUSY"
           ? uk
-            ? "Завершіть або відновіть інший імпорт SalesDrive перед запуском цього."
-            : "Finish or resume the other SalesDrive import before starting this one."
+            ? ukrainianCopy.finishOrResumeTheOther
+            : englishCopy.finishOrResumeTheOther
           : error instanceof Error && error.message === "CATALOG_NOT_CONFIGURED"
             ? uk
-              ? generic?"Налаштуйте читання каталогу й залишків у вибраному з’єднанні.":"Збережіть YML-посилання в налаштуваннях SalesDrive перед імпортом каталогу."
-              : generic?"Configure catalogue and stock access for the selected connection.":"Save a YML feed URL in SalesDrive settings before importing the catalogue."
+              ? generic?ukrainianCopy.налаштуйтеЧитанняКаталогуЙЗалишків:ukrainianCopy.збережітьYMLПосиланняВНалаштуванняхSalesDrive
+              : generic?englishCopy.configureCatalogueAndStockAccess:englishCopy.saveAYMLFeedURL
             : uk
-              ? "Не вдалося виконати дію. Перевірте з’єднання та налаштування джерела."
-              : "Import action failed. Check the connection and source settings.",
+              ? ukrainianCopy.importActionFailedCheckThe
+              : englishCopy.importActionFailedCheckThe,
       );
     } finally {
       actionInFlight.current = false;

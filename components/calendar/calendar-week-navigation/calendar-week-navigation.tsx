@@ -2,6 +2,8 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button/button";
 import type { Locale } from "@/i18n/routing";
 import type { Week } from "../marketing-calendar/calendar-types";
+import { calendarCalendarWeekNavigationMessages as englishCopy } from "@/messages/en.json";
+import { calendarCalendarWeekNavigationMessages as ukrainianCopy } from "@/messages/uk.json";
 
 const buttonClassName = "flex items-center gap-1 border-0 p-0 font-sans text-xs hover:bg-transparent disabled:opacity-30";
 
@@ -19,15 +21,15 @@ export function CalendarWeekNavigation({ weeks, start, visibleCount, locale, onC
   const last = weeks[Math.min(weeks.length - 1, currentStart + visibleCount - 1)];
 
   return (
-    <nav aria-label={uk ? "Тижні календаря" : "Calendar weeks"} className="flex items-center justify-between mb-2">
+    <nav aria-label={uk ? ukrainianCopy.ariaLabelCalendarWeeks : englishCopy.ariaLabelCalendarWeeks} className="flex items-center justify-between mb-2">
       <Button onClick={() => onChange(Math.max(0, currentStart - 1))} disabled={currentStart === 0} className={buttonClassName}>
-        <ChevronLeft size={14} aria-hidden="true" /> {uk ? "← Раніше" : "← Earlier"}
+        <ChevronLeft size={14} aria-hidden="true" /> {uk ? ukrainianCopy.earlier : englishCopy.earlier}
       </Button>
       <span className="text-[10px] font-mono text-(--subtle)">
         {first && last ? `${first.d} — ${last.d}` : ""}
       </span>
       <Button onClick={() => onChange(Math.min(lastStart, currentStart + 1))} disabled={currentStart === lastStart} className={buttonClassName}>
-        {uk ? "Пізніше →" : "Later →"} <ChevronRight size={14} aria-hidden="true" />
+        {uk ? ukrainianCopy.later : englishCopy.later} <ChevronRight size={14} aria-hidden="true" />
       </Button>
     </nav>
   );

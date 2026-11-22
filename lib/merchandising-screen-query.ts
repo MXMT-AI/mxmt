@@ -1,6 +1,7 @@
 import { parseDataTableQuery, type DataColumnMetadata } from "./data-table-api";
 import { SKU_STATUSES, type SkuStatus } from "./classify";
 import { ScreenApiError } from "./merchandising-snapshot";
+import { merchandisingScreenQueryMessages as englishCopy } from "@/messages/en.json";
 export const SCREEN_NAMES = [
   "overview",
   "sales",
@@ -251,22 +252,22 @@ export const STOCK_SCREEN_COLUMNS: DataColumnMetadata[] = [
   { key: "sku", label: "SKU", type: "text" },
   { key: "barcode", label: "Barcode", type: "text" },
   { key: "ownership", label: "Ownership", type: "text" },
-  { key: "unitCost", label: "Unit cost", type: "money" },
-  { key: "retailPrice", label: "Current price", type: "money" },
-  { key: "inTransitQuantity", label: "Verified in transit", type: "quantity" },
-  { key: "sourceObservedAt", label: "Stock observed at", type: "date" },
+  { key: "unitCost", label: englishCopy.labelUnitCost, type: "money" },
+  { key: "retailPrice", label: englishCopy.labelCurrentPrice, type: "money" },
+  { key: "inTransitQuantity", label: englishCopy.labelVerifiedInTransit, type: "quantity" },
+  { key: "sourceObservedAt", label: englishCopy.labelStockObservedAt, type: "date" },
   { key: "name", label: "Name", type: "text" },
   { key: "currency", label: "Currency", type: "text" },
-  { key: "skuCount", label: "SKU count", type: "number" },
-  { key: "quantity", label: "Stock units", type: "quantity" },
-  { key: "stockCost", label: "Stock at cost", type: "money" },
-  { key: "stockRetail", label: "Stock at retail", type: "money" },
-  { key: "velocityPerWeek", label: "Weekly velocity", type: "quantity" },
-  { key: "weeksOnHand", label: "Weeks on hand", type: "number" },
-  { key: "daysToZero", label: "Days to zero", type: "number" },
+  { key: "skuCount", label: englishCopy.labelSKUCount, type: "number" },
+  { key: "quantity", label: englishCopy.labelStockUnits, type: "quantity" },
+  { key: "stockCost", label: englishCopy.labelStockAtCost, type: "money" },
+  { key: "stockRetail", label: englishCopy.labelStockAtRetail, type: "money" },
+  { key: "velocityPerWeek", label: englishCopy.labelWeeklyVelocity, type: "quantity" },
+  { key: "weeksOnHand", label: englishCopy.labelWeeksOnHand, type: "number" },
+  { key: "daysToZero", label: englishCopy.labelDaysToZero, type: "number" },
   { key: "sellThroughRatio", label: "Sell-through", type: "percentage" },
-  { key: "classification", label: "SKU status", type: "text" },
-  { key: "eligibility", label: "Action eligibility", type: "text" },
+  { key: "classification", label: englishCopy.labelSKUStatus, type: "text" },
+  { key: "eligibility", label: englishCopy.labelActionEligibility, type: "text" },
 ];
 export function screenColumns(columns: DataColumnMetadata[]): ScreenColumn[] {
   return columns.map((c) => ({

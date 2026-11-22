@@ -4,6 +4,8 @@ import { Badge } from "@/components/ui/badge/badge";
 import type { BrandResult } from "@/components/agents/agents.types";
 import { formatWohDays } from "@/components/agents/agents.utils";
 import { getBrandStatus } from "../brand-status";
+import { agentsBrandCardMessages as englishCopy } from "@/messages/en.json";
+import { agentsBrandCardMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export function BrandCard({ b }: { b: BrandResult }) {
   const [open, setOpen] = useState(false);
@@ -30,14 +32,14 @@ export function BrandCard({ b }: { b: BrandResult }) {
             {label}
           </Badge>
           {b.urgency === "immediate" && (
-            <span className="text-[10px] font-mono text-accent-danger">● негайно</span>
+            <span className="text-[10px] font-mono text-accent-danger">{ukrainianCopy.негайно}</span>
           )}
         </div>
         <div className="flex items-center gap-4">
           {b.metrics && (
             <div className="hidden sm:flex items-center gap-4 text-[11px] font-mono text-(--muted)">
-              <span>WOH <span className="text-(--text)">{formatWohDays(b.metrics.wohDays)}</span></span>
-              <span>STR <span className="text-(--text)">{b.metrics.strPercent}%</span></span>
+              <span>{englishCopy.wOH}<span className="text-(--text)">{formatWohDays(b.metrics.wohDays)}</span></span>
+              <span>{englishCopy.sTR}<span className="text-(--text)">{b.metrics.strPercent}%</span></span>
               <span>
                 {b.metrics.trend7dPct > 0 ? (
                   <TrendingUp size={11} className="inline text-accent-positive" aria-hidden="true" />
@@ -61,9 +63,9 @@ export function BrandCard({ b }: { b: BrandResult }) {
             {b.metrics && (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
                 {[
-                  { label: "Склад", value: b.metrics.totalStock + " шт" },
-                  { label: "Продаж 7д", value: b.metrics.salesLast7d + " шт" },
-                  { label: "Продаж 30д", value: b.metrics.salesLast30d + " шт" },
+                  { label: ukrainianCopy.labelСклад, value: b.metrics.totalStock + ukrainianCopy.valueШт },
+                  { label: ukrainianCopy.labelПродаж7д, value: b.metrics.salesLast7d + ukrainianCopy.valueШт },
+                  { label: ukrainianCopy.labelПродаж30д, value: b.metrics.salesLast30d + ukrainianCopy.valueШт },
                   { label: "GM", value: b.metrics.gmPercent + "%" },
                 ].map((item) => (
                   <div key={item.label} className="bg-(--row) rounded-lg px-3 py-2">
@@ -75,7 +77,7 @@ export function BrandCard({ b }: { b: BrandResult }) {
             )}
             {b.suggested_actions?.length > 0 && (
               <div className="flex items-center gap-2 flex-wrap mt-1">
-                <span className="text-[10px] text-(--subtle)">Дії:</span>
+                <span className="text-[10px] text-(--subtle)">{ukrainianCopy.дії}</span>
                 {b.suggested_actions.map((a) => (
                   <Badge key={a}>{a}</Badge>
                 ))}

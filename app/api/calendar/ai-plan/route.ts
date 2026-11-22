@@ -5,6 +5,7 @@ import { LEGACY_CLASSIFICATION_FILTER, classify, getThresholds, snapshotStock, c
 import type { SkuFlag } from "@/lib/analyst-types";
 import { requireApiUser } from "@/lib/server-auth";
 import { parseAgentJson } from "@/lib/agent-output";
+import { apiCalendarAiPlanRouteMessages as englishCopy } from "@/messages/en.json";
 
 export const runtime = "nodejs";
 export const maxDuration = 180;
@@ -206,12 +207,12 @@ ${holidaysByWeek.map((w) => {
 
     const { data: chips, error: parseError } = parseAgentJson<AiPlanChip[]>(raw, "array");
     if (!chips) {
-      return NextResponse.json({ chips: [], error: parseError ?? "No JSON in response", code: "AI_INVALID_RESPONSE" });
+      return NextResponse.json({ chips: [], error: parseError ?? englishCopy.errorNoJSONInResponse, code: "AI_INVALID_RESPONSE" });
     }
 
     return NextResponse.json({ chips });
   } catch (err) {
     console.error("[ai-plan]", err);
-    return NextResponse.json({ chips: [], error: "AI request failed", code: "INTERNAL_SERVER_ERROR" }, { status: 500 });
+    return NextResponse.json({ chips: [], error: englishCopy.errorAIRequestFailed, code: "INTERNAL_SERVER_ERROR" }, { status: 500 });
   }
 }

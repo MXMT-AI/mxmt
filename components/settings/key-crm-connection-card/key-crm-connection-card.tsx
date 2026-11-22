@@ -13,6 +13,8 @@ import { ChannelMappingFields } from "../channel-mapping-fields/channel-mapping-
 import StatusMappingFields from "../status-mapping-fields/status-mapping-fields";
 import ConnectorDiagnostics from "../connector-diagnostics/connector-diagnostics";
 import type { PublicConnection } from "@/lib/connectors/contract";
+import { settingsKeyCrmConnectionCardMessages as englishCopy } from "@/messages/en.json";
+import { settingsKeyCrmConnectionCardMessages as ukrainianCopy } from "@/messages/uk.json";
 export default function KeyCrmConnectionCard({
   initial,
   lang,
@@ -63,8 +65,8 @@ export default function KeyCrmConnectionCard({
     ) {
       setError(
         copy(
-          "Коди статусів і каналів мають бути унікальними.",
-          "Status/channel codes must be unique.",
+          ukrainianCopy.statusChannelCodesMustBeUnique,
+          englishCopy.statusChannelCodesMustBeUnique,
         ),
       );
       return;
@@ -111,31 +113,29 @@ export default function KeyCrmConnectionCard({
       aria-labelledby="keycrm-heading"
     >
       <div>
-        <Heading as="h2" variant="compact" id="keycrm-heading" className="text-base">
-          KeyCRM
-        </Heading>
+        <Heading as="h2" variant="compact" id="keycrm-heading" className="text-base">{englishCopy.keyCRM}</Heading>
         <Text variant="body" className="mt-1 max-w-3xl leading-normal text-(--muted)">
           {copy(
-            "Лише читання з фіксованого API KeyCRM. Ключ зберігається зашифрованим і не повертається у відповідях.",
-            "Read-only requests to the fixed KeyCRM API. The key is encrypted and never returned in responses.",
+            ukrainianCopy.readOnlyRequestsToTheFixed,
+            englishCopy.readOnlyRequestsToTheFixed,
           )}
         </Text>
       </div>
       <div className={panel + " space-y-4 p-4 sm:p-5"}>
         <Text variant="body" className="leading-normal text-(--muted)">
           {connection.configured
-            ? copy("Підключено: ", "Configured: ") + connection.accountHost
-            : copy("Не налаштовано", "Not configured")}
+            ? copy(ukrainianCopy.configured, englishCopy.configured) + connection.accountHost
+            : copy(ukrainianCopy.notConfigured, englishCopy.notConfigured)}
           .{" "}
           {copy(
-            "20 запитів/хв на ключ. Приходи й повернення не підтверджені; автоматична синхронізація вимкнена.",
-            "20 requests/minute/key. Supplier receipts and refunds remain unverified; automatic sync is disabled.",
+            ukrainianCopy["20RequestsMinuteKeySupplierReceiptsAnd"],
+            englishCopy["20RequestsMinuteKeySupplierReceiptsAnd"],
           )}
         </Text>
         <Note className="leading-normal">
           {copy(
-            "Успішне читання не доводить, що ключ не має прав запису. Перевірте права виданого ключа в KeyCRM. Власність брендів, комісії й умови постачальників задаються окремо в Settings.",
-            "Successful reads do not prove the key has no write permissions. Verify issued-key permissions in KeyCRM. Configure brand ownership, commissions and supplier terms separately in Settings.",
+            ukrainianCopy.successfulReadsDoNotProve,
+            englishCopy.successfulReadsDoNotProve,
           )}
         </Note>
         {canManage && (
@@ -154,13 +154,13 @@ export default function KeyCrmConnectionCard({
           >
             <fieldset disabled={busy} className="space-y-4">
               <legend className="sr-only">
-                {copy("Налаштування KeyCRM", "KeyCRM settings")}
+                {copy(ukrainianCopy.keyCRMSettings, englishCopy.keyCRMSettings)}
               </legend>
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field
                   label={copy(
-                    "Логічний ID акаунту (не ключ)",
-                    "Logical account ID (not the key)",
+                    ukrainianCopy.logicalAccountIDNotThe,
+                    englishCopy.logicalAccountIDNotThe,
                   )}
                 >
                   <input
@@ -173,7 +173,7 @@ export default function KeyCrmConnectionCard({
                     spellCheck={false}
                   />
                 </Field>
-                <Field label={copy("API-ключ", "API key")}>
+                <Field label={copy(ukrainianCopy.aPIKey, englishCopy.aPIKey)}>
                   <input
                     name="apiKey"
                     type="password"
@@ -186,7 +186,7 @@ export default function KeyCrmConnectionCard({
                   />
                 </Field>
                 <Field
-                  label={copy("Часовий пояс звітів", "Reporting timezone")}
+                  label={copy(ukrainianCopy.reportingTimezone, englishCopy.reportingTimezone)}
                 >
                   <input
                     name="timezone"
@@ -196,7 +196,7 @@ export default function KeyCrmConnectionCard({
                     maxLength={100}
                   />
                 </Field>
-                <Field label={copy("Версія мапінгу", "Mapping revision")}>
+                <Field label={copy(ukrainianCopy.mappingRevision, englishCopy.mappingRevision)}>
                   <input
                     name="mappingRevision"
                     type="number"
@@ -210,8 +210,8 @@ export default function KeyCrmConnectionCard({
               </div>
               <Note className="leading-normal">
                 {copy(
-                  "Використовуйте стабільний ID і часовий пояс для цього акаунту. Для зміни мапінгу підвищуйте версію; після оновлення повторно введіть ключ. Перше збереження може бути без підтвердженої фінансової моделі.",
-                  "Keep account ID and timezone stable. Increase the revision when changing mappings and re-enter the key on updates. The first save can omit verified financial mappings.",
+                  ukrainianCopy.keepAccountIDAndTimezone,
+                  englishCopy.keepAccountIDAndTimezone,
                 )}
               </Note>
               <StatusMappingFields rows={statuses} lang={lang} onChange={rows=>{mutate();setStatuses(rows);}} />
@@ -225,11 +225,11 @@ export default function KeyCrmConnectionCard({
                 }}
               />
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label={copy("Підтверджена валюта", "Verified currency")}>
+                <Field label={copy(ukrainianCopy.verifiedCurrency, englishCopy.verifiedCurrency)}>
                   <input
                     name="currency"
                     className={control}
-                    placeholder="UAH"
+                    placeholder={englishCopy.placeholderUAH}
                     pattern="[A-Z]{3}"
                     maxLength={3}
                     required={approved}
@@ -237,8 +237,8 @@ export default function KeyCrmConnectionCard({
                 </Field>
                 <Field
                   label={copy(
-                    "Посилання на погоджений мапінг",
-                    "Approved mapping reference",
+                    ukrainianCopy.approvedMappingReference,
+                    englishCopy.approvedMappingReference,
                   )}
                 >
                   <input
@@ -254,32 +254,32 @@ export default function KeyCrmConnectionCard({
                   net,
                   setNet,
                   copy(
-                    "price_sold — чиста ціна за одиницю; загальні знижки вже враховані.",
-                    "price_sold is the net unit price, including all applicable discounts.",
+                    ukrainianCopy.priceSoldIsTheNetUnit,
+                    englishCopy.priceSoldIsTheNetUnit,
                   ),
                 ],
                 [
                   cost,
                   setCost,
                   copy(
-                    "purchased_price — підтверджена собівартість за одиницю.",
-                    "purchased_price is verified unit cost.",
+                    ukrainianCopy.purchasedPriceIsVerifiedUnitCost,
+                    englishCopy.purchasedPriceIsVerifiedUnitCost,
                   ),
                 ],
                 [
                   paid,
                   setPaid,
                   copy(
-                    "Дата повної оплати — останній payment_date проведених платежів, сума яких покриває grand_total. Часткова оплата не означає продаж.",
-                    "Full payment date is the latest payment_date of paid payments covering grand_total. Partial payment does not establish a sale.",
+                    ukrainianCopy.fullPaymentDateIsThe,
+                    englishCopy.fullPaymentDateIsThe,
                   ),
                 ],
                 [
                   stock,
                   setStock,
                   copy(
-                    "quantity — фізичний залишок, включно з резервом. Резерв не віднімаємо.",
-                    "quantity is physical stock including reserved units. Reserved stock is not subtracted.",
+                    ukrainianCopy.quantityIsPhysicalStockIncluding,
+                    englishCopy.quantityIsPhysicalStockIncluding,
                   ),
                 ],
               ].map(([checked, setter, label], i) => (
@@ -299,8 +299,8 @@ export default function KeyCrmConnectionCard({
               ))}
               <Field
                 label={copy(
-                  "ID включених складів через кому; порожньо — агрегат усіх складів",
-                  "Included warehouse IDs, comma-separated; empty means all-warehouse aggregate",
+                  ukrainianCopy.includedWarehouseIDsCommaSeparatedEmpty,
+                  englishCopy.includedWarehouseIDsCommaSeparatedEmpty,
                 )}
               >
                 <input
@@ -313,34 +313,34 @@ export default function KeyCrmConnectionCard({
               <details className="space-y-3 text-sm text-(--muted)">
                 <summary className="cursor-pointer">
                   {copy(
-                    "Підтверджений доступний період історії (необов’язково)",
-                    "Verified accessible history interval (optional)",
+                    ukrainianCopy.verifiedAccessibleHistoryIntervalOptional,
+                    englishCopy.verifiedAccessibleHistoryIntervalOptional,
                   )}
                 </summary>
                 <Text variant="body" className="leading-normal text-(--muted)">
                   {copy(
-                    "Порожня відповідь не доводить повноту історії. Вкажіть лише звірений період і посилання на погоджені дані.",
-                    "An empty response does not prove complete history. Enter only a reconciled interval and its approved evidence reference.",
+                    ukrainianCopy.anEmptyResponseDoesNot,
+                    englishCopy.anEmptyResponseDoesNot,
                   )}
                 </Text>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <Field label={copy("Від (ISO UTC)", "From (ISO UTC)")}>
+                  <Field label={copy(ukrainianCopy.fromISOUTC, englishCopy.fromISOUTC)}>
                     <input
                       className={control}
                       name="historyFrom"
-                      placeholder="2025-01-01T00:00:00.000Z"
+                      placeholder={englishCopy.placeholder20250101T000000000Z}
                     />
                   </Field>
-                  <Field label={copy("До (ISO UTC)", "To (ISO UTC)")}>
+                  <Field label={copy(ukrainianCopy.toISOUTC, englishCopy.toISOUTC)}>
                     <input
                       className={control}
                       name="historyTo"
-                      placeholder="2026-10-25T23:59:59.999Z"
+                      placeholder={englishCopy.placeholder20261025T235959999Z}
                     />
                   </Field>
                 </div>
                 <Field
-                  label={copy("Еталон історії", "History evidence reference")}
+                  label={copy(ukrainianCopy.historyEvidenceReference, englishCopy.historyEvidenceReference)}
                 >
                   <input
                     className={control}
@@ -357,15 +357,15 @@ export default function KeyCrmConnectionCard({
                   onChange={(e) => setApproved(e.target.checked)}
                 />
                 {copy(
-                  "Погоджую зазначені правила за вказаним еталоном. Непідтверджені значення залишаються невідомими.",
-                  "I approve the selected rules against the referenced evidence. Unverified values remain unknown.",
+                  ukrainianCopy.iApproveTheSelectedRules,
+                  englishCopy.iApproveTheSelectedRules,
                 )}
               </label>
               <div className="flex flex-wrap gap-3">
                 <Button variant="report" type="submit" className="text-(--text) hover:bg-(--input-hover)" disabled={busy}>
                   {busy
-                    ? copy("Обробка…", "Processing…")
-                    : copy("Зберегти KeyCRM", "Save KeyCRM")}
+                    ? copy(ukrainianCopy.processing, englishCopy.processing)
+                    : copy(ukrainianCopy.saveKeyCRM, englishCopy.saveKeyCRM)}
                 </Button>
                 <Button
                   variant="report"
@@ -374,7 +374,7 @@ export default function KeyCrmConnectionCard({
                   disabled={busy || dirty || !connection.configured}
                   onClick={() => void perform("check")}
                 >
-                  {copy("Перевірити доступи", "Check read scopes")}
+                  {copy(ukrainianCopy.checkReadScopes, englishCopy.checkReadScopes)}
                 </Button>
               </div>
             </fieldset>

@@ -9,6 +9,8 @@ import { driveAccessModes } from "./drive-access-modes";
 import { driveSyncStatus } from "./drive-sync-status";
 import { DriveSyncResult } from "../drive-sync-result/drive-sync-result";
 import { useDriveSync } from "./use-drive-sync";
+import { settingsDriveSyncCardMessages as englishCopy } from "@/messages/en.json";
+import { settingsDriveSyncCardMessages as ukrainianCopy } from "@/messages/uk.json";
 
 interface DriveSync {
   syncStatus: string;
@@ -62,11 +64,11 @@ export default function DriveSyncCard({
       {driveMode === "none" && (
         <div className={panel + " p-4"}>
           <p className="text-sm font-medium text-(--muted) mb-3">
-            {uk ? "Не налаштовано" : "Not configured"}
+            {uk ? ukrainianCopy.notConfigured : englishCopy.notConfigured}
           </p>
           <p className="text-xs text-(--muted)">{uk
-            ? "Спочатку збережіть посилання в картці «Google Sheets цього кабінету». Для приватної таблиці надайте сервісному акаунту платформи доступ на читання."
-            : "Save the URL in ‘This cabinet’s Google Sheets’ first. For a private spreadsheet, grant the platform service account read access."}</p>
+            ? ukrainianCopy.saveTheURLInThis
+            : englishCopy.saveTheURLInThis}</p>
         </div>
       )}
 
@@ -80,7 +82,7 @@ export default function DriveSyncCard({
               </div>
               {lastSync?.lastSyncAt && (
                 <p className="text-xs text-(--muted)">
-                  {uk ? "Останній синк:" : "Last sync:"}{" "}
+                  {uk ? ukrainianCopy.lastSync : englishCopy.lastSync}{" "}
                   {new Date(lastSync.lastSyncAt).toLocaleString(uk ? "uk-UA" : "en-GB")}
                 </p>
               )}
@@ -97,7 +99,7 @@ export default function DriveSyncCard({
               className="min-h-0 shrink-0 gap-2 bg-(--input-bg) text-(--text) hover:bg-(--input-hover)"
             >
               <RefreshCw size={13} className={syncing ? "animate-spin" : ""} />
-              {syncing ? (uk ? "Синкаємо…" : "Syncing…") : (uk ? "Синхронізувати" : "Sync now")}
+              {syncing ? (uk ? ukrainianCopy.syncing : englishCopy.syncing) : (uk ? ukrainianCopy.syncNow : englishCopy.syncNow)}
             </Button>
           </div>
         </div>

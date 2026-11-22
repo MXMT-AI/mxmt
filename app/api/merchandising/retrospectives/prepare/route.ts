@@ -5,6 +5,7 @@ import {prepareScenarioRetrospective} from "@/lib/scenario-retrospective-store";
 import {RetrospectiveError} from "@/lib/scenario-retrospective";
 import {AiExecutionError} from "@/lib/ai-execution/contracts";
 import {logError} from "@/lib/observability";
+import { apiMerchandisingRetrospectivesPrepareRouteMessages as englishCopy } from "@/messages/en.json";
 export const runtime="nodejs";export const dynamic="force-dynamic";
 export async function POST(request:NextRequest){
  const {user,response}=await requireApiUser("ANALYST");if(response)return response;
@@ -13,7 +14,7 @@ export async function POST(request:NextRequest){
   if(request.nextUrl.search)throw new RetrospectiveError("INVALID_RETROSPECTIVE_REQUEST");
   return NextResponse.json(await prepareScenarioRetrospective({tenantId:user.tenantId,userId:user.userId},data),{headers:{"Cache-Control":"private, no-store"}});
  }catch(error){
-  if(error instanceof RetrospectiveError||error instanceof AiExecutionError)return apiError("Could not prepare retrospective. Check the original export and evaluation period.",error.status,error.code);
-  logError("Retrospective preparation failed",error);return apiError("Could not prepare retrospective.",503,"RETROSPECTIVE_UNAVAILABLE");
+  if(error instanceof RetrospectiveError||error instanceof AiExecutionError)return apiError(englishCopy.couldNotPrepareRetrospectiveCheck,error.status,error.code);
+  logError("Retrospective preparation failed",error);return apiError(englishCopy.couldNotPrepareRetrospective,503,"RETROSPECTIVE_UNAVAILABLE");
  }
 }

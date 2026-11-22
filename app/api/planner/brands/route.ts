@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireApiUser } from "@/lib/server-auth";
 import { apiError, isRecord, numberField, parseJsonBody, stringField, validationError } from "@/lib/api-contracts";
+import { apiPlannerBrandsRouteMessages as englishCopy } from "@/messages/en.json";
 
 export async function GET() {
   const { user, response } = await requireApiUser();
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
   if (parseResponse) return parseResponse;
 
   if (!isRecord(data)) {
-    return validationError(["body must be an object"]);
+    return validationError([englishCopy.bodyMustBeAnObject]);
   }
 
   const issues: string[] = [];
@@ -53,7 +54,7 @@ export async function POST(request: NextRequest) {
   });
 
   if (existing) {
-    return apiError("Brand already exists", 409, "BRAND_ALREADY_EXISTS");
+    return apiError(englishCopy.brandAlreadyExists, 409, "BRAND_ALREADY_EXISTS");
   }
 
   try {
@@ -75,7 +76,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(brand, { status: 201 });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-      return apiError("Brand already exists", 409, "BRAND_ALREADY_EXISTS");
+      return apiError(englishCopy.brandAlreadyExists, 409, "BRAND_ALREADY_EXISTS");
     }
 
     throw error;

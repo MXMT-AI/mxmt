@@ -6,6 +6,7 @@ import { apiError, serverError } from "@/lib/api-contracts";
 import { parseAgentJson } from "@/lib/agent-output";
 import { startAgentRun } from "@/lib/agent-runs";
 import { getCurrentDependencyRun, resolveAgentRunContext } from "@/lib/agent-dependencies";
+import { apiAgentsWeeklyReportRouteMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export const runtime = "nodejs";
 export const maxDuration = 180;
@@ -82,7 +83,7 @@ export async function POST(req: NextRequest) {
     .filter(({ state }) => !state.ready);
   if (missingDependencies.length > 0) {
     return apiError(
-      "Тижневий звіт доступний після завершення попередніх агентів для поточного імпорту та періоду.",
+      ukrainianCopy.dependenciesRequired,
       409,
       "AGENT_DEPENDENCY_NOT_READY",
       missingDependencies.map(({ agentType, state }) => `${agentType}: ${state.reason}`)
@@ -189,15 +190,15 @@ export async function POST(req: NextRequest) {
       const output = {
         report_date: now.toISOString().slice(0, 10),
         week: `${year}-W${currentWeek.toString().padStart(2, "0")}`,
-        pm_brief: "Данных пока нет. Запустите агентов Блоков 1-3 для получения полного отчёта.",
-        marketing_brief: "Запустите Inventory Analyst, Channel Analytics и Commercial Marketer для создания маркетингового брифа.",
+        pm_brief: ukrainianCopy.emptyPmBrief,
+        marketing_brief: ukrainianCopy.emptyMarketingBrief,
         top_priorities: [],
         inventory_health: { critical_brands: 0, warning_brands: 0, ok_brands: 0, total_brands: 0 },
-        decisions_needed: ["Запустить агентов Блока 1 для получения базовых данных"],
+        decisions_needed: [ukrainianCopy.emptyDecisions],
         wins: [],
-        next_week_focus: "Настроить пайплайн AI-агентов",
-        summary: "Данных для отчёта недостаточно.",
-        message: "Запустите агентов Блоков 1-3 для генерации отчёта.",
+        next_week_focus: ukrainianCopy.emptyNextWeek,
+        summary: ukrainianCopy.emptySummary,
+        message: ukrainianCopy.messageЗапуститеАгентовБлоков13Для,
       };
       await prisma.agentRun.update({ where: { id: run.id }, data: { status: "done", output, finishedAt: new Date() } });
       return NextResponse.json({ runId: run.id, ...output });
@@ -221,14 +222,14 @@ ${sections.join("\n\n")}
     const output = parsed ?? {
       report_date: now.toISOString().slice(0, 10),
       week: `${year}-W${currentWeek.toString().padStart(2, "0")}`,
-      pm_brief: "Отчёт временно недоступен.",
-      marketing_brief: "Отчёт временно недоступен.",
+      pm_brief: ukrainianCopy.reportUnavailable,
+      marketing_brief: ukrainianCopy.reportUnavailable,
       top_priorities: [],
       inventory_health: { critical_brands: 0, warning_brands: 0, ok_brands: 0, total_brands: 0 },
       decisions_needed: [],
       wins: [],
       next_week_focus: "—",
-      summary: "Отчёт временно недоступен.",
+      summary: ukrainianCopy.reportUnavailable,
     };
 
     output.agentsIncluded = agentTypes.filter((t) => runMap[t] != null).length;

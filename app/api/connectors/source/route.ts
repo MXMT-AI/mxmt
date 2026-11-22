@@ -7,6 +7,7 @@ import {
   selectConnectorSource,
   ConnectorSourceError,
 } from "@/lib/connectors/source";
+import { apiConnectorsSourceRouteMessages as englishCopy } from "@/messages/en.json";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 async function handle(request: NextRequest, write: boolean) {
@@ -33,7 +34,7 @@ async function handle(request: NextRequest, write: boolean) {
       )
         return respond(
           apiError(
-            "Choose a saved source and its current revision",
+            englishCopy.chooseASavedSourceAnd,
             400,
             "INVALID_SOURCE_SELECTION",
             undefined,
@@ -55,8 +56,8 @@ async function handle(request: NextRequest, write: boolean) {
     return respond(
       apiError(
         known
-          ? "Source selection could not be applied; refresh settings and check connection access"
-          : "Sources are unavailable; retry",
+          ? englishCopy.sourceSelectionCouldNotBe
+          : englishCopy.sourcesAreUnavailableRetry,
         known ? error.status : 503,
         known ? error.code : "CONNECTOR_SOURCES_UNAVAILABLE",
         undefined,

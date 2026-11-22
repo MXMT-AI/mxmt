@@ -3,6 +3,7 @@ import { BusinessModel, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireApiUser } from "@/lib/server-auth";
 import { isRecord, parseJsonBody, stringField, validationError } from "@/lib/api-contracts";
+import { apiOnboardingRouteMessages as englishCopy } from "@/messages/en.json";
 
 const BUSINESS_MODELS = new Set<BusinessModel>(["SEASONAL", "CARRYOVER", "HYBRID"]);
 
@@ -25,17 +26,17 @@ export async function POST(request: NextRequest) {
 
   const issues: string[] = [];
   if (!isRecord(data)) {
-    return validationError(["body must be an object"]);
+    return validationError([englishCopy.bodyMustBeAnObject]);
   }
 
   const businessModel = stringField(data, "businessModel", issues, { required: true });
   if (businessModel && !BUSINESS_MODELS.has(businessModel as BusinessModel)) {
-    issues.push("businessModel must be one of SEASONAL, CARRYOVER, HYBRID");
+    issues.push(englishCopy.businessModelMustBeOneOfSEASONAL);
   }
 
   const answers = data.answers;
   if (!isRecord(answers)) {
-    issues.push("answers must be an object");
+    issues.push(englishCopy.answersMustBeAnObject);
   }
 
   if (issues.length > 0) {

@@ -4,6 +4,8 @@ import { qualityLabel } from "@/lib/data-quality-copy";
 import type { Lang } from "@/lib/translations";
 import type { Quality } from "../data-quality-card/data-quality-types";
 import { productKindLabel, qualityAmountLabel } from "../data-quality-card/data-quality-labels";
+import { settingsDataQualityMovementsMessages as englishCopy } from "@/messages/en.json";
+import { settingsDataQualityMovementsMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export function DataQualityMovements({ components, orderExceptions, replayRequired, lang }: {
   components: Quality["components"];
@@ -19,18 +21,18 @@ export function DataQualityMovements({ components, orderExceptions, replayRequir
   return (
     <>
       <Heading as="h3" variant="compact" className="mt-6 text-base font-medium">
-        {uk ? "Рухи за типом" : "Movement components"}
+        {uk ? ukrainianCopy.movementComponents : englishCopy.movementComponents}
       </Heading>
       <Text variant="body" className="mt-1 leading-normal text-(--muted)">
         {uk
-          ? "Усі збережені поточні рядки замовлень. Це перевірка нормалізації, а не фінансовий звіт за період. Суми без підтвердженої дати не включено."
-          : "All retained current order lines. This checks normalization, not a period financial report. Amounts without a verified date are excluded."}
+          ? ukrainianCopy.allRetainedCurrentOrderLines
+          : englishCopy.allRetainedCurrentOrderLines}
       </Text>
       {replayRequired > 0 && (
         <p className="mt-2 text-sm text-(--text)">
           {uk
-            ? "Повторіть історичний імпорт для застосування нових правил до старих рядків:"
-            : "Replay history to apply the new rules to older lines:"}{" "}
+            ? ukrainianCopy.replayHistoryToApplyThe
+            : englishCopy.replayHistoryToApplyThe}{" "}
           {replayRequired.toLocaleString(locale)}
         </p>
       )}
@@ -41,19 +43,19 @@ export function DataQualityMovements({ components, orderExceptions, replayRequir
         >
           {c.component === "RETURNS_CORRECTIONS"
             ? uk
-              ? "Повернення та коригування"
-              : "Returns and corrections"
+              ? ukrainianCopy.returnsAndCorrections
+              : englishCopy.returnsAndCorrections
             : kindLabel(c.component)}
           : {value(c.revenue, c.currency)} ·{" "}
-          {c.lineCount.toLocaleString(locale)} {uk ? "рядків" : "lines"};{" "}
-          {uk ? "неповні суми" : "missing amounts"}:{" "}
+          {c.lineCount.toLocaleString(locale)} {uk ? ukrainianCopy.lines : englishCopy.lines};{" "}
+          {uk ? ukrainianCopy.missingAmounts : englishCopy.missingAmounts}:{" "}
           {c.missingAmountCount.toLocaleString(locale)}
         </p>
       ))}
       {Boolean(orderExceptions?.length) && (
         <details className="mt-4 text-sm text-(--text)">
           <summary className="cursor-pointer focus-visible:outline-solid">
-            {uk ? "Рядки замовлень для перевірки" : "Order lines to review"}
+            {uk ? ukrainianCopy.orderLinesToReview : englishCopy.orderLinesToReview}
           </summary>
           <ul className="mt-2 list-disc space-y-1 pl-5">
             {orderExceptions?.map((row, i) => (
@@ -61,8 +63,8 @@ export function DataQualityMovements({ components, orderExceptions, replayRequir
                 key={`${row.orderId}:${row.lineId}:${row.code}:${i}`}
                 className="wrap-break-word"
               >
-                {row.sourceSku ?? (uk ? "SKU невідомий" : "Unknown SKU")}:{" "}
-                {label(row.code)} · {uk ? "замовлення" : "order"}{" "}
+                {row.sourceSku ?? (uk ? ukrainianCopy.unknownSKU : englishCopy.unknownSKU)}:{" "}
+                {label(row.code)} · {uk ? ukrainianCopy.order : englishCopy.order}{" "}
                 {row.orderId}
               </li>
             ))}

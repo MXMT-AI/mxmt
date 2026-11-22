@@ -4,9 +4,10 @@ import { ProblemScreen } from "@/components/problem-screen/problem-screen";
 import { ThemeProvider } from "@/components/theme-provider/theme-provider";
 import { isLocale, routing } from "@/i18n/routing";
 import "./globals.css";
+import { globalNotFoundMessages as englishCopy } from "@/messages/en.json";
 
 export const metadata: Metadata = {
-  title: "404 | MXMT Analytics",
+  title: englishCopy.title404MXMTAnalytics,
   robots: { index: false },
 };
 

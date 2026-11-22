@@ -1,8 +1,10 @@
 import type { CalendarSchedule, Chip, Week } from "./calendar-types";
 import type { Locale } from "@/i18n/routing";
+import { calendarMarketingCalendarCalendarWeeksMessages as englishCopy } from "@/messages/en.json";
+import { calendarMarketingCalendarCalendarWeeksMessages as ukrainianCopy } from "@/messages/uk.json";
 
 const months = {
-  uk: ["Січ","Лют","Бер","Кві","Тра","Чер","Лип","Сер","Вер","Жов","Лис","Гру"],
+  uk: [ukrainianCopy.ukСіч,ukrainianCopy.ukЛют,ukrainianCopy.ukБер,ukrainianCopy.ukКві,ukrainianCopy.ukТра,ukrainianCopy.ukЧер,ukrainianCopy.ukЛип,ukrainianCopy.ukСер,ukrainianCopy.ukВер,ukrainianCopy.ukЖов,ukrainianCopy.ukЛис,ukrainianCopy.ukГру],
   en: ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
 };
 
@@ -30,7 +32,7 @@ function generateWeeks(count: number, today: Date, locale: Locale): Week[] {
     const fmt = (d: Date) => `${d.getDate()}.${String(d.getMonth() + 1).padStart(2, "0")}`;
     weeks.push({
       k: `w${isoWeek}`,
-      l: `${locale === "uk" ? "Тижд" : "Week"} ${isoWeek}`,
+      l: `${locale === "uk" ? ukrainianCopy.lWeek : englishCopy.lWeek} ${isoWeek}`,
       d: `${fmt(start)}–${fmt(end)}`,
       m: months[locale][start.getMonth()],
     });
@@ -39,19 +41,19 @@ function generateWeeks(count: number, today: Date, locale: Locale): Week[] {
 }
 
 const UA_HOLIDAYS_LIST = [
-  { month: 2,  day: 14, label: "14.02 День Валентина 💌" },
-  { month: 3,  day: 8,  label: "08.03 Жіночий день 🌸" },
-  { month: 5,  day: 1,  label: "01.05 День праці" },
-  { month: 5,  day: 9,  label: "09.05 День пам'яті" },
-  { month: 5,  day: 15, label: "15.05 День вишиванки 🇺🇦" },
-  { month: 6,  day: 1,  label: "01.06 День дітей 🎈" },
-  { month: 6,  day: 28, label: "28.06 День Конституції" },
-  { month: 7,  day: 28, label: "28.07 День Державності 🇺🇦" },
-  { month: 8,  day: 24, label: "24.08 День Незалежності 🇺🇦" },
-  { month: 9,  day: 1,  label: "01.09 День знань 📚" },
-  { month: 10, day: 14, label: "14.10 День захисника ⚔️" },
-  { month: 12, day: 19, label: "19.12 Миколай 🎅" },
-  { month: 12, day: 25, label: "25.12 Різдво 🎄" },
+  { month: 2,  day: 14, label: ukrainianCopy.label1402ДеньВалентина },
+  { month: 3,  day: 8,  label: ukrainianCopy.label0803ЖіночийДень },
+  { month: 5,  day: 1,  label: ukrainianCopy.label0105ДеньПраці },
+  { month: 5,  day: 9,  label: ukrainianCopy.label0905ДеньПамЯті },
+  { month: 5,  day: 15, label: ukrainianCopy.label1505ДеньВишиванки },
+  { month: 6,  day: 1,  label: ukrainianCopy.label0106ДеньДітей },
+  { month: 6,  day: 28, label: ukrainianCopy.label2806ДеньКонституції },
+  { month: 7,  day: 28, label: ukrainianCopy.label2807ДеньДержавності },
+  { month: 8,  day: 24, label: ukrainianCopy.label2408ДеньНезалежності },
+  { month: 9,  day: 1,  label: ukrainianCopy.label0109ДеньЗнань },
+  { month: 10, day: 14, label: ukrainianCopy.label1410ДеньЗахисника },
+  { month: 12, day: 19, label: ukrainianCopy.label1912Миколай },
+  { month: 12, day: 25, label: ukrainianCopy.label2512Різдво },
 ];
 
 function buildHolidayChips(weeks: Week[], year: number): Record<string, Chip[]> {

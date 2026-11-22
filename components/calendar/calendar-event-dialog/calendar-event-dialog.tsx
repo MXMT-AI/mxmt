@@ -8,6 +8,8 @@ import type { Locale } from "@/i18n/routing";
 import { calendarChipTypes, calendarEventTypes } from "../marketing-calendar/calendar-chip-types";
 import { calendarRows } from "../marketing-calendar/calendar-rows";
 import type { EventDialogState, EventDraft, Week } from "../marketing-calendar/calendar-types";
+import { calendarCalendarEventDialogMessages as englishCopy } from "@/messages/en.json";
+import { calendarCalendarEventDialogMessages as ukrainianCopy } from "@/messages/uk.json";
 
 const controlClassName = cn(controlBase, "w-full bg-(--surface2) py-2 text-sm focus:border-accent-cyan/40");
 const labelClassName = "font-mono text-[10px] tracking-widest uppercase";
@@ -71,41 +73,41 @@ export function CalendarEventDialog({ event, weeks, locale, onSave, onClose }: {
 
   return (
     <Dialog
-      title={adding ? (uk ? "Додати подію" : "Add event") : (uk ? "Редагувати подію" : "Edit event")}
-      closeLabel={uk ? "Закрити" : "Close"}
+      title={adding ? (uk ? ukrainianCopy.titleAddEvent : englishCopy.titleAddEvent) : (uk ? ukrainianCopy.titleEditEvent : englishCopy.titleEditEvent)}
+      closeLabel={uk ? ukrainianCopy.closeLabelClose : englishCopy.closeLabelClose}
       closeDisabled={saving}
       onClose={onClose}
       className="max-w-xs"
     >
       <form className="space-y-4 p-5" onSubmit={submit}>
         <fieldset disabled={saving} className="space-y-3">
-          <EventSelect label={uk ? "Тип" : "Type"} value={draft.type} options={typeOptions} onChange={(type) => setDraft({ ...draft, type })} />
+          <EventSelect label={uk ? ukrainianCopy.labelType : englishCopy.labelType} value={draft.type} options={typeOptions} onChange={(type) => setDraft({ ...draft, type })} />
           {adding && (
             <>
-              <EventSelect label={uk ? "Канал" : "Channel"} value={draft.rowKey} options={rowOptions} onChange={(rowKey) => setDraft({ ...draft, rowKey })} />
-              <EventSelect label={uk ? "Тиждень" : "Week"} value={draft.weekKey} options={weekOptions} onChange={(weekKey) => setDraft({ ...draft, weekKey })} />
+              <EventSelect label={uk ? ukrainianCopy.labelChannel : englishCopy.labelChannel} value={draft.rowKey} options={rowOptions} onChange={(rowKey) => setDraft({ ...draft, rowKey })} />
+              <EventSelect label={uk ? ukrainianCopy.labelWeek : englishCopy.labelWeek} value={draft.weekKey} options={weekOptions} onChange={(weekKey) => setDraft({ ...draft, weekKey })} />
             </>
           )}
-          <Field label={uk ? "Назва" : "Name"} className={labelClassName}>
+          <Field label={uk ? ukrainianCopy.labelName : englishCopy.labelName} className={labelClassName}>
             <input
               type="text"
               value={draft.label}
               onChange={(inputEvent) => setDraft({ ...draft, label: inputEvent.target.value })}
               className={controlClassName}
-              placeholder={adding ? (uk ? "напр. -20% на годинники KOMONO" : "e.g. -20% on KOMONO watches") : undefined}
+              placeholder={adding ? (uk ? ukrainianCopy.placeholderEG20OnKOMONOWatches : englishCopy.placeholderEG20OnKOMONOWatches) : undefined}
               required
             />
           </Field>
         </fieldset>
 
-        {error && <p role="alert" className="text-sm text-accent-danger">{uk ? "Не вдалося зберегти подію." : "Could not save the event."}</p>}
+        {error && <p role="alert" className="text-sm text-accent-danger">{uk ? ukrainianCopy.couldNotSaveTheEvent : englishCopy.couldNotSaveTheEvent}</p>}
 
         <div className="flex gap-3">
           <Button onClick={onClose} disabled={saving} className="flex-1 justify-center py-2 font-sans text-sm">
-            {uk ? "Скасувати" : "Cancel"}
+            {uk ? ukrainianCopy.cancel : englishCopy.cancel}
           </Button>
           <Button variant="accent" type="submit" disabled={saving || !draft.label.trim()} className="flex-1 py-2">
-            {saving ? "…" : adding ? (uk ? "Додати" : "Add") : (uk ? "Зберегти" : "Save")}
+            {saving ? "…" : adding ? (uk ? ukrainianCopy.add : englishCopy.add) : (uk ? ukrainianCopy.save : englishCopy.save)}
           </Button>
         </div>
       </form>

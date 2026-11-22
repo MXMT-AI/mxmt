@@ -1,13 +1,14 @@
 import type { CSSProperties, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { panel } from "../panel/panel-styles";
+import { uiMetricTileMessages as englishCopy } from "@/messages/en.json";
 
 const panelTile = panel + " p-5";
 
 const styles = {
   centered: {
     tile: panel + " flex flex-col p-3 text-center",
-    label: "order-2 mt-0.5 text-[10px] text-(--muted)",
+    label: englishCopy.labelOrder2Mt05Text10pxTextMuted,
     value: "order-1 font-mono text-lg font-bold",
   },
   planner: {

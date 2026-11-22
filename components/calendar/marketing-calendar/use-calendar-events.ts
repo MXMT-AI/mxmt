@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { apiFetch } from "@/lib/fetch";
 import type { DbEvent, EventDialogState, EventDraft } from "./calendar-types";
+import { calendarMarketingCalendarUseCalendarEventsMessages as englishCopy } from "@/messages/en.json";
 
 export function useCalendarEvents(initialEvents: DbEvent[]) {
   const [dbEvents, setDbEvents] = useState(initialEvents);
@@ -15,7 +16,7 @@ export function useCalendarEvents(initialEvents: DbEvent[]) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(editing ? { type: draft.type, label: draft.label } : draft),
     });
-    if (!response.ok) throw new Error("Calendar event save failed");
+    if (!response.ok) throw new Error(englishCopy.errorCalendarEventSaveFailed);
 
     const saved: DbEvent = await response.json();
     setDbEvents(previous => editing
@@ -27,7 +28,7 @@ export function useCalendarEvents(initialEvents: DbEvent[]) {
     setDeleteError(false);
     try {
       const response = await apiFetch(`/api/calendar/events/${encodeURIComponent(id)}`, { method: "DELETE" });
-      if (!response.ok) throw new Error("Calendar event delete failed");
+      if (!response.ok) throw new Error(englishCopy.errorCalendarEventDeleteFailed);
       setDbEvents(previous => previous.filter(event => event.id !== id));
     } catch {
       setDeleteError(true);

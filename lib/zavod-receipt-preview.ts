@@ -1,8 +1,10 @@
+import { zavodReceiptPreviewMessages as ukrainianCopy } from "@/messages/uk.json";
+
 export const ZAVOD_RECEIPT_COLUMNS = {
-  documentId: "ID документа", date: "Дата", movementType: "Тип",
-  quantity: "Позиція: Кількість", unitPrice: "Позиція: Ціна",
-  productId: "Товар: ID", sku: "Товар: Артикул (SKU)",
-  supplierId: "Контрагент: ID", warehouseId: "ID складу", sourceWarehouseId: "ID складу-джерела",
+  documentId: ukrainianCopy.documentIdIDДокумента, date: ukrainianCopy.dateДата, movementType: ukrainianCopy.movementTypeТип,
+  quantity: ukrainianCopy.quantityПозиціяКількість, unitPrice: ukrainianCopy.unitPriceПозиціяЦіна,
+  productId: ukrainianCopy.productIdТоварID, sku: ukrainianCopy.skuТоварАртикулSKU,
+  supplierId: ukrainianCopy.supplierIdКонтрагентID, warehouseId: ukrainianCopy.warehouseIdIDСкладу, sourceWarehouseId: ukrainianCopy.sourceWarehouseIdIDСкладуДжерела,
 } as const;
 export const RECEIPT_PREVIEW_MAX_ROWS = 100000;
 export const RECEIPT_PREVIEW_MAX_COLUMNS = 256;

@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchDataQuality, type DataQualityQuery } from "@/lib/client/data-quality-request";
 import type { Lang } from "@/lib/translations";
 import type { Quality } from "./data-quality-types";
+import { settingsDataQualityCardUseDataQualityMessages as englishCopy } from "@/messages/en.json";
+import { settingsDataQualityCardUseDataQualityMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export function useDataQuality({ page, search, code, revision, lang, onError }: DataQualityQuery & {
   revision: number;
@@ -31,8 +33,8 @@ export function useDataQuality({ page, search, code, revision, lang, onError }: 
     onError("");
     void load(controller.signal).catch(() => {
       if (!controller.signal.aborted) onError(lang === "uk"
-        ? "Не вдалося завантажити якість даних. Спробуйте ще раз."
-        : "Could not load data quality. Try again.");
+        ? ukrainianCopy.couldNotLoadDataQuality
+        : englishCopy.couldNotLoadDataQuality);
     });
     return () => {
       controller.abort();

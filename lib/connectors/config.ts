@@ -1,4 +1,5 @@
 import { isRecord, stringField } from "@/lib/api-contracts";
+import { connectorsConfigMessages as englishApiMessages } from "@/messages/en.json";
 
 export interface SalesDriveCredentials {
   accountHost: string;
@@ -24,17 +25,17 @@ export function parseSalesDriveCredentials(input: unknown): { credentials: Sales
   const issues: string[] = [];
   if (!isRecord(input)) return { credentials: null, issues: ["body must be an object"] };
   if (Object.keys(input).some((key) => !["accountHost", "ordersApiKey", "receiptsApiKey", "ymlUrl"].includes(key))) {
-    issues.push("Unexpected configuration fields");
+    issues.push(englishApiMessages.unexpectedConfigurationFields);
   }
   const accountHost = stringField(input, "accountHost", issues, { required: true, maxLength: 100 }) ?? "";
   const ordersApiKey = stringField(input, "ordersApiKey", issues, { required: true, maxLength: 512 }) ?? "";
   const receiptsApiKey = stringField(input, "receiptsApiKey", issues, { maxLength: 512 }) || null;
   const ymlUrl = stringField(input, "ymlUrl", issues, { maxLength: 2048 }) || null;
-  if (!salesDriveHost(accountHost)) issues.push("accountHost must be a SalesDrive account hostname");
+  if (!salesDriveHost(accountHost)) issues.push(englishApiMessages.accountHostMustBeASalesDriveAccount);
   for (const key of [ordersApiKey, receiptsApiKey]) {
-    if (key && /[\s\x00-\x1f\x7f]/.test(key)) issues.push("API keys must not contain whitespace or control characters");
-    if (key && /[^\x00-\xff]/.test(key)) issues.push("API keys must contain only HTTP header-compatible characters");
+    if (key && /[\s\x00-\x1f\x7f]/.test(key)) issues.push(englishApiMessages.aPIKeysMustNotContainWhitespace);
+    if (key && /[^\x00-\xff]/.test(key)) issues.push(englishApiMessages.aPIKeysMustContainOnlyHTTP);
   }
-  if (ymlUrl && !salesDriveYmlUrl(ymlUrl, accountHost)) issues.push("ymlUrl must be an HTTPS SalesDrive export link for this account with a publicKey");
+  if (ymlUrl && !salesDriveYmlUrl(ymlUrl, accountHost)) issues.push(englishApiMessages.ymlUrlMustBeAnHTTPSSalesDrive);
   return { credentials: issues.length ? null : { accountHost, ordersApiKey, receiptsApiKey, ymlUrl }, issues };
 }

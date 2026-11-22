@@ -10,6 +10,8 @@ import { control } from "@/components/ui/control-styles/control-styles";
 import type { PublicConnection } from "@/lib/connectors/contract";
 import { useConnectorConnection } from "../use-connector-connection";
 import ConnectorDiagnostics from "../connector-diagnostics/connector-diagnostics";
+import { settingsShopifyConnectionCardMessages as englishCopy } from "@/messages/en.json";
+import { settingsShopifyConnectionCardMessages as ukrainianCopy } from "@/messages/uk.json";
 export default function ShopifyConnectionCard({
   initial,
   lang,
@@ -62,32 +64,30 @@ export default function ShopifyConnectionCard({
       className="mb-10 scroll-mt-6 space-y-4"
     >
       <div>
-        <Heading as="h2" variant="compact" id="shopify-heading" className="text-base">
-          Shopify
-        </Heading>
+        <Heading as="h2" variant="compact" id="shopify-heading" className="text-base">{englishCopy.shopify}</Heading>
         <Text variant="body" className="leading-normal mt-1 text-sm text-(--muted)">
           {copy(
-            "Лише читання через Shopify Admin API 2026-10. Вкладені сторінки зберігаються до завершення запису.",
-            "Read-only Shopify Admin API 2026-10. Nested pages are retained until the record is complete.",
+            ukrainianCopy.readOnlyShopifyAdminAPI202610,
+            englishCopy.readOnlyShopifyAdminAPI202610,
           )}
         </Text>
       </div>
       <div className={panel + " space-y-4 p-4 sm:p-5"}>
         <Text variant="body" className="leading-normal wrap-break-word text-sm text-(--muted)">
           {connection.configured
-            ? copy("Налаштовано: ", "Configured: ") + connection.accountHost
-            : copy("Не налаштовано", "Not configured")}
+            ? copy(ukrainianCopy.configured, englishCopy.configured) + connection.accountHost
+            : copy(ukrainianCopy.notConfigured, englishCopy.notConfigured)}
         </Text>
         <Text variant="body" className="leading-normal text-sm text-(--muted)">
           {copy(
-            "Використовуйте постійний домен myshopify.com і окремий токен із правами read_orders, read_products, read_inventory та read_locations. Вартість товарів потребує дозволу перегляду собівартості. Токен шифрується та не повертається у відповідях.",
-            "Use the permanent myshopify.com domain and a separate token with read_orders, read_products, read_inventory and read_locations. Product costs require cost-view permission. The token is encrypted and never returned in responses.",
+            ukrainianCopy.useThePermanentMyshopifyComDomain,
+            englishCopy.useThePermanentMyshopifyComDomain,
           )}
         </Text>
         <Note className="leading-normal text-(--muted)">
           {copy(
-            "Типовий доступ до замовлень охоплює 60 днів. Для старішої історії потрібні read_all_orders та погоджений еталон; порожня відповідь не підтверджує повноту. Перевірка читання не доводить відсутність прав запису. Приходи й історична собівартість недоступні; автоматична синхронізація вимкнена.",
-            "Default order access covers 60 days. Older history requires read_all_orders and approved evidence; an empty response does not prove coverage. Successful reads do not prove the absence of write permissions. Receipts and historical COGS are unavailable; automatic sync is disabled.",
+            ukrainianCopy.defaultOrderAccessCovers60,
+            englishCopy.defaultOrderAccessCovers60,
           )}
         </Note>
         {canManage ? (
@@ -111,8 +111,8 @@ export default function ShopifyConnectionCard({
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field
                   label={copy(
-                    "Постійний домен Shopify",
-                    "Permanent Shopify domain",
+                    ukrainianCopy.permanentShopifyDomain,
+                    englishCopy.permanentShopifyDomain,
                   )}
                 >
                   <input
@@ -120,22 +120,22 @@ export default function ShopifyConnectionCard({
                     required
                     defaultValue={initial.accountHost ?? ""}
                     pattern="[a-z0-9-]+\.myshopify\.com"
-                    placeholder="store.myshopify.com…"
+                    placeholder={englishCopy.placeholderStoreMyshopifyCom}
                     spellCheck={false}
                     className={control}
                   />
                 </Field>
-                <Field label={copy("ID застосунку Shopify", "Shopify app ID")}>
+                <Field label={copy(ukrainianCopy.shopifyAppID, englishCopy.shopifyAppID)}>
                   <input
                     name="appId"
                     required
-                    placeholder="gid://shopify/App/123…"
+                    placeholder={englishCopy.placeholderGidShopifyApp123}
                     spellCheck={false}
                     className={control}
                   />
                 </Field>
                 <Field
-                  label={copy("Токен Admin API", "Admin API access token")}
+                  label={copy(ukrainianCopy.adminAPIAccessToken, englishCopy.adminAPIAccessToken)}
                 >
                   <input
                     name="accessToken"
@@ -146,7 +146,7 @@ export default function ShopifyConnectionCard({
                     className={control}
                   />
                 </Field>
-                <Field label={copy("Часовий пояс магазину", "Shop timezone")}>
+                <Field label={copy(ukrainianCopy.shopTimezone, englishCopy.shopTimezone)}>
                   <input
                     name="timezone"
                     required
@@ -155,7 +155,7 @@ export default function ShopifyConnectionCard({
                     className={control}
                   />
                 </Field>
-                <Field label={copy("Версія правил", "Mapping revision")}>
+                <Field label={copy(ukrainianCopy.mappingRevision, englishCopy.mappingRevision)}>
                   <input
                     name="mappingRevision"
                     required
@@ -167,7 +167,7 @@ export default function ShopifyConnectionCard({
                     className={control}
                   />
                 </Field>
-                <Field label={copy("Валюта магазину ISO", "Shop ISO currency")}>
+                <Field label={copy(ukrainianCopy.shopISOCurrency, englishCopy.shopISOCurrency)}>
                   <input
                     name="currency"
                     required
@@ -180,21 +180,21 @@ export default function ShopifyConnectionCard({
               </div>
               <Field
                 label={copy(
-                  "ID локацій через кому",
-                  "Location IDs, comma-separated",
+                  ukrainianCopy.locationIDsCommaSeparated,
+                  englishCopy.locationIDsCommaSeparated,
                 )}
               >
                 <input
                   name="locationIds"
-                  placeholder="gid://shopify/Location/123…"
+                  placeholder={englishCopy.placeholderGidShopifyLocation123}
                   spellCheck={false}
                   className={control}
                 />
               </Field>
               <Field
                 label={copy(
-                  "Посилання на погодження доступів і правил",
-                  "Access and mapping approval reference",
+                  ukrainianCopy.accessAndMappingApprovalReference,
+                  englishCopy.accessAndMappingApprovalReference,
                 )}
               >
                 <input
@@ -207,47 +207,47 @@ export default function ShopifyConnectionCard({
               <label className="flex min-h-11 items-center gap-3 text-sm text-(--muted)">
                 <input type="checkbox" name="physicalStock" />
                 {copy(
-                  "Підтверджую фізичний on_hand для вказаних локацій; available не замінює фізичні залишки.",
-                  "I approve physical on_hand for the listed locations; available is not physical stock.",
+                  ukrainianCopy.iApprovePhysicalOnHandFor,
+                  englishCopy.iApprovePhysicalOnHandFor,
                 )}
               </label>
               <label className="flex min-h-11 items-center gap-3 text-sm text-(--muted)">
                 <input type="checkbox" name="financials" />
                 {copy(
-                  "Погоджую shopMoney, товарні суми без податків і доставки, розподілені знижки та окремі успішні події оплати/повернення.",
-                  "I approve shopMoney merchandise amounts excluding tax/shipping, allocated discounts and separate successful payment/refund events.",
+                  ukrainianCopy.iApproveShopMoneyMerchandiseAmounts,
+                  englishCopy.iApproveShopMoneyMerchandiseAmounts,
                 )}
               </label>
               <details>
                 <summary className="min-h-11 cursor-pointer py-2 text-sm text-(--text) focus-visible:outline-solid">
                   {copy(
-                    "Підтверджена історія (необов’язково)",
-                    "Verified history (optional)",
+                    ukrainianCopy.verifiedHistoryOptional,
+                    englishCopy.verifiedHistoryOptional,
                   )}
                 </summary>
                 <div className="space-y-4 pt-2">
                   <Field
-                    label={copy("Початок історії UTC", "History start UTC")}
+                    label={copy(ukrainianCopy.historyStartUTC, englishCopy.historyStartUTC)}
                   >
                     <input
                       name="historyFrom"
-                      placeholder="2024-10-27T00:00:00Z…"
+                      placeholder={englishCopy.placeholder20241027T000000Z}
                       spellCheck={false}
                       className={control}
                     />
                   </Field>
-                  <Field label={copy("Кінець історії UTC", "History end UTC")}>
+                  <Field label={copy(ukrainianCopy.historyEndUTC, englishCopy.historyEndUTC)}>
                     <input
                       name="historyTo"
-                      placeholder="2026-10-27T00:00:00Z…"
+                      placeholder={englishCopy.placeholder20261027T000000Z}
                       spellCheck={false}
                       className={control}
                     />
                   </Field>
                   <Field
                     label={copy(
-                      "Посилання на звірку історії",
-                      "History reconciliation reference",
+                      ukrainianCopy.historyReconciliationReference,
+                      englishCopy.historyReconciliationReference,
                     )}
                   >
                     <input
@@ -260,22 +260,22 @@ export default function ShopifyConnectionCard({
               </details>
               <Note className="leading-normal text-(--muted)">
                 {copy(
-                  "Коди подій: 1 — повна оплата, 2 — повернення, 3 — непідтверджена/часткова оплата, 4 — скасування без оплати. Перевірте загальні правила статусів клієнта перед імпортом.",
-                  "Event codes: 1 full payment, 2 refund, 3 unverified/partial payment, 4 unpaid cancellation. Review client-wide status rules before importing.",
+                  ukrainianCopy.eventCodes1FullPayment,
+                  englishCopy.eventCodes1FullPayment,
                 )}
               </Note>
               <label className="flex min-h-11 items-center gap-3 text-sm text-(--muted)">
                 <input type="checkbox" name="mappingApproved" required />
                 {copy(
-                  "Погоджую вибрані правила та вказані еталони. Непідтверджені дані залишаються невідомими.",
-                  "I approve the selected rules and referenced evidence. Unverified facts remain unknown.",
+                  ukrainianCopy.iApproveTheSelectedRules,
+                  englishCopy.iApproveTheSelectedRules,
                 )}
               </label>
               <div className="flex flex-wrap gap-3">
                 <Button variant="report" type="submit" disabled={busy} className="text-(--text) hover:bg-(--input-hover)">
                   {busy
-                    ? copy("Обробка…", "Processing…")
-                    : copy("Зберегти Shopify", "Save Shopify")}
+                    ? copy(ukrainianCopy.processing, englishCopy.processing)
+                    : copy(ukrainianCopy.saveShopify, englishCopy.saveShopify)}
                 </Button>
                 <Button variant="report"
                   type="button"
@@ -283,7 +283,7 @@ export default function ShopifyConnectionCard({
                   onClick={() => void perform("check")}
                   className="text-(--text) hover:bg-(--input-hover)"
                 >
-                  {copy("Перевірити доступи", "Check read scopes")}
+                  {copy(ukrainianCopy.checkReadScopes, englishCopy.checkReadScopes)}
                 </Button>
               </div>
             </fieldset>

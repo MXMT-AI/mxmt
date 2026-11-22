@@ -5,7 +5,12 @@ import { Section } from "@/components/ui/section/section";
 import type { LandingCopy } from "../copy";
 import styles from "./agents-section.module.css";
 
-const stageIcons = [ChartNoAxesCombined, Tags, CalendarDays, FileText] as const;
+const stages = [
+  { id: "salesAndStock", icon: ChartNoAxesCombined },
+  { id: "pricingAndReplenishment", icon: Tags },
+  { id: "marketingAndCalendar", icon: CalendarDays },
+  { id: "campaignsAndReport", icon: FileText },
+] as const;
 
 export function AgentsSection({ copy }: { copy: LandingCopy["agents"] }) {
   return (
@@ -31,11 +36,11 @@ export function AgentsSection({ copy }: { copy: LandingCopy["agents"] }) {
           </div>
         </div>
         <ol className={styles.stages} role="list">
-          {copy.stages.map((stage, index) => {
-            const Icon = stageIcons[index];
+          {stages.map(({ id, icon: Icon }, index) => {
+            const stage = copy.stages[id];
             const agents = AGENT_BLOCKS[index].agents;
             return (
-              <li key={stage.title} className={styles.stage}>
+              <li key={id} className={styles.stage}>
                 <Icon aria-hidden="true" size={22} className="mt-1 text-landing-mint" />
                 <div>
                   <Heading as="h3" variant="item">{stage.title}</Heading>

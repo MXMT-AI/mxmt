@@ -6,6 +6,8 @@ import { readApiJson } from "@/lib/api-response";
 import type { SettingsResource } from "@/lib/merchandising-settings";
 import type { Lang } from "@/lib/translations";
 import type { Payload } from "./merchandising-settings-types";
+import { settingsMerchandisingSettingsCardUseMerchandisingSettingsMessages as englishCopy } from "@/messages/en.json";
+import { settingsMerchandisingSettingsCardUseMerchandisingSettingsMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export function useMerchandisingSettings(resource: SettingsResource, page: number, search: string, lang: Lang) {
   const [data, setData] = useState<Payload | null>(null);
@@ -31,8 +33,8 @@ export function useMerchandisingSettings(resource: SettingsResource, page: numbe
     load(controller.signal)
       .catch(() => {
         if (!controller.signal.aborted) setError(lang === "uk"
-          ? "Не вдалося завантажити налаштування. Спробуйте ще раз."
-          : "Could not load settings. Try again.");
+          ? ukrainianCopy.couldNotLoadSettingsTry
+          : englishCopy.couldNotLoadSettingsTry);
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);

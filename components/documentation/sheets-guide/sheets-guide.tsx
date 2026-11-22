@@ -4,6 +4,7 @@ import { Text } from "@/components/ui/text/text";
 import { sheetsColumns, sheetsCopy, demoSheetUrl } from "../documentation-page/sheets-copy";
 import { GuideSection } from "../guide-section/guide-section";
 import { GuideSteps } from "../guide-steps/guide-steps";
+import { documentationSheetsGuideMessages as englishCopy } from "@/messages/en.json";
 
 export function SheetsGuide({ copy }: { copy: (typeof sheetsCopy)[keyof typeof sheetsCopy] }) {
   return (
@@ -30,7 +31,7 @@ export function SheetsGuide({ copy }: { copy: (typeof sheetsCopy)[keyof typeof s
       <GuideSection id="sheets-mapping" title={copy.mapping}>
         <div className="grid gap-4 lg:grid-cols-2">
           {[
-            { name: "Product YML 2.0", rows: sheetsColumns.products },
+            { name: englishCopy.nameProductYML20, rows: sheetsColumns.products },
             { name: "ZAVOD_API", rows: sheetsColumns.orders },
           ].map(({ name, rows }) => (
             <table key={name} className="w-full border-collapse border border-(--border) text-left text-sm">

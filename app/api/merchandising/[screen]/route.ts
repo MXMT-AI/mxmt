@@ -11,6 +11,7 @@ import { merchandisingApiError } from "@/lib/merchandising-api-error";
 import { createRequestContext, withRequestId } from "@/lib/observability";
 import { configuredReportStorage } from "@/lib/merchandising-publication-storage";
 import { readPublishedScreen } from "@/lib/merchandising-publication";
+import { apiMerchandisingScreenRouteMessages as englishCopy } from "@/messages/en.json";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -23,7 +24,7 @@ export async function GET(
   if (response) return response;
   const { screen } = await params;
   if (!SCREEN_NAMES.includes(screen as ScreenName))
-    return apiError("Unknown merchandising screen", 404, "SCREEN_NOT_FOUND");
+    return apiError(englishCopy.unknownMerchandisingScreen, 404, "SCREEN_NOT_FOUND");
   try {
     const query = parseScreenQuery(
       request.nextUrl.searchParams,

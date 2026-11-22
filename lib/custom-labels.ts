@@ -2,6 +2,7 @@ import { isRecord } from "./api-contracts";
 import { SKU_STATUSES, type SkuStatus } from "./classify";
 import { csvCell } from "./scenario-csv";
 import { financialDecimal as D } from "./financial-decimal.mjs";
+import { customLabelsMessages as englishCopy } from "@/messages/en.json";
 
 export const LABEL_CONTRACT_VERSION = "custom-label-feed-2026-10-28-v1";
 export const LABEL_MAX_ROWS = 5000;
@@ -39,24 +40,24 @@ export const labelIdentifier=(v:unknown):string=>{
   if(typeof v!=="string"||!/^[A-Za-z0-9][A-Za-z0-9_.:-]{0,159}$/.test(v))throw new CustomLabelError("INVALID_LABEL_ID");return v;
 };
 export function parseLabelProfile(value:unknown):LabelProfile {
-  if(!isRecord(value)||Object.keys(value).sort().join()!=="emptyPolicy,mappings,ownedSlots,precedence,rules,sourceId,target,version"||value.version!==1||value.precedence!=="first_match"||value.emptyPolicy!=="omit_item")return invalid("unsupported profile policy");
+  if(!isRecord(value)||Object.keys(value).sort().join()!=="emptyPolicy,mappings,ownedSlots,precedence,rules,sourceId,target,version"||value.version!==1||value.precedence!=="first_match"||value.emptyPolicy!=="omit_item")return invalid(englishCopy.unsupportedProfilePolicy);
   labelIdentifier(value.sourceId);
   const t=value.target;
-  if(!isRecord(t)||!keys(t,["provider","accountId","primaryFeedReference","feedLabel","language"])||!["meta","google"].includes(String(t.provider))||!text(t.accountId,160)||!text(t.primaryFeedReference,500))return invalid("invalid target scope");
-  if(t.provider==="google"&&(!text(t.feedLabel,20)||!/^[A-Z0-9_-]+$/.test(t.feedLabel)||!text(t.language,35)||!/^[a-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/.test(t.language)))return invalid("Google feed label and language required");
-  if(t.provider==="meta"&&(t.feedLabel!==undefined||t.language!==undefined))return invalid("Meta target must not use Google matching fields");
-  if(!Array.isArray(value.ownedSlots)||!value.ownedSlots.length||value.ownedSlots.length>5||new Set(value.ownedSlots).size!==value.ownedSlots.length||value.ownedSlots.some(s=>!Number.isInteger(s)||s<0||s>4))return invalid("owned slots must be unique integers 0–4");
-  if(!Array.isArray(value.rules)||!value.rules.length||value.rules.length>100)return invalid("rules must contain 1–100 entries");
+  if(!isRecord(t)||!keys(t,["provider","accountId","primaryFeedReference","feedLabel","language"])||!["meta","google"].includes(String(t.provider))||!text(t.accountId,160)||!text(t.primaryFeedReference,500))return invalid(englishCopy.invalidTargetScope);
+  if(t.provider==="google"&&(!text(t.feedLabel,20)||!/^[A-Z0-9_-]+$/.test(t.feedLabel)||!text(t.language,35)||!/^[a-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/.test(t.language)))return invalid(englishCopy.googleFeedLabelAndLanguage);
+  if(t.provider==="meta"&&(t.feedLabel!==undefined||t.language!==undefined))return invalid(englishCopy.metaTargetMustNotUse);
+  if(!Array.isArray(value.ownedSlots)||!value.ownedSlots.length||value.ownedSlots.length>5||new Set(value.ownedSlots).size!==value.ownedSlots.length||value.ownedSlots.some(s=>!Number.isInteger(s)||s<0||s>4))return invalid(englishCopy.ownedSlotsMustBeUnique);
+  if(!Array.isArray(value.rules)||!value.rules.length||value.rules.length>100)return invalid(englishCopy.rulesMustContain1100Entries);
   const ids=new Set<string>();
   for(const r of value.rules){
-    if(!isRecord(r)||Object.keys(r).sort().join()!=="id,slot,value,when"||typeof r.value!=="string"||r.value.length>500||!value.ownedSlots.includes(r.slot))return invalid("invalid rule");
-    const id=labelIdentifier(r.id);if(ids.has(id))return invalid("duplicate rule ID");ids.add(id);
+    if(!isRecord(r)||Object.keys(r).sort().join()!=="id,slot,value,when"||typeof r.value!=="string"||r.value.length>500||!value.ownedSlots.includes(r.slot))return invalid(englishCopy.invalidRule);
+    const id=labelIdentifier(r.id);if(ids.has(id))return invalid(englishCopy.duplicateRuleID);ids.add(id);
     const w=r.when;
-    if(!isRecord(w)||!keys(w,["classifications","shortage","inStock"])||!Array.isArray(w.classifications)||!w.classifications.length||w.classifications.length>8||w.classifications.some(c=>!SKU_STATUSES.includes(c))||new Set(w.classifications).size!==w.classifications.length||[w.shortage,w.inStock].some(v=>v!==undefined&&typeof v!=="boolean"))return invalid("unsupported rule conditions");
+    if(!isRecord(w)||!keys(w,["classifications","shortage","inStock"])||!Array.isArray(w.classifications)||!w.classifications.length||w.classifications.length>8||w.classifications.some(c=>!SKU_STATUSES.includes(c))||new Set(w.classifications).size!==w.classifications.length||[w.shortage,w.inStock].some(v=>v!==undefined&&typeof v!=="boolean"))return invalid(englishCopy.unsupportedRuleConditions);
   }
-  if(!Array.isArray(value.mappings)||value.mappings.length>LABEL_MAX_ROWS)return invalid("mapping limit exceeded");
+  if(!Array.isArray(value.mappings)||value.mappings.length>LABEL_MAX_ROWS)return invalid(englishCopy.mappingLimitExceeded);
   for(const m of value.mappings){
-    if(!isRecord(m)||Object.keys(m).sort().join()!=="itemId,skuId,verificationReference"||typeof m.itemId!=="string"||m.itemId.length>500||!(m.verificationReference===null||text(m.verificationReference,500)))return invalid("invalid mapping");labelIdentifier(m.skuId);
+    if(!isRecord(m)||Object.keys(m).sort().join()!=="itemId,skuId,verificationReference"||typeof m.itemId!=="string"||m.itemId.length>500||!(m.verificationReference===null||text(m.verificationReference,500)))return invalid(englishCopy.invalidMapping);labelIdentifier(m.skuId);
   }
   const profile=structuredClone(value) as unknown as LabelProfile;
   profile.ownedSlots.sort((a,b)=>a-b);

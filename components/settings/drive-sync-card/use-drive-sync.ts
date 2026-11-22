@@ -3,6 +3,8 @@
 import { useRef, useState } from "react";
 import { apiFetch } from "@/lib/fetch";
 import type { Lang } from "@/lib/translations";
+import { settingsDriveSyncCardUseDriveSyncMessages as englishCopy } from "@/messages/en.json";
+import { settingsDriveSyncCardUseDriveSyncMessages as ukrainianCopy } from "@/messages/uk.json";
 
 interface DriveImportResult {
   skus: number;
@@ -32,7 +34,7 @@ export function useDriveSync(lang: Lang, enabled: boolean) {
       const response = await apiFetch("/api/sync/drive", { method: "POST" });
       const data = await response.json();
       if (!response.ok) {
-        setState({ ...initialState, result: "error", errMsg: data.error ?? "Unknown error" });
+        setState({ ...initialState, result: "error", errMsg: data.error ?? englishCopy.errMsgUnknownError });
         return;
       }
       setState({
@@ -47,7 +49,7 @@ export function useDriveSync(lang: Lang, enabled: boolean) {
         },
       });
     } catch {
-      setState({ ...initialState, result: "error", errMsg: lang === "uk" ? "Помилка мережі" : "Network error" });
+      setState({ ...initialState, result: "error", errMsg: lang === "uk" ? ukrainianCopy.errMsgNetworkError : englishCopy.errMsgNetworkError });
     } finally {
       inFlight.current = false;
     }

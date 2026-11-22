@@ -24,6 +24,8 @@ import {
   type ScreenName,
   type ScreenQuery,
 } from "./merchandising-screen-query";
+import { merchandisingScreenMessages as englishCopy } from "@/messages/en.json";
+import { merchandisingScreenMessages as ukrainianCopy } from "@/messages/uk.json";
 export function screenSnapshotContext(snapshot: ScreenSnapshot) {
   return {
     profileMode: snapshot.sales.context.settings.profileMode,
@@ -206,7 +208,7 @@ export async function getMerchandisingScreen(
             ...stock,
             table: undefined,
             channelScope: "ALL_CHANNELS",
-            channelLabel: { en: "All channels", uk: "Усі канали" },
+            channelLabel: { en: englishCopy.enAllChannels, uk: ukrainianCopy.enAllChannels },
             filters: {
               ...common,
               classification:

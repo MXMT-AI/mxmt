@@ -1,3 +1,6 @@
+import { formatMessage } from "@/i18n/format-message";
+import { calendarAnalysisMessages as ukrainianCopy } from "@/messages/uk.json";
+
 export type CalendarEventInput = {
   weekKey: string;
   rowKey: string;
@@ -112,13 +115,13 @@ function parseRecommendations(marketerOutput: unknown) {
     const brand = value as MarketerBrand;
     const brandName = typeof brand.brand_name === "string" && brand.brand_name.trim()
       ? brand.brand_name.trim()
-      : "Без бренду";
+      : ukrainianCopy.brandNameБезБренду;
     const brandId = typeof brand.brand_id === "string" && brand.brand_id.trim()
       ? brand.brand_id.trim()
       : `brand-${index + 1}`;
     const decisionSummary = typeof brand.decision_summary === "string" && brand.decision_summary.trim()
       ? brand.decision_summary.trim()
-      : "Маркетингова рекомендація потребує перевірки";
+      : ukrainianCopy.decisionSummaryМаркетинговаРекомендаціяПотребуєПеревірки;
     const channelData = brand.channels && typeof brand.channels === "object"
       ? brand.channels as Record<string, MarketerChannel>
       : {};
@@ -149,10 +152,10 @@ function conflictAnnotations(events: CalendarEventInput[]): CalendarAnnotation[]
       id: `conflict-${index + 1}`,
       type: "conflict" as const,
       channel: eventChannel(first.rowKey),
-      brand: "Календар",
-      message: `${first.weekKey}, рядок ${first.rowKey}: подію «${first.label}» додано ${grouped.length} рази.`,
+      brand: ukrainianCopy.brandКалендар,
+      message: formatMessage(ukrainianCopy.messageРядокПодію, { weekKey: first.weekKey, rowKey: first.rowKey, label: first.label, length: grouped.length }),
       priority: "high" as const,
-      suggested_action: "Перевірити дублікати й залишити в календарі лише потрібні записи.",
+      suggested_action: ukrainianCopy.suggestedActionПеревіритиДублікатиЙЗалишитиВ,
     }];
   });
 }
@@ -183,7 +186,7 @@ export function buildCalendarAnalysis({
     );
     const channelList = recommendation.channels.length > 0
       ? recommendation.channels.join(", ")
-      : "загальні активності";
+      : ukrainianCopy.channelListЗагальніАктивності;
     const channel = recommendation.channels.length === 1 ? recommendation.channels[0] : "general";
 
     if (matchingEvents.length > 0) {
@@ -209,14 +212,14 @@ export function buildCalendarAnalysis({
         type: "ok",
         channel,
         brand: recommendation.brandName,
-        message: `Рекомендація «${recommendation.decisionSummary}» представлена в календарі (${matchingEvents.map(({ event }) => `${event.weekKey}: ${event.label}`).join("; ")}).`,
+        message: formatMessage(ukrainianCopy.messageРекомендаціяПредставленаВ, { decisionSummary: recommendation.decisionSummary, value2: matchingEvents.map(({ event }) => `${event.weekKey}: ${event.label}`).join("; ") }),
         priority: "low",
-        suggested_action: `Перевірити, що погоджений план охоплює потрібні канали: ${channelList}.`,
+        suggested_action: formatMessage(ukrainianCopy.suggestedActionПеревіритиЩоПогодженийПланОхоплює, { channelList }),
       };
     }
 
     const budgetNote = recommendation.channels.includes("ads")
-      ? " Рекламний бюджет потрібно погодити окремо."
+      ? ukrainianCopy.budgetNoteРекламнийБюджетПотрібноПогодитиОкремо
       : "";
     planningRecommendations.push({
       recommendation_id: `recommendation-${recommendation.brandId}`,
@@ -232,9 +235,9 @@ export function buildCalendarAnalysis({
       type: "suggestion",
       channel,
       brand: recommendation.brandName,
-      message: `Рекомендація «${recommendation.decisionSummary}» ще не додана до календаря. Це чернетка плану, а не критична прогалина.`,
+      message: formatMessage(ukrainianCopy.messageРекомендаціяЩеНе, { decisionSummary: recommendation.decisionSummary }),
       priority: "medium",
-      suggested_action: `Переглянути з PM і після погодження додати активності (${channelList}) до календаря.${budgetNote}`,
+      suggested_action: formatMessage(ukrainianCopy.suggestedActionПереглянутиЗPMІПісля, { channelList, budgetNote }),
     };
   });
 
@@ -249,15 +252,15 @@ export function buildCalendarAnalysis({
 
   let summary: string;
   if (recommendationCount === 0 && events.length === 0) {
-    summary = "У календарі немає подій, а Commercial Marketer не передав рекомендацій для планування.";
+    summary = ukrainianCopy.уКалендаріНемаєПодійА;
   } else if (recommendationCount === 0) {
-    summary = `У календарі є ${events.length} подій. Нових рекомендацій від Commercial Marketer немає.`;
+    summary = formatMessage(ukrainianCopy.уКалендаріЄПодійНових, { length: events.length });
   } else if (draftRecommendations === 0) {
-    summary = `Усі ${recommendationCount} рекомендацій представлені в календарі. Перевірте канали й остаточне погодження з PM.`;
+    summary = formatMessage(ukrainianCopy.усіРекомендаційПредставленіВКалендарі, { recommendationCount });
   } else {
-    summary = `${scheduledRecommendations} із ${recommendationCount} рекомендацій представлені в календарі; ${draftRecommendations} залишаються чернетками до погодження. Незатверджені рекомендації не вважаються критичними прогалинами.`;
+    summary = formatMessage(ukrainianCopy.ізРекомендаційПредставленіВКалендарі, { scheduledRecommendations, recommendationCount, draftRecommendations });
   }
-  if (highIssues > 0) summary += ` Знайдено ${highIssues} можливих конфліктів між уже запланованими подіями.`;
+  if (highIssues > 0) summary += formatMessage(ukrainianCopy.знайденоМожливихКонфліктівМіжУже, { highIssues });
 
   const annotations = [...conflicts, ...recommendationAnnotations];
   return {

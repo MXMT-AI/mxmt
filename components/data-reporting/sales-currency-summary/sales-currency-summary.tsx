@@ -4,24 +4,26 @@ import { MetricTile } from "@/components/ui/metric-tile/metric-tile";
 import { panel } from "@/components/ui/panel/panel-styles";
 import { createTableValueFormatter } from "@/lib/data-reporting-ui";
 import type { SalesReportData } from "../sales-reporting-workspace/sales-report-types";
+import { dataReportingSalesCurrencySummaryMessages as englishCopy } from "@/messages/en.json";
+import { dataReportingSalesCurrencySummaryMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export function SalesCurrencySummary({ row, uk }: {
   row: SalesReportData["summary"][number];
   uk: boolean;
 }) {
   const formatValue = createTableValueFormatter(uk ? "uk-UA" : "en-GB");
-  const currencyLabel = row.currency ?? (uk ? "Невідома валюта" : "Unknown currency");
+  const currencyLabel = row.currency ?? (uk ? ukrainianCopy.currencyLabelUnknownCurrency : englishCopy.currencyLabelUnknownCurrency);
   const { current, plan } = row;
   const metrics: [label: string, value: string | number | null, type?: "money" | "number" | "quantity" | "percentage"][] = [
-    [uk ? "Чиста виручка" : "Net revenue", current.revenue],
-    [uk ? "Замовлення-продажі" : "Sale orders", current.orderCount, "number"],
-    [uk ? "Замовлення-повернення" : "Return orders", current.returnOrderCount, "number"],
-    [uk ? "Одиниці товару" : "Merchandise units", current.units, "quantity"],
-    [uk ? "Валовий прибуток покритих рядків" : "Covered gross profit", current.coveredGrossProfit],
-    [uk ? "Маржа покритих рядків" : "Covered GM", current.gmPct, "percentage"],
-    [uk ? "Виручка покритих рядків" : "Covered revenue", current.coveredRevenue],
-    [uk ? "Виконання місячного плану" : "Monthly plan attainment", plan.attainmentPct, "percentage"],
-    [uk ? "Темп проти плану за дні періоду" : "Pace against period-day target", plan.pacePct, "percentage"],
+    [uk ? ukrainianCopy.metricsNetRevenue : englishCopy.metricsNetRevenue, current.revenue],
+    [uk ? ukrainianCopy.metricsSaleOrders : englishCopy.metricsSaleOrders, current.orderCount, "number"],
+    [uk ? ukrainianCopy.metricsReturnOrders : englishCopy.metricsReturnOrders, current.returnOrderCount, "number"],
+    [uk ? ukrainianCopy.metricsMerchandiseUnits : englishCopy.metricsMerchandiseUnits, current.units, "quantity"],
+    [uk ? ukrainianCopy.metricsCoveredGrossProfit : englishCopy.metricsCoveredGrossProfit, current.coveredGrossProfit],
+    [uk ? ukrainianCopy.metricsCoveredGM : englishCopy.metricsCoveredGM, current.gmPct, "percentage"],
+    [uk ? ukrainianCopy.metricsCoveredRevenue : englishCopy.metricsCoveredRevenue, current.coveredRevenue],
+    [uk ? ukrainianCopy.metricsMonthlyPlanAttainment : englishCopy.metricsMonthlyPlanAttainment, plan.attainmentPct, "percentage"],
+    [uk ? ukrainianCopy.metricsPaceAgainstPeriodDayTarget : englishCopy.metricsPaceAgainstPeriodDayTarget, plan.pacePct, "percentage"],
   ];
 
   return (
@@ -36,14 +38,14 @@ export function SalesCurrencySummary({ row, uk }: {
       </dl>
       {row.coveredMarginBelowTarget !== null && (
         <p className="mt-3 text-sm text-(--text)">
-          {uk ? "Маржа покритих рядків" : "Covered margin"}:{" "}
+          {uk ? ukrainianCopy.coveredMargin : englishCopy.coveredMargin}:{" "}
           {row.coveredMarginBelowTarget
             ? uk
-              ? "нижче порогу"
-              : "below target"
+              ? ukrainianCopy.belowTarget
+              : englishCopy.belowTarget
             : uk
-              ? "не нижче порогу"
-              : "at or above target"}{" "}
+              ? ukrainianCopy.atOrAboveTarget
+              : englishCopy.atOrAboveTarget}{" "}
           {formatValue(row.marginTargetPct, "percentage")}.
         </p>
       )}
@@ -54,16 +56,16 @@ export function SalesCurrencySummary({ row, uk }: {
           className="mt-3 block text-sm text-(--text) underline focus-visible:outline-solid"
           href="/settings?tab=merchandising"
         >
-          {uk ? "Задати план і валюту" : "Set plan and currency"}
+          {uk ? ukrainianCopy.setPlanAndCurrency : englishCopy.setPlanAndCurrency}
         </Link>
       )}
       {current.coverage !== "COMPLETE" && (
         <p className="mt-3 text-sm text-(--text) font-medium">
           {uk
-            ? "Часткові дані. Рядків без відомого прибутку:"
-            : "Partial data. Lines without known profit:"}{" "}
+            ? ukrainianCopy.partialDataLinesWithoutKnown
+            : englishCopy.partialDataLinesWithoutKnown}{" "}
           {current.missingProfitCount};{" "}
-          {uk ? "без відомої виручки:" : "without known revenue:"}{" "}
+          {uk ? ukrainianCopy.withoutKnownRevenue : englishCopy.withoutKnownRevenue}{" "}
           {current.missingRevenueCount}.
         </p>
       )}

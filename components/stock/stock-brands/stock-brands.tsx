@@ -11,6 +11,7 @@ import type { StockCopy } from "@/lib/stock-copy";
 import type { Block, Group, Href } from "../stock-content/stock-content-types";
 import { createTableValueFormatter } from "@/lib/data-reporting-ui";
 import { StockMetricCell } from "../stock-metric-cell/stock-metric-cell";
+import { stockStockBrandsMessages as englishCopy } from "@/messages/en.json";
 
 const signalClass: Partial<Record<NonNullable<Group["signal"]>, string>> = {
   DEAD: "text-report-negative",
@@ -32,7 +33,7 @@ export function StockBrands({ groups, selectedStatus, copy, locale, href: scoped
   return (
     <section className={panel}>
       <div className="p-5 space-y-2">
-        <Heading as="h3" variant="compact" className="text-base text-inherit">K4 · {copy.brands}</Heading>
+        <Heading as="h3" variant="compact" className="text-base text-inherit">{englishCopy.k4}{copy.brands}</Heading>
         <Note>{copy.brandBasis}</Note>
         {selectedStatus ? (
           <Note>{copy.groupFilter}</Note>

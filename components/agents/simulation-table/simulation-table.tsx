@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { agentsSimulationTableMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export type SimulationColumn<Row> = {
   label: string;
@@ -44,7 +45,7 @@ export function SimulationTable<Row extends { sku: string }>({ rows, columns, to
         </tbody>
         <tfoot className="bg-(--surface2) font-semibold text-(--text)">
           <tr className="[&>td]:px-3 [&>td]:py-2 [&>th]:px-3 [&>th]:py-2">
-            <th scope="row" colSpan={2} className="text-left">РАЗОМ</th>
+            <th scope="row" colSpan={2} className="text-left">{ukrainianCopy.рАЗОМ}</th>
             {totals}
           </tr>
         </tfoot>

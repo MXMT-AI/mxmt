@@ -3,6 +3,8 @@ import { Field } from "@/components/ui/field/field";
 import { Button } from "@/components/ui/button/button";
 import { control } from "@/components/ui/control-styles/control-styles";
 import type { Lang } from "@/lib/translations";
+import { settingsStatusMappingFieldsMessages as englishCopy } from "@/messages/en.json";
+import { settingsStatusMappingFieldsMessages as ukrainianCopy } from "@/messages/uk.json";
 export interface StatusMappingRow {
   id: string;
   kind: string;
@@ -17,10 +19,10 @@ export interface StatusMappingConfig {
 const defaultConfig: StatusMappingConfig = {
   codePattern: "[0-9]+",
   options: [
-    { value: "", uk: "Не підтверджено", en: "Unverified" },
-    { value: "SALE", uk: "Продаж", en: "Sale" },
-    { value: "PREORDER", uk: "Передзамовлення", en: "Preorder" },
-    { value: "REFUSAL", uk: "Відмова", en: "Refusal" },
+    { value: "", uk: ukrainianCopy.enUnverified, en: englishCopy.enUnverified },
+    { value: "SALE", uk: ukrainianCopy.enSale, en: englishCopy.enSale },
+    { value: "PREORDER", uk: ukrainianCopy.enPreorder, en: englishCopy.enPreorder },
+    { value: "REFUSAL", uk: ukrainianCopy.enRefusal, en: englishCopy.enRefusal },
   ],
   newRowKind: "",
   maxRows: 100,
@@ -48,11 +50,11 @@ export default function StatusMappingFields({
   return (
     <fieldset className="space-y-3">
       <legend className="text-sm text-(--text)">
-        {copy("Значення статусів", "Status meanings")}
+        {copy(ukrainianCopy.statusMeanings, englishCopy.statusMeanings)}
       </legend>
       {rows.map((s, i) => (
         <div key={i} className="grid grid-cols-2 gap-3">
-          <Field label={copy("Код статусу", "Status code")}>
+          <Field label={copy(ukrainianCopy.statusCode, englishCopy.statusCode)}>
             <input
               name={`status-code-${i}`}
               autoComplete="off"
@@ -64,7 +66,7 @@ export default function StatusMappingFields({
               onChange={event => change(i, "id", event.target.value)}
             />
           </Field>
-          <Field label={copy("Значення", "Meaning")}>
+          <Field label={copy(ukrainianCopy.meaning, englishCopy.meaning)}>
             <select
               name={`status-meaning-${i}`}
               className={control}
@@ -84,7 +86,7 @@ export default function StatusMappingFields({
         className="text-(--text) hover:bg-(--input-hover)"
         onClick={add}
       >
-        {copy("Додати статус", "Add status")}
+        {copy(ukrainianCopy.addStatus, englishCopy.addStatus)}
       </Button>
     </fieldset>
   );

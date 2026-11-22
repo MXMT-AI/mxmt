@@ -1,10 +1,11 @@
 import type { ReorderSimulation } from "@/lib/legacy-reorder-calc";
 import type { SheetCell } from "@/lib/xlsx-workbook";
-
+import { formatMessage } from "@/i18n/format-message";
+import { reorderSheetMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export const REORDER_SHEET_HEADERS = [
-  "SKU", "Назва", "Категорія", "Залишок, шт", "Чиста швидкість, шт/д", "DOH зараз, дн",
-  "Дозамовлення, шт", "Закупка, грн", "Вартість замовлення, грн", "Залишок після, шт", "DOH після, дн",
+  "SKU", ukrainianCopy.rEORDERSHEETHEADERSНазва, ukrainianCopy.rEORDERSHEETHEADERSКатегорія, ukrainianCopy.rEORDERSHEETHEADERSЗалишокШт, ukrainianCopy.rEORDERSHEETHEADERSЧистаШвидкістьШтД, ukrainianCopy.rEORDERSHEETHEADERSDOHЗаразДн,
+  ukrainianCopy.rEORDERSHEETHEADERSДозамовленняШт, ukrainianCopy.rEORDERSHEETHEADERSЗакупкаГрн, ukrainianCopy.rEORDERSHEETHEADERSВартістьЗамовленняГрн, ukrainianCopy.rEORDERSHEETHEADERSЗалишокПісляШт, ukrainianCopy.rEORDERSHEETHEADERSDOHПісляДн,
 ];
 
 const HEADER_ROW = 5;
@@ -15,17 +16,17 @@ export function buildReorderSheetValues(
 ): SheetCell[][] {
   const { formulas } = opts;
   const periodNote =
-    `${sim.periodDays} дн.` +
-    (sim.dateFrom ? ` (${sim.dateFrom} — ${sim.asOf ?? "сьогодні"})` : "");
+    formatMessage(ukrainianCopy.periodNoteДн, { periodDays: sim.periodDays }) +
+    (sim.dateFrom ? ` (${sim.dateFrom} — ${sim.asOf ?? ukrainianCopy.periodNoteСьогодні})` : "");
 
   const values: SheetCell[][] = [
-    ["Дозамовлення", opts.title, "", "Бренд", sim.brandName],
-    ["Покриття, дн", sim.coverDays, "", "Множник", sim.qtyMultiplier],
+    [ukrainianCopy.valuesДозамовлення, opts.title, "", ukrainianCopy.valuesБренд, sim.brandName],
+    [ukrainianCopy.valuesПокриттяДн, sim.coverDays, "", ukrainianCopy.valuesМножник, sim.qtyMultiplier],
     [
-      "Формула",
-      "замовлення = швидкість × покриття × множник − залишок",
+      ukrainianCopy.valuesФормула,
+      ukrainianCopy.valuesЗамовленняШвидкістьПокриття,
       "",
-      sim.leadTimeDays != null ? "Lead time, дн" : "Період даних",
+      sim.leadTimeDays != null ? ukrainianCopy.valuesLeadTimeДн : ukrainianCopy.valuesПеріодДаних,
       sim.leadTimeDays != null ? sim.leadTimeDays : periodNote,
     ],
     [],
@@ -60,8 +61,8 @@ export function buildReorderSheetValues(
 
   values.push(
     formulas && sim.rows.length > 0
-      ? ["РАЗОМ", "", "", sum("D"), "", "", sum("G"), "", sum("I"), sum("J"), ""]
-      : ["РАЗОМ", "", "", t.stock, "", "", t.orderQty, "", t.orderCost, t.stockAfter, ""]
+      ? [ukrainianCopy.рАЗОМ, "", "", sum("D"), "", "", sum("G"), "", sum("I"), sum("J"), ""]
+      : [ukrainianCopy.рАЗОМ, "", "", t.stock, "", "", t.orderQty, "", t.orderCost, t.stockAfter, ""]
   );
 
   return values;

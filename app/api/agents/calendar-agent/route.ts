@@ -5,6 +5,7 @@ import { apiError, serverError } from "@/lib/api-contracts";
 import { startAgentRun } from "@/lib/agent-runs";
 import { getCurrentDependencyRun, resolveAgentRunContext } from "@/lib/agent-dependencies";
 import { buildCalendarAnalysis, calendarWindow } from "@/lib/calendar-analysis";
+import { apiAgentsCalendarAgentRouteMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export const runtime = "nodejs";
 export const maxDuration = 180;
@@ -21,7 +22,7 @@ export async function POST(req: NextRequest) {
   const marketerState = await getCurrentDependencyRun(tenantId, "commercial_marketer", context);
   if (!marketerState.ready) {
     return apiError(
-      "Спочатку запустіть Commercial Marketer для поточного імпорту та періоду.",
+      ukrainianCopy.спочаткуЗапустітьCommercialMarketerДля,
       409,
       "AGENT_DEPENDENCY_NOT_READY",
       [`Commercial Marketer: ${marketerState.reason}`]

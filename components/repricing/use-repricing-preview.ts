@@ -10,6 +10,7 @@ import type {
   getRepricingPreview,
 } from "@/lib/repricing-store";
 import type { RepricingRequest } from "@/lib/repricing-contract";
+import { repricingUseRepricingPreviewMessages as englishCopy } from "@/messages/en.json";
 export type RepricingInputResponse = Awaited<
   ReturnType<typeof createRepricingInputs>
 >;
@@ -36,7 +37,7 @@ export function useRepricingInputs(snapshotId: string) {
           data.snapshotId !== snapshotId ||
           typeof data.context?.asOf !== "string"
         )
-          throw new Error("Invalid input response");
+          throw new Error(englishCopy.errorInvalidInputResponse);
         if (!controller.signal.aborted) setResult({ snapshotId, data });
       })
       .catch((error) => {

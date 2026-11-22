@@ -1,4 +1,6 @@
 import { ShieldCheck, AlertTriangle } from "lucide-react";
+import { settingsDriveSyncCardDriveAccessModesMessages as englishCopy } from "@/messages/en.json";
+import { settingsDriveSyncCardDriveAccessModesMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export const driveAccessModes = {
   service_account: {
@@ -6,14 +8,14 @@ export const driveAccessModes = {
     panelClassName: "bg-[#86efac]/8 border-[#86efac]/20",
     colorClassName: "text-[#86efac]",
     uk: {
-      title: "Service Account (рекомендовано)",
-      description: "Приватний доступ через ключ сервісного акаунту. Файл може залишатись закритим. Доступ лише на читання — файл у Drive не змінюється.",
-      detail: "Таблиця цього кабінету + сервісний акаунт платформи",
+      title: ukrainianCopy.titleServiceAccountРекомендовано,
+      description: ukrainianCopy.descriptionПриватнийДоступЧерезКлючСервісного,
+      detail: ukrainianCopy.detailТаблицяЦьогоКабінетуСервісний,
     },
     en: {
-      title: "Service Account (recommended)",
-      description: "Private access via service account key. File can stay private. Read-only — the Drive file is never modified.",
-      detail: "This cabinet’s spreadsheet + platform service account",
+      title: englishCopy.titleServiceAccountRecommended,
+      description: englishCopy.descriptionPrivateAccessViaServiceAccount,
+      detail: englishCopy.detailThisCabinetSSpreadsheetPlatform,
     },
   },
   public_link: {
@@ -21,14 +23,14 @@ export const driveAccessModes = {
     panelClassName: "bg-accent-yellow/8 border-accent-yellow/30",
     colorClassName: "text-accent-yellow",
     uk: {
-      title: "Публічне посилання (не рекомендується)",
-      description: "Файл має бути відкритий для всіх за посиланням. Дані доступні будь-кому з посиланням. Доступ лише на читання — файл у Drive не змінюється.",
-      detail: "Таблиця цього кабінету доступна за посиланням",
+      title: ukrainianCopy.titleПублічнеПосиланняНеРекомендується,
+      description: ukrainianCopy.descriptionФайлМаєБутиВідкритийДля,
+      detail: ukrainianCopy.detailТаблицяЦьогоКабінетуДоступнаЗа,
     },
     en: {
-      title: "Public link (not recommended)",
-      description: "The file must be shared with anyone who has the link. Data is accessible to anyone with the link. Read-only — the Drive file is never modified.",
-      detail: "This cabinet’s spreadsheet is accessible by link",
+      title: englishCopy.titlePublicLinkNotRecommended,
+      description: englishCopy.descriptionTheFileMustBeShared,
+      detail: englishCopy.detailThisCabinetSSpreadsheetIsAccessible,
     },
   },
 };

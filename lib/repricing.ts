@@ -16,6 +16,7 @@ import {
   type RepricingSku,
   type RepricingInputs,
 } from "./repricing-contract";
+import { repricingMessages as englishApiMessages } from "@/messages/en.json";
 export class RepricingError extends Error {
   constructor(
     readonly code: string,
@@ -161,18 +162,18 @@ export function parseRepricingRequest(value: unknown): RepricingRequest {
     liquidationReason: null,
   };
   if (!["CAPITAL", "TURNOVER", "SEASON"].includes(parameters.goal))
-    issues.push("parameters.goal: unsupported goal");
+    issues.push(englishApiMessages.parametersGoalUnsupportedGoal);
   if (![4, 10, 14].includes(parameters.durationDays))
-    issues.push("parameters.durationDays: expected 4, 10 or 14");
+    issues.push(englishApiMessages.parametersDurationDaysExpected410Or14);
   if (parameters.minDiscountPct > parameters.maxDiscountPct)
-    issues.push("parameters.minDiscountPct: cannot exceed maximum discount");
+    issues.push(englishApiMessages.parametersMinDiscountPctCannotExceedMaximumDiscount);
   if (p.liquidationReason !== undefined && p.liquidationReason !== null) {
     if (
       typeof p.liquidationReason !== "string" ||
       !p.liquidationReason.trim() ||
       p.liquidationReason.length > 500
     )
-      issues.push("parameters.liquidationReason: invalid reason");
+      issues.push(englishApiMessages.parametersLiquidationReasonInvalidReason);
     else parameters.liquidationReason = p.liquidationReason.trim();
   }
   if (
@@ -180,10 +181,10 @@ export function parseRepricingRequest(value: unknown): RepricingRequest {
     (parameters.costProtection || !parameters.liquidationReason)
   )
     issues.push(
-      "parameters.liquidation: requires costProtection=false and a reason",
+      englishApiMessages.parametersLiquidationRequiresCostProtectionFalseAndAReason,
     );
   if (!parameters.liquidation && parameters.liquidationReason !== null)
-    issues.push("parameters.liquidationReason: requires liquidation=true");
+    issues.push(englishApiMessages.parametersLiquidationReasonRequiresLiquidationTrue);
   const f = record(
     root.filters,
     [
@@ -209,9 +210,9 @@ export function parseRepricingRequest(value: unknown): RepricingRequest {
     currency: "UAH",
   };
   if (!["DEAD", "RISK", "DEAD_OR_RISK"].includes(filters.status))
-    issues.push("filters.status: unsupported status");
+    issues.push(englishApiMessages.filtersStatusUnsupportedStatus);
   if (![1, 3, 7].includes(filters.soldMonths))
-    issues.push("filters.soldMonths: expected 1, 3 or 7");
+    issues.push(englishApiMessages.filtersSoldMonthsExpected13Or7);
   for (const key of ["brandId", "categoryId", "skuId"] as const)
     if (f[key] !== undefined) filters[key] = id(f[key], "filters." + key);
   if (f.currency !== undefined) {
@@ -219,7 +220,7 @@ export function parseRepricingRequest(value: unknown): RepricingRequest {
       typeof f.currency !== "string" ||
       !/^([A-Z]{3}|__unassigned__)$/.test(f.currency)
     )
-      issues.push("filters.currency: invalid currency");
+      issues.push(englishApiMessages.filtersCurrencyInvalidCurrency);
     else filters.currency = f.currency;
   }
   for (const key of [
@@ -267,7 +268,7 @@ export function parseRepricingRequest(value: unknown): RepricingRequest {
         !("included" in (root.selection as Record<string, unknown>[])[i]),
     )
   )
-    issues.push("selection: included is required");
+    issues.push(englishApiMessages.selectionIncludedIsRequired);
   const manualPrices = array(root.manualPrices, "manualPrices").map((v, i) => {
     const r = record(v, ["skuId", "price"], `manualPrices.${i}`);
     return {
@@ -288,7 +289,7 @@ export function parseRepricingRequest(value: unknown): RepricingRequest {
       typeof root.editContext !== "string" ||
       !/^[a-f0-9]{64}$/.test(root.editContext)
     )
-      issues.push("editContext: invalid context");
+      issues.push(englishApiMessages.editContextInvalidContext);
     else editContext = root.editContext;
   }
   const page = integer(root.page, 1, 1, 100000, "page"),

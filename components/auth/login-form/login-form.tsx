@@ -9,6 +9,7 @@ import { AuthField } from "../auth-field/auth-field";
 import { AuthForm } from "../auth-form/auth-form";
 import { useAuthNavigation } from "../use-auth-navigation/use-auth-navigation";
 import { useAuthSubmit } from "../use-auth-submit/use-auth-submit";
+import { authLoginFormMessages as englishCopy } from "@/messages/en.json";
 
 export default function LoginForm() {
   const { t, lang } = useLang();
@@ -53,7 +54,7 @@ export default function LoginForm() {
           onChange={(event) => setEmail(event.target.value)}
           required
           autoComplete="email"
-          placeholder="you@company.com"
+          placeholder={englishCopy.placeholderYouCompanyCom}
         />
         <AuthField
           id="login-password"
@@ -63,7 +64,7 @@ export default function LoginForm() {
           onChange={(event) => setPassword(event.target.value)}
           required
           autoComplete="current-password"
-          placeholder="••••••••"
+          placeholder={englishCopy.placeholder}
         />
       </AuthForm>
 

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { SHEETS_SOURCE_FILTER } from "@/lib/data-source";
+import { agentDataSourceMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export async function getActiveAgentImportRunId(tenantId: string): Promise<string | null> {
   if (process.env.MXMT_DEMO_AGENT_DATE) {
@@ -31,5 +32,5 @@ export async function getActiveAgentImportRunId(tenantId: string): Promise<strin
 export function brandValueFromAgentId(brandId: string): string | null {
   if (brandId === "brand:null" || brandId === "__unbranded__") return null;
   if (brandId.startsWith("brand:value:")) return brandId.slice("brand:value:".length);
-  throw new Error("Застарілий ідентифікатор бренду. Перезапустіть агента на новій базі.");
+  throw new Error(ukrainianCopy.errorЗастарілийІдентифікаторБрендуПерезапустітьАгента);
 }

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireApiUser } from "@/lib/server-auth";
 import { apiError, isRecord, parseJsonBody, validationError } from "@/lib/api-contracts";
 import { isDataTableKey } from "@/lib/data-table-api";
+import { apiDataPreferencesSheetKeyRouteMessages as englishCopy } from "@/messages/en.json";
 
 async function sheetKeyFrom(params: Promise<{ "sheet-key": string }>) {
   const { "sheet-key": sheetKey } = await params;
@@ -17,7 +18,7 @@ export async function GET(
   const { user, response } = await requireApiUser();
   if (response) return response;
   const sheetKey = await sheetKeyFrom(params);
-  if (!sheetKey) return apiError("Unknown table", 404, "TABLE_NOT_FOUND");
+  if (!sheetKey) return apiError(englishCopy.unknownTable, 404, "TABLE_NOT_FOUND");
 
   const preference = await prisma.dataTablePreference.findFirst({
     where: { tenantId: user.tenantId, userId: user.userId, sheetKey },
@@ -38,16 +39,16 @@ export async function PUT(
   const { user, response } = await requireApiUser();
   if (response) return response;
   const sheetKey = await sheetKeyFrom(params);
-  if (!sheetKey) return apiError("Unknown table", 404, "TABLE_NOT_FOUND");
+  if (!sheetKey) return apiError(englishCopy.unknownTable, 404, "TABLE_NOT_FOUND");
   const { data, response: parseResponse } = await parseJsonBody(request);
   if (parseResponse) return parseResponse;
-  if (!isRecord(data)) return validationError(["body must be an object"]);
+  if (!isRecord(data)) return validationError([englishCopy.bodyMustBeAnObject]);
 
   const issues: string[] = [];
   let visibleColumns: string[] | undefined;
   if (data.visibleColumns !== undefined) {
     if (!Array.isArray(data.visibleColumns) || data.visibleColumns.some((item) => typeof item !== "string")) {
-      issues.push("visibleColumns must be an array of strings");
+      issues.push(englishCopy.visibleColumnsMustBeAnArrayOf);
     } else {
       visibleColumns = [...new Set(data.visibleColumns.map((item) => item.trim()).filter(Boolean))].slice(0, 200);
     }
@@ -56,7 +57,7 @@ export async function PUT(
   if (data.pageSize !== undefined) {
     pageSize = Number(data.pageSize);
     if (!Number.isInteger(pageSize) || pageSize < 10 || pageSize > 200) {
-      issues.push("pageSize must be an integer between 10 and 200");
+      issues.push(englishCopy.pageSizeMustBeAnIntegerBetween);
     }
   }
   const sortColumn = data.sortColumn === null
@@ -65,7 +66,7 @@ export async function PUT(
       ? data.sortColumn.trim().slice(0, 80) || null
       : undefined;
   if (data.sortColumn !== undefined && data.sortColumn !== null && typeof data.sortColumn !== "string") {
-    issues.push("sortColumn must be a string or null");
+    issues.push(englishCopy.sortColumnMustBeAStringOr);
   }
   const sortDirection = data.sortDirection === null
     ? null
@@ -73,7 +74,7 @@ export async function PUT(
       ? data.sortDirection
       : undefined;
   if (data.sortDirection !== undefined && sortDirection === undefined) {
-    issues.push("sortDirection must be asc, desc, or null");
+    issues.push(englishCopy.sortDirectionMustBeAscDescOr);
   }
   if (issues.length > 0) return validationError(issues);
 

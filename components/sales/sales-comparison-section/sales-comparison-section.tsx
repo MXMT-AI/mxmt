@@ -9,6 +9,7 @@ import type { SalesCopy } from "@/lib/sales-copy";
 import type { SalesWorkspaceModel } from "@/lib/merchandising-sales-workspace";
 import type { SalesCurrencyBlock, SalesHref } from "../sales-types";
 import { salesTone } from "../sales-tone";
+import { salesSalesComparisonSectionMessages as englishCopy } from "@/messages/en.json";
 
 type ComparisonRow = SalesCurrencyBlock["comparison"]["rows"][number];
 
@@ -44,10 +45,10 @@ export function SalesComparisonSection({ comparison, period, history, oneOffAvai
   return (
     <section className={panel}>
       <div className="space-y-2 p-5">
-        <Heading as="h3" variant="compact" className="text-base text-inherit">S4 · {copy.comparison}</Heading>
+        <Heading as="h3" variant="compact" className="text-base text-inherit">{englishCopy.s4}{copy.comparison}</Heading>
         <Note>{copy.comparisonScope}</Note>
         <Note>
-          {copy.current}: {period.from} — {period.to} · LY:{" "}
+          {copy.current}: {period.from} — {period.to}{englishCopy.lY}{" "}
           {period.lyFrom} — {period.lyTo}
         </Note>
         {!comparison.available ? (

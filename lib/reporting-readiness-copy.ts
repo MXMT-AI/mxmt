@@ -1,4 +1,6 @@
 import type { ReportingSourceChoice } from "./reporting-source-contract";
+import { reportingReadinessCopyMessages as englishCopy } from "@/messages/en.json";
+import { reportingReadinessCopyMessages as ukrainianCopy } from "@/messages/uk.json";
 export type ReportingHelp = { message: string; href: string; action: string };
 export function reportingErrorHelp(
   code: string,
@@ -7,11 +9,11 @@ export function reportingErrorHelp(
   const uk = lang === "uk";
   const settings = {
     href: "/settings",
-    action: uk ? "Відкрити налаштування" : "Open Settings",
+    action: uk ? ukrainianCopy.actionOpenSettings : englishCopy.actionOpenSettings,
   };
   const data = {
     href: "/data-reporting?provider=sheets",
-    action: uk ? "Відкрити дані та звіти" : "Open Data & Reports",
+    action: uk ? ukrainianCopy.actionOpenDataReports : englishCopy.actionOpenDataReports,
   };
   if (
     [
@@ -23,43 +25,43 @@ export function reportingErrorHelp(
     return {
       ...settings,
       message: uk
-        ? "Джерело звітів не вибрано або воно недоступне. У налаштуваннях підключіть джерело та виберіть його для звітів."
-        : "The reporting source is not selected or is unavailable. Connect a source in Settings and select it for reporting.",
+        ? ukrainianCopy.messageTheReportingSourceIsNot
+        : englishCopy.messageTheReportingSourceIsNot,
     };
   if (code === "PUBLICATION_INPUT_LIMIT")
     return {
       ...settings,
       message: uk
-        ? "Зріз перевищує допустимий обсяг. Виберіть коротший звітний період."
-        : "The snapshot exceeds the data size limit. Choose a shorter reporting period.",
+        ? ukrainianCopy.messageTheSnapshotExceedsTheData
+        : englishCopy.messageTheSnapshotExceedsTheData,
     };
   if (code === "PUBLISHED_DATE_INCOMPLETE")
     return {
       ...settings,
       message: uk
-        ? "Для вибраної дати ще бракує підтверджених продажів або залишків. Перевірте імпорт і спробуйте ще раз."
-        : "Verified sales or inventory is missing for the selected date. Check the import and try again.",
+        ? ukrainianCopy.messageVerifiedSalesOrInventoryIs
+        : englishCopy.messageVerifiedSalesOrInventoryIs,
     };
   if (code === "PUBLICATION_CONFLICT" || code === "PUBLISHED_SOURCE_CHANGED")
     return {
       ...settings,
       message: uk
-        ? "Під час підготовки зрізу дані змінилися. Спробуйте оновити звіт ще раз."
-        : "The source changed while the snapshot was being prepared. Try refreshing again.",
+        ? ukrainianCopy.messageTheSourceChangedWhileThe
+        : englishCopy.messageTheSourceChangedWhileThe,
     };
   if (code === "SHEETS_MAPPING_REQUIRED")
     return {
       ...settings,
       message: uk
-        ? "Потрібно погодити зіставлення Google Sheets. Перевірте колонки, статуси, дати та одиниці сум у налаштуваннях."
-        : "Google Sheets mapping needs approval. Review columns, statuses, dates and amount units in Settings.",
+        ? ukrainianCopy.messageGoogleSheetsMappingNeedsApproval
+        : englishCopy.messageGoogleSheetsMappingNeedsApproval,
     };
   if (code === "SHEETS_IMPORT_REQUIRED")
     return {
       ...data,
       message: uk
-        ? "Google Sheets ще не перенесено у MVP-звіти. Імпортуйте таблицю та натисніть «Оновити MVP-звіти». Самого перегляду вихідних вкладок недостатньо."
-        : "Google Sheets has not been projected into MVP reports yet. Import the workbook and choose Refresh MVP reports. Viewing the raw tabs alone does not prepare report inputs.",
+        ? ukrainianCopy.messageGoogleSheetsHasNotBeen
+        : englishCopy.messageGoogleSheetsHasNotBeen,
     };
   if (
     [
@@ -71,8 +73,8 @@ export function reportingErrorHelp(
     return {
       ...settings,
       message: uk
-        ? "Джерело ще не готове до звітів. Перевірте доступ і завершіть імпорт у налаштуваннях."
-        : "The source is not ready for reporting. Check access and complete its import in Settings.",
+        ? ukrainianCopy.messageTheSourceIsNotReady
+        : englishCopy.messageTheSourceIsNotReady,
     };
   if (
     [
@@ -84,14 +86,14 @@ export function reportingErrorHelp(
     return {
       ...settings,
       message: uk
-        ? "Вибір джерела або періоду змінився. Оновіть звіт, щоб отримати узгоджені показники."
-        : "The source or period selection changed. Refresh the report to load consistent metrics.",
+        ? ukrainianCopy.messageTheSourceOrPeriodSelection
+        : englishCopy.messageTheSourceOrPeriodSelection,
     };
   return {
     ...settings,
     message: uk
-      ? "Не вдалося завантажити звіт. Повторіть запит; якщо помилка залишається, перевірте вибране джерело та прогрес імпорту в налаштуваннях."
-      : "The report could not be loaded. Retry; if the error persists, check the selected source and import progress in Settings.",
+      ? ukrainianCopy.messageTheReportCouldNotBe
+      : englishCopy.messageTheReportCouldNotBe,
   };
 }
 export function reportingSourceHelp(
@@ -114,9 +116,9 @@ export function reportingSourceHelp(
   return {
     message:
       lang === "uk"
-        ? "Дані джерела готові до розрахунку. Повнота історії та доступність окремих показників перевіряються у звітах."
-        : "Source inputs are ready for calculation. History completeness and individual metric availability are checked in reports.",
+        ? ukrainianCopy.messageSourceInputsAreReadyFor
+        : englishCopy.messageSourceInputsAreReadyFor,
     href: "/overview",
-    action: lang === "uk" ? "Відкрити Огляд" : "Open Overview",
+    action: lang === "uk" ? ukrainianCopy.actionOpenOverview : englishCopy.actionOpenOverview,
   };
 }

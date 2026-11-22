@@ -13,6 +13,7 @@ import {
   type ReorderingBrandResult,
 } from "@/lib/agent-fallbacks";
 import { getCurrentDependencyRun, resolveAgentRunContext } from "@/lib/agent-dependencies";
+import { apiAgentsReorderingRouteMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export const runtime = "nodejs";
 export const maxDuration = 180;
@@ -83,7 +84,7 @@ export async function POST(req: NextRequest) {
   const inventoryState = await getCurrentDependencyRun(tenantId, "inventory_analyst", context);
   if (!inventoryState.ready) {
     return apiError(
-      "Спочатку запустіть Inventory Analyst для поточного імпорту та періоду.",
+      ukrainianCopy.спочаткуЗапустітьInventoryAnalystДля,
       409,
       "AGENT_DEPENDENCY_NOT_READY",
       [`Inventory Analyst: ${inventoryState.reason}`]
@@ -110,7 +111,7 @@ export async function POST(req: NextRequest) {
         where: { id: run.id },
         data: {
           status: "done",
-          output: { brands: [], message: "Немає брендів із ризиком дефіциту. Дні запасу (DOH) у всіх понад 30 днів." },
+          output: { brands: [], message: ukrainianCopy.messageНемаєБрендівІзРизикомДефіциту },
           finishedAt: new Date(),
         },
       });
@@ -153,7 +154,7 @@ export async function POST(req: NextRequest) {
       analysis_date: (asOf ?? new Date()).toISOString().slice(0, 10),
       brands: batched.results,
       ...(batched.errors.length > 0
-        ? { message: "Частину сценаріїв сформовано без AI через недоступність провайдера." }
+        ? { message: ukrainianCopy.messageЧастинуСценаріївСформованоБезAI }
         : {}),
     };
 

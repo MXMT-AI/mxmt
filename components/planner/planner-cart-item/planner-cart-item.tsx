@@ -7,6 +7,8 @@ import { control } from "@/components/ui/control-styles/control-styles";
 import { cn } from "@/lib/utils";
 import type { CartItem } from "../planner-types";
 import { parsePlannerQuantity } from "../planner-quantity";
+import { formatMessage } from "@/i18n/format-message";
+import { plannerPlannerCartItemMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export function PlannerCartItem({ item, removeFromCart, updateQty, fmt }: {
   item: CartItem;
@@ -26,7 +28,7 @@ export function PlannerCartItem({ item, removeFromCart, updateQty, fmt }: {
       <div className="flex items-center gap-3">
         <input
           type="number"
-          aria-label={`Кількість для ${item.name} (${item.sku})`}
+          aria-label={formatMessage(ukrainianCopy.ariaLabelКількістьДля, { name: item.name, sku: item.sku })}
           min={1}
           step={1}
           value={draft}
@@ -48,7 +50,7 @@ export function PlannerCartItem({ item, removeFromCart, updateQty, fmt }: {
         <span className="text-sm font-mono text-(--text) w-20 text-right">€{fmt(item.price * item.qty)}</span>
         <Button
           variant="icon"
-          aria-label={`Видалити ${item.name} (${item.sku}) із замовлення`}
+          aria-label={formatMessage(ukrainianCopy.ariaLabelВидалитиІзЗамовлення, { name: item.name, sku: item.sku })}
           onClick={() => removeFromCart(item.catalogItemId)}
           className="min-h-0 min-w-0 rounded-none border-0 bg-transparent p-0 hover:bg-transparent hover:text-accent-orange"
         >

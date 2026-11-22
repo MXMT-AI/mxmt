@@ -22,6 +22,8 @@ import {
   type NormalizationIssue,
   type NormalizedWorkbook,
 } from "@/lib/data-normalization";
+import { formatMessage } from "@/i18n/format-message";
+import { dataImportMessages as englishCopy } from "@/messages/en.json";
 
 const RAW_ROW_BATCH_SIZE = 750;
 const TYPED_ROW_BATCH_SIZE = 500;
@@ -359,7 +361,7 @@ export async function importRawWorkbookBuffer(
           sheetKey: sheet.key,
           code: "MISSING_OPTIONAL_SHEET",
           severity: "WARNING" as const,
-          message: `Optional worksheet "${sheet.sourceName}" is missing`,
+          message: formatMessage(englishCopy.messageOptionalWorksheetIs, { sourceName: sheet.sourceName }),
           context: asJson({ sourceName: sheet.sourceName }),
         })),
       });

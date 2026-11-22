@@ -7,6 +7,8 @@ import { StockHistoryChart } from "../stock-history-chart/stock-history-chart";
 import { StockHistoryTable } from "../stock-history-table/stock-history-table";
 import { stockHistoryCopy } from "./copy";
 import { formatStockHistoryPoints } from "./stock-history-format";
+import { stockStockHistoryMessages as englishCopy } from "@/messages/en.json";
+import { stockStockHistoryMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export default function StockHistory({ history, currency, lang }: {
   history: History & { unavailableReason?: "COHORT_LIMIT" };
@@ -21,7 +23,7 @@ export default function StockHistory({ history, currency, lang }: {
       <div className="my-5 flex min-h-64 flex-col justify-center space-y-3 rounded-lg border border-dashed border-(--border) px-6 text-center">
         <Heading as="h4" variant="compact" className="text-base text-inherit">
           {history.unavailableReason === "COHORT_LIMIT"
-            ? lang === "uk" ? "Звузьте фільтри для історії залишків" : "Narrow filters to view stock history"
+            ? lang === "uk" ? ukrainianCopy.narrowFiltersToViewStock : englishCopy.narrowFiltersToViewStock
             : copy.empty}
         </Heading>
         <Text variant="body" className="leading-normal text-(--muted)">{copy.body}</Text>

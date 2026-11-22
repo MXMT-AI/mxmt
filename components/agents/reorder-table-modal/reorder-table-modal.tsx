@@ -8,6 +8,8 @@ import { buildReorderSheetValues } from "@/lib/reorder-sheet";
 import { SimulationDialog } from "../simulation-dialog/simulation-dialog";
 import { SimulationTable, type SimulationColumn } from "../simulation-table/simulation-table";
 import { useAgentSimulation } from "../use-agent-simulation";
+import { formatMessage } from "@/i18n/format-message";
+import { agentsReorderTableModalMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export interface ReorderSimParams {
   brandId: string;
@@ -21,15 +23,15 @@ export interface ReorderSimParams {
 
 const amountFormatter = new Intl.NumberFormat("uk-UA", { maximumFractionDigits: 0 });
 const formatAmount = (value: number) => amountFormatter.format(value);
-const formatDays = (days: number | null) => days != null ? `${days}д` : "∞";
+const formatDays = (days: number | null) => days != null ? formatMessage(ukrainianCopy.formatDaysД, { days }) : "∞";
 
 const reorderColumns: SimulationColumn<ReorderSkuRow>[] = [
   { label: "SKU", render: (row) => row.sku, className: "text-(--text)" },
-  { label: "Назва", render: (row) => row.name, title: (row) => row.name, className: "max-w-[180px] truncate" },
-  { label: "Залишок", render: (row) => row.stock },
-  { label: "Шт/день", render: (row) => row.velocityPerDay },
+  { label: ukrainianCopy.labelНазва, render: (row) => row.name, title: (row) => row.name, className: "max-w-[180px] truncate" },
+  { label: ukrainianCopy.labelЗалишок, render: (row) => row.stock },
+  { label: ukrainianCopy.labelШтДень, render: (row) => row.velocityPerDay },
   {
-    label: "DOH зараз",
+    label: ukrainianCopy.labelDOHЗараз,
     render: (row) => formatDays(row.wohNowDays),
     className: ({ wohNowDays }) => {
       if (wohNowDays == null) return "";
@@ -37,11 +39,11 @@ const reorderColumns: SimulationColumn<ReorderSkuRow>[] = [
       return wohNowDays < 30 ? "text-accent-yellow" : "";
     },
   },
-  { label: "Дозамовлення", render: (row) => row.orderQty, className: "font-semibold text-(--text)" },
-  { label: "Закупка", render: (row) => formatAmount(row.pricePurchase) },
-  { label: "Вартість", render: (row) => formatAmount(row.orderCost), className: "text-accent-yellow" },
-  { label: "Залишок після", render: (row) => row.stockAfter },
-  { label: "DOH після", render: (row) => formatDays(row.wohAfterDays), className: "text-accent-cyan" },
+  { label: ukrainianCopy.labelДозамовлення, render: (row) => row.orderQty, className: "font-semibold text-(--text)" },
+  { label: ukrainianCopy.labelЗакупка, render: (row) => formatAmount(row.pricePurchase) },
+  { label: ukrainianCopy.labelВартість, render: (row) => formatAmount(row.orderCost), className: "text-accent-yellow" },
+  { label: ukrainianCopy.labelЗалишокПісля, render: (row) => row.stockAfter },
+  { label: ukrainianCopy.labelDOHПісля, render: (row) => formatDays(row.wohAfterDays), className: "text-accent-cyan" },
 ];
 
 export default function ReorderTableModal({ params, onClose }: {
@@ -55,13 +57,13 @@ export default function ReorderTableModal({ params, onClose }: {
     ...(params.dateFrom ? { dateFrom: params.dateFrom } : {}),
   });
 
-  const title = `Дозамовлення ${params.brandName} · ${params.type} ×${params.qtyMultiplier} · ${new Date().toISOString().slice(0, 10)}`;
+  const title = formatMessage(ukrainianCopy.titleДозамовлення, { brandName: params.brandName, type: params.type, qtyMultiplier: params.qtyMultiplier, value4: new Date().toISOString().slice(0, 10) });
   return (
     <SimulationDialog
       simulation={simulation}
       title={<span className="block truncate">{params.brandName} · <span className="text-accent-purple">{params.type}</span> {params.label} (×{params.qtyMultiplier})</span>}
-      subtitle="Розрахунок дозамовлення · без AI, чиста математика"
-      closeLabel="Закрити таблицю дозамовлення"
+      subtitle={ukrainianCopy.subtitleРозрахунокДозамовленняБезAI}
+      closeLabel={ukrainianCopy.closeLabelЗакритиТаблицюДозамовлення}
       onClose={onClose}
     >
       {(sim) => <ReorderResult simulation={sim} title={title} scenarioTitle={`${params.type} — ${params.label}`} />}
@@ -76,18 +78,18 @@ function ReorderResult({ simulation: sim, title, scenarioTitle }: {
 }) {
   const { totals } = sim;
   const metrics = [
-    { label: "Позицій", value: totals.skuCount },
-    { label: "Залишок зараз", value: `${formatAmount(totals.stock)} шт` },
-    { label: "Дозамовлення", value: `${formatAmount(totals.orderQty)} шт`, color: "var(--violet-ink)" },
-    { label: "Вартість замовлення", value: `${formatAmount(totals.orderCost)} грн`, color: "var(--amber-ink)" },
-    { label: "Залишок після", value: `${formatAmount(totals.stockAfter)} шт`, color: "var(--cyan-ink)" },
+    { label: ukrainianCopy.labelПозицій, value: totals.skuCount },
+    { label: ukrainianCopy.labelЗалишокЗараз, value: `${formatAmount(totals.stock)} шт` },
+    { label: ukrainianCopy.labelДозамовлення, value: `${formatAmount(totals.orderQty)} шт`, color: "var(--violet-ink)" },
+    { label: ukrainianCopy.labelВартістьЗамовлення, value: `${formatAmount(totals.orderCost)} грн`, color: "var(--amber-ink)" },
+    { label: ukrainianCopy.labelЗалишокПісля, value: `${formatAmount(totals.stockAfter)} шт`, color: "var(--cyan-ink)" },
   ];
 
   return (
     <>
       <ExcelExportButton
         title={title}
-        sheetName="Дозамовлення"
+        sheetName={ukrainianCopy.labelДозамовлення}
         buildValues={() => buildReorderSheetValues(sim, { title: scenarioTitle, formulas: true })}
         disabled={sim.rows.length === 0}
       />
@@ -96,19 +98,15 @@ function ReorderResult({ simulation: sim, title, scenarioTitle }: {
         {metrics.map((metric) => <MetricTile key={metric.label} variant="summary" {...metric} />)}
       </dl>
 
-      <p className="font-mono text-[10px] text-(--subtle)">
-        Сценарій перевірено сервером; розрахунок детермінований: замовлення = чиста швидкість × {sim.coverDays} дн × {sim.qtyMultiplier} − залишок.
-        {sim.leadTimeDays != null
-          ? ` Lead time бренда: ${sim.leadTimeDays} дн.`
-          : " Lead time і MOQ постачальника не задані — перевірте їх перед замовленням."}
-        {" "}Дані за {sim.periodDays} дн.{sim.dateFrom ? ` (${sim.dateFrom} — ${sim.asOf ?? "сьогодні"})` : ""}.
-        В експорті покриття в B2 і множник в E2 — формули перерахуються автоматично.
-      </p>
+      <p className="font-mono text-[10px] text-(--subtle)">{ukrainianCopy.сценарійПеревіреноСерверомРозрахунокДетермінований}{sim.coverDays}{ukrainianCopy.дн}{sim.qtyMultiplier}{ukrainianCopy.залишок}{sim.leadTimeDays != null
+          ? formatMessage(ukrainianCopy.leadTimeБрендаДн, { leadTimeDays: sim.leadTimeDays })
+          : ukrainianCopy.leadTimeІMOQПостачальника}
+        {" "}{ukrainianCopy.даніЗа}{sim.periodDays}{ukrainianCopy.дн2}{sim.dateFrom ? ` (${sim.dateFrom} — ${sim.asOf ?? ukrainianCopy.сьогодні})` : ""}{ukrainianCopy.вЕкспортіПокриттяВ}</p>
 
       <SimulationTable
         rows={sim.rows}
         columns={reorderColumns}
-        emptyMessage="Немає SKU з продажами або залишком для цього бренда."
+        emptyMessage={ukrainianCopy.emptyMessageНемаєSKUЗПродажамиАбо}
         totals={
           <>
             <td>{formatAmount(totals.stock)}</td>

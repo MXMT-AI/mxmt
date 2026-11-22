@@ -17,6 +17,8 @@ import { createCalendarChipLookup } from "./calendar-chips";
 import { useCalendarData } from "./use-calendar-data";
 import { useCalendarEvents } from "./use-calendar-events";
 import { useCalendarAiPlan } from "./use-calendar-ai-plan";
+import { calendarMarketingCalendarMessages as englishCopy } from "@/messages/en.json";
+import { calendarMarketingCalendarMessages as ukrainianCopy } from "@/messages/uk.json";
 
 const visibleWeekCount = 4;
 
@@ -47,9 +49,9 @@ export default function MarketingCalendar({ initialEvents, calendar }: { initial
 
   const locale = lang === "uk" ? "uk" : "en";
   const labels = {
-    agent_analysis:   lang === "uk" ? "Детальний аналіз агента" : "Detailed agent analysis",
-    agent_insights_h: lang === "uk" ? "Інсайти агента"   : "Agent insights",
-    stock_title:      lang === "uk" ? "Статус залишків (реальні дані)" : "Stock status (live data)",
+    agent_analysis:   lang === "uk" ? ukrainianCopy.agentAnalysisDetailedAgentAnalysis : englishCopy.agentAnalysisDetailedAgentAnalysis,
+    agent_insights_h: lang === "uk" ? ukrainianCopy.agentInsightsHAgentInsights   : englishCopy.agentInsightsHAgentInsights,
+    stock_title:      lang === "uk" ? ukrainianCopy.stockTitleStockStatusLiveData : englishCopy.stockTitleStockStatusLiveData,
   };
 
   return (
@@ -57,17 +59,17 @@ export default function MarketingCalendar({ initialEvents, calendar }: { initial
       <div className="flex justify-between items-start mb-5 flex-wrap gap-3">
         <div>
           <div className="text-[10px] font-mono uppercase tracking-widest text-(--subtle) mb-1">
-            {lang === "uk" ? "Маркетинговий планер" : "Marketing Planner"}
+            {lang === "uk" ? ukrainianCopy.marketingPlanner : englishCopy.marketingPlanner}
           </div>
           <Heading as="h1" variant="page" className="text-xl tracking-normal">
-            {lang === "uk" ? "Календар активностей" : "Activity Calendar"}
+            {lang === "uk" ? ukrainianCopy.activityCalendar : englishCopy.activityCalendar}
           </Heading>
           <Note className="mt-0.5 font-mono leading-4">
             {weeks[0] && weeks[weeks.length - 1]
               ? `${weeks[0].d.split("–")[0]} — ${weeks[weeks.length - 1].d.split("–")[1]}`
               : ""}
             {" · "}
-            {lang === "uk" ? "Реальні дані" : "Live data"}
+            {lang === "uk" ? ukrainianCopy.liveData : englishCopy.liveData}
           </Note>
         </div>
 
@@ -103,8 +105,8 @@ export default function MarketingCalendar({ initialEvents, calendar }: { initial
         onChange={setScrollStart}
       />
 
-      {aiError && <Note role="alert" className="mb-2 text-sm leading-5 text-accent-danger">{lang === "uk" ? "Не вдалося згенерувати AI-план. Спробуйте ще раз." : "Could not generate the AI plan. Please try again."}</Note>}
-      {deleteError && <Note role="alert" className="mb-2 text-sm leading-5 text-accent-danger">{lang === "uk" ? "Не вдалося видалити подію." : "Could not delete the event."}</Note>}
+      {aiError && <Note role="alert" className="mb-2 text-sm leading-5 text-accent-danger">{lang === "uk" ? ukrainianCopy.couldNotGenerateTheAI : englishCopy.couldNotGenerateTheAI}</Note>}
+      {deleteError && <Note role="alert" className="mb-2 text-sm leading-5 text-accent-danger">{lang === "uk" ? ukrainianCopy.couldNotDeleteTheEvent : englishCopy.couldNotDeleteTheEvent}</Note>}
       <CalendarGrid
         weeks={visibleWeeks}
         locale={locale}

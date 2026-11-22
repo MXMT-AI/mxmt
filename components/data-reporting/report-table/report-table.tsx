@@ -5,6 +5,8 @@ import { ArrowDown, ArrowUp } from "lucide-react";
 import { Button } from "@/components/ui/button/button";
 import type { DataColumnMetadata } from "@/lib/data-table-api";
 import { createTableValueFormatter } from "@/lib/data-reporting-ui";
+import { dataReportingReportTableMessages as englishCopy } from "@/messages/en.json";
+import { dataReportingReportTableMessages as ukrainianCopy } from "@/messages/uk.json";
 
 const cellBase = "border-r px-3 last:border-r-0";
 
@@ -53,7 +55,7 @@ export default function ReportTable({
       className="max-h-[62vh] overflow-auto"
       tabIndex={0}
       role="region"
-      aria-label={locale === "uk-UA" ? "Таблиця звіту" : "Report table"}
+      aria-label={locale === "uk-UA" ? ukrainianCopy.ariaLabelReportTable : englishCopy.ariaLabelReportTable}
     >
       <table className="w-full min-w-max border-collapse text-xs">
         <thead className="sticky top-0 z-10 bg-(--surface2)">

@@ -1,39 +1,42 @@
+import { settingsSheetsMappingPolicyFieldsPolicyFieldsMessages as englishCopy } from "@/messages/en.json";
+import { settingsSheetsMappingPolicyFieldsPolicyFieldsMessages as ukrainianCopy } from "@/messages/uk.json";
+
 export const policyFields = [
   {
-    key: "salesAmount", uk: "Сума після знижок", en: "Amount after discounts",
+    key: "salesAmount", uk: ukrainianCopy.enAmountAfterDiscounts, en: englishCopy.enAmountAfterDiscounts,
     options: [
-      { value: "net_line", uk: "За весь рядок", en: "Line total" },
-      { value: "net_unit", uk: "За одиницю", en: "Per unit" },
+      { value: "net_line", uk: ukrainianCopy.enLineTotal, en: englishCopy.enLineTotal },
+      { value: "net_unit", uk: ukrainianCopy.enPerUnit, en: englishCopy.enPerUnit },
     ],
   },
   {
-    key: "costAmount", uk: "Собівартість у продажах", en: "Sales cost basis",
+    key: "costAmount", uk: ukrainianCopy.enSalesCostBasis, en: englishCopy.enSalesCostBasis,
     options: [
-      { value: "line", uk: "За весь рядок", en: "Line total" },
-      { value: "unit", uk: "За одиницю", en: "Per unit" },
-      { value: "unavailable", uk: "Не підтверджена", en: "Unverified" },
+      { value: "line", uk: ukrainianCopy.enLineTotal, en: englishCopy.enLineTotal },
+      { value: "unit", uk: ukrainianCopy.enPerUnit, en: englishCopy.enPerUnit },
+      { value: "unavailable", uk: ukrainianCopy.enUnverified, en: englishCopy.enUnverified },
     ],
   },
   {
-    key: "lineIdentity", uk: "Ідентичність рядка замовлення", en: "Order line identity",
+    key: "lineIdentity", uk: ukrainianCopy.enOrderLineIdentity, en: englishCopy.enOrderLineIdentity,
     options: [
-      { value: "column", uk: "Окрема колонка ID рядка", en: "Dedicated line-ID column" },
-      { value: "order_product", uk: "Унікальна пара замовлення / товар", en: "Unique order / product pair" },
+      { value: "column", uk: ukrainianCopy.enDedicatedLineIDColumn, en: englishCopy.enDedicatedLineIDColumn },
+      { value: "order_product", uk: ukrainianCopy.enUniqueOrderProductPair, en: englishCopy.enUniqueOrderProductPair },
     ],
   },
   {
-    key: "stockObservation", uk: "Час спостереження залишків", en: "Stock observation basis",
+    key: "stockObservation", uk: ukrainianCopy.enStockObservationBasis, en: englishCopy.enStockObservationBasis,
     options: [
-      { value: "unverified", uk: "Не підтверджено", en: "Unverified" },
-      { value: "column", uk: "З колонки часу", en: "Timestamp column" },
-      { value: "import_observation", uk: "Поточне спостереження під час імпорту", en: "Current observation during import" },
+      { value: "unverified", uk: ukrainianCopy.enUnverified2, en: englishCopy.enUnverified2 },
+      { value: "column", uk: ukrainianCopy.enTimestampColumn, en: englishCopy.enTimestampColumn },
+      { value: "import_observation", uk: ukrainianCopy.enCurrentObservationDuringImport, en: englishCopy.enCurrentObservationDuringImport },
     ],
   },
   {
-    key: "defaultProductKind", uk: "Тип позицій за замовчуванням", en: "Default product kind",
+    key: "defaultProductKind", uk: ukrainianCopy.enDefaultProductKind, en: englishCopy.enDefaultProductKind,
     options: [
-      { value: "UNKNOWN", uk: "Не підтверджено", en: "Unverified" },
-      { value: "MERCHANDISE", uk: "Товар", en: "Merchandise" },
+      { value: "UNKNOWN", uk: ukrainianCopy.enUnverified2, en: englishCopy.enUnverified2 },
+      { value: "MERCHANDISE", uk: ukrainianCopy.enMerchandise, en: englishCopy.enMerchandise },
     ],
   },
 ] as const;

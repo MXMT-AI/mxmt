@@ -6,6 +6,8 @@ import { isRecord } from "@/lib/api-contracts";
 import { validateReportPeriod } from "@/lib/data-reporting-ui";
 import { postDataReportingAction } from "@/lib/client/data-reporting-request";
 import { refreshSelectedSheetsReports, SheetsReportingRefreshError, sheetsRefreshMessage } from "@/lib/client/sheets-reporting";
+import { dataReportingUseReportActionsMessages as englishCopy } from "@/messages/en.json";
+import { dataReportingUseReportActionsMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export type ReportAction = "import" | "calculate" | "projection";
 
@@ -52,7 +54,7 @@ export function useReportActions({ dateFrom, dateTo, canImport, lang, periodCopy
             window.dispatchEvent(new Event("connector-connection-changed"));
           }
           if (projected.state === "NOT_SELECTED" && kind === "projection") {
-            messages.push(lang === "uk" ? "Виберіть погоджене джерело Google Sheets у налаштуваннях." : "Select an approved Google Sheets reporting source in Settings.");
+            messages.push(lang === "uk" ? ukrainianCopy.selectAnApprovedGoogleSheets : englishCopy.selectAnApprovedGoogleSheets);
           }
         } catch (error) {
           const requestId = error instanceof SheetsReportingRefreshError ? error.requestId : undefined;
@@ -63,13 +65,13 @@ export function useReportActions({ dateFrom, dateTo, canImport, lang, periodCopy
         try {
           await postDataReportingAction("/api/data/calculate", { dateFrom, dateTo, ...(importedRunId ? { importRunId: importedRunId } : {}) }, lang);
         } catch (error) {
-          messages.push((lang === "uk" ? "Розрахунок вкладок «Дані та звіти»: " : "Data & Reports tab calculation: ") + (error instanceof Error ? error.message : "Calculation failed"));
+          messages.push((lang === "uk" ? ukrainianCopy.dataReportsTabCalculation : englishCopy.dataReportsTabCalculation) + (error instanceof Error ? error.message : englishCopy.calculationFailed));
         }
       }
       setActionError(messages.length ? messages.join(" ") : null);
       onComplete();
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : "Action failed");
+      setActionError(error instanceof Error ? error.message : englishCopy.actionFailed);
     } finally {
       inFlight.current = false;
       onReload();

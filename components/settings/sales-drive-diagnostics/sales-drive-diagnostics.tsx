@@ -3,6 +3,9 @@ import { connectorCheckLabels } from "@/lib/connectors/check-copy";
 import type { ConnectionCheck } from "@/lib/connectors/contract";
 import type { Lang } from "@/lib/translations";
 import { diagnosticsCopy } from "../connector-diagnostics/copy";
+import { formatMessage } from "@/i18n/format-message";
+import { settingsSalesDriveDiagnosticsMessages as englishCopy } from "@/messages/en.json";
+import { settingsSalesDriveDiagnosticsMessages as ukrainianCopy } from "@/messages/uk.json";
 
 const previewLimit = 50;
 
@@ -12,13 +15,13 @@ export function SalesDriveDiagnostics({ check, lang }: { check: ConnectionCheck 
   const codes = connectorCheckLabels(lang);
   const labels: Record<string, string> = {
     ...diagnosticsCopy[lang].resources,
-    receipts: uk ? "Надходження" : "Receipts",
-    catalog: uk ? "Товари та залишки" : "Products and stock",
+    receipts: uk ? ukrainianCopy.receipts : englishCopy.receipts,
+    catalog: uk ? ukrainianCopy.catalogProductsAndStock : englishCopy.catalogProductsAndStock,
   };
   return (
     <div className="space-y-3">
       <Note className="leading-normal">
-        {uk ? "Перевірено: " : "Checked: "}
+        {uk ? ukrainianCopy.checked : englishCopy.checked}
         {new Intl.DateTimeFormat(uk ? "uk-UA" : "en-GB", {
           timeZone: "Europe/Kyiv", dateStyle: "medium", timeStyle: "short",
         }).format(new Date(check.checkedAt))}
@@ -38,11 +41,11 @@ export function SalesDriveDiagnostics({ check, lang }: { check: ConnectionCheck 
             <summary className="cursor-pointer text-sm text-(--text)">
               {labels[key]} ({new Intl.NumberFormat(lang).format(dictionary.entries.length)})
             </summary>
-            {!dictionary.complete && <Note className="mt-2 leading-normal">{uk ? "Довідник неповний або потребує підтвердження даними клієнта." : "The dictionary is incomplete or requires customer verification."}</Note>}
+            {!dictionary.complete && <Note className="mt-2 leading-normal">{uk ? ukrainianCopy.theDictionaryIsIncompleteOr : englishCopy.theDictionaryIsIncompleteOr}</Note>}
             <ul className="mt-2 max-h-56 overflow-auto text-sm text-(--text)">
               {dictionary.entries.slice(0, previewLimit).map(entry => <li className="wrap-break-word py-1" key={entry.id}>{entry.id}: {entry.name}</li>)}
             </ul>
-            {dictionary.entries.length > previewLimit && <Note className="leading-normal">{uk ? `Показано перші ${previewLimit} записів.` : `Showing the first ${previewLimit} entries.`}</Note>}
+            {dictionary.entries.length > previewLimit && <Note className="leading-normal">{uk ? formatMessage(ukrainianCopy.показаноПершіЗаписів, { previewLimit }) : `Showing the first ${previewLimit} entries.`}</Note>}
           </details>
         );
       })}

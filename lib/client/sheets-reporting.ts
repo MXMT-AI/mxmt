@@ -1,6 +1,8 @@
 import { apiFetch } from "../fetch";
 import { readApiJson } from "../api-response";
 import type { ReportingSources } from "../reporting-source-contract";
+import { clientSheetsReportingMessages as englishCopy } from "@/messages/en.json";
+import { clientSheetsReportingMessages as ukrainianCopy } from "@/messages/uk.json";
 export class SheetsReportingRefreshError extends Error {
   constructor(readonly code: string, readonly requestId?: string) {
     super(code);
@@ -61,29 +63,29 @@ export function sheetsRefreshMessage(code: string, lang: "uk" | "en") {
   const uk = lang === "uk";
   if (code === "SHEETS_CATALOG_IDENTITY_CONFLICT")
     return uk
-      ? "Імпорт збережено. У каталозі є суперечливі прив’язки товарів. Перевірте ID товарів і SKU перед оновленням MVP-звітів."
-      : "Import saved. The catalogue has conflicting product identities. Review product IDs and SKU mappings before refreshing MVP reports.";
+      ? ukrainianCopy.importSavedTheCatalogueHas
+      : englishCopy.importSavedTheCatalogueHas;
   if (code === "SHEETS_REFRESH_TIMEOUT")
     return uk
-      ? "Перенесення у MVP-звіти перевищило час очікування. Імпорт збережено. Перевірте стан перед повтором; повторно завантажувати таблицю не потрібно."
-      : "MVP projection timed out. The import is saved. Check its status before retrying; the workbook does not need to be imported again.";
+      ? ukrainianCopy.mVPProjectionTimedOutThe
+      : englishCopy.mVPProjectionTimedOutThe;
   if (["SHEETS_MAPPING_UNAVAILABLE", "SHEETS_REFRESH_FAILED"].includes(code))
     return uk
-      ? "Сервер не завершив перенесення у MVP-звіти. Імпорт збережено; перевірте стан і повідомте адміністратору час помилки та ID запиту."
-      : "The server could not finish MVP projection. The import is saved; check its status and report the error time and request ID to an administrator.";
+      ? ukrainianCopy.theServerCouldNotFinish
+      : englishCopy.theServerCouldNotFinish;
   if (
     ["SHEETS_MAPPING_REQUIRED", "SHEETS_MAPPING_REVISION_CONFLICT"].includes(
       code,
     )
   )
     return uk
-      ? "Імпорт збережено. Погодьте зіставлення Google Sheets у налаштуваннях, потім оновіть MVP-звіти."
-      : "Import saved. Approve Google Sheets mapping in Settings, then refresh MVP reports.";
+      ? ukrainianCopy.importSavedApproveGoogleSheets
+      : englishCopy.importSavedApproveGoogleSheets;
   if (code === "SHEETS_PROJECTION_CHANGED")
     return uk
-      ? "Джерело або імпорт змінилися. Перевірте вибір у налаштуваннях і повторіть оновлення MVP-звітів."
-      : "The source or import changed. Review Settings and retry MVP report refresh.";
+      ? ukrainianCopy.theSourceOrImportChanged
+      : englishCopy.theSourceOrImportChanged;
   return uk
-    ? "Не вдалося оновити MVP-звіти. Збережений імпорт залишається доступним; перевірте джерело й зіставлення у налаштуваннях."
-    : "MVP reports could not be refreshed. The saved import remains available; check source selection and mapping in Settings.";
+    ? ukrainianCopy.mVPReportsCouldNotBe
+    : englishCopy.mVPReportsCouldNotBe;
 }

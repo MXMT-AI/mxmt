@@ -2,7 +2,8 @@ import { createSign } from "crypto";
 import * as XLSX from "xlsx";
 import { fetchWithTimeout } from "@/lib/server-fetch";
 import { buildXlsxWorkbook, type SheetCell } from "@/lib/xlsx-workbook";
-
+import { formatMessage } from "@/i18n/format-message";
+import { gsheetsMessages as ukrainianCopy } from "@/messages/uk.json";
 
 interface ServiceAccount {
   client_email: string;
@@ -15,7 +16,7 @@ function loadServiceAccount(): ServiceAccount {
   const raw = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
   if (!raw) {
     throw new Error(
-      "GOOGLE_SERVICE_ACCOUNT_KEY не налаштовано — серверний експорт недоступний. Використай кнопку «У свій Google Drive» або налаштуй service account у змінних середовища хостингу."
+      ukrainianCopy.errorGOOGLESERVICEACCOUNTKEYНеНалаштованоСерверний
     );
   }
   return JSON.parse(Buffer.from(raw, "base64").toString("utf-8"));
@@ -59,7 +60,7 @@ async function getAccessToken(sa: ServiceAccount): Promise<string> {
     const text = await res.text();
     if (text.includes("invalid_grant")) {
       throw new Error(
-        "Google не прийняв ключ сервіс-акаунта (invalid_grant). Перевір що GOOGLE_SERVICE_ACCOUNT_KEY — це base64 від повного JSON-ключа і ключ не відкликаний."
+        ukrainianCopy.errorGoogleНеПрийнявКлючСервісАкаунта
       );
     }
     throw new Error(`Google auth failed: ${text}`);
@@ -69,16 +70,16 @@ async function getAccessToken(sa: ServiceAccount): Promise<string> {
 
 function translateDriveError(text: string, sa: ServiceAccount, folderId: string | null): string {
   if (/accessNotConfigured|SERVICE_DISABLED|has not been used in project/i.test(text)) {
-    return `У Google Cloud проєкті не ввімкнено Google Drive API. Відкрий console.cloud.google.com → APIs & Services → Library → Google Drive API → Enable. (${sa.client_email})`;
+    return formatMessage(ukrainianCopy.уGoogleCloudПроєктіНе, { client_email: sa.client_email });
   }
   if (folderId && /(notFound|File not found)/i.test(text)) {
-    return `Папку для експорту (${folderId}) не знайдено або вона не розшарена на сервіс-акаунт. Відкрий папку в Google Drive → Поділитися → додай ${sa.client_email} з правом «Редактор». Після зміни змінної середовища потрібен redeploy.`;
+    return formatMessage(ukrainianCopy.папкуДляЕкспорту, { folderId, client_email: sa.client_email });
   }
   if (/storageQuota|Service Accounts.*(storage|quota)|cannotAddParent|ownership/i.test(text)) {
-    return `Google не дозволяє сервіс-акаунту володіти файлами (квота сховища). Рішення: використай кнопку «У свій Google Drive» (без налаштувань), або створи папку в Shared Drive і розшар її на ${sa.client_email}.`;
+    return formatMessage(ukrainianCopy.googleНеДозволяєСервісАкаунтуВолодіти, { client_email: sa.client_email });
   }
   if (/insufficientPermissions|insufficientFilePermissions/i.test(text)) {
-    return `Сервіс-акаунту ${sa.client_email} бракує прав на папку. Розшар папку з правом «Редактор» (не «Переглядач»).`;
+    return formatMessage(ukrainianCopy.сервісАкаунтуБракуєПравНаПапку, { client_email: sa.client_email });
   }
   return `Google Drive API: ${text.slice(0, 400)}`;
 }

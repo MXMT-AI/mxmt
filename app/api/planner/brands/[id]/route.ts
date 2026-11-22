@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireApiUser } from "@/lib/server-auth";
 import { apiError, isRecord, numberField, parseJsonBody, stringField, validationError } from "@/lib/api-contracts";
+import { apiPlannerBrandsIdRouteMessages as englishCopy } from "@/messages/en.json";
 
 export async function PUT(
   request: NextRequest,
@@ -15,13 +16,13 @@ export async function PUT(
   const { id } = await params;
 
   const brand = await prisma.brand.findFirst({ where: { id, tenantId } });
-  if (!brand) return apiError("Not found", 404, "NOT_FOUND");
+  if (!brand) return apiError(englishCopy.notFound, 404, "NOT_FOUND");
 
   const { data, response: parseResponse } = await parseJsonBody(request);
   if (parseResponse) return parseResponse;
 
   if (!isRecord(data)) {
-    return validationError(["body must be an object"]);
+    return validationError([englishCopy.bodyMustBeAnObject]);
   }
 
   const issues: string[] = [];
@@ -51,7 +52,7 @@ export async function PUT(
   });
 
   if (existing) {
-    return apiError("Brand already exists", 409, "BRAND_ALREADY_EXISTS");
+    return apiError(englishCopy.brandAlreadyExists, 409, "BRAND_ALREADY_EXISTS");
   }
 
   try {
@@ -73,7 +74,7 @@ export async function PUT(
     return NextResponse.json(updated);
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-      return apiError("Brand already exists", 409, "BRAND_ALREADY_EXISTS");
+      return apiError(englishCopy.brandAlreadyExists, 409, "BRAND_ALREADY_EXISTS");
     }
 
     throw error;
@@ -90,10 +91,10 @@ export async function DELETE(
   const { id } = await params;
 
   const brand = await prisma.brand.findFirst({ where: { id, tenantId } });
-  if (!brand) return apiError("Not found", 404, "NOT_FOUND");
+  if (!brand) return apiError(englishCopy.notFound, 404, "NOT_FOUND");
 
   if (await prisma.brandAlias.count({where:{tenantId,brandId:id}})) {
-    return apiError("Remove this brand's aliases before deleting it",409,"BRAND_HAS_ALIASES");
+    return apiError(englishCopy.removeThisBrandSAliasesBefore,409,"BRAND_HAS_ALIASES");
   }
 
   await prisma.$transaction(async (tx) => {

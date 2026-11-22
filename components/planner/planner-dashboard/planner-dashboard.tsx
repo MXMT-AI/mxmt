@@ -1,5 +1,8 @@
 import { MetricTile } from "@/components/ui/metric-tile/metric-tile";
 import type { Brand, CatalogUpload, BrandBudgetStatus } from "../planner-types";
+import { formatMessage } from "@/i18n/format-message";
+import { plannerPlannerDashboardMessages as englishCopy } from "@/messages/en.json";
+import { plannerPlannerDashboardMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export function PlannerDashboard({ brands, catalogs, budgetStatus, cartLineCount, totalBudget, totalSpent, totalCartItems, fmt }: {
   brands: Brand[];
@@ -14,13 +17,13 @@ export function PlannerDashboard({ brands, catalogs, budgetStatus, cartLineCount
   const totalItems = catalogs.reduce((sum, catalog) => sum + catalog.itemCount, 0);
 
   const stats = [
-    { label: "Брендів", value: brands.length, sub: `${catalogs.length} каталогів` },
-    { label: "Товарів у каталозі", value: totalItems, sub: "по всіх брендах" },
-    { label: "У замовленні", value: cartLineCount, sub: `${totalCartItems} одиниць` },
+    { label: ukrainianCopy.labelБрендів, value: brands.length, sub: formatMessage(ukrainianCopy.subКаталогів, { length: catalogs.length }) },
+    { label: ukrainianCopy.labelТоварівУКаталозі, value: totalItems, sub: ukrainianCopy.subПоВсіхБрендах },
+    { label: ukrainianCopy.labelУЗамовленні, value: cartLineCount, sub: formatMessage(ukrainianCopy.subОдиниць, { totalCartItems }) },
     {
-      label: "Бюджет використано",
+      label: ukrainianCopy.labelБюджетВикористано,
       value: `${Math.round((totalSpent / Math.max(totalBudget, 1)) * 100)}%`,
-      sub: `€${fmt(totalSpent)} з €${fmt(totalBudget)}`,
+      sub: formatMessage(ukrainianCopy.subЗ, { value1: fmt(totalSpent), value2: fmt(totalBudget) }),
     },
   ];
 
@@ -33,9 +36,9 @@ export function PlannerDashboard({ brands, catalogs, budgetStatus, cartLineCount
       </dl>
 
       <div className="bg-(--surface) border border-(--border) rounded-xl p-5 mb-4">
-        <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-4">Бюджет по брендах</div>
+        <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-4">{ukrainianCopy.бюджетПоБрендах}</div>
         {budgetStatus.length === 0 && (
-          <p className="text-(--muted) text-sm">Брендів ще немає. Додайте бренди для відстеження бюджету.</p>
+          <p className="text-(--muted) text-sm">{ukrainianCopy.брендівЩеНемаєДодайтеБренди}</p>
         )}
         {budgetStatus.map((b) => (
           <div key={b.id} className="flex items-center gap-4 py-2 border-b border-(--border-faint) last:border-0">
@@ -61,7 +64,7 @@ export function PlannerDashboard({ brands, catalogs, budgetStatus, cartLineCount
 
       {catalogs.length > 0 && (
         <div className="bg-(--surface) border border-(--border) rounded-xl p-5">
-          <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-4">Останні завантаження</div>
+          <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-4">{ukrainianCopy.останніЗавантаження}</div>
           <div className="space-y-2">
             {catalogs.slice(0, 5).map((c) => (
               <div key={c.id} className="flex items-center justify-between py-1.5">
@@ -70,7 +73,7 @@ export function PlannerDashboard({ brands, catalogs, budgetStatus, cartLineCount
                   <span className="text-(--subtle) mx-2">·</span>
                   <span className="text-xs font-mono text-accent-cyan">{c.season}</span>
                 </div>
-                <span className="text-xs text-(--muted)">{c.itemCount} items</span>
+                <span className="text-xs text-(--muted)">{c.itemCount}{englishCopy.items}</span>
               </div>
             ))}
           </div>

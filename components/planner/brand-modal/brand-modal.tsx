@@ -10,6 +10,8 @@ import { brandMutationErrorMessage } from "./copy";
 
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button/button";
+import { plannerBrandModalMessages as englishCopy } from "@/messages/en.json";
+import { plannerBrandModalMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export function BrandModal({ brand, onClose, onSave, onDelete }: {
   brand: Brand | null;
@@ -51,24 +53,24 @@ export function BrandModal({ brand, onClose, onSave, onDelete }: {
   }
 
   return (
-    <Dialog title={brand ? "Редагувати бренд" : "Додати бренд"} closeLabel="Закрити" onClose={onClose} closeDisabled={mutation.busy} className="max-w-md">
+    <Dialog title={brand ? ukrainianCopy.titleРедагуватиБренд : ukrainianCopy.titleДодатиБренд} closeLabel={ukrainianCopy.closeLabelЗакрити} onClose={onClose} closeDisabled={mutation.busy} className="max-w-md">
       <div className="p-7">
         <fieldset disabled={mutation.busy} className="space-y-3">
-          <Field label="Назва бренду" className={plannerField}><input type="text" value={form.name} onChange={set("name")} className={plannerControl} placeholder="Prada S.p.A." /></Field>
+          <Field label={ukrainianCopy.labelНазваБренду} className={plannerField}><input type="text" value={form.name} onChange={set("name")} className={plannerControl} placeholder={englishCopy.placeholderPradaSPA} /></Field>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Бюджет сезону" className={plannerField}><input type="number" value={form.budget} onChange={set("budget")} className={plannerControl} /></Field>
-            <Field label="Валюта" className={plannerField}>
+            <Field label={ukrainianCopy.labelБюджетСезону} className={plannerField}><input type="number" value={form.budget} onChange={set("budget")} className={plannerControl} /></Field>
+            <Field label={ukrainianCopy.labelВалюта} className={plannerField}>
               <select value={form.currency} onChange={set("currency")} className={plannerControl}>
                 {["EUR", "USD", "UAH", "GBP"].map((c) => <option key={c}>{c}</option>)}
               </select>
             </Field>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Відстрочка (днів)" className={plannerField}><input type="number" value={form.paymentDays} onChange={set("paymentDays")} className={plannerControl} /></Field>
-            <Field label="Лід-тайм (днів)" className={plannerField}><input type="number" value={form.leadTimeDays} onChange={set("leadTimeDays")} className={plannerControl} /></Field>
+            <Field label={ukrainianCopy.labelВідстрочкаДнів} className={plannerField}><input type="number" value={form.paymentDays} onChange={set("paymentDays")} className={plannerControl} /></Field>
+            <Field label={ukrainianCopy.labelЛідТаймДнів} className={plannerField}><input type="number" value={form.leadTimeDays} onChange={set("leadTimeDays")} className={plannerControl} /></Field>
           </div>
-          <Field label="Країна" className={plannerField}><input type="text" value={form.country} onChange={set("country")} className={plannerControl} placeholder="Italy" /></Field>
-          <Field label="Контактний email" className={plannerField}><input type="email" value={form.contact} onChange={set("contact")} className={plannerControl} placeholder="orders@brand.com" /></Field>
+          <Field label={ukrainianCopy.labelКраїна} className={plannerField}><input type="text" value={form.country} onChange={set("country")} className={plannerControl} placeholder={englishCopy.placeholderItaly} /></Field>
+          <Field label={ukrainianCopy.labelКонтактнийEmail} className={plannerField}><input type="email" value={form.contact} onChange={set("contact")} className={plannerControl} placeholder={englishCopy.placeholderOrdersBrandCom} /></Field>
         </fieldset>
 
         {mutation.error ? <p role="alert" className="mt-3 text-sm text-red-400">{brandMutationErrorMessage(mutation.error)}</p> : null}
@@ -76,10 +78,10 @@ export function BrandModal({ brand, onClose, onSave, onDelete }: {
         <div className="flex gap-3 mt-6">
           <Button variant="accent" onClick={handleSave} disabled={mutation.busy || !form.name.trim()}
             className="flex-1">
-            {mutation.operation === "save" ? "Зберігаємо…" : "Зберегти"}
+            {mutation.operation === "save" ? ukrainianCopy.зберігаємо : ukrainianCopy.зберегти}
           </Button>
           {brand && (
-            <Button variant="report" aria-label="Видалити бренд" onClick={handleDelete} disabled={mutation.busy}
+            <Button variant="report" aria-label={ukrainianCopy.ariaLabelВидалитиБренд} onClick={handleDelete} disabled={mutation.busy}
               className="bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20 hover:text-red-400">
               <Trash2 aria-hidden="true" size={14} />
             </Button>

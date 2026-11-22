@@ -3,6 +3,7 @@ import type { Locale } from "@/i18n/routing";
 import { BrandMark } from "../brand-mark/brand-mark";
 import { problemScreenCopy } from "./copy";
 import { ProblemIllustration } from "./problem-illustration/problem-illustration";
+import { problemScreenMessages as englishCopy } from "@/messages/en.json";
 
 const container = "mx-auto w-[min(100%_-_64px,1200px)] max-[750px]:w-[calc(100%_-_36px)]";
 const action = "inline-flex min-h-[46px] items-center gap-2 rounded-full px-[17px] text-sm font-[620]";
@@ -31,7 +32,7 @@ export function ProblemScreen({
         <header className="border-b border-(--problem-line) [background:radial-gradient(circle_at_100%_0%,var(--problem-glow),transparent_24rem),var(--problem-background)]">
           <div className={`${container} flex min-h-[73px] items-center justify-between gap-4 max-[750px]:min-h-[62px]`}>
             <a href={home} className="inline-flex items-center gap-2 text-[19px] font-bold tracking-[-.035em] max-[360px]:gap-[5px] max-[360px]:text-base">
-              <BrandMark transparent /> MXMT <span className="font-[450] text-(--problem-muted)">Analytics</span>
+              <BrandMark transparent />{englishCopy.mXMT}<span className="font-[450] text-(--problem-muted)">{englishCopy.analytics}</span>
             </a>
             <a className="inline-flex items-center gap-2 text-sm text-(--problem-muted) hover:text-(--problem-accent) max-[360px]:text-xs max-[360px]:[&_svg]:hidden" href={`${home}/docs`}>{labels.docs}<ArrowRight aria-hidden="true" size={16} /></a>
           </div>

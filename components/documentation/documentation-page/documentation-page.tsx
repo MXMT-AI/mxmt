@@ -10,10 +10,11 @@ import { CsvGuide } from "../csv-guide/csv-guide";
 import { SheetsGuide } from "../sheets-guide/sheets-guide";
 import { docsCopy } from "./copy";
 import { sheetsCopy } from "./sheets-copy";
+import { documentationDocumentationPageMessages as englishCopy } from "@/messages/en.json";
 
 const sourceTabs = [
   { id: "csv", label: "CSV", href: "/docs" },
-  { id: "google-sheets", label: "Google Sheets", href: "/docs?tab=google-sheets" },
+  { id: "google-sheets", label: englishCopy.labelGoogleSheets, href: "/docs?tab=google-sheets" },
 ] as const;
 
 export async function generateMetadata(): Promise<Metadata> {

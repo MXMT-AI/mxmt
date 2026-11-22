@@ -13,6 +13,7 @@ import {
   getProviderConnection,
   saveProviderConnection,
 } from "./service";
+import { connectorsConnectionRouteMessages as englishApiMessages } from "@/messages/en.json";
 
 export function connectionHandlers(provider: SourceProvider) {
   async function handle(
@@ -47,7 +48,7 @@ export function connectionHandlers(provider: SourceProvider) {
         if (!registration)
           return respond(
             apiError(
-              "This connector adapter is not installed",
+              englishApiMessages.thisConnectorAdapterIsNotInstalled,
               409,
               "CONNECTOR_PROVIDER_UNAVAILABLE",
               undefined,
@@ -72,7 +73,7 @@ export function connectionHandlers(provider: SourceProvider) {
       if (!result)
         return respond(
           apiError(
-            "Save a connection before checking it",
+            englishApiMessages.saveAConnectionBeforeCheckingIt,
             409,
             "CONNECTOR_NOT_CONFIGURED",
             undefined,

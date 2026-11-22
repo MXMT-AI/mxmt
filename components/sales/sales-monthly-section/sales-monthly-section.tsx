@@ -8,6 +8,7 @@ import type { SalesWorkspaceModel } from "@/lib/merchandising-sales-workspace";
 import type { SalesCopy } from "@/lib/sales-copy";
 import type { SalesCurrencyBlock, SalesHref } from "../sales-types";
 import { SalesMatrix } from "../sales-matrix/sales-matrix";
+import { salesSalesMonthlySectionMessages as englishCopy } from "@/messages/en.json";
 
 export function SalesMonthlySection({ matrix, group, metric, tablePeriod, showOthers, copy, locale, href }: {
   matrix: SalesCurrencyBlock["matrix"];
@@ -23,7 +24,7 @@ export function SalesMonthlySection({ matrix, group, metric, tablePeriod, showOt
   return (
     <section className={panel}>
       <div className="space-y-2 p-5 border-b border-(--border)">
-        <Heading as="h3" variant="compact" className="text-base text-inherit">S1 · {copy.monthly}</Heading>
+        <Heading as="h3" variant="compact" className="text-base text-inherit">{englishCopy.s1}{copy.monthly}</Heading>
         <Note>
           {copy.tableScope}: {tablePeriod.from} —{" "}
           {tablePeriod.to}

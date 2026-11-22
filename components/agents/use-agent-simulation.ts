@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { agentsUseAgentSimulationMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export type AgentSimulation<T> =
   | { status: "loading" }
@@ -36,7 +37,7 @@ export function useAgentSimulation<T>(endpoint: string, request: object): AgentS
           body,
           state: response.ok
             ? { status: "success", data: data as T }
-            : { status: "error", message: typeof data?.error === "string" ? data.error : "Невідома помилка" },
+            : { status: "error", message: typeof data?.error === "string" ? data.error : ukrainianCopy.messageНевідомаПомилка },
         });
       } catch (error) {
         if (!signal.aborted) {

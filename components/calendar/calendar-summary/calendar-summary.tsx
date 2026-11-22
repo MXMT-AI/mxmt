@@ -1,6 +1,8 @@
 import { MetricTile } from "@/components/ui/metric-tile/metric-tile";
 import type { Locale } from "@/i18n/routing";
 import type { InsightItem } from "../marketing-calendar/calendar-types";
+import { calendarCalendarSummaryMessages as englishCopy } from "@/messages/en.json";
+import { calendarCalendarSummaryMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export function CalendarSummary({ eventCount, insights, locale }: {
   eventCount: number;
@@ -15,9 +17,9 @@ export function CalendarSummary({ eventCount, insights, locale }: {
     else if (insight.type === "warn") warnings += 1;
   }
   const metrics = [
-    { key: "events", value: eventCount, label: uk ? "Подій у плані" : "Events in plan", color: "text-(--text)" },
-    { key: "tips", value: tips, label: uk ? "Порад агента" : "Agent tips", color: "text-accent-positive" },
-    { key: "warnings", value: warnings, label: uk ? "Попереджень" : "Warnings", color: "text-accent-negative" },
+    { key: "events", value: eventCount, label: uk ? ukrainianCopy.labelEventsInPlan : englishCopy.labelEventsInPlan, color: "text-(--text)" },
+    { key: "tips", value: tips, label: uk ? ukrainianCopy.labelAgentTips : englishCopy.labelAgentTips, color: "text-accent-positive" },
+    { key: "warnings", value: warnings, label: uk ? ukrainianCopy.labelWarnings : englishCopy.labelWarnings, color: "text-accent-negative" },
   ];
 
   return (

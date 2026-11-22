@@ -7,6 +7,7 @@ import {
   isDataTableKey,
   parseDataTableQuery,
 } from "@/lib/data-table-api";
+import { apiDataTablesSheetKeyRouteMessages as englishCopy } from "@/messages/en.json";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,7 @@ export async function GET(
   const { user, response } = await requireApiUser();
   if (response) return response;
   const { "sheet-key": sheetKey } = await params;
-  if (!isDataTableKey(sheetKey)) return apiError("Unknown table", 404, "TABLE_NOT_FOUND");
+  if (!isDataTableKey(sheetKey)) return apiError(englishCopy.unknownTable, 404, "TABLE_NOT_FOUND");
 
   try {
     const result = await getDataTable(
@@ -31,6 +32,6 @@ export async function GET(
       return apiError(error.message, error.status, error.code);
     }
     console.error(`[data/tables/${sheetKey}]`, error);
-    return serverError("Could not load data table");
+    return serverError(englishCopy.couldNotLoadDataTable);
   }
 }

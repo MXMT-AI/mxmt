@@ -4,6 +4,8 @@ import { AlertTriangle, GitCompare } from "lucide-react";
 import { Button } from "@/components/ui/button/button";
 import { Badge } from "@/components/ui/badge/badge";
 import type { CatalogItem } from "../planner-types";
+import { plannerPlannerDuplicatesMessages as englishCopy } from "@/messages/en.json";
+import { plannerPlannerDuplicatesMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export function PlannerDuplicates({ groups, addToCart }: {
   groups: CatalogItem[][];
@@ -15,17 +17,15 @@ export function PlannerDuplicates({ groups, addToCart }: {
     return (
       <div className="text-center py-20">
         <GitCompare aria-hidden="true" size={40} className="mx-auto text-(--subtle) mb-4" />
-        <p className="text-(--text) font-medium mb-1">Сканування ще не виконано</p>
-        <p className="text-(--muted) text-sm">Натисніть «Сканувати» щоб знайти схожі позиції між брендами</p>
+        <p className="text-(--text) font-medium mb-1">{ukrainianCopy.скануванняЩеНеВиконано}</p>
+        <p className="text-(--muted) text-sm">{ukrainianCopy.натиснітьСкануватиЩобЗнайтиСхожі}</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-4 max-w-4xl">
-      <p className="text-(--muted) text-sm mb-4">
-        Знайдено {visibleGroups.length} {visibleGroups.length === 1 ? "групу" : "групи"} схожих позицій між різними брендами
-      </p>
+      <p className="text-(--muted) text-sm mb-4">{ukrainianCopy.знайдено}{visibleGroups.length} {visibleGroups.length === 1 ? ukrainianCopy.групу : ukrainianCopy.групи}{ukrainianCopy.схожихПозиційМіжРізнимиБрендами}</p>
       {visibleGroups.map((group, i) => (
         <div key={i} className="bg-(--surface) border border-accent-orange/20 rounded-xl overflow-hidden">
           <div className="px-5 py-3 border-b border-(--border) flex items-center justify-between">
@@ -38,8 +38,7 @@ export function PlannerDuplicates({ groups, addToCart }: {
               </span>
             </div>
             <Badge outlined={false} className="bg-accent-orange/10 text-accent-orange">
-              {group.length} brands
-            </Badge>
+              {group.length}{englishCopy.brands}</Badge>
           </div>
           <div className="grid grid-cols-2 gap-3 p-4">
             {group.map((item) => (
@@ -54,9 +53,7 @@ export function PlannerDuplicates({ groups, addToCart }: {
                   variant="report" tone="positive"
                   onClick={() => addToCart(item, item.minOrder)}
                   className="min-h-0 w-full text-[11px] py-1.5"
-                >
-                  До замовлення
-                </Button>
+                >{ukrainianCopy.доЗамовлення}</Button>
               </div>
             ))}
           </div>

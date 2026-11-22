@@ -1,4 +1,6 @@
 import type { BrandMetric } from "@/lib/brand-metrics";
+import { formatMessage } from "@/i18n/format-message";
+import { agentFallbacksMessages as ukrainianCopy } from "@/messages/uk.json";
 
 type RepricingStrategy = "AGGRESSIVE" | "BALANCED" | "CONSERVATIVE";
 
@@ -78,11 +80,11 @@ function marginAfterDiscount(metric: BrandMetric, discountPercent: number) {
 }
 
 function optionLabel(action: RepricingOption["action"], discountPercent: number): string {
-  if (discountPercent <= 0) return "Підвищення видимості без знижки";
-  if (action === "CLEARANCE") return `Розпродаж −${discountPercent}%`;
-  if (action === "FLASH_SALE") return `Флеш-сейл −${discountPercent}%`;
-  if (action === "VISIBILITY") return `Промопідтримка −${discountPercent}%`;
-  return `Планова уцінка −${discountPercent}%`;
+  if (discountPercent <= 0) return ukrainianCopy.підвищенняВидимостіБезЗнижки;
+  if (action === "CLEARANCE") return formatMessage(ukrainianCopy.розпродаж, { discountPercent });
+  if (action === "FLASH_SALE") return formatMessage(ukrainianCopy.флешСейл, { discountPercent });
+  if (action === "VISIBILITY") return formatMessage(ukrainianCopy.промопідтримка, { discountPercent });
+  return formatMessage(ukrainianCopy.плановаУцінка, { discountPercent });
 }
 
 function repricingAction(value: unknown, fallback: RepricingOption["action"]): RepricingOption["action"] {
@@ -99,9 +101,9 @@ function stringList(value: unknown, fallback: string[]): string[] {
 
 function currentSituation(metric: BrandMetric): string {
   if (metric.wohDays >= 9999 || metric.avgDailyVelocity <= 0) {
-    return `Залишок ${metric.totalStock} од., але за вибраний період немає продажів; прогноз днів запасу недоступний.`;
+    return formatMessage(ukrainianCopy.залишокОдАлеЗаВибраний, { totalStock: metric.totalStock });
   }
-  return `Запас на ${metric.wohDays} днів (DOH), STR ${metric.strPercent}%, тренд ${metric.trend7dPct}%.`;
+  return formatMessage(ukrainianCopy.запасНаДнівDOHSTR, { wohDays: metric.wohDays, strPercent: metric.strPercent, trend7dPct: metric.trend7dPct });
 }
 
 export function buildRepricingFallback(metric: BrandMetric): RepricingBrandResult {
@@ -116,7 +118,7 @@ export function buildRepricingFallback(metric: BrandMetric): RepricingBrandResul
   > = [
     {
       strategy_type: "AGGRESSIVE",
-      label: "Флеш-розпродаж −35%",
+      label: ukrainianCopy.labelФлешРозпродаж35,
       action: "FLASH_SALE",
       discount_percent: Math.min(35, maxDiscount),
       duration_days: 14,
@@ -125,7 +127,7 @@ export function buildRepricingFallback(metric: BrandMetric): RepricingBrandResul
     },
     {
       strategy_type: "BALANCED",
-      label: "Планова уцінка −20%",
+      label: ukrainianCopy.labelПлановаУцінка20,
       action: "MARKDOWN",
       discount_percent: Math.min(20, maxDiscount),
       duration_days: 21,
@@ -134,7 +136,7 @@ export function buildRepricingFallback(metric: BrandMetric): RepricingBrandResul
     },
     {
       strategy_type: "CONSERVATIVE",
-      label: "Підсилення видимості −10%",
+      label: ukrainianCopy.labelПідсиленняВидимості10,
       action: "VISIBILITY",
       discount_percent: recommended === "CONSERVATIVE" && (metric.trend7dPct > 0 || metric.wohDays < 45)
         ? 0
@@ -169,10 +171,10 @@ export function buildRepricingFallback(metric: BrandMetric): RepricingBrandResul
         },
         evaluation: {
           score: definition.score,
-          score_label: definition.strategy_type === recommended ? "Рекомендовано за метриками" : "Альтернативний сценарій",
-          pros: ["Сценарій розраховано з поточних метрик запасу та продажів."],
-          cons: ["Прогноз потребує перевірки після запуску."],
-          risks: ["Фактичний попит може відрізнятися від історичного."],
+          score_label: definition.strategy_type === recommended ? ukrainianCopy.scoreLabelРекомендованоЗаМетриками : ukrainianCopy.scoreLabelАльтернативнийСценарій,
+          pros: [ukrainianCopy.prosСценарійРозрахованоЗПоточнихМетрик],
+          cons: [ukrainianCopy.consПрогнозПотребуєПеревіркиПісляЗапуску],
+          risks: [ukrainianCopy.risksФактичнийПопитМожеВідрізнятисяВід],
           recommended: definition.strategy_type === recommended,
           confidence: 0.7,
         },
@@ -230,11 +232,11 @@ export function normalizeRepricingResult(
       },
       evaluation: {
         score: isRecommended ? 8 : base.evaluation.score,
-        score_label: isRecommended ? "Рекомендовано за метриками" : "Альтернативний сценарій",
+        score_label: isRecommended ? ukrainianCopy.scoreLabelРекомендованоЗаМетриками : ukrainianCopy.scoreLabelАльтернативнийСценарій,
         pros: stringList(ai?.evaluation?.pros, base.evaluation.pros),
         cons: stringList(ai?.evaluation?.cons, base.evaluation.cons),
         risks: wasDiscountLimited
-          ? [`Знижку обмежено до ${discountPercent}% для збереження маржі не нижче ${MIN_MARGIN_PERCENT}%.`, ...aiRisks]
+          ? [formatMessage(ukrainianCopy.risksЗнижкуОбмеженоДоДля, { discountPercent, MIN_MARGIN_PERCENT }), ...aiRisks]
           : aiRisks.length > 0 ? aiRisks : base.evaluation.risks,
         recommended: isRecommended,
         confidence: isRecommended ? 0.8 : 0.65,
@@ -299,29 +301,29 @@ function reorderDaysAfter(metric: BrandMetric, multiplier: number): number {
 export function buildReorderingFallback(metric: BrandMetric): ReorderingBrandResult {
   const recommended = recommendedReorderingScenario(metric);
   const definitions = [
-    { type: "PESSIMISTIC" as const, label: "Мінімальне поповнення", multiplier: 0.5, risk: "HIGH" as const, safety: "LOW" as const },
-    { type: "REALISTIC" as const, label: "Базове поповнення", multiplier: 1, risk: "LOW" as const, safety: "GOOD" as const },
-    { type: "OPTIMISTIC" as const, label: "Розширене поповнення", multiplier: 1.5, risk: "MEDIUM" as const, safety: "AGGRESSIVE" as const },
+    { type: "PESSIMISTIC" as const, label: ukrainianCopy.labelМінімальнеПоповнення, multiplier: 0.5, risk: "HIGH" as const, safety: "LOW" as const },
+    { type: "REALISTIC" as const, label: ukrainianCopy.labelБазовеПоповнення, multiplier: 1, risk: "LOW" as const, safety: "GOOD" as const },
+    { type: "OPTIMISTIC" as const, label: ukrainianCopy.labelРозширенеПоповнення, multiplier: 1.5, risk: "MEDIUM" as const, safety: "AGGRESSIVE" as const },
   ];
 
   return {
     brand_id: metric.brandId,
     brand_name: metric.brandName,
-    current_situation: `Запас на ${metric.wohDays} днів (DOH), чистий темп продажів ${metric.avgDailyVelocity} од./день, тренд ${metric.trend7dPct}%.`,
+    current_situation: formatMessage(ukrainianCopy.currentSituationЗапасНаДнівDOHЧистий, { wohDays: metric.wohDays, avgDailyVelocity: metric.avgDailyVelocity, trend7dPct: metric.trend7dPct }),
     scenarios: definitions.map((definition, index) => ({
       scenario_id: index + 1,
       type: definition.type,
       label: definition.label,
       qty_multiplier: definition.multiplier,
-      logic: `Цільове покриття — до ${Math.round(REORDER_COVER_DAYS * definition.multiplier)} днів поточного чистого попиту; без lead time та MOQ.`,
+      logic: formatMessage(ukrainianCopy.logicЦільовеПокриттяДоДнів, { value1: Math.round(REORDER_COVER_DAYS * definition.multiplier) }),
       woh_after: reorderDaysAfter(metric, definition.multiplier),
       evaluation: {
         score: definition.type === recommended ? 8 : 6,
-        score_label: definition.type === recommended ? "Рекомендовано за метриками" : "Альтернативний сценарій",
+        score_label: definition.type === recommended ? ukrainianCopy.scoreLabelРекомендованоЗаМетриками : ukrainianCopy.scoreLabelАльтернативнийСценарій,
         risk_level: definition.risk,
-        risks: metric.trend7dPct < -10 ? ["Попит знижується — обсяг потрібно переглянути перед замовленням."] : ["Попит може змінитися до поставки."],
-        pros: ["Обсяг прив'язано до поточного темпу продажів."],
-        cons: ["Не враховано строк постачання та мінімальну партію постачальника."],
+        risks: metric.trend7dPct < -10 ? [ukrainianCopy.risksПопитЗнижуєтьсяОбсягПотрібно] : [ukrainianCopy.risksПопитМожеЗмінитисяДоПоставки],
+        pros: [ukrainianCopy.prosОбсягПривЯзаноДоПоточногоТемпу],
+        cons: [ukrainianCopy.consНеВрахованоСтрокПостачанняТа],
         safety_margin: definition.safety,
         recommended: definition.type === recommended,
         confidence: 0.7,
@@ -356,7 +358,7 @@ export function normalizeReorderingResult(
         evaluation: {
           ...base.evaluation,
           score: isRecommended ? 8 : 6,
-          score_label: isRecommended ? "Рекомендовано за метриками" : "Альтернативний сценарій",
+          score_label: isRecommended ? ukrainianCopy.scoreLabelРекомендованоЗаМетриками : ukrainianCopy.scoreLabelАльтернативнийСценарій,
           risks: stringList(ai?.evaluation?.risks, base.evaluation.risks),
           pros: stringList(ai?.evaluation?.pros, base.evaluation.pros),
           cons: stringList(ai?.evaluation?.cons, base.evaluation.cons),
@@ -402,7 +404,7 @@ function commercialText(value: unknown, fallback: string): string {
 function sanitizeCommercialText(value: string, decision: CommercialDecision): string {
   const allowedDiscount = decision.type === "markdown" ? decision.label.match(/\d+\s*%/)?.[0] : undefined;
   if (allowedDiscount) return value.replace(/\d+(?:[.,]\d+)?\s*%/g, allowedDiscount);
-  return value.replace(/\d+(?:[.,]\d+)?\s*%/g, "без знижки");
+  return value.replace(/\d+(?:[.,]\d+)?\s*%/g, () => ukrainianCopy.withoutDiscount);
 }
 
 export function extractCommercialDecisions(
@@ -425,7 +427,7 @@ export function extractCommercialDecisions(
         brand_name: brand.brand_name,
         type,
         action: typeof recommended.action === "string" ? recommended.action : type === "markdown" ? "MARKDOWN" : "VISIBILITY",
-        label: commercialText(recommended.label, type === "markdown" ? `Уцінка −${discount}%` : "Підвищення видимості без знижки"),
+        label: commercialText(recommended.label, type === "markdown" ? formatMessage(ukrainianCopy.уцінка, { discount }) : ukrainianCopy.підвищенняВидимостіБезЗнижки),
       });
     }
   }
@@ -445,7 +447,7 @@ export function extractCommercialDecisions(
         brand_name: brand.brand_name,
         type: "reorder",
         action: "REORDER",
-        label: commercialText(recommended.label, "Дозамовлення"),
+        label: commercialText(recommended.label, ukrainianCopy.дозамовлення),
       });
     }
   }
@@ -457,10 +459,10 @@ export function buildCommercialFallback(decision: CommercialDecision, executionD
   const markdown = decision.type === "markdown";
   const visibility = decision.type === "visibility";
   const message = markdown
-    ? `${decision.label}: обмежена пропозиція для ${decision.brand_name}.`
+    ? formatMessage(ukrainianCopy.messageОбмеженаПропозиціяДля, { label: decision.label, brand_name: decision.brand_name })
     : visibility
-      ? `Зверніть увагу на добірку ${decision.brand_name}.`
-      : `Підготувати комунікацію ${decision.brand_name} після підтвердження надходження.`;
+      ? formatMessage(ukrainianCopy.messageЗвернітьУвагуНаДобірку, { brand_name: decision.brand_name })
+      : formatMessage(ukrainianCopy.messageПідготуватиКомунікаціюПісляПідтвердженняНадходження, { brand_name: decision.brand_name });
   const externalActionNeeded = decision.type !== "reorder";
   return {
     brand_id: decision.brand_id,
@@ -473,39 +475,39 @@ export function buildCommercialFallback(decision: CommercialDecision, executionD
     channels: {
       smm: {
         action_needed: externalActionNeeded,
-        brief: externalActionNeeded ? `Підготувати Stories і допис: ${message}` : "Не публікувати до підтвердження надходження товару.",
-        frequency: externalActionNeeded ? "До 2 публікацій у день запуску" : "Після підтвердження надходження",
-        content_direction: "Stories і карусель із товарами та чітким CTA",
+        brief: externalActionNeeded ? formatMessage(ukrainianCopy.briefПідготуватиStoriesІДопис, { message }) : ukrainianCopy.briefНеПублікуватиДоПідтвердженняНадходження,
+        frequency: externalActionNeeded ? ukrainianCopy.frequencyДо2ПублікаційУДень : ukrainianCopy.frequencyПісляПідтвердженняНадходження,
+        content_direction: ukrainianCopy.contentDirectionStoriesІКарусельІзТоварами,
         start_date: executionDate,
         priority: 1,
       },
       email: {
         action_needed: externalActionNeeded,
-        brief: externalActionNeeded ? `Надіслати клієнтам повідомлення: ${message}` : "Не надсилати до підтвердження надходження товару.",
+        brief: externalActionNeeded ? formatMessage(ukrainianCopy.briefНадіслатиКлієнтамПовідомлення, { message }) : ukrainianCopy.briefНеНадсилатиДоПідтвердженняНадходження,
         send_timing: externalActionNeeded ? "today" : "after_stock_confirmation",
         subject_direction: decision.label,
-        cta: "Переглянути пропозицію",
+        cta: ukrainianCopy.ctaПереглянутиПропозицію,
         priority: 1,
       },
       ads: {
         action_needed: markdown,
-        brief: markdown ? `Підготувати ретаргетинг на товари бренду ${decision.brand_name}.` : "Платне просування не запускати без окремого погодження.",
-        budget_recommendation: "Бюджет потребує погодження PM",
-        targeting: "Відвідувачі карток товарів та покупці споріднених категорій",
+        brief: markdown ? formatMessage(ukrainianCopy.briefПідготуватиРетаргетингНаТовариБренду, { brand_name: decision.brand_name }) : ukrainianCopy.briefПлатнеПросуванняНеЗапускатиБез,
+        budget_recommendation: ukrainianCopy.budgetRecommendationБюджетПотребуєПогодженняPM,
+        targeting: ukrainianCopy.targetingВідвідувачіКартокТоварівТаПокупці,
         priority: 2,
       },
       store: {
         action_needed: true,
-        brief: decision.type === "reorder" ? `Підготувати місце для ${decision.brand_name}; не позначати товар як наявний до приймання.` : `Виділити товари ${decision.brand_name} у торговій зоні.`,
-        display_changes: decision.type === "reorder" ? "Підготувати викладку після приймання" : "Додати помітну навігацію",
+        brief: decision.type === "reorder" ? formatMessage(ukrainianCopy.briefПідготуватиМісцеДляНе, { brand_name: decision.brand_name }) : formatMessage(ukrainianCopy.briefВиділитиТовариУТорговійЗоні, { brand_name: decision.brand_name }),
+        display_changes: decision.type === "reorder" ? ukrainianCopy.displayChangesПідготуватиВикладкуПісляПриймання : ukrainianCopy.displayChangesДодатиПомітнуНавігацію,
         staff_talking_points: message,
         priority: 3,
       },
       marketplace: {
         action_needed: externalActionNeeded,
-        brief: externalActionNeeded ? `Оновити картки ${decision.brand_name} відповідно до затвердженої дії.` : "Не змінювати статус наявності до фактичного приймання товару.",
+        brief: externalActionNeeded ? formatMessage(ukrainianCopy.briefОновитиКарткиВідповідноДоЗатвердженої, { brand_name: decision.brand_name }) : ukrainianCopy.briefНеЗмінюватиСтатусНаявностіДо,
         priority_platform: "instagram",
-        reason: "Можна швидко синхронізувати повідомлення з SMM-активацією",
+        reason: ukrainianCopy.reasonМожнаШвидкоСинхронізуватиПовідомленняЗ,
         priority: 2,
       },
     },
@@ -535,7 +537,7 @@ export function normalizeCommercialBrief(
     merged.priority = base.priority;
     if (name === "smm") merged.start_date = executionDate;
     if (name === "email") merged.send_timing = base.send_timing;
-    if (name === "ads") merged.budget_recommendation = "Бюджет потребує погодження PM";
+    if (name === "ads") merged.budget_recommendation = ukrainianCopy.budgetRecommendationБюджетПотребуєПогодженняPM;
     return [name, merged];
   })) as CommercialBrief["channels"];
 

@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge/badge";
 import { cn } from "@/lib/utils";
 import { badgeStyle } from "../agent-card-presentation";
 import type { InsightRow, InsightVariant } from "./insight-rows";
+import { agentsInsightListMessages as ukrainianCopy } from "@/messages/uk.json";
 
 const layouts = {
   card: {
@@ -58,7 +59,7 @@ export function InsightList({
       ))}
       {action && (
         <div className="mt-2 rounded-lg border border-accent-cyan/20 bg-accent-cyan/5 px-3 py-2">
-          <span className="text-[10px] font-mono text-(--subtle)">Дія: </span>
+          <span className="text-[10px] font-mono text-(--subtle)">{ukrainianCopy.дія}</span>
           <span className="text-[11px] text-accent-cyan">{action}</span>
         </div>
       )}

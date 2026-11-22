@@ -5,6 +5,7 @@ import { SHEETS_SOURCE_FILTER } from "@/lib/data-source";
 import { requireApiUser } from "@/lib/server-auth";
 import { getSalesDriveIssues } from "@/lib/salesdrive-issues";
 import { apiError } from "@/lib/api-contracts";
+import { apiDataIssuesRouteMessages as englishCopy } from "@/messages/en.json";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,7 @@ export async function GET(request: NextRequest) {
       severityValue as DataIssueSeverity,
     )
   ) {
-    return apiError("Unknown issue severity", 400, "INVALID_SEVERITY");
+    return apiError(englishCopy.unknownIssueSeverity, 400, "INVALID_SEVERITY");
   }
   const severity =
     severityValue &&
@@ -39,7 +40,7 @@ export async function GET(request: NextRequest) {
 
   const source = params.get("source");
   if (source && source !== "salesdrive" && source !== "sheets")
-    return apiError("Unknown data source", 400, "INVALID_SOURCE");
+    return apiError(englishCopy.unknownDataSource, 400, "INVALID_SOURCE");
   if (source === "salesdrive") {
     const skuId = params.get("skuId") ?? undefined;
     if (
@@ -49,7 +50,7 @@ export async function GET(request: NextRequest) {
       (skuId && skuId.length > 200) ||
       (requestedRunId && requestedRunId.length > 200)
     )
-      return apiError("Invalid query", 400, "INVALID_QUERY");
+      return apiError(englishCopy.invalidQuery, 400, "INVALID_QUERY");
     try {
       return NextResponse.json(
         await getSalesDriveIssues(user.tenantId, {
@@ -64,7 +65,7 @@ export async function GET(request: NextRequest) {
       );
     } catch {
       return apiError(
-        "Import warnings are unavailable",
+        englishCopy.importWarningsAreUnavailable,
         503,
         "ISSUES_UNAVAILABLE",
       );
@@ -77,7 +78,7 @@ export async function GET(request: NextRequest) {
       select: { id: true },
     });
     if (!exists)
-      return apiError("Import run not found", 404, "IMPORT_NOT_FOUND");
+      return apiError(englishCopy.importRunNotFound, 404, "IMPORT_NOT_FOUND");
   } else {
     const source = await prisma.dataSource.findFirst({
       where: {
@@ -90,7 +91,7 @@ export async function GET(request: NextRequest) {
     importRunId = source?.activeImportRunId ?? undefined;
   }
   if (!importRunId)
-    return apiError("No active data import", 409, "NO_ACTIVE_IMPORT");
+    return apiError(englishCopy.noActiveDataImport, 409, "NO_ACTIVE_IMPORT");
 
   const where = {
     tenantId: user.tenantId,

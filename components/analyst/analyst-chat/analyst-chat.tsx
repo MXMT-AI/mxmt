@@ -9,6 +9,8 @@ import { cn } from "@/lib/utils";
 import type { ClassifiedSku, ClassifySummary } from "@/lib/analyst-types";
 
 import { SKU_FLAGS } from "../sku-flags";
+import { analystAnalystChatMessages as englishCopy } from "@/messages/en.json";
+import { analystAnalystChatMessages as ukrainianCopy } from "@/messages/uk.json";
 
 interface AiMessage {
   role: "user" | "assistant";
@@ -16,8 +18,8 @@ interface AiMessage {
 }
 
 const suggestedQuestions = {
-  uk: ["Що терміново дозамовити?", "Топ-5 проблемних позицій", "Що акційно просувати?"],
-  en: ["What to reorder urgently?", "Top 5 problem items", "What to promote on sale?"],
+  uk: [ukrainianCopy.ukЩоТерміновоДозамовити, ukrainianCopy.ukТоп5ПроблемнихПозицій, ukrainianCopy.ukЩоАкційноПросувати],
+  en: [englishCopy.enWhatToReorderUrgently, englishCopy.enTop5ProblemItems, englishCopy.enWhatToPromoteOnSale],
 };
 
 export function AnalystChat({ skus, summary, businessModel, tenantName, lang }: {
@@ -28,8 +30,8 @@ export function AnalystChat({ skus, summary, businessModel, tenantName, lang }: 
   lang: string;
 }) {
   const uk = lang === "uk";
-  const title = uk ? "Запитати агента" : "Ask the agent";
-  const inputLabel = uk ? "Запитайте про стан асортименту…" : "Ask about your assortment…";
+  const title = uk ? ukrainianCopy.titleAskTheAgent : englishCopy.titleAskTheAgent;
+  const inputLabel = uk ? ukrainianCopy.inputLabelAskAboutYourAssortment : englishCopy.inputLabelAskAboutYourAssortment;
   const [aiMsgs, setAiMsgs] = useState<AiMessage[]>([]);
   const [aiInput, setAiInput] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
@@ -73,12 +75,12 @@ ${skus.filter(s => ["hit","stockout"].includes(s.flag)).slice(0,5)
       const data = await res.json();
       if (!res.ok || data.error) {
         const errMsg = data.error ?? `HTTP ${res.status}`;
-        setAiMsgs((p) => [...p, { role: "assistant", content: `❌ ${uk ? "Помилка" : "Error"}: ${errMsg}` }]);
+        setAiMsgs((p) => [...p, { role: "assistant", content: `❌ ${uk ? ukrainianCopy.contentError : englishCopy.contentError}: ${errMsg}` }]);
       } else {
         setAiMsgs((p) => [...p, { role: "assistant", content: data.content }]);
       }
     } catch (e) {
-      setAiMsgs((p) => [...p, { role: "assistant", content: `❌ ${uk ? "Помилка мережі" : "Network error"}: ${String(e)}` }]);
+      setAiMsgs((p) => [...p, { role: "assistant", content: `❌ ${uk ? ukrainianCopy.contentNetworkError : englishCopy.contentNetworkError}: ${String(e)}` }]);
     } finally {
       setAiLoading(false);
     }
@@ -96,8 +98,8 @@ ${skus.filter(s => ["hit","stockout"].includes(s.flag)).slice(0,5)
           <div className="py-6 text-center">
             <Text variant="body">
               {uk
-                ? "Запитайте про конкретний товар, ситуацію зі стоком або рекомендації"
-                : "Ask about a specific product, stock situation or recommendations"}
+                ? ukrainianCopy.askAboutASpecificProduct
+                : englishCopy.askAboutASpecificProduct}
             </Text>
             <div className="mt-3 flex flex-wrap justify-center gap-2">
               {suggestedQuestions[uk ? "uk" : "en"].map((question) => (
@@ -127,7 +129,7 @@ ${skus.filter(s => ["hit","stockout"].includes(s.flag)).slice(0,5)
         ))}
         {aiLoading && (
           <Text variant="body" role="status" className="max-w-[85%] rounded-xl border border-(--border) bg-(--surface2) px-4 py-2.5 italic">
-            {uk ? "Аналізую…" : "Analyzing…"}
+            {uk ? ukrainianCopy.analyzing : englishCopy.analyzing}
           </Text>
         )}
       </div>
@@ -152,7 +154,7 @@ ${skus.filter(s => ["hit","stockout"].includes(s.flag)).slice(0,5)
           type="submit"
           variant="icon"
           tone="positive"
-          aria-label={uk ? "Надіслати" : "Send"}
+          aria-label={uk ? ukrainianCopy.ariaLabelSend : englishCopy.ariaLabelSend}
           disabled={aiLoading || !aiInput.trim()}
           className="rounded-xl px-4"
         >

@@ -3,11 +3,13 @@ import { control } from "@/components/ui/control-styles/control-styles";
 import { Note } from "@/components/ui/note/note";
 import type { CsvOptions } from "@/lib/connectors/csv/schema";
 import type { Lang } from "@/lib/translations";
+import { settingsCsvPopulationRulesMessages as englishCopy } from "@/messages/en.json";
+import { settingsCsvPopulationRulesMessages as ukrainianCopy } from "@/messages/uk.json";
 
 type PopulationValues = Pick<CsvOptions, "catalog" | "stock">;
 const fields = [
-  { key: "catalog", uk: "Повнота каталогу", en: "Catalog population" },
-  { key: "stock", uk: "Повнота кожного залишку", en: "Population of each stock observation" },
+  { key: "catalog", uk: ukrainianCopy.enCatalogPopulation, en: englishCopy.enCatalogPopulation },
+  { key: "stock", uk: ukrainianCopy.enPopulationOfEachStockObservation, en: englishCopy.enPopulationOfEachStockObservation },
 ] as const;
 
 export function CsvPopulationRules({ value, lang, onChange }: {
@@ -22,15 +24,15 @@ export function CsvPopulationRules({ value, lang, onChange }: {
         {fields.map(field => (
           <Field key={field.key} label={field[lang]}>
             <select className={control} value={value[field.key]} onChange={event => onChange({ ...value, [field.key]: event.target.value })}>
-              <option value="partial">{copy("Частина товарів", "Partial population")}</option>
-              <option value="complete">{copy("Усі товари джерела", "Complete source population")}</option>
+              <option value="partial">{copy(ukrainianCopy.partialPopulation, englishCopy.partialPopulation)}</option>
+              <option value="complete">{copy(ukrainianCopy.completeSourcePopulation, englishCopy.completeSourcePopulation)}</option>
             </select>
           </Field>
         ))}
       </div>
       <Note className="leading-normal">{copy(
-        "Товари й залишки завантажуються разом. Пропущені товари не обнуляються. Власність брендів і умови постачальників налаштовуються окремо в Settings.",
-        "Upload products and stock together. Omitted products are not zeroed. Configure brand ownership and supplier terms separately in Settings.",
+        ukrainianCopy.uploadProductsAndStockTogether,
+        englishCopy.uploadProductsAndStockTogether,
       )}</Note>
     </>
   );

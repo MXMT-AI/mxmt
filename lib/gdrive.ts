@@ -8,7 +8,9 @@ import { fetchWithTimeout } from "@/lib/server-fetch";
 import { assertDriveRowLimit } from "@/lib/drive-limits";
 import { dedupeBySku } from "@/lib/drive-import-utils";
 import { requireDriveConnection, parseSpreadsheetId } from "./drive-connection";
-
+import { formatMessage } from "@/i18n/format-message";
+import { gdriveMessages as englishCopy } from "@/messages/en.json";
+import { gdriveMessages as ukrainianCopy } from "@/messages/uk.json";
 
 interface ServiceAccount {
   client_email: string;
@@ -48,7 +50,7 @@ async function runInBatches<T>(items: T[], worker: (item: T) => Promise<void>): 
 
 function ensureDriveFileSize(buffer: Buffer): Buffer {
   if (buffer.byteLength > MAX_DRIVE_FILE_BYTES) {
-    throw new Error("Google Drive file exceeds the 15 MB serverless import limit");
+    throw new Error(englishCopy.errorGoogleDriveFileExceedsThe);
   }
   return buffer;
 }
@@ -253,9 +255,9 @@ async function downloadPublicFile(fileId: string): Promise<Buffer> {
       );
       if (!res.ok) { lastError = `${res.status} (${url})`; continue; }
       const ct = res.headers.get("content-type") ?? "";
-      if (ct.includes("text/html")) { lastError = `HTML response (${url}) — check file is publicly shared`; continue; }
+      if (ct.includes("text/html")) { lastError = formatMessage(englishCopy.hTMLResponse, { url }); continue; }
       const buf = ensureDriveFileSize(Buffer.from(await res.arrayBuffer()));
-      if (buf.byteLength < 100) { lastError = `Empty response (${url})`; continue; }
+      if (buf.byteLength < 100) { lastError = formatMessage(englishCopy.emptyResponse, { url }); continue; }
       return buf;
     } catch (e) {
       lastError = String(e);
@@ -264,7 +266,7 @@ async function downloadPublicFile(fileId: string): Promise<Buffer> {
   throw new Error(
     `Could not download file.\n` +
     `Make sure the file is shared: Google Sheets → Share → Anyone with the link → Viewer\n` +
-    `Last error: ${lastError}`
+    formatMessage(englishCopy.errorLastError, { lastError })
   );
 }
 
@@ -602,7 +604,7 @@ export async function syncFromDrive(tenantId: string, boundFileId?: string): Pro
     totalRows += rows.length;
     assertDriveRowLimit(totalRows);
     if (rows.length === 0) {
-      sheets.push({ name: sheetName, rows: 0, imported: "пропущено", skipped: "порожній аркуш" });
+      sheets.push({ name: sheetName, rows: 0, imported: ukrainianCopy.importedПропущено, skipped: ukrainianCopy.skippedПорожнійАркуш });
       continue;
     }
 
@@ -628,26 +630,26 @@ export async function syncFromDrive(tenantId: string, boundFileId?: string): Pro
     if (isArticleReport) {
       const r = await importArticleReport(tenantId, rows, brandCache);
       totalSkus += r.skus; totalInventory += r.inventory; totalSales += r.sales; totalBrands += r.brands;
-      sheets.push({ name: sheetName, rows: rows.length, imported: `SKU: ${r.skus}, каталог: ${r.skus}, залишки: ${r.inventory}, продажі: ${r.sales}, бренди: ${r.brands}`, skipped: "" });
+      sheets.push({ name: sheetName, rows: rows.length, imported: formatMessage(ukrainianCopy.importedSKUКаталогЗалишки, { skus: r.skus, skus2: r.skus, inventory: r.inventory, sales: r.sales, brands: r.brands }), skipped: "" });
       continue;
     }
 
     if (isZavodApi) {
       const n = await importZavodApi(tenantId, rows);
       totalSales += n;
-      sheets.push({ name: sheetName, rows: rows.length, imported: `продажі: ${n}`, skipped: "" });
+      sheets.push({ name: sheetName, rows: rows.length, imported: formatMessage(ukrainianCopy.importedПродажі, { n }), skipped: "" });
       continue;
     }
 
     if (!hasSku) {
-      sheets.push({ name: sheetName, rows: rows.length, imported: "пропущено", skipped: `не знайдено SKU-колонку. Колонки: ${cols.slice(0, 5).join(", ")}` });
+      sheets.push({ name: sheetName, rows: rows.length, imported: ukrainianCopy.importedПропущено, skipped: formatMessage(ukrainianCopy.skippedНеЗнайденоSKUКолонкуКолонки, { value1: cols.slice(0, 5).join(", ") }) });
       continue;
     }
 
     if (nameLower.includes("sales") || nameLower.includes("продаж") || hasSalesDate) {
       const n = await importSales(tenantId, rows);
       totalSales += n;
-      sheets.push({ name: sheetName, rows: rows.length, imported: `продажі: ${n}`, skipped: "" });
+      sheets.push({ name: sheetName, rows: rows.length, imported: formatMessage(ukrainianCopy.importedПродажі, { n }), skipped: "" });
     } else {
       const s = await importSkus(tenantId, rows, brandCache);
       totalSkus += s;
@@ -655,7 +657,7 @@ export async function syncFromDrive(tenantId: string, boundFileId?: string): Pro
       if (hasStock) {
         const inv = await importInventory(tenantId, rows);
         totalInventory += inv;
-        extra += `, залишки: ${inv}`;
+        extra += formatMessage(ukrainianCopy.залишки, { inv });
       }
       sheets.push({ name: sheetName, rows: rows.length, imported: `SKU: ${s}${extra}`, skipped: "" });
     }
@@ -663,7 +665,7 @@ export async function syncFromDrive(tenantId: string, boundFileId?: string): Pro
 
   const total = totalSkus + totalInventory + totalSales;
   const warning = total === 0
-    ? `Імпортовано 0 записів. Аркуші: ${sheets.map((s) => `"${s.name}": ${s.skipped || s.imported}`).join("; ")}`
+    ? formatMessage(ukrainianCopy.warningІмпортовано0ЗаписівАркуші, { value1: sheets.map((s) => `"${s.name}": ${s.skipped || s.imported}`).join("; ") })
     : undefined;
 
   return { skus: totalSkus, inventory: totalInventory, sales: totalSales, brands: totalBrands, sheets, warning };

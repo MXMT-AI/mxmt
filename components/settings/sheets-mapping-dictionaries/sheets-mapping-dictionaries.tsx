@@ -4,6 +4,9 @@ import { control } from "@/components/ui/control-styles/control-styles";
 import { SHEETS_EVENT_KINDS, type SheetsFieldMapping, type SheetsMappingMetadata } from "@/lib/sheets-mapping-contract";
 import type { Lang } from "@/lib/translations";
 import { mappingCaption } from "../sheets-mapping-card/copy";
+import { formatMessage } from "@/i18n/format-message";
+import { settingsSheetsMappingDictionariesMessages as englishCopy } from "@/messages/en.json";
+import { settingsSheetsMappingDictionariesMessages as ukrainianCopy } from "@/messages/uk.json";
 
 type Policy = SheetsFieldMapping["policy"];
 const productKinds = ["UNKNOWN", "MERCHANDISE", "SERVICE", "GIFT_CARD"] as const;
@@ -26,10 +29,10 @@ export function SheetsMappingDictionaries({ policy, observed, lang, onChange }: 
   return (
     <>
       <fieldset className="space-y-3">
-        <legend className="font-medium">{uk ? "Статуси джерела" : "Source statuses"}</legend>
+        <legend className="font-medium">{uk ? ukrainianCopy.sourceStatuses : englishCopy.sourceStatuses}</legend>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {statuses.map(status => (
-            <Field key={status} label={uk ? `Статус ${status}` : `Status ${status}`}>
+            <Field key={status} label={uk ? formatMessage(ukrainianCopy.labelСтатус, { status }) : `Status ${status}`}>
               <select className={control} value={ownValue(policy.statuses, status) ?? "UNKNOWN"} onChange={event => {
                 const kind = SHEETS_EVENT_KINDS.find(kind => kind === event.target.value);
                 if (kind) onChange(draft => setEntry(draft.statuses, status, kind));
@@ -40,16 +43,16 @@ export function SheetsMappingDictionaries({ policy, observed, lang, onChange }: 
           ))}
         </div>
         <Text variant="body" className="leading-normal text-(--muted)">
-          {uk ? "Непідтверджені статуси виключаються з фінансових показників. Дата зміни рядка не є підтвердженою датою повернення."
-            : "Unverified statuses are excluded from financial metrics. A row update timestamp does not prove a return date."}
+          {uk ? ukrainianCopy.unverifiedStatusesAreExcludedFrom
+            : englishCopy.unverifiedStatusesAreExcludedFrom}
         </Text>
       </fieldset>
       {observed.channels.length > 0 && (
         <fieldset>
-          <legend className="font-medium">{uk ? "Канали" : "Channels"}</legend>
+          <legend className="font-medium">{uk ? ukrainianCopy.channels : englishCopy.channels}</legend>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             {observed.channels.map(channel => (
-              <Field key={channel.id} label={uk ? `Канал ${channel.id}` : `Channel ${channel.id}`}>
+              <Field key={channel.id} label={uk ? formatMessage(ukrainianCopy.labelКанал, { id: channel.id }) : `Channel ${channel.id}`}>
                 <input className={control} autoComplete="off" maxLength={200} value={ownValue(policy.channels, channel.id) ?? ""} onChange={event => {
                   const value = event.target.value;
                   onChange(draft => setEntry(draft.channels, channel.id, value || null));
@@ -61,7 +64,7 @@ export function SheetsMappingDictionaries({ policy, observed, lang, onChange }: 
       )}
       {observed.categories.length > 0 && (
         <details className="rounded-lg border border-(--border) p-3">
-          <summary className="cursor-pointer font-medium">{uk ? "Типи позицій за категоріями" : "Product kinds by category"}</summary>
+          <summary className="cursor-pointer font-medium">{uk ? ukrainianCopy.productKindsByCategory : englishCopy.productKindsByCategory}</summary>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             {observed.categories.map(category => (
               <Field key={category.name} label={category.name}>
@@ -73,7 +76,7 @@ export function SheetsMappingDictionaries({ policy, observed, lang, onChange }: 
                     if (kind) onChange(draft => setEntry(draft.productKinds, category.name, kind));
                   }
                 }}>
-                  <option value="">{uk ? "За замовчуванням" : "Use default"}</option>
+                  <option value="">{uk ? ukrainianCopy.useDefault : englishCopy.useDefault}</option>
                   {productKinds.map(kind => <option key={kind} value={kind}>{mappingCaption(kind, lang)}</option>)}
                 </select>
               </Field>

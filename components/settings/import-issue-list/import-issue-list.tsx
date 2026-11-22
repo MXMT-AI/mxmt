@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button/button";
 import { Field } from "@/components/ui/field/field";
 import { Text } from "@/components/ui/text/text";
 import { control } from "@/components/ui/control-styles/control-styles";
+import { settingsImportIssueListMessages as englishCopy } from "@/messages/en.json";
+import { settingsImportIssueListMessages as ukrainianCopy } from "@/messages/uk.json";
 export default function ImportIssueList({
   lang,
   revision,
@@ -25,18 +27,18 @@ export default function ImportIssueList({
     >
       <summary className="cursor-pointer min-h-11 py-3 font-semibold focus-visible:outline-solid">
         {uk
-          ? "Попередження імпорту та незв’язані продажі"
-          : "Import warnings and unmatched sales"}
+          ? ukrainianCopy.importWarningsAndUnmatchedSales
+          : englishCopy.importWarningsAndUnmatchedSales}
       </summary>
       <Text variant="body" className="my-2 leading-normal text-(--muted)">
         {uk
-          ? "Історія попереджень поточного підключення. Виправлені незв’язані продажі не показуються. Інші історичні попередження можуть уже бути виправлені — перевірте поточну діагностику."
-          : "Warning history for the current connection. Resolved unmatched sales are omitted. Other historical warnings may already be corrected; check current diagnostics."}
+          ? ukrainianCopy.warningHistoryForTheCurrent
+          : englishCopy.warningHistoryForTheCurrent}
       </Text>
-      <Field label={uk ? "Показати" : "Show"} className="flex-row flex-wrap items-center gap-2 text-sm text-inherit">
+      <Field label={uk ? ukrainianCopy.labelShow : englishCopy.labelShow} className="flex-row flex-wrap items-center gap-2 text-sm text-inherit">
         <select
           name="import-issue-code"
-          aria-label={uk ? "Код попередження" : "Warning code"}
+          aria-label={uk ? ukrainianCopy.ariaLabelWarningCode : englishCopy.ariaLabelWarningCode}
           className={control + " w-auto"}
           value={code}
           onChange={(e) => {
@@ -47,22 +49,22 @@ export default function ImportIssueList({
           <option value="SKU_ALIAS_UNRESOLVED">
             {qualityLabel("SKU_ALIAS_UNRESOLVED", lang)}
           </option>
-          <option value="">{uk ? "Усі попередження" : "All warnings"}</option>
+          <option value="">{uk ? ukrainianCopy.allWarnings : englishCopy.allWarnings}</option>
         </select>
       </Field>
       {loading ? (
-        <Text variant="body" role="status" className="leading-normal text-inherit">{uk ? "Завантаження…" : "Loading…"}</Text>
+        <Text variant="body" role="status" className="leading-normal text-inherit">{uk ? ukrainianCopy.loading : englishCopy.loading}</Text>
       ) : error ? (
         <Text variant="body" role="alert" className="leading-normal text-inherit">
           {uk
-            ? "Попередження недоступні. Повторіть спробу."
-            : "Warnings unavailable. Please retry."}
+            ? ukrainianCopy.warningsUnavailablePleaseRetry
+            : englishCopy.warningsUnavailablePleaseRetry}
           <Button
             variant="report"
             onClick={retry}
             type="button"
           >
-            {uk ? "Повторити" : "Retry"}
+            {uk ? ukrainianCopy.retry : englishCopy.retry}
           </Button>
         </Text>
       ) : (
@@ -87,12 +89,12 @@ export default function ImportIssueList({
                 </Text>
                 <dl className="mt-2 break-all text-xs text-(--muted)">
                   {Object.entries({
-                    [uk ? "Джерело" : "Source"]: row.sourceId,
-                    [uk ? "Імпорт" : "Import"]: row.importRunId,
-                    [uk ? "Запис джерела" : "Source record"]:
+                    [uk ? ukrainianCopy.source : englishCopy.source]: row.sourceId,
+                    [uk ? ukrainianCopy.import : englishCopy.import]: row.importRunId,
+                    [uk ? ukrainianCopy.sourceRecord : englishCopy.sourceRecord]:
                       row.context.sourceRecordKey,
-                    [uk ? "Замовлення" : "Order"]: row.context.orderId,
-                    [uk ? "Рядок" : "Line"]: row.context.lineId,
+                    [uk ? ukrainianCopy.order : englishCopy.order]: row.context.orderId,
+                    [uk ? ukrainianCopy.line : englishCopy.line]: row.context.lineId,
                   }).map(([label, value]) =>
                     value ? (
                       <div key={label}>
@@ -109,11 +111,11 @@ export default function ImportIssueList({
           </ul>
           {data && !data.rows.length && (
             <Text variant="body" className="my-3 leading-normal text-inherit">
-              {uk ? "Попереджень не знайдено." : "No warnings found."}
+              {uk ? ukrainianCopy.noWarningsFound : englishCopy.noWarningsFound}
             </Text>
           )}
           <nav
-            aria-label={uk ? "Сторінки попереджень" : "Warning pages"}
+            aria-label={uk ? ukrainianCopy.ariaLabelWarningPages : englishCopy.ariaLabelWarningPages}
             className="mt-3 flex flex-wrap gap-2 items-center"
           >
             <Button
@@ -122,7 +124,7 @@ export default function ImportIssueList({
               disabled={page <= 1}
               onClick={() => setPage((p) => p - 1)}
             >
-              {uk ? "Назад" : "Previous"}
+              {uk ? ukrainianCopy.previous : englishCopy.previous}
             </Button>
             <span>
               {page} / {Math.max(1, data?.pagination.totalPages ?? 1)}
@@ -133,7 +135,7 @@ export default function ImportIssueList({
               disabled={!data || page >= data.pagination.totalPages}
               onClick={() => setPage((p) => p + 1)}
             >
-              {uk ? "Далі" : "Next"}
+              {uk ? ukrainianCopy.next : englishCopy.next}
             </Button>
           </nav>
         </>

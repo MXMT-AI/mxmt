@@ -5,19 +5,20 @@ import { getMessages, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { isLocale } from "@/i18n/routing";
 import { ThemeProvider } from "@/components/theme-provider/theme-provider";
+import { localeLayoutMessages as englishCopy } from "@/messages/en.json";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://mxmt.vercel.app"),
-  title: "MXMT Analytics",
-  description: "AI-powered retail analytics for fashion businesses",
+  title: englishCopy.titleMXMTAnalytics,
+  description: englishCopy.descriptionAIPoweredRetailAnalyticsForFashion,
   openGraph: {
     type: "website",
-    siteName: "MXMT Analytics",
+    siteName: englishCopy.titleMXMTAnalytics,
     images: [{
       url: "/og-preview.png",
       width: 1280,
       height: 640,
-      alt: "MXMT Analytics — Retail analytics for fashion businesses",
+      alt: englishCopy.altMXMTAnalyticsRetailAnalytics,
     }],
   },
   twitter: { card: "summary_large_image" },

@@ -6,6 +6,7 @@ import { DisclosureMenu } from "@/components/ui/disclosure-menu/disclosure-menu"
 import type { DataColumnMetadata } from "@/lib/data-table-api";
 import { resolveVisibleColumns } from "@/lib/data-reporting-ui";
 import { cn } from "@/lib/utils";
+import { dataReportingReportTableToolbarMessages as englishCopy } from "@/messages/en.json";
 
 const toolbarControl = "inline-flex h-9 items-center gap-2 rounded-lg border border-(--border) bg-(--surface) px-3 text-xs";
 const columnAction = "border-0 p-0 font-sans text-xs hover:bg-transparent";
@@ -75,7 +76,7 @@ export function ReportTableToolbar({
                     onChange={() => onToggleColumn(column.key)} className="mt-0.5 rounded-sm border-(--border) bg-(--input-bg) text-accent-cyan focus:ring-accent-cyan" />
                   <span className="min-w-0">
                     <span className="block wrap-break-word">{column.label}</span>
-                    {column.sourceOnly && <span className="block text-[10px] text-(--subtle)">source</span>}
+                    {column.sourceOnly && <span className="block text-[10px] text-(--subtle)">{englishCopy.source}</span>}
                   </span>
                 </label>
               );

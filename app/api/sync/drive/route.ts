@@ -4,6 +4,7 @@ import { syncFromDrive, getDriveMode } from "@/lib/gdrive";
 import { DriveConnectionError, requireDriveConnection } from "@/lib/drive-connection";
 import { requireApiUser } from "@/lib/server-auth";
 import { apiError, serverError } from "@/lib/api-contracts";
+import { apiSyncDriveRouteMessages as englishCopy } from "@/messages/en.json";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -17,8 +18,8 @@ export async function POST() {
   try { fileId = (await requireDriveConnection(tenantId)).fileId; }
   catch (error) {
     if (error instanceof DriveConnectionError)
-      return apiError("Connect Google Sheets for this cabinet in Settings.", error.status, error.code);
-    return serverError("Could not read Google Sheets connection");
+      return apiError(englishCopy.connectGoogleSheetsForThis, error.status, error.code);
+    return serverError(englishCopy.couldNotReadGoogleSheetsConnection);
   }
   const mode = getDriveMode(fileId);
 

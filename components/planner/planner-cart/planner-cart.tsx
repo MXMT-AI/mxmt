@@ -4,6 +4,8 @@ import { ShoppingCart } from "lucide-react";
 import type { CartItem, BrandBudgetStatus } from "../planner-types";
 import { PlannerCartItem } from "../planner-cart-item/planner-cart-item";
 import { groupPlannerCart } from "./group-planner-cart";
+import { plannerPlannerCartMessages as englishCopy } from "@/messages/en.json";
+import { plannerPlannerCartMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export function PlannerCart({ cart, budgetStatus, removeFromCart, updateQty, fmt }: {
   cart: CartItem[];
@@ -16,8 +18,8 @@ export function PlannerCart({ cart, budgetStatus, removeFromCart, updateQty, fmt
     return (
       <div className="text-center py-20">
         <ShoppingCart aria-hidden="true" size={40} className="mx-auto text-(--subtle) mb-4" />
-        <p className="text-(--text) font-medium mb-1">Замовлення порожнє</p>
-        <p className="text-(--muted) text-sm">Перейдіть до Каталогу та додайте товари</p>
+        <p className="text-(--text) font-medium mb-1">{ukrainianCopy.замовленняПорожнє}</p>
+        <p className="text-(--muted) text-sm">{ukrainianCopy.перейдітьДоКаталогуТаДодайте}</p>
       </div>
     );
   }
@@ -36,7 +38,7 @@ export function PlannerCart({ cart, budgetStatus, removeFromCart, updateQty, fmt
                 <span className="text-(--text)">€{fmt(subtotal)}</span>
                 {b && b.budget > 0 && (
                   <span className={b.remaining < 0 ? "text-accent-orange" : "text-(--muted)"}>
-                    {b.remaining >= 0 ? "€" + fmt(b.remaining) + " left" : "€" + fmt(Math.abs(b.remaining)) + " over"}
+                    {b.remaining >= 0 ? "€" + fmt(b.remaining) + englishCopy.left : "€" + fmt(Math.abs(b.remaining)) + englishCopy.over}
                   </span>
                 )}
               </div>
@@ -51,7 +53,7 @@ export function PlannerCart({ cart, budgetStatus, removeFromCart, updateQty, fmt
       })}
 
       <div className="bg-(--surface) border border-(--border) rounded-xl p-5 flex justify-between items-center">
-        <span className="text-(--muted) text-sm">Загальна сума замовлення</span>
+        <span className="text-(--muted) text-sm">{ukrainianCopy.загальнаСумаЗамовлення}</span>
         <span className="text-2xl font-bold text-(--text) font-mono">
           €{fmt(total)}
         </span>

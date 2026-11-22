@@ -7,6 +7,7 @@ import {
   type ClassifiedDailySku,
   type MerchandisingPolicy,
 } from "./classify";
+import { brandMetricsMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export function dailyBrandSignal(
   input: {
@@ -311,7 +312,7 @@ export async function getBrandMetrics(
 
   return [...grouped.entries()].map(([brand, brandProducts]) => ({
     brandId: brand === null ? "brand:null" : `brand:value:${brand}`,
-    brandName: brand ?? "Без бренда",
+    brandName: brand ?? ukrainianCopy.brandNameБезБренда,
     ...aggregateProducts(brandProducts, sales, w),
   }));
 }

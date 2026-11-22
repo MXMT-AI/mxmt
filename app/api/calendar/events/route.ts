@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiUser } from "@/lib/server-auth";
 import { isRecord, parseJsonBody, stringField, validationError } from "@/lib/api-contracts";
+import { apiCalendarEventsRouteMessages as englishCopy } from "@/messages/en.json";
 
 export async function GET() {
   const { user, response } = await requireApiUser();
@@ -25,7 +26,7 @@ export async function POST(request: NextRequest) {
   if (parseResponse) return parseResponse;
 
   if (!isRecord(data)) {
-    return validationError(["body must be an object"]);
+    return validationError([englishCopy.bodyMustBeAnObject]);
   }
 
   const issues: string[] = [];

@@ -10,6 +10,7 @@ import { SalesMonthlySection } from "../sales-monthly-section/sales-monthly-sect
 import { SalesChannelsSection } from "../sales-channels-section/sales-channels-section";
 import { SalesCategoryChart } from "../sales-category-chart/sales-category-chart";
 import { SalesComparisonSection } from "../sales-comparison-section/sales-comparison-section";
+import { salesSalesCurrencySectionMessages as englishCopy } from "@/messages/en.json";
 
 export function SalesCurrencySection({ block, summary, model, showOthers, copy, locale, href }: {
   block: SalesCurrencyBlock;
@@ -62,8 +63,7 @@ export function SalesCurrencySection({ block, summary, model, showOthers, copy, 
       <div className="grid gap-5 xl:grid-cols-2">
         <SalesChannelsSection channels={block.channels} copy={copy} locale={locale} href={scopedHref} />
         <section className={panel}>
-          <Heading as="h3" variant="compact" className="px-5 pt-5 text-base text-inherit">
-            S3 · {copy.categories}
+          <Heading as="h3" variant="compact" className="px-5 pt-5 text-base text-inherit">{englishCopy.s3}{copy.categories}
           </Heading>
           <SalesCategoryChart
             rows={block.categories}

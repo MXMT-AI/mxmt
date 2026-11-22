@@ -1,4 +1,5 @@
 import type { CartItem } from "./planner-types";
+import { plannerPlannerOrderWorkbookMessages as englishCopy } from "@/messages/en.json";
 
 export function buildPlannerOrderWorkbook({ utils }: Pick<typeof import("xlsx"), "utils">, cart: CartItem[]) {
   const rows = cart.map(item => ({
@@ -14,6 +15,6 @@ export function buildPlannerOrderWorkbook({ utils }: Pick<typeof import("xlsx"),
   const sheet = utils.json_to_sheet(rows);
   sheet["!cols"] = Object.keys(rows[0] || {}).map(() => ({ wch: 18 }));
   const workbook = utils.book_new();
-  utils.book_append_sheet(workbook, sheet, "Purchase Order");
+  utils.book_append_sheet(workbook, sheet, englishCopy.purchaseOrder);
   return workbook;
 }

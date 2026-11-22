@@ -1,24 +1,26 @@
 import type { CheckCode } from "./contract";
+import { connectorsCheckCopyMessages as englishCopy } from "@/messages/en.json";
+import { connectorsCheckCopyMessages as ukrainianCopy } from "@/messages/uk.json";
 export function connectorCheckLabels(
   lang: "uk" | "en",
 ): Record<CheckCode, string> {
   const uk = lang === "uk";
   return {
-    OK: uk ? "Доступ є" : "Access confirmed",
-    NOT_CONFIGURED: uk ? "Не налаштовано" : "Not configured",
+    OK: uk ? ukrainianCopy.oKAccessConfirmed : englishCopy.oKAccessConfirmed,
+    NOT_CONFIGURED: uk ? ukrainianCopy.nOTCONFIGURED : englishCopy.nOTCONFIGURED,
     AUTH_FAILED: uk
-      ? "Перевірте ключ і права читання"
-      : "Check the key and read permissions",
+      ? ukrainianCopy.aUTHFAILEDCheckTheKeyAndRead
+      : englishCopy.aUTHFAILEDCheckTheKeyAndRead,
     RATE_LIMITED: uk
-      ? "Ліміт запитів. Повторіть пізніше"
-      : "Rate limit reached. Retry later",
-    TIMEOUT: uk ? "Час очікування вичерпано" : "Connection timed out",
-    NETWORK_ERROR: uk ? "Не вдалося підключитися" : "Could not connect",
+      ? ukrainianCopy.rATELIMITEDRateLimitReachedRetryLater
+      : englishCopy.rATELIMITEDRateLimitReachedRetryLater,
+    TIMEOUT: uk ? ukrainianCopy.tIMEOUTConnectionTimedOut : englishCopy.tIMEOUTConnectionTimedOut,
+    NETWORK_ERROR: uk ? ukrainianCopy.nETWORKERRORCouldNotConnect : englishCopy.nETWORKERRORCouldNotConnect,
     INVALID_RESPONSE: uk
-      ? "Відповідь джерела потребує перевірки"
-      : "Source response needs verification",
+      ? ukrainianCopy.iNVALIDRESPONSESourceResponseNeedsVerification
+      : englishCopy.iNVALIDRESPONSESourceResponseNeedsVerification,
     RESPONSE_TOO_LARGE: uk
-      ? "Відповідь перевищує розмір перевірки"
-      : "Response exceeds the check size limit",
+      ? ukrainianCopy.rESPONSETOOLARGEResponseExceedsTheCheckSize
+      : englishCopy.rESPONSETOOLARGEResponseExceedsTheCheckSize,
   };
 }

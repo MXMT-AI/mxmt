@@ -1,6 +1,8 @@
 import type { PromoSimParams } from "@/components/agents/promo-table-modal/promo-table-modal";
 import type { ReorderSimParams } from "@/components/agents/reorder-table-modal/reorder-table-modal";
 import type { AgentDefinition, AgentRunInfo } from "@/components/agents/agents.types";
+import { formatMessage } from "@/i18n/format-message";
+import { agentsAgentsUtilsMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export function areAgentDependenciesReady(
   agent: Pick<AgentDefinition, "dependsOn">,
@@ -14,8 +16,8 @@ export function areAgentDependenciesReady(
 
 export function formatWohDays(value: number | null | undefined): string {
   if (value == null || !Number.isFinite(value)) return "—";
-  if (value >= 9999) return "Немає продажів";
-  return `${value}д`;
+  if (value >= 9999) return ukrainianCopy.немаєПродажів;
+  return formatMessage(ukrainianCopy.д, { value });
 }
 
 export function buildSimParams(brand: any, opt: any, debug?: Record<string, any>): PromoSimParams {

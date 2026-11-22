@@ -1,10 +1,11 @@
 import type { BrandStatus } from "./agents.types";
+import { agentsBrandStatusMessages as ukrainianCopy } from "@/messages/uk.json";
 
 const brandStatuses = {
-  critical: { color: "var(--danger-ink)", label: "КРИТИЧНО" },
-  warning: { color: "var(--amber-ink)", label: "ПОПЕРЕДЖЕННЯ" },
-  excellent: { color: "var(--cyan-ink)", label: "ВІДМІННО" },
-  balanced: { color: "var(--muted)", label: "НОРМА" },
+  critical: { color: "var(--danger-ink)", label: ukrainianCopy.labelКРИТИЧНО },
+  warning: { color: "var(--amber-ink)", label: ukrainianCopy.labelПОПЕРЕДЖЕННЯ },
+  excellent: { color: "var(--cyan-ink)", label: ukrainianCopy.labelВІДМІННО },
+  balanced: { color: "var(--muted)", label: ukrainianCopy.labelНОРМА },
 } satisfies Record<BrandStatus, { color: string; label: string }>;
 
 export function getBrandStatus(status?: string) {

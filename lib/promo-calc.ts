@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { brandValueFromAgentId, getActiveAgentImportRunId } from "@/lib/agent-data-source";
-
+import { promoCalcMessages as ukrainianCopy } from "@/messages/uk.json";
 
 const ELASTICITY = 2;
 
@@ -70,9 +70,9 @@ export async function simulatePromo(input: PromoSimulationInput): Promise<PromoS
   const periodDays = Math.max(1, Math.round((now.getTime() - windowStart.getTime()) / 86400000));
 
   const importRunId = await getActiveAgentImportRunId(tenantId);
-  if (!importRunId) throw new Error("Немає активного успішного імпорту в новій базі");
+  if (!importRunId) throw new Error(ukrainianCopy.errorНемаєАктивногоУспішногоІмпортуВ);
   const brand = brandValueFromAgentId(brandId);
-  const brandName = brand ?? "Без бренда";
+  const brandName = brand ?? ukrainianCopy.brandNameБезБренда;
 
   const [products, sales] = await Promise.all([
     prisma.sourceProduct.findMany({

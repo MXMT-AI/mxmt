@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { simulateReorder } from "@/lib/legacy-reorder-calc";
 import { requireApiUser } from "@/lib/server-auth";
 import { isRecord, numberField, optionalDate, parseJsonBody, serverError, stringField, validationError } from "@/lib/api-contracts";
-
+import { apiAgentsReorderingSimulateRouteMessages as englishCopy } from "@/messages/en.json";
 
 export async function POST(req: NextRequest) {
   const { user, response } = await requireApiUser("ANALYST");
@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
   if (parseResponse) return parseResponse;
 
   if (!isRecord(data)) {
-    return validationError(["body must be an object"]);
+    return validationError([englishCopy.bodyMustBeAnObject]);
   }
 
   const issues: string[] = [];
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
   const dateFrom = optionalDate(data, "dateFrom", issues);
 
   if (qtyMultiplier !== undefined && ![0.5, 1, 1.5].includes(qtyMultiplier)) {
-    issues.push("qtyMultiplier must be one of 0.5, 1, 1.5");
+    issues.push(englishCopy.qtyMultiplierMustBeOneOf05);
   }
 
   if (issues.length > 0) {

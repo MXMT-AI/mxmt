@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/button/button";
 import type { Lang } from "@/lib/translations";
 import type { CsvPreview } from "../csv-import-card/csv-import-types";
+import { settingsCsvRecentUploadsMessages as englishCopy } from "@/messages/en.json";
+import { settingsCsvRecentUploadsMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export function CsvRecentUploads({ uploads, busy, lang, onOpen }: {
   uploads: Array<Pick<CsvPreview, "id" | "state" | "contentHash">>;
@@ -11,7 +13,7 @@ export function CsvRecentUploads({ uploads, busy, lang, onOpen }: {
   if (!uploads.length) return null;
   return (
     <details className="text-sm text-(--muted)">
-      <summary className="cursor-pointer">{lang === "uk" ? "Останні пакети" : "Recent packets"}</summary>
+      <summary className="cursor-pointer">{lang === "uk" ? ukrainianCopy.recentPackets : englishCopy.recentPackets}</summary>
       <ul className="mt-3 space-y-2">
         {uploads.map(upload => (
           <li key={upload.id}>

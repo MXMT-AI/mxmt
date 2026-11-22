@@ -6,6 +6,9 @@ import { panel } from "@/components/ui/panel/panel-styles";
 import type { Locale } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
 import type { InsightItem, StockItem } from "../marketing-calendar/calendar-types";
+import { formatMessage } from "@/i18n/format-message";
+import { calendarCalendarPanelsMessages as englishCopy } from "@/messages/en.json";
+import { calendarCalendarPanelsMessages as ukrainianCopy } from "@/messages/uk.json";
 
 const rowLimit = 10;
 const insightStyles = {
@@ -15,10 +18,10 @@ const insightStyles = {
 };
 
 const stockStyles = {
-  ok: { uk: "Норма", en: "Normal", color: "bg-accent-positive", tone: "positive" },
-  warn: { uk: "Мало", en: "Low", color: "bg-accent-yellow", tone: "warning" },
-  crit: { uk: "Крит.", en: "Critical", color: "bg-accent-negative", tone: "danger" },
-  excess: { uk: "Надлишок", en: "Excess", color: "bg-accent-info", tone: "report" },
+  ok: { uk: ukrainianCopy.enNormal, en: englishCopy.enNormal, color: "bg-accent-positive", tone: "positive" },
+  warn: { uk: ukrainianCopy.enLow, en: englishCopy.enLow, color: "bg-accent-yellow", tone: "warning" },
+  crit: { uk: ukrainianCopy.enCritical, en: englishCopy.enCritical, color: "bg-accent-negative", tone: "danger" },
+  excess: { uk: ukrainianCopy.enExcess, en: englishCopy.enExcess, color: "bg-accent-info", tone: "report" },
 } satisfies Record<StockItem["status"], { uk: string; en: string; color: string; tone: BadgeTone }>;
 
 type PanelProps = {
@@ -52,8 +55,8 @@ function CalendarPanel<Item>({ title, locale, expanded, onToggle, items, renderI
           className="mt-3 w-full justify-center rounded-none border-0 border-t border-(--border-faint) py-2 font-sans text-xs hover:bg-transparent"
         >
           {expanded
-            ? (uk ? "Сховати ▲" : "Show less ▲")
-            : (uk ? `Показати ще ${hiddenCount} ▼` : `Show ${hiddenCount} more ▼`)}
+            ? (uk ? ukrainianCopy.showLess : englishCopy.showLess)
+            : (uk ? formatMessage(ukrainianCopy.показатиЩе, { hiddenCount }) : `Show ${hiddenCount} more ▼`)}
         </Button>
       )}
     </section>
@@ -92,7 +95,7 @@ export function CalendarStockPanel({ items, locale, ...props }: PanelProps & { i
         <div className="flex items-center justify-between gap-3 border-b border-(--border-faint) py-2.5">
           <div className="min-w-0 flex-1">
             <div className="text-xs font-bold text-(--text)">{stock.brand}</div>
-            <div className="font-mono text-[10px] text-(--muted)">WOH {stock.woh ?? "—"}{uk ? "д" : "d"} · {stock.stock} {uk ? "шт" : "pcs"}</div>
+            <div className="font-mono text-[10px] text-(--muted)">{englishCopy.wOH}{stock.woh ?? "—"}{uk ? ukrainianCopy.d : englishCopy.d} · {stock.stock} {uk ? ukrainianCopy.pcs : englishCopy.pcs}</div>
             <div className="mt-1 h-1 rounded-full bg-(--input-bg)">
               <div className={cn("h-full rounded-full transition-all", style.color)} style={{ width: `${barWidth}%` }} />
             </div>

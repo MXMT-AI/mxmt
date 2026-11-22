@@ -4,6 +4,8 @@ import type { ClassifySummary, SkuFlag } from "@/lib/analyst-types";
 import { cn } from "@/lib/utils";
 
 import { SKU_FLAGS, type AnalystFilter } from "../sku-flags";
+import { analystAnalystFiltersMessages as englishCopy } from "@/messages/en.json";
+import { analystAnalystFiltersMessages as ukrainianCopy } from "@/messages/uk.json";
 
 interface AnalystFiltersProps {
   summary: ClassifySummary;
@@ -51,7 +53,7 @@ export function AnalystFilterButtons({ summary, locale, activeFlag, onFilter }: 
         aria-pressed={activeFlag === "all"}
         className={cn(filterButtonClassName, activeFlag === "all" && "bg-(--input-bg) text-(--text)")}
       >
-        {locale === "uk" ? "Всі" : "All"} ({summary.total})
+        {locale === "uk" ? ukrainianCopy.all : englishCopy.all} ({summary.total})
       </Button>
       {flags.filter((flag) => flag !== "ok" && summary[flag] > 0).map((flag) => {
         const status = SKU_FLAGS[flag];

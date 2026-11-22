@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { verifyAccessToken } from "@/lib/auth";
 import { serverError } from "@/lib/api-contracts";
 import { createRequestContext, logError, requestLogContext, withRequestId } from "@/lib/observability";
+import { apiAuthLogoutRouteMessages as englishApiMessages } from "@/messages/en.json";
 
 export async function POST(request: NextRequest) {
   const context = createRequestContext(request, "api.auth.logout");
@@ -29,6 +30,6 @@ export async function POST(request: NextRequest) {
     return withRequestId(NextResponse.json({ ok: true, requestId: context.requestId }), context.requestId);
   } catch (err) {
     logError("Logout failed", err, requestLogContext(context));
-    return withRequestId(serverError("Logout failed", context.requestId), context.requestId);
+    return withRequestId(serverError(englishApiMessages.logoutFailed, context.requestId), context.requestId);
   }
 }

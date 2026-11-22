@@ -9,6 +9,7 @@ import { panel } from "@/components/ui/panel/panel-styles";
 import type { Lang } from "@/lib/translations";
 import { connectorSourceCopy } from "./copy";
 import { useConnectorSource } from "./use-connector-source";
+import { settingsConnectorSourceCardMessages as englishCopy } from "@/messages/en.json";
 
 export default function ConnectorSourceCard({ lang, canManage }: { lang: Lang; canManage: boolean }) {
   const copy = connectorSourceCopy[lang];
@@ -44,7 +45,7 @@ export default function ConnectorSourceCard({ lang, canManage }: { lang: Lang; c
                   !c.selectable && c.sourceId !== data.sourceId
                 }
               >
-                {c.provider === "sheets" ? "Google Sheets" : c.provider} · {c.accountHost}
+                {c.provider === "sheets" ? englishCopy.googleSheets : c.provider} · {c.accountHost}
                 {copy.readiness[c.readiness]}
               </option>
             ))}

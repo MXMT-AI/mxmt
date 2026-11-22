@@ -5,6 +5,8 @@ import { panel } from "@/components/ui/panel/panel-styles";
 import type { ClassifiedSku } from "@/lib/analyst-types";
 import type { Translations } from "@/lib/translations";
 import { cn } from "@/lib/utils";
+import { dashboardDashboardSkuPanelMessages as englishCopy } from "@/messages/en.json";
+import { dashboardDashboardSkuPanelMessages as ukrainianCopy } from "@/messages/uk.json";
 
 const styles = {
   stockout: {
@@ -65,7 +67,7 @@ export function DashboardSkuPanel({ items, total, kind, t, uk }: {
                 variant="secondary"
                 className={cn("min-h-0 rounded-lg px-2.5 py-1 text-[11px] font-normal whitespace-nowrap", style.action)}
               >
-                {stockout ? (uk ? "Замовити" : "Order") : (uk ? "Календар" : "Calendar")}
+                {stockout ? (uk ? ukrainianCopy.order : englishCopy.order) : (uk ? ukrainianCopy.calendar : englishCopy.calendar)}
               </ActionLink>
             </div>
           </div>

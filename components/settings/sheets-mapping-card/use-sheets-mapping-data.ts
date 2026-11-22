@@ -6,6 +6,8 @@ import type { Lang } from "@/lib/translations";
 import type { ReportingSources } from "@/lib/reporting-source-contract";
 import type { SheetsFieldMapping, SheetsMappingMetadata } from "@/lib/sheets-mapping-contract";
 import { mappingError } from "./copy";
+import { settingsSheetsMappingCardUseSheetsMappingDataMessages as englishCopy } from "@/messages/en.json";
+import { settingsSheetsMappingCardUseSheetsMappingDataMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export function useSheetsMappingData({ canManage, sourceId, reload, lang, onReset, onError }: {
   canManage: boolean;
@@ -42,8 +44,8 @@ export function useSheetsMappingData({ canManage, sourceId, reload, lang, onRese
         if (!abort.signal.aborted)
           reportError(
             uk
-              ? "Не вдалося завантажити таблиці."
-              : "Could not load spreadsheets.",
+              ? ukrainianCopy.couldNotLoadSpreadsheets
+              : englishCopy.couldNotLoadSpreadsheets,
           );
       })
       .finally(() => {
@@ -76,7 +78,7 @@ export function useSheetsMappingData({ canManage, sourceId, reload, lang, onRese
       })
       .catch((e) => {
         if (!abort.signal.aborted)
-          reportError(e instanceof Error ? e.message : "Mapping unavailable");
+          reportError(e instanceof Error ? e.message : englishCopy.mappingUnavailable);
       })
       .finally(() => {
         if (!abort.signal.aborted) setLoading(false);

@@ -5,6 +5,8 @@ import type { CsvResource } from "@/lib/connectors/csv/schema";
 import type { CsvPreview, CsvPacketAction } from "../csv-import-card/csv-import-types";
 import { csvResourceNames as names, rowErrorCopy } from "../csv-import-card/copy";
 import { csvButton as button } from "../csv-import-card/csv-import-styles";
+import { settingsCsvPreviewPanelMessages as englishCopy } from "@/messages/en.json";
+import { settingsCsvPreviewPanelMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export function CsvPreviewPanel({ preview, lang, busy, suppliers, panelRef, onAction }: {
   preview: CsvPreview;
@@ -24,7 +26,7 @@ export function CsvPreviewPanel({ preview, lang, busy, suppliers, panelRef, onAc
       aria-live="polite"
     >
       <Heading as="h3" variant="compact" className="text-base font-medium">
-        {copy("Результат перевірки", "Preview result")} —{" "}
+        {copy(ukrainianCopy.previewResult, englishCopy.previewResult)} —{" "}
         {preview.state}
       </Heading>
       <p className="text-sm text-(--muted)">
@@ -34,58 +36,57 @@ export function CsvPreviewPanel({ preview, lang, busy, suppliers, panelRef, onAc
       </p>
       <p className="text-xs text-(--muted)">
         {copy(
-          "Термін зберігання неактивованого пакета:",
-          "Unactivated packet retention:",
+          ukrainianCopy.unactivatedPacketRetention,
+          englishCopy.unactivatedPacketRetention,
         )}{" "}
         {new Date(preview.expiresAt).toLocaleDateString(
           uk ? "uk-UA" : "en-GB",
         )}
         .{" "}
         {copy(
-          "Активовані файли зберігаються для аудиту.",
-          "Activated files are retained for audit.",
+          ukrainianCopy.activatedFilesAreRetainedFor,
+          englishCopy.activatedFilesAreRetainedFor,
         )}
       </p>
-      <p className="break-all text-xs text-(--muted)">
-        SHA-256: {preview.contentHash}
+      <p className="break-all text-xs text-(--muted)">{englishCopy.sHA256}{preview.contentHash}
       </p>
       {preview.options && (
         <details className="text-sm text-(--muted)">
           <summary className="cursor-pointer">
             {copy(
-              "Зафіксовані правила та колонки",
-              "Frozen rules and column mappings",
+              ukrainianCopy.frozenRulesAndColumnMappings,
+              englishCopy.frozenRulesAndColumnMappings,
             )}
           </summary>
           <div className="mt-3 space-y-3 wrap-break-word">
             <p>
               {preview.options.timezone} ·{" "}
               {preview.options.policy.amounts.currency} ·{" "}
-              {copy("версія", "revision")}{" "}
+              {copy(ukrainianCopy.revision, englishCopy.revision)}{" "}
               {preview.options.mappingRevision}
             </p>
             <p>
-              {copy("Каталог / залишки:", "Catalog / stock:")}{" "}
+              {copy(ukrainianCopy.catalogStock, englishCopy.catalogStock)}{" "}
               {preview.options.catalog} / {preview.options.stock}.{" "}
               {preview.options.policy.amounts.price} ·{" "}
               {preview.options.discountUnit} ·{" "}
               {preview.options.policy.amounts.absoluteDiscount}
             </p>
             <p>
-              {copy("Статуси:", "Statuses:")}{" "}
+              {copy(ukrainianCopy.statuses, englishCopy.statuses)}{" "}
               {Object.entries(preview.options.policy.statuses)
                 .map(([k, v]) => `${k}: ${v}`)
                 .join("; ")}
             </p>
             <p>
-              {copy("Канали:", "Channels:")}{" "}
+              {copy(ukrainianCopy.channels, englishCopy.channels)}{" "}
               {Object.entries(preview.options.policy.channels)
                 .map(([k, v]) => `${k}: ${v}`)
                 .join("; ")}
             </p>
             {preview.options.history && (
               <p>
-                {copy("Історія замовлень:", "Order history:")}{" "}
+                {copy(ukrainianCopy.orderHistory, englishCopy.orderHistory)}{" "}
                 {preview.options.history.from} –{" "}
                 {preview.options.history.to};{" "}
                 {String(preview.options.history.complete)}
@@ -93,19 +94,18 @@ export function CsvPreviewPanel({ preview, lang, busy, suppliers, panelRef, onAc
             )}
             {preview.options.receiptHistory && (
               <p>
-                {copy("Історія приходів:", "Receipt history:")}{" "}
+                {copy(ukrainianCopy.receiptHistory, englishCopy.receiptHistory)}{" "}
                 {preview.options.receiptHistory.from} –{" "}
                 {preview.options.receiptHistory.to};{" "}
-                {String(preview.options.receiptHistory.complete)};
-                baseline:{" "}
+                {String(preview.options.receiptHistory.complete)}{englishCopy.baseline}{" "}
                 {String(preview.options.receiptBaseline ?? false)}
               </p>
             )}
             {preview.options.policy.receipts && (
               <p>
                 {copy(
-                  "Проведені статуси / постачальники:",
-                  "Posted statuses / suppliers:",
+                  ukrainianCopy.postedStatusesSuppliers,
+                  englishCopy.postedStatusesSuppliers,
                 )}{" "}
                 {preview.options.policy.receipts.postedStatuses.join(
                   ", ",
@@ -132,7 +132,7 @@ export function CsvPreviewPanel({ preview, lang, busy, suppliers, panelRef, onAc
                 </a>{" "}
                 (
                 {m.delimiter === "\t"
-                  ? copy("табуляція", "tab")
+                  ? copy(ukrainianCopy.tab, englishCopy.tab)
                   : m.delimiter}
                 )
                 <ul className="list-inside list-disc">
@@ -163,12 +163,12 @@ export function CsvPreviewPanel({ preview, lang, busy, suppliers, panelRef, onAc
                 }}
               >
                 {names[lang][e.resource as CsvResource]} ·{" "}
-                {copy("рядок", "row")} {e.row || "—"}{" "}
+                {copy(ukrainianCopy.row, englishCopy.row)} {e.row || "—"}{" "}
                 {e.field ? `(${e.field})` : ""}:{" "}
                 {rowErrorCopy[e.code]?.[uk ? 0 : 1] ??
                   copy(
-                    "Виправте рядок або мапінг. Код: ",
-                    "Correct the row or mapping. Code: ",
+                    ukrainianCopy.correctTheRowOrMapping,
+                    englishCopy.correctTheRowOrMapping,
                   ) + e.code}
               </a>
             </li>
@@ -179,8 +179,8 @@ export function CsvPreviewPanel({ preview, lang, busy, suppliers, panelRef, onAc
         <details className="text-sm text-(--muted)">
           <summary className="cursor-pointer">
             {copy(
-              "Обмеження та попередження",
-              "Limitations and warnings",
+              ukrainianCopy.limitationsAndWarnings,
+              englishCopy.limitationsAndWarnings,
             )}
           </summary>
           <ul className="mt-2 list-inside list-disc">
@@ -192,7 +192,7 @@ export function CsvPreviewPanel({ preview, lang, busy, suppliers, panelRef, onAc
       )}
       {preview.job?.errorCode && (
         <p role="alert" className="text-sm text-(--text)">
-          {copy("Імпорт зупинено:", "Import paused:")}{" "}
+          {copy(ukrainianCopy.importPaused, englishCopy.importPaused)}{" "}
           {preview.job.errorCode}
         </p>
       )}
@@ -208,8 +208,8 @@ export function CsvPreviewPanel({ preview, lang, busy, suppliers, panelRef, onAc
           onClick={() => void onAction("activate")}
         >
           {copy(
-            "Активувати перевірений пакет",
-            "Activate validated packet",
+            ukrainianCopy.activateValidatedPacket,
+            englishCopy.activateValidatedPacket,
           )}
         </button>
         {preview.state === "QUEUED" && (
@@ -227,7 +227,7 @@ export function CsvPreviewPanel({ preview, lang, busy, suppliers, panelRef, onAc
               )
             }
           >
-            {copy("Продовжити імпорт", "Continue import")}
+            {copy(ukrainianCopy.continueImport, englishCopy.continueImport)}
           </button>
         )}
         <button
@@ -239,13 +239,13 @@ export function CsvPreviewPanel({ preview, lang, busy, suppliers, panelRef, onAc
           }
           onClick={() => void onAction("cancel")}
         >
-          {copy("Скасувати пакет", "Cancel packet")}
+          {copy(ukrainianCopy.cancelPacket, englishCopy.cancelPacket)}
         </button>
       </div>
       <p className="text-xs text-(--muted)">
         {copy(
-          "Для активації виберіть CSV у «Джерелі звітів» вище. Перевірка та активація — окремі дії.",
-          "To activate, choose CSV in Reporting source above. Preview and activation are separate actions.",
+          ukrainianCopy.toActivateChooseCSVIn,
+          englishCopy.toActivateChooseCSVIn,
         )}
       </p>
     </div>

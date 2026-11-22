@@ -1,5 +1,7 @@
 import type { Lang } from "@/lib/translations";
 import type { QualityStockGroup } from "../data-quality-summary/data-quality-summary";
+import { settingsDataQualityStockFiguresMessages as englishCopy } from "@/messages/en.json";
+import { settingsDataQualityStockFiguresMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export function DataQualityStockFigures({ stock, lang }: { stock: QualityStockGroup; lang: Lang }) {
   const uk = lang === "uk";
@@ -9,19 +11,19 @@ export function DataQualityStockFigures({ stock, lang }: { stock: QualityStockGr
   return (
     <>
       <span className="tabular-nums">
-        {number(stock.skuCount)} SKU · {number(stock.quantity)} {uk ? "шт" : "units"} ·{" "}
+        {number(stock.skuCount)}{englishCopy.sKU}{number(stock.quantity)} {uk ? ukrainianCopy.units : englishCopy.units} ·{" "}
         {number(stock.costValue)}{" "}
-        {stock.currency ?? (uk ? "валюта невідома" : "currency unknown")}
+        {stock.currency ?? (uk ? ukrainianCopy.currencyUnknown : englishCopy.currencyUnknown)}
       </span>
       {stock.unknownValueCount > 0 && (
         <span className="block text-xs text-(--muted)">
-          {uk ? "Відома частина вартості; SKU без оцінки" : "Known value only; unvalued SKUs"}
+          {uk ? ukrainianCopy.knownValueOnlyUnvaluedSKUs : englishCopy.knownValueOnlyUnvaluedSKUs}
           : {number(stock.unknownValueCount)}
         </span>
       )}
       {stock.unknownQuantityCount > 0 && (
         <span className="block text-xs">
-          {uk ? "Кількість невідома" : "Unknown quantity"}: {number(stock.unknownQuantityCount)}
+          {uk ? ukrainianCopy.unknownQuantity : englishCopy.unknownQuantity}: {number(stock.unknownQuantityCount)}
         </span>
       )}
     </>

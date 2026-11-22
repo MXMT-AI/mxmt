@@ -5,6 +5,8 @@ import { readApiJson } from "@/lib/api-response";
 import type { Lang } from "@/lib/translations";
 import type { SheetsFieldMapping, SheetsMappingMetadata, SheetsMappingPreview } from "@/lib/sheets-mapping-contract";
 import { mappingError } from "./copy";
+import { settingsSheetsMappingCardUseSheetsMappingActionMessages as englishCopy } from "@/messages/en.json";
+import { settingsSheetsMappingCardUseSheetsMappingActionMessages as ukrainianCopy } from "@/messages/uk.json";
 
 type MappingAction = { sourceId: string } & (
   { kind: "preview"; meta: SheetsMappingMetadata | null; draft: SheetsFieldMapping | null }
@@ -45,12 +47,12 @@ export function useSheetsMappingAction({ lang, canManage, loading, onPreview, on
       if (input.kind === "preview") onPreview(data as unknown as SheetsMappingPreview);
       else {
         onMessage(lang === "uk"
-          ? "Зіставлення погоджено. Вибір джерела та імпорт у спільну модель виконуються окремо."
-          : "Mapping approved. Source selection and shared-model import are separate actions.");
+          ? ukrainianCopy.mappingApprovedSourceSelectionAnd
+          : englishCopy.mappingApprovedSourceSelectionAnd);
         onApproved();
       }
     } catch (cause) {
-      onError(cause instanceof Error ? cause.message : "Mapping unavailable");
+      onError(cause instanceof Error ? cause.message : englishCopy.mappingUnavailable);
     } finally {
       inFlight.current = false;
       setBusy(false);

@@ -23,6 +23,9 @@ import { buildPlannerOrderWorkbook } from "./planner-order-workbook";
 import { calculatePlannerBudget } from "./calculate-planner-budget";
 import { useToast } from "@/components/ui/toast/use-toast";
 import { Toast } from "@/components/ui/toast/toast";
+import { formatMessage } from "@/i18n/format-message";
+import { plannerPlannerAppMessages as englishCopy } from "@/messages/en.json";
+import { plannerPlannerAppMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export default function PlannerApp({
   initialBrands,
@@ -58,14 +61,15 @@ export default function PlannerApp({
   });
 
   const addToCart = useCallback((item: CatalogItem, qty: number) => {
-    if (addItem(item, qty)) showToast(`✓ ${item.name} додано до замовлення`);
+    if (addItem(item, qty)) showToast(formatMessage(ukrainianCopy.доданоДоЗамовлення, { name: item.name }));
   }, [addItem, showToast]);
 
   const findDuplicates = async () => {
     const groups = await scanDuplicates();
     if (!groups) return;
     setSection("duplicates");
-    showToast(`Знайдено ${groups.length} ${groups.length === 1 ? "групу" : "груп"} дублів`);
+    const message = groups.length === 1 ? ukrainianCopy.duplicateGroup : ukrainianCopy.duplicateGroups;
+    showToast(formatMessage(message, { count: groups.length }));
   };
 
   const { exporting, error: exportError, exportExcel: exportPO } = useXlsxExport({
@@ -99,20 +103,20 @@ export default function PlannerApp({
       />
 
       {exportError ? (
-        <AlertPanel message={lang === "uk" ? "Не вдалося створити Excel-файл замовлення." : "Could not create the order Excel file."}>
-          <Button variant="report" onClick={exportPO} disabled={exporting || cart.length === 0}>{lang === "uk" ? "Повторити експорт" : "Retry export"}</Button>
+        <AlertPanel message={lang === "uk" ? ukrainianCopy.messageCouldNotCreateTheOrder : englishCopy.messageCouldNotCreateTheOrder}>
+          <Button variant="report" onClick={exportPO} disabled={exporting || cart.length === 0}>{lang === "uk" ? ukrainianCopy.retryExport : englishCopy.retryExport}</Button>
         </AlertPanel>
       ) : null}
 
       {saveError ? (
-        <AlertPanel message={lang === "uk" ? "Не вдалося зберегти замовлення. Зміни залишаються в кошику." : "Could not save the order. Your changes remain in the cart."}>
-          <Button variant="report" onClick={retrySave}>{lang === "uk" ? "Повторити збереження" : "Retry saving"}</Button>
+        <AlertPanel message={lang === "uk" ? ukrainianCopy.messageCouldNotSaveTheOrder : englishCopy.messageCouldNotSaveTheOrder}>
+          <Button variant="report" onClick={retrySave}>{lang === "uk" ? ukrainianCopy.retrySaving : englishCopy.retrySaving}</Button>
         </AlertPanel>
       ) : null}
 
       {(Object.keys(dataErrors) as PlannerDataResource[]).filter(resource => dataErrors[resource]).map(resource => (
         <AlertPanel key={resource} message={plannerDataErrors[lang][resource]}>
-          <Button variant="report" onClick={() => retryData(resource)}>{lang === "uk" ? "Повторити запит" : "Retry request"}</Button>
+          <Button variant="report" onClick={() => retryData(resource)}>{lang === "uk" ? ukrainianCopy.retryRequest : englishCopy.retryRequest}</Button>
         </AlertPanel>
       ))}
 
@@ -172,8 +176,8 @@ export default function PlannerApp({
         <BrandModal
           brand={brandModal === "new" ? null : brandModal}
           onClose={() => setBrandModal(null)}
-          onSave={() => completeBrandMutation("Бренд збережено")}
-          onDelete={() => completeBrandMutation("Бренд видалено")}
+          onSave={() => completeBrandMutation(ukrainianCopy.брендЗбережено)}
+          onDelete={() => completeBrandMutation(ukrainianCopy.брендВидалено)}
         />
       )}
 

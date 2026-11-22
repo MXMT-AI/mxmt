@@ -10,12 +10,13 @@ import { AuthField } from "../auth-field/auth-field";
 import { AuthForm } from "../auth-form/auth-form";
 import { useAuthNavigation } from "../use-auth-navigation/use-auth-navigation";
 import { useAuthSubmit } from "../use-auth-submit/use-auth-submit";
+import { authRegisterFormMessages as englishCopy } from "@/messages/en.json";
 
 const fields = [
-  { field: "businessName", id: "register-business-name", label: "auth_business_name", type: "text", placeholder: "MXMT Store" },
+  { field: "businessName", id: "register-business-name", label: "auth_business_name", type: "text", placeholder: englishCopy.placeholderMXMTStore },
   { field: "name", id: "register-name", label: "auth_your_name", type: "text", autoComplete: "name" },
   { field: "email", id: "register-email", label: "auth_email", type: "email", autoComplete: "email", placeholder: "you@company.com" },
-  { field: "password", id: "register-password", label: "auth_password", type: "password", autoComplete: "new-password", placeholder: "min 8" },
+  { field: "password", id: "register-password", label: "auth_password", type: "password", autoComplete: "new-password", placeholder: englishCopy.placeholderMin8 },
   { field: "confirmPassword", id: "register-confirm-password", label: "auth_confirm_password", type: "password", autoComplete: "new-password", placeholder: "••••••••" },
 ] as const;
 
@@ -46,7 +47,7 @@ export default function RegisterForm() {
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2.5 mb-3">
             <BrandMark size={36} />
-            <span className="text-(--text) font-semibold text-lg tracking-tight">MXMT Analytics</span>
+            <span className="text-(--text) font-semibold text-lg tracking-tight">{englishCopy.mXMTAnalytics}</span>
           </div>
           <Heading as="h1" variant="compact" className="font-normal text-(--muted)">
             {t.auth_subtitle_register}

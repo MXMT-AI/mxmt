@@ -6,6 +6,7 @@ import { Note } from "@/components/ui/note/note";
 import { formatTableValue as format } from "@/lib/data-reporting-ui";
 import type { RepricingCopy } from "@/lib/repricing-copy";
 import type { RepricingPreview } from "../use-repricing-preview";
+import { repricingRepricingSummaryMessages as englishCopy } from "@/messages/en.json";
 export default function RepricingSummary({
   data,
   current,
@@ -63,7 +64,7 @@ export default function RepricingSummary({
               <>
                 {format(noEligible && type === "money" ? null : value, type, locale)}
                 {!noEligible && value !== undefined && value !== null && type === "money" ? (
-                  <small className="ml-1 text-xs">UAH</small>
+                  <small className="ml-1 text-xs">{englishCopy.valueUAH}</small>
                 ) : null}
               </>
             }

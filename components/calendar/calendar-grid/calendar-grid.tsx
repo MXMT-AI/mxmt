@@ -3,6 +3,9 @@ import type { Locale } from "@/i18n/routing";
 import { CalendarChip } from "../calendar-chip/calendar-chip";
 import { calendarRows } from "../marketing-calendar/calendar-rows";
 import type { Chip, EventLocation, Week } from "../marketing-calendar/calendar-types";
+import { formatMessage } from "@/i18n/format-message";
+import { calendarCalendarGridMessages as englishCopy } from "@/messages/en.json";
+import { calendarCalendarGridMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export function CalendarGrid({ weeks, locale, getChips, onAdd, onEdit, onDelete }: {
   weeks: Week[];
@@ -23,7 +26,7 @@ export function CalendarGrid({ weeks, locale, getChips, onAdd, onEdit, onDelete 
         <thead>
           <tr>
             <th scope="col" className="bg-(--surface2) text-(--muted) font-medium p-3 text-left border-b border-r border-(--border) sticky left-0 z-10 text-sm">
-              {uk ? "Канал" : "Channel"}
+              {uk ? ukrainianCopy.channel : englishCopy.channel}
             </th>
             {weeks.map((w) => (
               <th scope="col" key={w.k} className="bg-(--surface2) text-(--muted) font-medium p-2 text-center border-b border-r border-(--border)">
@@ -60,15 +63,15 @@ export function CalendarGrid({ weeks, locale, getChips, onAdd, onEdit, onDelete 
                         <CalendarChip
                           key={chip.id ?? index}
                           chip={chip}
-                          editLabel={uk ? "Редагувати подію" : "Edit event"}
-                          deleteLabel={uk ? "Видалити подію" : "Delete event"}
+                          editLabel={uk ? ukrainianCopy.editLabelEditEvent : englishCopy.editLabelEditEvent}
+                          deleteLabel={uk ? ukrainianCopy.deleteLabelDeleteEvent : englishCopy.deleteLabelDeleteEvent}
                           onEdit={(event) => onEdit(event, location)}
                           onDelete={onDelete}
                         />
                       ))}
                       <Button
                         onClick={() => onAdd(location)}
-                        aria-label={uk ? `Додати подію · ${row.l} · ${w.d}` : `Add event · ${row.l} · ${w.d}`}
+                        aria-label={uk ? formatMessage(ukrainianCopy.ariaLabelДодатиПодію, { l: row.l, d: w.d }) : formatMessage(englishCopy.ariaLabelAddEvent, { l: row.l, d: w.d })}
                         className="mt-0.5 w-full border-0 p-0 text-left font-sans text-xs text-(--subtle) hover:bg-transparent hover:text-(--text)"
                       >
                         +

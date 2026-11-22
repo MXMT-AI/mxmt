@@ -27,6 +27,7 @@ import {
   merchandisingHref,
   type MvpScreen,
 } from "@/lib/merchandising-navigation";
+import { sidebarMessages as englishCopy } from "@/messages/en.json";
 
 const MVP = [
   { screen: "overview", icon: LayoutDashboard },
@@ -120,9 +121,7 @@ export default function Sidebar({
       <div className="p-2 border-t border-(--border) flex flex-wrap md:block gap-1 items-center">
         <div className="flex flex-col px-1 py-1.5 gap-2">
           <span className="hidden md:flex items-center gap-2 text-xs text-(--muted)">
-            <Zap size={12} aria-hidden="true" />
-            OpenAI
-          </span>
+            <Zap size={12} aria-hidden="true" />{englishCopy.openAI}</span>
         </div>
         <Button
           variant="report"

@@ -15,6 +15,7 @@ import {
   previewMerchandisingCalculations,
   evaluateMonthlyPlan,
 } from "@/lib/merchandising-policy";
+import { apiSettingsMerchandisingRouteMessages as englishCopy } from "@/messages/en.json";
 export const dynamic = "force-dynamic";
 const resources = ["client", "brand", "sku", "supplier", "category"];
 const headers = { "Cache-Control": "no-store" };
@@ -34,7 +35,7 @@ export async function GET(request: NextRequest) {
     q.length > 200 ||
     (sku && sku.length > 200)
   )
-    return apiError("Invalid settings query", 400, "INVALID_QUERY");
+    return apiError(englishCopy.invalidSettingsQuery, 400, "INVALID_QUERY");
   try {
     return NextResponse.json(
       sku
@@ -58,7 +59,7 @@ export async function POST(request: NextRequest) {
   if (body.response) return body.response;
   const value = body.data;
   if (!isRecord(value))
-    return apiError("Invalid action", 400, "INVALID_ACTION");
+    return apiError(englishCopy.invalidAction, 400, "INVALID_ACTION");
   try {
     if (value.action === "createBrand")
       return NextResponse.json(
@@ -132,7 +133,7 @@ export async function POST(request: NextRequest) {
       ) ||
       typeof value.expectedRevision !== "number"
     )
-      return apiError("Invalid settings action", 400, "INVALID_ACTION");
+      return apiError(englishCopy.invalidSettingsAction, 400, "INVALID_ACTION");
     if (
       value.resource === "supplier" &&
       value.id === null &&
@@ -141,7 +142,7 @@ export async function POST(request: NextRequest) {
           value.creationKey,
         ))
     )
-      return apiError("A creation key is required", 400, "INVALID_ACTION");
+      return apiError(englishCopy.aCreationKeyIsRequired, 400, "INVALID_ACTION");
     return NextResponse.json(
       await saveMerchandisingSettings(
         user.tenantId,
@@ -168,7 +169,7 @@ function failure(error: unknown) {
   if (error instanceof SettingsValidationError)
     return NextResponse.json(
       {
-        error: "Check settings fields",
+        error: englishCopy.errorCheckSettingsFields,
         code: "INVALID_SETTINGS",
         fields: error.fields,
       },
@@ -180,7 +181,7 @@ function failure(error: unknown) {
       ? error.message
       : "SETTINGS_UNAVAILABLE";
   return NextResponse.json(
-    { error: "Settings could not be loaded or saved", code },
+    { error: englishCopy.errorSettingsCouldNotBeLoaded, code },
     {
       status:
         code === "ENTITY_NOT_FOUND"

@@ -12,6 +12,8 @@ import { OverviewTrend } from "../overview-trend/overview-trend";
 import { OverviewSummary } from "../overview-summary/overview-summary";
 import { OverviewActions } from "../overview-actions/overview-actions";
 import { OverviewValue } from "../overview-value/overview-value";
+import { overviewOverviewCurrencySectionMessages as englishCopy } from "@/messages/en.json";
+import { overviewOverviewCurrencySectionMessages as ukrainianCopy } from "@/messages/uk.json";
 const tone = (value: string) =>
   value === "GREEN"
     ? "text-report-positive"
@@ -74,7 +76,7 @@ export function OverviewCurrencySection({ block, view, sales, stock: stockData, 
   return (
     <section aria-label={currency} className="space-y-6">
       <Heading as="h2" variant="compact" className="text-inherit">{currency}</Heading>
-      {block.currency === null ? <Note className="mt-2">{lang === "uk" ? "Окрема група без підтвердженої валюти або залишку. Ці записи не скасовують відомі суми UAH нижче; невідомі дані не замінюються нулями." : "Separate records with unverified currency or stock. They do not invalidate the known UAH amounts below; unknown data is not replaced with zero."}</Note> : null}
+      {block.currency === null ? <Note className="mt-2">{lang === "uk" ? ukrainianCopy.separateRecordsWithUnverifiedCurrency : englishCopy.separateRecordsWithUnverifiedCurrency}</Note> : null}
       <OverviewSummary block={block} sale={sale} monobrand={monobrand} copy={copy} locale={locale} money={money} pct={pct} />
       <section
         aria-label={copy.analysis}

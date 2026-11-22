@@ -1,4 +1,6 @@
 import type { Lang } from "@/lib/translations";
+import { merchandisingPublishedReportStatusMessages as englishCopy } from "@/messages/en.json";
+import { merchandisingPublishedReportStatusMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export function PublishedReportStatus({ publishedAt, busy, lang }: {
   publishedAt?: string;
@@ -9,10 +11,10 @@ export function PublishedReportStatus({ publishedAt, busy, lang }: {
   return (
     <p className="text-sm text-(--muted) empty:sr-only" role="status">
       {busy
-        ? uk ? "Оновлюємо дані. Показано попередній зріз." : "Refreshing data. Showing the previous snapshot."
+        ? uk ? ukrainianCopy.refreshingDataShowingThePrevious : englishCopy.refreshingDataShowingThePrevious
         : publishedAt
           ? <>
-              {uk ? "Зріз опубліковано " : "Snapshot published "}
+              {uk ? ukrainianCopy.snapshotPublished : englishCopy.snapshotPublished}
               <time dateTime={publishedAt}>
                 {new Intl.DateTimeFormat(uk ? "uk-UA" : "en-GB", {
                   dateStyle: "medium",

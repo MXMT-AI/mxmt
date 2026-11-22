@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { apiError } from "@/lib/api-contracts";
 import { getActiveAgentImportRunId } from "@/lib/agent-data-source";
 import { buildAgentRunContext } from "@/lib/agent-context";
+import { agentRunsMessages as englishApiMessages } from "@/messages/en.json";
 
 interface StartAgentRunInput {
   tenantId: string;
@@ -62,7 +63,7 @@ export async function startAgentRun({
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       return {
         run: null,
-        response: apiError("Agent run already in progress", 409, "AGENT_RUN_ALREADY_RUNNING"),
+        response: apiError(englishApiMessages.agentRunAlreadyInProgress, 409, "AGENT_RUN_ALREADY_RUNNING"),
       };
     }
 

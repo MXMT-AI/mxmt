@@ -7,6 +7,7 @@ import { merchandisingApiError } from "@/lib/merchandising-api-error";
 import { hasRole } from "@/lib/roles";
 import { configuredReportStorage } from "@/lib/merchandising-publication-storage";
 import { publishMerchandisingReports } from "@/lib/merchandising-publication";
+import { apiMerchandisingSnapshotsRouteMessages as englishCopy } from "@/messages/en.json";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -35,17 +36,17 @@ export async function POST(request: NextRequest) {
     (data.publish === true && (!data.dateFrom || !data.dateTo))
   )
     return apiError(
-      "Invalid screen snapshot selection",
+      englishCopy.invalidScreenSnapshotSelection,
       400,
       "INVALID_SCREEN_SELECTION",
     );
   try {
     if (data.publish === true) {
       if (!hasRole(user.role, "ADMIN"))
-        return apiError("Publishing requires an administrator", 403, "FORBIDDEN");
+        return apiError(englishCopy.publishingRequiresAnAdministrator, 403, "FORBIDDEN");
       const storage = configuredReportStorage(user.tenantId);
       if (!storage)
-        return apiError("Report publication is unavailable", 409, "PUBLICATION_UNAVAILABLE");
+        return apiError(englishCopy.reportPublicationIsUnavailable, 409, "PUBLICATION_UNAVAILABLE");
       const publication = await publishMerchandisingReports(
         user.tenantId,
         { dateFrom: data.dateFrom as string, dateTo: data.dateTo as string, asOf: data.asOf as string | undefined },

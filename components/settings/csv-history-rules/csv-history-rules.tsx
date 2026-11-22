@@ -1,6 +1,8 @@
 import { Field } from "@/components/ui/field/field";
 import { control } from "@/components/ui/control-styles/control-styles";
 import type { Lang } from "@/lib/translations";
+import { settingsCsvHistoryRulesMessages as englishCopy } from "@/messages/en.json";
+import { settingsCsvHistoryRulesMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export interface CsvHistoryRuleValues {
   orders: boolean;
@@ -11,8 +13,8 @@ export interface CsvHistoryRuleValues {
 }
 
 const dateFields = [
-  { key: "from", uk: "Початок (ISO UTC)", en: "Start (ISO UTC)", placeholder: "2025-01-01T00:00:00.000Z" },
-  { key: "to", uk: "Кінець (ISO UTC)", en: "End (ISO UTC)", placeholder: "2026-10-25T23:59:59.999Z" },
+  { key: "from", uk: ukrainianCopy.enStartISOUTC, en: englishCopy.enStartISOUTC, placeholder: "2025-01-01T00:00:00.000Z" },
+  { key: "to", uk: ukrainianCopy.en, en: englishCopy.en, placeholder: "2026-10-25T23:59:59.999Z" },
 ] as const;
 
 export function CsvHistoryRules({ value, lang, onChange }: {
@@ -23,19 +25,19 @@ export function CsvHistoryRules({ value, lang, onChange }: {
   const copy = (uk: string, en: string) => lang === "uk" ? uk : en;
   return (
     <fieldset className="space-y-3">
-      <legend className="text-sm text-(--text)">{copy("Підтверджене покриття історії", "Verified history coverage")}</legend>
+      <legend className="text-sm text-(--text)">{copy(ukrainianCopy.verifiedHistoryCoverage, englishCopy.verifiedHistoryCoverage)}</legend>
       <label className="flex gap-2 text-sm text-(--muted)">
         <input type="checkbox" checked={value.orders} onChange={event => onChange({ ...value, orders: event.target.checked })} />
-        {copy("Файл містить усю історію замовлень за період", "The file contains complete order history for the interval")}
+        {copy(ukrainianCopy.theFileContainsCompleteOrder, englishCopy.theFileContainsCompleteOrder)}
       </label>
       <label className="flex gap-2 text-sm text-(--muted)">
         <input type="checkbox" checked={value.receipts} onChange={event => onChange({ ...value, receipts: event.target.checked })} />
-        {copy("Файл містить усі приходи за період", "The file contains complete receipt history for the interval")}
+        {copy(ukrainianCopy.theFileContainsCompleteReceipt, englishCopy.theFileContainsCompleteReceipt)}
       </label>
       {value.receipts && (
         <label className="flex gap-2 text-sm text-(--muted)">
           <input type="checkbox" checked={value.receiptBaseline} onChange={event => onChange({ ...value, receiptBaseline: event.target.checked })} />
-          {copy("Це повна історія приходів від початку діяльності, без попередніх приходів за межами періоду.", "This includes every receipt since the business began, with no earlier receipts outside the interval.")}
+          {copy(ukrainianCopy.thisIncludesEveryReceiptSince, englishCopy.thisIncludesEveryReceiptSince)}
         </label>
       )}
       {(value.orders || value.receipts) && (

@@ -1,12 +1,11 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button/button";
+import { reportPaginationCopy as reportPaginationCopyEn } from "@/messages/en.json";
+import { reportPaginationCopy as reportPaginationCopyUk } from "@/messages/uk.json";
 
 const buttonClassName = "size-8 p-0 inline-flex items-center justify-center hover:bg-(--input-hover) disabled:opacity-35";
 
-export const reportPaginationCopy = {
-  uk: { records: "записів", previous: "Попередня сторінка", next: "Наступна сторінка", page: "Сторінка", of: "з" },
-  en: { records: "records", previous: "Previous page", next: "Next page", page: "Page", of: "of" },
-};
+export const reportPaginationCopy = { uk: reportPaginationCopyUk, en: reportPaginationCopyEn };
 
 export function ReportTablePagination({ pagination, requestedPage, locale, copy, onPrevious, onNext }: {
   pagination: { page: number; totalPages: number; totalRows: number };

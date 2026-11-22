@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { createSpreadsheet } from "@/lib/gsheets";
 import { requireApiUser } from "@/lib/server-auth";
 import { isRecord, parseJsonBody, serverError, stringField, validationError } from "@/lib/api-contracts";
+import { apiExportSheetsRouteMessages as englishCopy } from "@/messages/en.json";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -17,7 +18,7 @@ export async function POST(req: NextRequest) {
   if (parseResponse) return parseResponse;
 
   if (!isRecord(data)) {
-    return validationError(["body must be an object"]);
+    return validationError([englishCopy.bodyMustBeAnObject]);
   }
 
   const issues: string[] = [];
@@ -26,9 +27,9 @@ export async function POST(req: NextRequest) {
   const values = data.values;
 
   if (!Array.isArray(values) || values.length === 0) {
-    issues.push("values must be a non-empty 2D array");
+    issues.push(englishCopy.valuesMustBeANonEmpty2D);
   } else if (!values.every((row) => Array.isArray(row) && row.every((cell) => typeof cell === "string" || typeof cell === "number" || cell === null))) {
-    issues.push("values rows must contain only strings, numbers, or null");
+    issues.push(englishCopy.valuesRowsMustContainOnlyStrings);
   }
 
   if (issues.length > 0) {

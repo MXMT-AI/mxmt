@@ -6,6 +6,8 @@ import { Field } from "@/components/ui/field/field";
 import { Button } from "@/components/ui/button/button";
 import { Text } from "@/components/ui/text/text";
 import { control } from "@/components/ui/control-styles/control-styles";
+import { settingsPrimaryBrandCreatorMessages as englishCopy } from "@/messages/en.json";
+import { settingsPrimaryBrandCreatorMessages as ukrainianCopy } from "@/messages/uk.json";
 export default function PrimaryBrandCreator({
   lang,
   disabled,
@@ -43,8 +45,8 @@ export default function PrimaryBrandCreator({
       nameRef.current?.focus();
       setError(
         uk
-          ? "Не вдалося створити бренд. Перевірте назву та повторіть спробу."
-          : "Could not create the brand. Check its name and try again.",
+          ? ukrainianCopy.couldNotCreateTheBrand
+          : englishCopy.couldNotCreateTheBrand,
       );
     } finally {
       inFlight.current = false;
@@ -54,9 +56,9 @@ export default function PrimaryBrandCreator({
   return (
     <details className="text-sm sm:col-span-2">
       <summary className="min-h-11 py-3 cursor-pointer focus-visible:outline-solid">
-        {uk ? "Бренду ще немає в каталозі?" : "Brand not in the catalog yet?"}
+        {uk ? ukrainianCopy.brandNotInTheCatalog : englishCopy.brandNotInTheCatalog}
       </summary>
-      <Field label={uk ? "Назва основного бренду" : "Primary brand name"} className="gap-2 text-sm text-inherit">
+      <Field label={uk ? ukrainianCopy.labelPrimaryBrandName : englishCopy.labelPrimaryBrandName} className="gap-2 text-sm text-inherit">
         <input
           ref={nameRef}
           name="primary-brand-name"
@@ -83,21 +85,21 @@ export default function PrimaryBrandCreator({
       >
         {busy
           ? uk
-            ? "Створення…"
-            : "Creating…"
+            ? ukrainianCopy.creating
+            : englishCopy.creating
           : uk
-            ? "Створити бренд"
-            : "Create brand"}
+            ? ukrainianCopy.createBrand
+            : englishCopy.createBrand}
       </Button>
       {error && <Text variant="body" role="alert" className="leading-normal text-inherit">{error}</Text>}
       <Text variant="body" role="status" className="mt-2 leading-normal text-(--muted)">
         {saved
           ? uk
-            ? "Бренд обрано. Збережіть профіль клієнта й окремо підтвердьте власність та умови."
-            : "Brand selected. Save the client profile and confirm ownership and terms separately."
+            ? ukrainianCopy.brandSelectedSaveTheClient
+            : englishCopy.brandSelectedSaveTheClient
           : uk
-            ? "Створення бренду не підтверджує власність, комісію або постачальника."
-            : "Creating a brand does not confirm ownership, commission or supplier terms."}
+            ? ukrainianCopy.creatingABrandDoesNot
+            : englishCopy.creatingABrandDoesNot}
       </Text>
     </details>
   );

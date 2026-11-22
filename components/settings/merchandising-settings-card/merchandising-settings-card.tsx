@@ -10,6 +10,8 @@ import type { SettingsResource } from "@/lib/merchandising-settings";
 import { SettingsEditor } from "../settings-editor/settings-editor";
 import { useMerchandisingSettings } from "./use-merchandising-settings";
 import { inputClass, buttonClass } from "./merchandising-settings-styles";
+import { settingsMerchandisingSettingsCardMessages as englishCopy } from "@/messages/en.json";
+import { settingsMerchandisingSettingsCardMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export default function MerchandisingSettingsCard({
   lang,
@@ -39,22 +41,22 @@ export default function MerchandisingSettingsCard({
   const leave = () =>
     !dirty ||
     window.confirm(
-      uk ? "Є незбережені зміни. Відкинути їх?" : "Discard unsaved changes?",
+      uk ? ukrainianCopy.discardUnsavedChanges : englishCopy.discardUnsavedChanges,
     );
   const labels: Record<SettingsResource, string> = uk
     ? {
-        client: "Клієнт",
-        brand: "Бренди",
+        client: ukrainianCopy.clientКлієнт,
+        brand: ukrainianCopy.brandБренди,
         sku: "SKU",
-        supplier: "Постачальники",
-        category: "Категорії",
+        supplier: ukrainianCopy.supplierПостачальники,
+        category: ukrainianCopy.categoryКатегорії,
       }
     : {
-        client: "Client",
-        brand: "Brands",
+        client: englishCopy.client,
+        brand: englishCopy.brand,
         sku: "SKUs",
-        supplier: "Suppliers",
-        category: "Categories",
+        supplier: englishCopy.supplier,
+        category: englishCopy.categoryCategories,
       };
   const item =
     selected === "new"
@@ -71,15 +73,15 @@ export default function MerchandisingSettingsCard({
         id="merchandising-settings-title"
         className="text-base"
       >
-        {uk ? "Правила мерчандайзингу" : "Merchandising rules"}
+        {uk ? ukrainianCopy.merchandisingRules : englishCopy.merchandisingRules}
       </Heading>
       <Text variant="body" className="leading-normal text-inherit mt-1 text-sm text-(--muted)">
         {uk
-          ? "Налаштування клієнта, власності й постачання. Зміни зберігаються з версією та журналом."
-          : "Client, ownership and supply policies. Changes retain revisions and an audit trail."}
+          ? ukrainianCopy.clientOwnershipAndSupplyPolicies
+          : englishCopy.clientOwnershipAndSupplyPolicies}
       </Text>
       <nav
-        aria-label={uk ? "Розділи мерчандайзингу" : "Merchandising sections"}
+        aria-label={uk ? ukrainianCopy.ariaLabelMerchandisingSections : englishCopy.ariaLabelMerchandisingSections}
         className="mt-4 flex flex-wrap gap-2"
       >
         {Object.entries(labels).map(([key, label]) => (
@@ -119,7 +121,7 @@ export default function MerchandisingSettingsCard({
       )}
       {loading && (
         <Text variant="body" role="status" className="leading-normal text-inherit mt-3 text-sm text-(--muted)">
-          {uk ? "Завантаження…" : "Loading…"}
+          {uk ? ukrainianCopy.loading : englishCopy.loading}
         </Text>
       )}
       {resource !== "client" && (
@@ -135,7 +137,7 @@ export default function MerchandisingSettingsCard({
             }
           }}
         >
-          <Field label={uk ? "Пошук назви або SKU" : "Search name or SKU"} className="flex-1 gap-0 text-sm">
+          <Field label={uk ? ukrainianCopy.labelSearchNameOrSKU : englishCopy.labelSearchNameOrSKU} className="flex-1 gap-0 text-sm">
             <input
               className={inputClass}
               name="merch-search"
@@ -145,7 +147,7 @@ export default function MerchandisingSettingsCard({
               onChange={(e) => setQuery(e.target.value)}
             />
           </Field>
-          <Button variant="report" type="submit" className={buttonClass}>{uk ? "Знайти" : "Search"}</Button>
+          <Button variant="report" type="submit" className={buttonClass}>{uk ? ukrainianCopy.search : englishCopy.search}</Button>
         </form>
       )}
       {data && !loading && (
@@ -165,12 +167,12 @@ export default function MerchandisingSettingsCard({
                 >
                   {selected === "new" && (
                     <option value="new">
-                      {uk ? "Новий постачальник" : "New supplier"}
+                      {uk ? ukrainianCopy.newSupplier : englishCopy.newSupplier}
                     </option>
                   )}
                   {!data.items.length && selected !== "new" && (
                     <option value="">
-                      {uk ? "Немає записів" : "No records"}
+                      {uk ? ukrainianCopy.noRecords : englishCopy.noRecords}
                     </option>
                   )}
                   {data.items.map((row) => (
@@ -192,7 +194,7 @@ export default function MerchandisingSettingsCard({
                     }
                   }}
                 >
-                  {uk ? "Додати постачальника" : "Add supplier"}
+                  {uk ? ukrainianCopy.addSupplier : englishCopy.addSupplier}
                 </Button>
               )}
             </div>
@@ -216,16 +218,16 @@ export default function MerchandisingSettingsCard({
                 } else await load();
                 setNotice(
                   uk
-                    ? "Збережено. Нові імпорти застосують статуси й виключення; звіти очікують перерахунку."
-                    : "Saved. New imports apply status/exclusion rules; reports await recalculation.",
+                    ? ukrainianCopy.savedNewImportsApplyStatusExclusion
+                    : englishCopy.savedNewImportsApplyStatusExclusion,
                 );
               }}
             />
           ) : (
             <Text variant="body" className="leading-normal text-inherit mt-4 text-sm text-(--muted)">
               {uk
-                ? "Записів ще немає. Імпортуйте каталог, щоб налаштувати бренди, товари й категорії."
-                : "No records yet. Import a catalog to configure brands, products and categories."}
+                ? ukrainianCopy.noRecordsYetImportA
+                : englishCopy.noRecordsYetImportA}
             </Text>
           )}
           {resource !== "client" && (
@@ -241,7 +243,7 @@ export default function MerchandisingSettingsCard({
                   }
                 }}
               >
-                {uk ? "Назад" : "Previous"}
+                {uk ? ukrainianCopy.previous : englishCopy.previous}
               </Button>
               <span className="text-sm text-(--muted)">
                 {page} /{" "}
@@ -258,7 +260,7 @@ export default function MerchandisingSettingsCard({
                   }
                 }}
               >
-                {uk ? "Далі" : "Next"}
+                {uk ? ukrainianCopy.next : englishCopy.next}
               </Button>
             </div>
           )}
@@ -270,8 +272,8 @@ export default function MerchandisingSettingsCard({
           className="underline focus-visible:outline-solid"
         >
           {uk
-            ? "Аліаси брендів і типи товарів — у «Якість даних»."
-            : "Brand aliases and product types are managed in Data quality."}
+            ? ukrainianCopy.brandAliasesAndProductTypes
+            : englishCopy.brandAliasesAndProductTypes}
         </Link>
       </Text>
     </section>

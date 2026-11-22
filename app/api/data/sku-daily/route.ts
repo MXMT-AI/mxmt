@@ -9,6 +9,7 @@ import {
   type DailySkuQuery,
 } from "@/lib/sku-daily-store";
 import { DailySkuPeriodError } from "@/lib/sku-daily-period";
+import { apiDataSkuDailyRouteMessages as englishCopy } from "@/messages/en.json";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -37,13 +38,13 @@ export async function GET(request: NextRequest) {
     !DAILY_SKU_SORTS.includes(sort as DailySkuQuery["sort"]) ||
     !["asc", "desc"].includes(direction)
   )
-    return apiError("Invalid daily SKU query", 400, "INVALID_QUERY");
+    return apiError(englishCopy.invalidDailySKUQuery, 400, "INVALID_QUERY");
   if (
     id === null &&
     ["page", "pageSize", "q", "sort", "direction"].some((key) => p.has(key))
   )
     return apiError(
-      "Supply calculationId for pagination, search or sorting.",
+      englishCopy.supplyCalculationIdForPaginationSearch,
       400,
       "CALCULATION_ID_REQUIRED",
     );
@@ -67,12 +68,12 @@ export async function GET(request: NextRequest) {
       return apiError(error.message, 400, "INVALID_AS_OF");
     if (error instanceof DailySkuError)
       return apiError(
-        "Daily SKU metrics unavailable. Check source settings, import progress and selected date.",
+        englishCopy.dailySKUMetricsUnavailableCheck,
         error.status,
         error.code,
       );
     return apiError(
-      "Could not calculate daily SKU metrics. Retry after synchronization completes.",
+      englishCopy.couldNotCalculateDailySKU,
       503,
       "DAILY_CALCULATION_UNAVAILABLE",
     );

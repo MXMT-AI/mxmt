@@ -5,7 +5,8 @@ import {ProductAttributeError} from "./product-attributes";
 import {CustomLabelError} from "./custom-labels";
 import {ScreenApiError} from "./merchandising-snapshot";
 import {logError} from "./observability";
+import { analogForecastApiMessages as englishApiMessages } from "@/messages/en.json";
 export function analogForecastApiError(error:unknown){
- if(error instanceof AnalogForecastError||error instanceof AiExecutionError||error instanceof ProductAttributeError||error instanceof CustomLabelError||error instanceof ScreenApiError)return apiError("Forecast preview requires a current snapshot, verified evidence and an explicit draft policy.",error.status,error.code);
- logError("Analog forecast preview failed",error);return apiError("Could not prepare forecast preview.",503,"ANALOG_FORECAST_UNAVAILABLE");
+ if(error instanceof AnalogForecastError||error instanceof AiExecutionError||error instanceof ProductAttributeError||error instanceof CustomLabelError||error instanceof ScreenApiError)return apiError(englishApiMessages.forecastPreviewRequiresACurrentSnapshot,error.status,error.code);
+ logError("Analog forecast preview failed",error);return apiError(englishApiMessages.couldNotPrepareForecastPreview,503,"ANALOG_FORECAST_UNAVAILABLE");
 }

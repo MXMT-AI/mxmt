@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { DEFAULT_AGENT_PROVIDER, loadAgentProviders, saveAgentProviders, type AgentProvider } from "@/lib/client/agent-providers";
 import { agentProviderGroups } from "./agent-provider-config";
 import { AgentProviderRow } from "../agent-provider-row/agent-provider-row";
+import { settingsAgentProvidersCardMessages as englishCopy } from "@/messages/en.json";
+import { settingsAgentProvidersCardMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export default function AgentProvidersCard() {
   const [providers, setProviders] = useState<Record<string, AgentProvider>>({});
@@ -49,10 +51,8 @@ export default function AgentProvidersCard() {
         );
       })}
 
-      <p className="text-[11px] font-mono text-(--subtle) pt-2">
-        OpenAI використовується за замовчуванням. Для роботи потрібен{" "}
-        <span className="text-(--muted)">OPENAI_API_KEY</span> у змінних середовища хостингу.
-      </p>
+      <p className="text-[11px] font-mono text-(--subtle) pt-2">{ukrainianCopy.openAIВикористовуєтьсяЗаЗамовчуваннямДля}{" "}
+        <span className="text-(--muted)">{englishCopy.oPENAIAPIKEY}</span>{ukrainianCopy.уЗміннихСередовищаХостингу}</p>
     </div>
   );
 }

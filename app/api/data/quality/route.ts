@@ -3,6 +3,7 @@ import { requireApiUser } from "@/lib/server-auth";
 import { apiError, isRecord, parseJsonBody } from "@/lib/api-contracts";
 import { getProductQuality } from "@/lib/product-quality";
 import { saveBrandAlias, saveProductKind } from "@/lib/product-normalization";
+import { apiDataQualityRouteMessages as englishCopy } from "@/messages/en.json";
 export const dynamic = "force-dynamic";
 const headers = { "Cache-Control": "no-store" };
 export async function GET(request: NextRequest) {
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest) {
     code.length > 100 ||
     (code !== "" && !/^[A-Z_]+$/.test(code))
   )
-    return apiError("Invalid page or search", 400, "INVALID_QUERY");
+    return apiError(englishCopy.invalidPageOrSearch, 400, "INVALID_QUERY");
   try {
     return NextResponse.json(
       await getProductQuality(user.tenantId, {
@@ -31,7 +32,7 @@ export async function GET(request: NextRequest) {
       { headers },
     );
   } catch {
-    return apiError("Data quality is unavailable", 503, "QUALITY_UNAVAILABLE");
+    return apiError(englishCopy.dataQualityIsUnavailable, 503, "QUALITY_UNAVAILABLE");
   }
 }
 export async function POST(request: NextRequest) {
@@ -41,7 +42,7 @@ export async function POST(request: NextRequest) {
   if (body.response) return body.response;
   const value = body.data;
   if (!isRecord(value))
-    return apiError("Choose an action", 400, "INVALID_ACTION");
+    return apiError(englishCopy.chooseAnAction, 400, "INVALID_ACTION");
   try {
     if (
       value.action === "alias" &&
@@ -70,7 +71,7 @@ export async function POST(request: NextRequest) {
       );
     else
       return apiError(
-        "Choose a valid normalization action",
+        englishCopy.chooseAValidNormalizationAction,
         400,
         "INVALID_ACTION",
       );
@@ -87,7 +88,7 @@ export async function POST(request: NextRequest) {
         ? error.message
         : "NORMALIZATION_UNAVAILABLE";
     return apiError(
-      "Normalization change could not be saved",
+      englishCopy.normalizationChangeCouldNotBe,
       code === "NORMALIZATION_UNAVAILABLE" ? 503 : 400,
       code,
     );

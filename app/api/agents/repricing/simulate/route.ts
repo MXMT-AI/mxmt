@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { simulatePromo } from "@/lib/promo-calc";
 import { requireApiUser } from "@/lib/server-auth";
 import { isRecord, numberField, optionalDate, parseJsonBody, serverError, stringField, validationError } from "@/lib/api-contracts";
-
+import { apiAgentsRepricingSimulateRouteMessages as englishCopy } from "@/messages/en.json";
 
 export async function POST(req: NextRequest) {
   const { user, response } = await requireApiUser("ANALYST");
@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
   if (parseResponse) return parseResponse;
 
   if (!isRecord(data)) {
-    return validationError(["body must be an object"]);
+    return validationError([englishCopy.bodyMustBeAnObject]);
   }
 
   const issues: string[] = [];

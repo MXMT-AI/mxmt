@@ -3,6 +3,8 @@
 import { useRef, useState } from "react";
 import { saveDataQuality, type DataQualityChange } from "@/lib/client/data-quality-request";
 import type { Lang } from "@/lib/translations";
+import { settingsDataQualityCardUseQualityMutationMessages as englishCopy } from "@/messages/en.json";
+import { settingsDataQualityCardUseQualityMutationMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export function useQualityMutation({ lang, canManage, loading, reload, onAliasSaved, onError, onMessage }: {
   lang: Lang;
@@ -29,12 +31,12 @@ export function useQualityMutation({ lang, canManage, loading, reload, onAliasSa
       if (change.action === "alias") onAliasSaved();
       await reload();
       onMessage(change.action === "alias"
-        ? copy("Аліас збережено. Оновіть каталог, щоб застосувати його до товарів.", "Alias saved. Refresh the catalog to apply it to products.")
-        : copy("Тип товару збережено.", "Product type saved."));
+        ? copy(ukrainianCopy.aliasSavedRefreshTheCatalog, englishCopy.aliasSavedRefreshTheCatalog)
+        : copy(ukrainianCopy.productTypeSaved, englishCopy.productTypeSaved));
     } catch {
       onError(saved
-        ? copy("Зміни збережено, але діагностику не оновлено. Натисніть «Оновити діагностику».", "Changes saved, but diagnostics could not refresh. Select Refresh diagnostics.")
-        : copy("Не вдалося зберегти зміни. Перевірте вибір і повторіть спробу.", "Could not save changes. Check the selection and try again."));
+        ? copy(ukrainianCopy.changesSavedButDiagnosticsCould, englishCopy.changesSavedButDiagnosticsCould)
+        : copy(ukrainianCopy.couldNotSaveChangesCheck, englishCopy.couldNotSaveChangesCheck));
     } finally {
       inFlight.current = false;
       setBusy(false);

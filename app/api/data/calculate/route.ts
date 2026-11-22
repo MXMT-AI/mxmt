@@ -9,6 +9,7 @@ import {
   ArticleReportPeriodError,
   calculateArticleReport,
 } from "@/lib/article-report";
+import { apiDataCalculateRouteMessages as englishCopy } from "@/messages/en.json";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -18,7 +19,7 @@ export async function POST(request: NextRequest) {
   if (response) return response;
   const { data, response: parseResponse } = await parseOptionalJsonBody(request);
   if (parseResponse) return parseResponse;
-  if (!isRecord(data)) return validationError(["body must be an object"]);
+  if (!isRecord(data)) return validationError([englishCopy.bodyMustBeAnObject]);
 
   const issues: string[] = [];
   const values: Record<string, string | undefined> = {};
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest) {
     });
     importRunId = source?.activeImportRunId ?? undefined;
   }
-  if (!importRunId) return apiError("No active data import", 409, "NO_ACTIVE_IMPORT");
+  if (!importRunId) return apiError(englishCopy.noActiveDataImport, 409, "NO_ACTIVE_IMPORT");
 
   try {
     const result = await calculateArticleReport({
@@ -60,6 +61,6 @@ export async function POST(request: NextRequest) {
       return apiError(error.message, 409, "CALCULATION_IN_PROGRESS");
     }
     console.error("[data/calculate]", error);
-    return serverError("Report calculation failed");
+    return serverError(englishCopy.reportCalculationFailed);
   }
 }

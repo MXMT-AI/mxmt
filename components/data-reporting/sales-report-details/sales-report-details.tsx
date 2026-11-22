@@ -3,20 +3,22 @@ import { createTableValueFormatter } from "@/lib/data-reporting-ui";
 import { cn } from "@/lib/utils";
 import { salesReportReason } from "../sales-reporting-workspace/sales-report-copy";
 import type { SalesReportData } from "../sales-reporting-workspace/sales-report-types";
+import { dataReportingSalesReportDetailsMessages as englishCopy } from "@/messages/en.json";
+import { dataReportingSalesReportDetailsMessages as ukrainianCopy } from "@/messages/uk.json";
 
 type SalesDetailsData = Pick<SalesReportData, "components" | "preorders" | "oneOffOrderCount" | "oneOffOrders" | "issues">;
 
 export function SalesReportDetails({ data, uk }: { data: SalesDetailsData; uk: boolean }) {
   const formatValue = createTableValueFormatter(uk ? "uk-UA" : "en-GB");
   const componentLabels: Partial<Record<string, string>> = {
-    MERCHANDISE: uk ? "Товари" : "Merchandise",
-    SERVICE: uk ? "Послуги" : "Services",
-    GIFT_CARD: "Gift card",
-    UNKNOWN: uk ? "Невідомий тип" : "Unknown type",
+    MERCHANDISE: uk ? ukrainianCopy.mERCHANDISE : englishCopy.mERCHANDISE,
+    SERVICE: uk ? ukrainianCopy.sERVICE : englishCopy.sERVICE,
+    GIFT_CARD: englishCopy.gIFTCARD,
+    UNKNOWN: uk ? ukrainianCopy.uNKNOWN : englishCopy.uNKNOWN,
   };
   const preorderLabel = uk
-    ? "Оплачені передзамовлення, окремо від продажів"
-    : "Paid preorders, separate from sales";
+    ? ukrainianCopy.preorderLabelPaidPreordersSeparateFromSales
+    : englishCopy.preorderLabelPaidPreordersSeparateFromSales;
   const amounts = [
     ...data.components.flatMap(({ id, currency, current }) => current.lineCount ? [{
       key: JSON.stringify(["component", id, currency]),
@@ -36,34 +38,33 @@ export function SalesReportDetails({ data, uk }: { data: SalesDetailsData; uk: b
     <details className={cn(panel, "bg-transparent p-4 text-sm text-(--muted)")}>
       <summary className="cursor-pointer focus-visible:outline-solid">
         {uk
-          ? "Компоненти, передзамовлення й винятки"
-          : "Components, preorders and exceptions"}
+          ? ukrainianCopy.componentsPreordersAndExceptions
+          : englishCopy.componentsPreordersAndExceptions}
       </summary>
       <div className="mt-3 space-y-3">
         <p>
           {uk
-            ? "Послуги входять у виручку, але їх прибуток не підтверджений. Gift card та невідомі типи показано окремо."
-            : "Services enter revenue with unverified profit. Gift cards and unknown product types remain separate."}
+            ? ukrainianCopy.servicesEnterRevenueWithUnverified
+            : englishCopy.servicesEnterRevenueWithUnverified}
         </p>
         {amounts.map(({ key, label, currency, value }) => (
           <p key={key}>{label} · {currency ?? "—"}: {formatValue(value, "money")}</p>
         ))}
         <p>
           {uk
-            ? "Разових замовлень LY понад 50% місячної виручки бренду:"
-            : "LY orders exceeding 50% of monthly brand revenue:"}{" "}
+            ? ukrainianCopy.lYOrdersExceeding50Of
+            : englishCopy.lYOrdersExceeding50Of}{" "}
           {data.oneOffOrderCount}
         </p>
         {data.oneOffOrders.map((o) => (
           <p key={JSON.stringify([o.period, o.month, o.sourceId, o.orderId, o.brandId, o.currency])}>
             {o.period === "ly"
-              ? "LY"
+              ? englishCopy.lY
               : uk
-                ? "Поточний період"
-                : "Current"}{" "}
+                ? ukrainianCopy.current
+                : englishCopy.current}{" "}
             · {o.month} · {o.orderId} · {o.currency ?? "—"} ·{" "}
-            {formatValue(o.revenue, "money")} · {formatValue(o.shareOfLy, "percentage")} LY
-          </p>
+            {formatValue(o.revenue, "money")} · {formatValue(o.shareOfLy, "percentage")}{englishCopy.lY2}</p>
         ))}
         {data.issues.map((issue) => (
           <p key={issue.code}>

@@ -7,6 +7,8 @@ import type { Lang } from "@/lib/translations";
 import type { SheetsMappingPreview } from "@/lib/sheets-mapping-contract";
 import { sheetsMappingMessage } from "@/lib/sheets-mapping-copy";
 import { mappingCaption } from "../sheets-mapping-card/copy";
+import { settingsSheetsMappingPreviewPanelMessages as englishCopy } from "@/messages/en.json";
+import { settingsSheetsMappingPreviewPanelMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export function SheetsMappingPreviewPanel({ preview, lang, reference, confirmed, busy, onReferenceChange, onConfirmedChange, onApprove }: {
   preview: SheetsMappingPreview;
@@ -23,25 +25,25 @@ export function SheetsMappingPreviewPanel({ preview, lang, reference, confirmed,
   return (
     <section
       className="mt-5 space-y-3 rounded-lg border border-(--border) p-4"
-      aria-label={uk ? "Результат перевірки" : "Preview results"}
+      aria-label={uk ? ukrainianCopy.ariaLabelPreviewResults : englishCopy.ariaLabelPreviewResults}
     >
       <Heading as="h3" variant="compact" className="text-base font-medium text-inherit">
-        {uk ? "Перевірка зіставлення" : "Mapping preview"}
+        {uk ? ukrainianCopy.mappingPreview : englishCopy.mappingPreview}
       </Heading>
       <Text variant="body" className="leading-normal text-base text-inherit">
-        {uk ? "Товарів" : "Products"}: {preview.summary.counts.products} ·{" "}
-        {uk ? "Рядків замовлень" : "Order lines"}:{" "}
+        {uk ? ukrainianCopy.products : englishCopy.products}: {preview.summary.counts.products} ·{" "}
+        {uk ? ukrainianCopy.orderLines : englishCopy.orderLines}:{" "}
         {preview.summary.counts.orders}
       </Text>
       <Text variant="body" className="leading-normal text-base text-inherit">
-        {uk ? "Рядків із зауваженнями" : "Rows needing review"}:{" "}
+        {uk ? ukrainianCopy.rowsNeedingReview : englishCopy.rowsNeedingReview}:{" "}
         {preview.summary.invalidRows.products} /{" "}
         {preview.summary.invalidRows.orders}
       </Text>
       <Text variant="body" className="leading-normal text-base text-inherit text-sm text-(--muted)">
         {uk
-          ? "Немає підтвердження повноти історії, типу власності та умов постачальників. Невідомі показники не замінюються нулями."
-          : "History completeness, ownership and supplier terms require separate evidence. Unknown metrics are not replaced with zero."}
+          ? ukrainianCopy.historyCompletenessOwnershipAndSupplier
+          : englishCopy.historyCompletenessOwnershipAndSupplier}
       </Text>
       {preview.summary.blockingErrors.length ? (
         <ul role="alert" className="text-sm text-red-500">
@@ -57,26 +59,26 @@ export function SheetsMappingPreviewPanel({ preview, lang, reference, confirmed,
       </ul>
       <Text variant="body" className="leading-normal text-base text-inherit text-sm">
         {uk
-          ? "Непідтверджених статусів / типів позицій"
-          : "Unverified statuses / product kinds"}
+          ? ukrainianCopy.unverifiedStatusesProductKinds
+          : englishCopy.unverifiedStatusesProductKinds}
         : {preview.summary.unmappedStatuses} /{" "}
         {preview.summary.unverifiedProductKinds}
       </Text>
       <details>
         <summary className="cursor-pointer">
-          {uk ? "Зауваження" : "Issues"} ({preview.summary.problemCount})
+          {uk ? ukrainianCopy.issues : englishCopy.issues} ({preview.summary.problemCount})
         </summary>
         <ul className="mt-2 max-h-64 overflow-auto text-sm">
           {preview.summary.problems.map((problem, i) => (
             <li key={i}>
               {problem.resource === "products"
                 ? uk
-                  ? "Товари"
-                  : "Products"
+                  ? ukrainianCopy.products2
+                  : englishCopy.products2
                 : uk
-                  ? "Замовлення"
-                  : "Orders"}{" "}
-              · {uk ? "рядок" : "row"} {problem.row} ·{" "}
+                  ? ukrainianCopy.orders
+                  : englishCopy.orders}{" "}
+              · {uk ? ukrainianCopy.row : englishCopy.row} {problem.row} ·{" "}
               {problem.field ? caption(problem.field) + " · " : ""}
               {sheetsMappingMessage(problem.code, lang)}
             </li>
@@ -84,11 +86,11 @@ export function SheetsMappingPreviewPanel({ preview, lang, reference, confirmed,
         </ul>
         <Text variant="body" className="leading-normal text-base text-inherit mt-2 text-sm text-(--muted)">
           {uk
-            ? "Показано до 100 прикладів; кількість вище — за всіма перевіреними рядками."
-            : "Up to 100 examples are shown; totals cover every inspected row."}
+            ? ukrainianCopy.upTo100ExamplesAre
+            : englishCopy.upTo100ExamplesAre}
         </Text>
       </details>
-      <Field label={uk ? "Підстава погодження" : "Approval reference"}>
+      <Field label={uk ? ukrainianCopy.labelApprovalReference : englishCopy.labelApprovalReference}>
         <input
           className={control}
           name="sheets-mapping-approval-reference"
@@ -108,8 +110,8 @@ export function SheetsMappingPreviewPanel({ preview, lang, reference, confirmed,
           onChange={(e) => onConfirmedChange(e.target.checked)}
         />
         {uk
-          ? "Я перевірив(ла) поля, статуси, дати, одиниці сум і наведені обмеження."
-          : "I reviewed fields, statuses, dates, amount units and the stated limitations."}
+          ? ukrainianCopy.iReviewedFieldsStatusesDates
+          : englishCopy.iReviewedFieldsStatusesDates}
       </label>
       <Button variant="report"
         type="button"
@@ -122,7 +124,7 @@ export function SheetsMappingPreviewPanel({ preview, lang, reference, confirmed,
         }
         onClick={onApprove}
       >
-        {uk ? "Погодити цю версію" : "Approve this revision"}
+        {uk ? ukrainianCopy.approveThisRevision : englishCopy.approveThisRevision}
       </Button>
     </section>
   );

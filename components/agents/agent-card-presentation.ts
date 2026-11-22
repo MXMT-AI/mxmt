@@ -1,3 +1,6 @@
+import { formatMessage } from "@/i18n/format-message";
+import { agentsAgentCardPresentationMessages as ukrainianCopy } from "@/messages/uk.json";
+
 export function badgeStyle(color: string) {
   return {
     color,
@@ -7,11 +10,11 @@ export function badgeStyle(color: string) {
 }
 
 export function campaignHealthLabel(status: string) {
-  if (status === "on_track") return "На правильному шляху";
-  if (status === "critical") return "Критичний стан";
-  if (status === "not_started") return "Ще не запущено";
-  if (status === "insufficient_data") return "Недостатньо даних";
-  return "Потребує уваги";
+  if (status === "on_track") return ukrainianCopy.наПравильномуШляху;
+  if (status === "critical") return ukrainianCopy.критичнийСтан;
+  if (status === "not_started") return ukrainianCopy.щеНеЗапущено;
+  if (status === "insufficient_data") return ukrainianCopy.недостатньоДаних;
+  return ukrainianCopy.потребуєУваги;
 }
 
 export function campaignHealthClasses(status: string) {
@@ -30,6 +33,6 @@ export function campaignStatusColor(status: string) {
 }
 
 export function campaignMetricLabel(campaign: any) {
-  if (campaign.days_running == null || campaign.performance_score == null) return "метрики відсутні";
-  return `${campaign.days_running}д · ${campaign.performance_score}/10`;
+  if (campaign.days_running == null || campaign.performance_score == null) return ukrainianCopy.метрикиВідсутні;
+  return formatMessage(ukrainianCopy.д10, { days_running: campaign.days_running, performance_score: campaign.performance_score });
 }

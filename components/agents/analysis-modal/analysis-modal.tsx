@@ -13,6 +13,8 @@ import ReorderTableModal, { type ReorderSimParams } from "@/components/agents/re
 import { buildReorderParams, buildSimParams, formatWohDays } from "@/components/agents/agents.utils";
 import { badgeStyle, campaignHealthLabel, campaignHealthClasses, campaignStatusColor, campaignMetricLabel } from "../agent-card-presentation";
 import { getBrandStatus } from "../brand-status";
+import { agentsAnalysisModalMessages as englishCopy } from "@/messages/en.json";
+import { agentsAnalysisModalMessages as ukrainianCopy } from "@/messages/uk.json";
 
 function AnalysisCallout({ title, accent = false, children }: {
   title: string;
@@ -43,20 +45,19 @@ export function AnalysisModal({
 
   return (
     <>
-      <Dialog title={agentLabel} subtitle="Повний аналіз" closeLabel="Закрити повний аналіз" onClose={onClose}>
+      <Dialog title={agentLabel} subtitle={ukrainianCopy.subtitleПовнийАналіз} closeLabel={ukrainianCopy.closeLabelЗакритиПовнийАналіз} onClose={onClose}>
         <div className="px-6 py-5 space-y-5">
           {output.summary && (
-            <AnalysisCallout title="Загальний висновок">{output.summary}</AnalysisCallout>
+            <AnalysisCallout title={ukrainianCopy.titleЗагальнийВисновок}>{output.summary}</AnalysisCallout>
           )}
 
           {output.action && (
-            <AnalysisCallout title="Головна дія" accent>{output.action}</AnalysisCallout>
+            <AnalysisCallout title={ukrainianCopy.titleГоловнаДія} accent>{output.action}</AnalysisCallout>
           )}
 
           {agentId === "inventory_analyst" && Array.isArray(output.brands) && output.brands.length > 0 && (
             <div>
-              <Heading as="h3" variant="eyebrow">
-                Аналіз по брендах ({output.brands.length})
+              <Heading as="h3" variant="eyebrow">{ukrainianCopy.аналізПоБрендах}{output.brands.length})
               </Heading>
               <div className="space-y-3">
                 {output.brands.map((b: any) => (
@@ -83,7 +84,7 @@ export function AnalysisModal({
 
           {agentId === "channel_analytics" && Array.isArray(output.channels) && output.channels.length > 0 && (
             <div>
-              <Heading as="h3" variant="eyebrow">Аналіз по каналах ({output.channels.length})</Heading>
+              <Heading as="h3" variant="eyebrow">{ukrainianCopy.аналізПоКаналах}{output.channels.length})</Heading>
               <InsightList
                 variant="dialog"
                 capitalizeTitles
@@ -94,7 +95,7 @@ export function AnalysisModal({
 
           {agentId === "product_attributes" && Array.isArray(output.by_category) && output.by_category.length > 0 && (
             <div>
-              <Heading as="h3" variant="eyebrow">Аналіз по категоріях ({output.by_category.length})</Heading>
+              <Heading as="h3" variant="eyebrow">{ukrainianCopy.аналізПоКатегоріях}{output.by_category.length})</Heading>
               <InsightList
                 variant="dialog"
                 rows={buildCategoryInsightRows(output.by_category, "dialog")}
@@ -106,7 +107,7 @@ export function AnalysisModal({
             <div className="flex gap-4 flex-wrap">
               {Array.isArray(output.bestsellers) && output.bestsellers.length > 0 && (
                 <div>
-                  <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-2">Бестселери</div>
+                  <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-2">{ukrainianCopy.бестселери}</div>
                   <div className="flex flex-wrap gap-1.5">
                     {output.bestsellers.map((b: string) => (
                       <Badge key={b} tone="positive">{b}</Badge>
@@ -116,7 +117,7 @@ export function AnalysisModal({
               )}
               {Array.isArray(output.dead_stock) && output.dead_stock.length > 0 && (
                 <div>
-                  <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-2">Dead Stock</div>
+                  <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-2">{englishCopy.deadStock}</div>
                   <div className="flex flex-wrap gap-1.5">
                     {output.dead_stock.map((d: string) => (
                       <Badge key={d} tone="danger">{d}</Badge>
@@ -128,9 +129,7 @@ export function AnalysisModal({
           )}
           {agentId === "repricing" && Array.isArray(output.brands) && output.brands.length > 0 && (
             <div className="space-y-5">
-              <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle)">
-                Стратегії уцінки ({output.brands.length} брендів)
-              </div>
+              <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle)">{ukrainianCopy.стратегіїУцінки}{output.brands.length}{ukrainianCopy.брендів}</div>
               {output.brands.map((brand: any) => (
                 <div key={brand.brand_id} className="border border-(--border) rounded-xl overflow-hidden">
                   <div className="px-4 py-3 bg-accent-purple/5 border-b border-(--border)">
@@ -146,22 +145,22 @@ export function AnalysisModal({
                           <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm bg-accent-purple/15 text-accent-purple">{opt.strategy_type}</span>
                           <span className="font-semibold text-sm text-(--text)">{opt.label}</span>
                           {opt.evaluation?.recommended && (
-                            <span className="text-[9px] font-mono text-accent-cyan ml-auto">★ РЕКОМЕНДОВАНО · {opt.evaluation.score}/10</span>
+                            <span className="text-[9px] font-mono text-accent-cyan ml-auto">{ukrainianCopy.рЕКОМЕНДОВАНО}{opt.evaluation.score}{englishCopy["10"]}</span>
                           )}
                           {!opt.evaluation?.recommended && opt.evaluation?.score && (
-                            <span className="text-[9px] font-mono text-(--subtle) ml-auto">{opt.evaluation.score}/10</span>
+                            <span className="text-[9px] font-mono text-(--subtle) ml-auto">{opt.evaluation.score}{englishCopy["10"]}</span>
                           )}
                         </div>
                         <div className="flex gap-4 text-[10px] font-mono text-(--muted) mb-3 flex-wrap">
-                          {opt.discount_percent > 0 && <span>Знижка <span className="text-(--text)">-{opt.discount_percent}%</span></span>}
-                          {opt.duration_days && <span>Строк <span className="text-(--text)">{opt.duration_days}д</span></span>}
+                          {opt.discount_percent > 0 && <span>{ukrainianCopy.знижка}<span className="text-(--text)">-{opt.discount_percent}%</span></span>}
+                          {opt.duration_days && <span>{ukrainianCopy.строк}<span className="text-(--text)">{opt.duration_days}{ukrainianCopy.д}</span></span>}
                           {opt.forecast && (
-                            <span>Днів запасу після (DOH) <span className="text-(--text)">
-                              {opt.forecast.woh_after == null ? "недостатньо даних" : formatWohDays(opt.forecast.woh_after)}
+                            <span>{ukrainianCopy.днівЗапасуПісляDOH}<span className="text-(--text)">
+                              {opt.forecast.woh_after == null ? ukrainianCopy.недостатньоДаних : formatWohDays(opt.forecast.woh_after)}
                             </span></span>
                           )}
                           {opt.forecast?.margin_after_percent != null && (
-                            <span>Маржа після <span className={opt.forecast.margin_after_percent < 10 ? "text-accent-danger" : "text-accent-cyan"}>
+                            <span>{ukrainianCopy.маржаПісля}<span className={opt.forecast.margin_after_percent < 10 ? "text-accent-danger" : "text-accent-cyan"}>
                               {opt.forecast.margin_after_percent}%
                             </span></span>
                           )}
@@ -192,9 +191,7 @@ export function AnalysisModal({
                             onClick={() => setSimParams(buildSimParams(brand, opt, output._debug))}
                             className="mt-3 border-(--signal-line) bg-(--signal-wash) px-3 py-1.5 text-(--signal-ink) hover:bg-(--signal-hover) hover:text-(--signal-ink)"
                           >
-                            <Table2 size={11} aria-hidden="true" />
-                            Переглянути в таблиці
-                          </Button>
+                            <Table2 size={11} aria-hidden="true" />{ukrainianCopy.переглянутиВТаблиці}</Button>
                         )}
                       </div>
                     ))}
@@ -206,9 +203,7 @@ export function AnalysisModal({
 
           {agentId === "reordering" && Array.isArray(output.brands) && output.brands.length > 0 && (
             <div className="space-y-5">
-              <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle)">
-                Сценарії дозамовлення ({output.brands.length} брендів)
-              </div>
+              <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle)">{ukrainianCopy.сценаріїДозамовлення}{output.brands.length}{ukrainianCopy.брендів}</div>
               {output.brands.map((brand: any) => (
                 <div key={brand.brand_id} className="border border-(--border) rounded-xl overflow-hidden">
                   <div className="px-4 py-3 bg-accent-purple/5 border-b border-(--border)">
@@ -226,18 +221,17 @@ export function AnalysisModal({
                             <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm bg-accent-purple/15 text-accent-purple">{sc.type}</span>
                             <span className="font-semibold text-sm text-(--text)">{sc.label}</span>
                             <Badge size="small" className="ml-1" style={badgeStyle(riskColor)}>
-                              {sc.evaluation?.risk_level} RISK
-                            </Badge>
+                              {sc.evaluation?.risk_level}{englishCopy.rISK}</Badge>
                             {sc.evaluation?.recommended && (
-                              <span className="text-[9px] font-mono text-accent-cyan ml-auto">★ РЕКОМЕНДОВАНО · {sc.evaluation.score}/10</span>
+                              <span className="text-[9px] font-mono text-accent-cyan ml-auto">{ukrainianCopy.рЕКОМЕНДОВАНО}{sc.evaluation.score}{englishCopy["10"]}</span>
                             )}
                             {!sc.evaluation?.recommended && sc.evaluation?.score && (
-                              <span className="text-[9px] font-mono text-(--subtle) ml-auto">{sc.evaluation.score}/10</span>
+                              <span className="text-[9px] font-mono text-(--subtle) ml-auto">{sc.evaluation.score}{englishCopy["10"]}</span>
                             )}
                           </div>
                           <div className="flex gap-4 text-[10px] font-mono text-(--muted) mb-3 flex-wrap">
-                            {sc.qty_multiplier != null && <span>Обʼєм <span className="text-(--text)">×{sc.qty_multiplier}</span></span>}
-                            {sc.woh_after != null && <span>Днів запасу після (DOH) <span className="text-(--text)">{formatWohDays(sc.woh_after)}</span></span>}
+                            {sc.qty_multiplier != null && <span>{ukrainianCopy.обʼєм}<span className="text-(--text)">×{sc.qty_multiplier}</span></span>}
+                            {sc.woh_after != null && <span>{ukrainianCopy.днівЗапасуПісляDOH}<span className="text-(--text)">{formatWohDays(sc.woh_after)}</span></span>}
                             {sc.logic && <span className="text-(--subtle)">{sc.logic}</span>}
                           </div>
                           {sc.evaluation?.pros?.length > 0 && (
@@ -259,9 +253,7 @@ export function AnalysisModal({
                               onClick={() => setReorderParams(buildReorderParams(brand, sc, output._debug))}
                               className="mt-3 border-(--signal-line) bg-(--signal-wash) px-3 py-1.5 text-(--signal-ink) hover:bg-(--signal-hover) hover:text-(--signal-ink)"
                             >
-                              <Table2 size={11} aria-hidden="true" />
-                              Переглянути в таблиці
-                            </Button>
+                              <Table2 size={11} aria-hidden="true" />{ukrainianCopy.переглянутиВТаблиці}</Button>
                           )}
                         </div>
                       );
@@ -273,9 +265,7 @@ export function AnalysisModal({
           )}
           {agentId === "commercial_marketer" && Array.isArray(output.brands) && output.brands.length > 0 && (
             <div className="space-y-5">
-              <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle)">
-                Маркетингові брифи ({output.brands.length} брендів)
-              </div>
+              <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle)">{ukrainianCopy.маркетинговіБрифи}{output.brands.length}{ukrainianCopy.брендів}</div>
               {output.brands.map((brand: any) => (
                 <div key={brand.brand_id} className="border border-(--border) rounded-xl overflow-hidden">
                   <div className="px-4 py-3 bg-accent-yellow/5 border-b border-(--border)">
@@ -293,13 +283,13 @@ export function AnalysisModal({
                       <div key={ch} className="px-4 py-3">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm bg-accent-yellow/15 text-accent-yellow uppercase">{ch}</span>
-                          {!v?.action_needed && <span className="text-[9px] font-mono text-(--subtle)">не потрібно</span>}
-                          {v?.priority && <span className="text-[9px] font-mono text-(--subtle) ml-auto">пріоритет {v.priority}</span>}
+                          {!v?.action_needed && <span className="text-[9px] font-mono text-(--subtle)">{ukrainianCopy.неПотрібно}</span>}
+                          {v?.priority && <span className="text-[9px] font-mono text-(--subtle) ml-auto">{ukrainianCopy.пріоритет}{v.priority}</span>}
                         </div>
                         {v?.brief && <p className="text-[12px] text-(--muted) leading-relaxed">{v.brief}</p>}
                         {v?.frequency && <p className="text-[11px] text-(--text) mt-1">📅 {v.frequency}</p>}
-                        {v?.send_timing && <p className="text-[11px] text-(--text) mt-1">📤 Відправити: {v.send_timing}</p>}
-                        {v?.cta && <p className="text-[11px] text-accent-cyan mt-1">CTA: {v.cta}</p>}
+                        {v?.send_timing && <p className="text-[11px] text-(--text) mt-1">{ukrainianCopy.відправити}{v.send_timing}</p>}
+                        {v?.cta && <p className="text-[11px] text-accent-cyan mt-1">{englishCopy.cTA}{v.cta}</p>}
                         {v?.budget_recommendation && <p className="text-[11px] text-accent-cyan mt-1">💰 {v.budget_recommendation}</p>}
                         {v?.staff_talking_points && <p className="text-[11px] text-(--muted) mt-1 italic">"{v.staff_talking_points}"</p>}
                       </div>
@@ -314,9 +304,7 @@ export function AnalysisModal({
             <div className="space-y-3">
               {output.overall_health && (
                 <div className={`border rounded-xl p-4 ${campaignHealthClasses(output.overall_health)}`}>
-                  <div className="text-[9px] font-mono uppercase tracking-widest mb-1">
-                    Загальний стан кампаній
-                  </div>
+                  <div className="text-[9px] font-mono uppercase tracking-widest mb-1">{ukrainianCopy.загальнийСтанКампаній}</div>
                   <p className="text-sm font-semibold text-(--text)">
                     {campaignHealthLabel(output.overall_health)}
                   </p>
@@ -325,7 +313,7 @@ export function AnalysisModal({
               )}
               {Array.isArray(output.campaigns) && output.campaigns.length > 0 && (
                 <div>
-                  <Heading as="h3" variant="eyebrow">Кампанії ({output.campaigns.length})</Heading>
+                  <Heading as="h3" variant="eyebrow">{ukrainianCopy.кампанії}{output.campaigns.length})</Heading>
                   <div className="space-y-3">
                     {output.campaigns.map((camp: any, i: number) => {
                       const sc = campaignStatusColor(camp.status);
@@ -352,19 +340,19 @@ export function AnalysisModal({
             <div className="space-y-4">
               {output.pm_brief && (
                 <div className="bg-(--surface2) border border-(--border) rounded-xl p-4">
-                  <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-2">PM Brief</div>
+                  <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-2">{englishCopy.pMBrief}</div>
                   <p className="text-sm text-(--text) leading-relaxed">{output.pm_brief}</p>
                 </div>
               )}
               {output.marketing_brief && (
                 <div className="bg-(--surface2) border border-(--border) rounded-xl p-4">
-                  <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-2">Marketing Brief</div>
+                  <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-2">{englishCopy.marketingBrief}</div>
                   <p className="text-sm text-(--text) leading-relaxed">{output.marketing_brief}</p>
                 </div>
               )}
               {Array.isArray(output.top_priorities) && output.top_priorities.length > 0 && (
                 <div>
-                  <Heading as="h3" variant="eyebrow">Топ пріоритети</Heading>
+                  <Heading as="h3" variant="eyebrow">{ukrainianCopy.топПріоритети}</Heading>
                   <div className="space-y-2">
                     {output.top_priorities.map((p: any) => (
                       <div key={p.rank} className="flex items-start gap-3 border border-(--border) rounded-xl p-3">
@@ -386,7 +374,7 @@ export function AnalysisModal({
               )}
               {Array.isArray(output.decisions_needed) && output.decisions_needed.length > 0 && (
                 <div className="bg-accent-yellow/5 border border-accent-yellow/20 rounded-xl p-4">
-                  <div className="text-[9px] font-mono uppercase tracking-widest text-accent-yellow mb-2">Рішення PM</div>
+                  <div className="text-[9px] font-mono uppercase tracking-widest text-accent-yellow mb-2">{ukrainianCopy.рішенняPM}</div>
                   <ul className="space-y-1.5">
                     {output.decisions_needed.map((d: string, i: number) => (
                       <li key={i} className="text-[12px] text-(--text)">· {d}</li>
@@ -396,7 +384,7 @@ export function AnalysisModal({
               )}
               {Array.isArray(output.wins) && output.wins.length > 0 && (
                 <div className="bg-accent-cyan/5 border border-accent-cyan/20 rounded-xl p-4">
-                  <div className="text-[9px] font-mono uppercase tracking-widest text-accent-cyan mb-2">Перемоги тижня</div>
+                  <div className="text-[9px] font-mono uppercase tracking-widest text-accent-cyan mb-2">{ukrainianCopy.перемогиТижня}</div>
                   <ul className="space-y-1.5">
                     {output.wins.map((w: string, i: number) => (
                       <li key={i} className="text-[12px] text-(--text)">✓ {w}</li>
@@ -406,7 +394,7 @@ export function AnalysisModal({
               )}
               {output.next_week_focus && (
                 <div className="border border-(--border) rounded-xl p-3">
-                  <span className="text-[9px] font-mono text-(--subtle) uppercase tracking-wide">Фокус наст. тижня: </span>
+                  <span className="text-[9px] font-mono text-(--subtle) uppercase tracking-wide">{ukrainianCopy.фокусНастТижня}</span>
                   <span className="text-[12px] text-(--text)">{output.next_week_focus}</span>
                 </div>
               )}
@@ -417,22 +405,21 @@ export function AnalysisModal({
             <div className="space-y-3">
               {output.health_score && (
                 <div className="bg-(--surface2) border border-(--border) rounded-xl p-4">
-                  <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-2">Готовність плану</div>
+                  <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-2">{ukrainianCopy.готовністьПлану}</div>
                   <div className="flex items-center gap-4 text-[12px] font-mono flex-wrap">
-                    <span>Покриття: <span className={output.health_score.coverage_percent >= 70 ? "text-accent-cyan" : "text-accent-yellow"}>{output.health_score.coverage_percent}%</span></span>
+                    <span>{ukrainianCopy.покриття}<span className={output.health_score.coverage_percent >= 70 ? "text-accent-cyan" : "text-accent-yellow"}>{output.health_score.coverage_percent}%</span></span>
                     {output.health_score.recommendation_count != null && (
-                      <span>Заплановано: <span className="text-(--text)">{output.health_score.scheduled_recommendations ?? 0}/{output.health_score.recommendation_count}</span></span>
+                      <span>{ukrainianCopy.заплановано}<span className="text-(--text)">{output.health_score.scheduled_recommendations ?? 0}/{output.health_score.recommendation_count}</span></span>
                     )}
-                    {output.health_score.critical_gaps > 0 && <span>Критичних: <span className="text-accent-danger">{output.health_score.critical_gaps}</span></span>}
-                    {output.health_score.high_gaps > 0 && <span>Важливих: <span className="text-accent-yellow">{output.health_score.high_gaps}</span></span>}
+                    {output.health_score.critical_gaps > 0 && <span>{ukrainianCopy.критичних}<span className="text-accent-danger">{output.health_score.critical_gaps}</span></span>}
+                    {output.health_score.high_gaps > 0 && <span>{ukrainianCopy.важливих}<span className="text-accent-yellow">{output.health_score.high_gaps}</span></span>}
                   </div>
                   {output.health_score.summary && <p className="text-[12px] text-(--muted) mt-2">{output.health_score.summary}</p>}
                 </div>
               )}
               {Array.isArray(output.annotations) && output.annotations.length > 0 && (
                 <div>
-                  <Heading as="h3" variant="eyebrow">
-                    Анотації ({output.annotations.length})
+                  <Heading as="h3" variant="eyebrow">{ukrainianCopy.анотації}{output.annotations.length})
                   </Heading>
                   <div className="space-y-2">
                     {output.annotations.map((ann: any, i: number) => {

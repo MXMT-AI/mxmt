@@ -12,6 +12,8 @@ import { agentStatusPresentation } from "../agent-status";
 import { AgentPeriodControls } from "./agent-period-controls/agent-period-controls";
 import { AgentCard } from "../agent-card/agent-card";
 import { PipelineDiagram } from "../pipeline-diagram/pipeline-diagram";
+import { agentsAgentsPageMessages as englishCopy } from "@/messages/en.json";
+import { agentsAgentsPageMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export default function AgentsPage({ demoDate }: { demoDate?: string }) {
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -60,22 +62,19 @@ export default function AgentsPage({ demoDate }: { demoDate?: string }) {
       <header className="agent-workspace-header mb-6">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <Heading as="h1" variant="page">Агенти</Heading>
+            <Heading as="h1" variant="page">{ukrainianCopy.агенти}</Heading>
             <p className="mt-1 text-sm text-(--muted) tabular-nums" role="status">
-              <strong className="text-accent-cyan">{totalDone} із {AGENTS.length}</strong> виконано
-              {totalError > 0 && <span className="text-accent-danger ml-2">· {totalError} помилок</span>}
+              <strong className="text-accent-cyan">{totalDone}{ukrainianCopy.із}{AGENTS.length}</strong>{ukrainianCopy.виконано}{totalError > 0 && <span className="text-accent-danger ml-2">· {totalError}{ukrainianCopy.помилок}</span>}
             </p>
           </div>
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1.5 text-[10px] font-mono text-(--subtle)">
-              <Zap size={11} className="text-accent-yellow" aria-hidden="true" />
-              OpenAI GPT-4o / GPT-4o mini
-            </div>
+              <Zap size={11} className="text-accent-yellow" aria-hidden="true" />{englishCopy.openAIGPT4oGPT4oMini}</div>
             <Button
               variant="icon"
               onClick={fetchStatus}
-              aria-label="Оновити статус агентів"
-              title="Оновити статус"
+              aria-label={ukrainianCopy.ariaLabelОновитиСтатусАгентів}
+              title={ukrainianCopy.titleОновитиСтатус}
             >
               <RefreshCw size={15} className={loading ? "motion-safe:animate-spin" : ""} aria-hidden="true" />
             </Button>
@@ -109,8 +108,7 @@ export default function AgentsPage({ demoDate }: { demoDate?: string }) {
               <h2
                 id={`agent-stage-${block.id}`}
                 className="rounded-md border border-(--signal-line) bg-(--signal-wash) px-3 py-1 text-xs font-semibold text-(--signal-ink)"
-              >
-                Блок {block.id} — {block.label}
+              >{ukrainianCopy.блок}{block.id} — {block.label}
               </h2>
               <p className="text-xs text-(--subtle)">{block.desc}</p>
               <div className="h-px flex-1 bg-(--border)" />
@@ -139,8 +137,7 @@ export default function AgentsPage({ demoDate }: { demoDate?: string }) {
           </div>
         ))}
         <span className="text-[10px] font-mono text-(--subtle) ml-auto">
-          {AGENTS.length} агентів · {AGENT_BLOCKS.length} блоки · повний пайплайн
-        </span>
+          {AGENTS.length}{ukrainianCopy.агентів}{AGENT_BLOCKS.length}{ukrainianCopy.блокиПовнийПайплайн}</span>
       </div>
     </div>
   );

@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button/button";
 import { Heading } from "@/components/ui/heading/heading";
 import { Text } from "@/components/ui/text/text";
 import { DataQualityStockFigures } from "../data-quality-stock-figures/data-quality-stock-figures";
+import { settingsDataQualitySummaryMessages as englishCopy } from "@/messages/en.json";
+import { settingsDataQualitySummaryMessages as ukrainianCopy } from "@/messages/uk.json";
 export interface QualityStockGroup {
   currency: string | null;
   skuCount: number;
@@ -35,12 +37,12 @@ export default function DataQualitySummary({
     <div className="mt-5 space-y-4">
       <div className="border-y border-(--border) py-4 space-y-2">
         <Heading as="h3" variant="compact" className="text-base text-inherit">
-          {uk ? "Товарний залишок з проблемами" : "Affected merchandise stock"}
+          {uk ? ukrainianCopy.affectedMerchandiseStock : englishCopy.affectedMerchandiseStock}
         </Heading>
         <Text variant="body" className="leading-normal text-(--muted)">
           {uk
-            ? "Кожен SKU враховано один раз. Групи нижче перетинаються — їх не можна додавати. Вартість наведено за собівартістю, окремо для кожної валюти."
-            : "Each SKU is counted once. The groups below overlap and must not be added together. Stock is valued at cost, separately for each currency."}
+            ? ukrainianCopy.eachSKUIsCountedOnce
+            : englishCopy.eachSKUIsCountedOnce}
         </Text>
         {affectedStock.map((s) => (
           <Text variant="body" key={s.currency ?? "unknown"} className="leading-normal text-inherit">
@@ -50,8 +52,8 @@ export default function DataQualitySummary({
         {!affectedStock.length && (
           <Text variant="body" className="leading-normal text-inherit">
             {uk
-              ? "Підтвердженого товарного залишку з оцінкою проблем немає. Перевірте типи позицій і наявність датованих залишків у групах нижче."
-              : "No verified merchandise stock is available for an affected-stock total. Check product types and dated stock observations in the groups below."}
+              ? ukrainianCopy.noVerifiedMerchandiseStockIs
+              : englishCopy.noVerifiedMerchandiseStockIs}
           </Text>
         )}
       </div>
@@ -60,7 +62,7 @@ export default function DataQualitySummary({
         aria-pressed={!selected}
         onClick={() => onSelect("")}
       >
-        {uk ? "Усі товари" : "All products"}
+        {uk ? ukrainianCopy.allProducts : englishCopy.allProducts}
       </Button>
       <ul className="divide-y divide-(--border)">
         {summary.map((s) => (
@@ -83,7 +85,7 @@ export default function DataQualitySummary({
               className="inline-flex min-h-11 items-center text-sm underline underline-offset-4 focus-visible:outline-solid"
               href={qualityFixHref(s.code)}
             >
-              {uk ? "Де виправити" : "Where to fix"}
+              {uk ? ukrainianCopy.whereToFix : englishCopy.whereToFix}
             </Link>
           </li>
         ))}

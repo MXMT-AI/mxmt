@@ -22,6 +22,8 @@ import { StockQualityRing } from "../stock-quality-ring/stock-quality-ring";
 import { StockCategories } from "../stock-categories/stock-categories";
 import { StockSkuTable } from "../stock-sku-table/stock-sku-table";
 import { StockBrands } from "../stock-brands/stock-brands";
+import { stockStockContentMessages as englishCopy } from "@/messages/en.json";
+import { stockStockContentMessages as ukrainianCopy } from "@/messages/uk.json";
 
 const scopeKeys = ["brandId", "categoryId", "skuId", "currency"];
 
@@ -101,9 +103,9 @@ export default function StockContent({
           >
             <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-(--border) pb-3">
               <Heading as="h2" variant="compact" className="text-lg font-bold text-inherit">
-                {block.currency ?? (lang === "uk" ? "Без підтвердженої валюти / залишку" : "Unverified currency / stock")}
+                {block.currency ?? (lang === "uk" ? ukrainianCopy.unverifiedCurrencyStock : englishCopy.unverifiedCurrencyStock)}
               </Heading>
-              {block.currency === null ? <Note>{lang === "uk" ? "Окрема група без підтвердженої валюти або залишку на дату знімка. Тут можуть бути історичні товари, відсутні в останньому каталозі. Невідомий залишок не означає нуль." : "Separate records without verified currency or stock on the snapshot date. These may include historical products absent from the latest catalogue. Unknown stock does not mean zero."}</Note> : null}
+              {block.currency === null ? <Note>{lang === "uk" ? ukrainianCopy.separateRecordsWithoutVerifiedCurrency : englishCopy.separateRecordsWithoutVerifiedCurrency}</Note> : null}
               <div className="text-sm tabular-nums">
                 {copy.fullStock}:{" "}
                 <strong>
@@ -134,7 +136,7 @@ export default function StockContent({
                 )}
               </section>
               <section className={panel + " p-5 flex flex-col self-start min-w-0"}>
-                <Heading as="h3" variant="compact" className="text-base text-inherit">K2 · {copy.history}</Heading>
+                <Heading as="h3" variant="compact" className="text-base text-inherit">{englishCopy.k2}{copy.history}</Heading>
                 <StockHistory history={model.history} currency={block.currency} lang={lang}/>
               </section>
             </div>

@@ -19,6 +19,9 @@ import { badgeStyle, campaignHealthLabel, campaignHealthClasses, campaignStatusC
 import { InsightList } from "../insight-list/insight-list";
 import { buildCategoryInsightRows, buildChannelInsightRows, type CategoryInsight, type ChannelInsight } from "../insight-list/insight-rows";
 import { ResultSummary } from "./result-summary/result-summary";
+import { formatMessage } from "@/i18n/format-message";
+import { agentsAgentCardMessages as englishCopy } from "@/messages/en.json";
+import { agentsAgentCardMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export function AgentCard({
   agent,
@@ -44,7 +47,7 @@ export function AgentCard({
   const Icon = agent.icon;
   const { status: s, isStale } = getAgentRunState(run);
   const isRunning = s === "running" || run?.latestAttempt?.status === "running";
-  const runLabel = s === "done" ? "Перезапустити" : "Запустити";
+  const runLabel = s === "done" ? ukrainianCopy.runLabelПерезапустити : ukrainianCopy.runLabelЗапустити;
   const { color: statusTextColor, label: statusLabel } = agentStatusPresentation[s];
   const output = isStale ? {} : (run?.output ?? {});
 
@@ -114,11 +117,11 @@ export function AgentCard({
                 </Badge>
                 {agent.model !== "Rules v1" && (
                   <Badge tone="subtle" size="small" outlined={false}>
-                    {provider === "openai" ? "OpenAI" : "Anthropic"}
+                    {provider === "openai" ? englishCopy.openAI : englishCopy.anthropic}
                   </Badge>
                 )}
                 {!AGENT_ROUTES[agent.id] && (
-                  <span className="text-[9px] font-mono text-(--subtle)">• скоро</span>
+                  <span className="text-[9px] font-mono text-(--subtle)">{ukrainianCopy.скоро}</span>
                 )}
               </div>
               <p className="text-[11px] text-(--muted) mt-0.5">{agent.desc}</p>
@@ -131,8 +134,8 @@ export function AgentCard({
               type="button"
               onClick={onRun}
               disabled={isRunning || !dependenciesReady}
-              title={!dependenciesReady ? "Спочатку завершіть залежні агенти для поточного періоду" : undefined}
-              aria-label={`${isRunning ? "Агент працює" : runLabel} ${agent.label}`}
+              title={!dependenciesReady ? ukrainianCopy.titleСпочаткуЗавершітьЗалежніАгентиДля : undefined}
+              aria-label={`${isRunning ? ukrainianCopy.ariaLabelАгентПрацює : runLabel} ${agent.label}`}
               className="flex min-h-11 items-center gap-1.5 rounded-lg border border-(--signal-line) bg-(--signal-wash) px-2.5 py-1.5 text-xs font-semibold text-(--signal-ink) transition-colors touch-manipulation enabled:hover:bg-(--signal-hover) disabled:cursor-not-allowed disabled:border-(--border) disabled:bg-(--input-bg) disabled:text-(--muted)"
             >
               {isRunning ? (
@@ -140,44 +143,39 @@ export function AgentCard({
               ) : (
                 <Play size={11} aria-hidden="true" />
               )}
-              {isRunning ? "Працює…" : !dependenciesReady ? "Очікує дані" : runLabel}
+              {isRunning ? ukrainianCopy.працює : !dependenciesReady ? ukrainianCopy.очікуєДані : runLabel}
             </button>
           </div>
         </div>
 
         <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] tabular-nums text-(--subtle)">
-          <span>
-            Статус:{" "}
+          <span>{ukrainianCopy.статус}{" "}
             <span className={statusTextColor}>
-              {isStale ? "застаріло" : statusLabel}
+              {isStale ? ukrainianCopy.застаріло : statusLabel}
             </span>
           </span>
           {run?.finishedAt && (
-            <span>{s === "done" ? "Збережений результат:" : "Останній запуск:"}{" "}
+            <span>{s === "done" ? ukrainianCopy.збереженийРезультат : ukrainianCopy.останнійЗапуск}{" "}
               <span className="text-(--muted)">{fmtDate(run.finishedAt)}</span>
             </span>
           )}
           {duration(run) && (
-            <span>Час: <span className="text-(--muted)">{duration(run)}</span></span>
+            <span>{ukrainianCopy.час}<span className="text-(--muted)">{duration(run)}</span></span>
           )}
         </div>
 
         {s === "done" && brands.length > 0 && (
-          <ResultSummary expanded={expanded} onToggle={toggleExpanded} label={`Детально (${brands.length} брендів) ↓`}>
+          <ResultSummary expanded={expanded} onToggle={toggleExpanded} label={formatMessage(ukrainianCopy.labelДетальноБрендів, { length: brands.length })}>
             {criticalCount > 0 && (
               <Badge tone="danger">
-                {criticalCount} критичних
-              </Badge>
+                {criticalCount}{ukrainianCopy.критичних}</Badge>
             )}
             {warningCount > 0 && (
               <Badge tone="warning">
-                {warningCount} попереджень
-              </Badge>
+                {warningCount}{ukrainianCopy.попереджень}</Badge>
             )}
             {criticalCount === 0 && warningCount === 0 && (
-              <Badge tone="positive">
-                Все гаразд
-              </Badge>
+              <Badge tone="positive">{ukrainianCopy.всеГаразд}</Badge>
             )}
           </ResultSummary>
         )}
@@ -185,27 +183,22 @@ export function AgentCard({
         {s === "done" && channels.length > 0 && brands.length === 0 && byCategory.length === 0 && (
           <ResultSummary expanded={expanded} onToggle={toggleExpanded}>
             {topChannel && (
-              <Badge tone="positive">
-                Лідер за кількістю: {topChannel}
+              <Badge tone="positive">{ukrainianCopy.лідерЗаКількістю}{topChannel}
               </Badge>
             )}
             <Badge>
-              {channels.length} каналів
-            </Badge>
+              {channels.length}{ukrainianCopy.каналів}</Badge>
           </ResultSummary>
         )}
 
         {s === "done" && byCategory.length > 0 && (
-          <ResultSummary expanded={expanded} onToggle={toggleExpanded} label={`Детально (${byCategory.length} категорій) ↓`}>
+          <ResultSummary expanded={expanded} onToggle={toggleExpanded} label={formatMessage(ukrainianCopy.labelДетальноКатегорій, { length: byCategory.length })}>
             {bestsellers.length > 0 && (
-              <Badge tone="positive">
-                Бестселери: {bestsellers.slice(0, 2).join(", ")}
+              <Badge tone="positive">{ukrainianCopy.бестселери}{bestsellers.slice(0, 2).join(", ")}
               </Badge>
             )}
             {deadStock.length > 0 && (
-              <Badge tone="danger">
-                Dead stock: {deadStock.length} категорій
-              </Badge>
+              <Badge tone="danger">{englishCopy.deadStock}{deadStock.length}{ukrainianCopy.категорій}</Badge>
             )}
           </ResultSummary>
         )}
@@ -213,12 +206,11 @@ export function AgentCard({
         {s === "done" && decisionBrands.length > 0 && (
           <ResultSummary expanded={expanded} onToggle={toggleExpanded}>
             <Badge tone="accent">
-              {decisionBrands.length} {agent.id === "repricing" ? "брендів до уцінки" : "брендів до дозамовлення"}
+              {decisionBrands.length} {agent.id === "repricing" ? ukrainianCopy.брендівДоУцінки : ukrainianCopy.брендівДоДозамовлення}
             </Badge>
             {recommendedCount > 0 && (
               <Badge tone="positive">
-                {recommendedCount} рекомендацій готово
-              </Badge>
+                {recommendedCount}{ukrainianCopy.рекомендаційГотово}</Badge>
             )}
           </ResultSummary>
         )}
@@ -226,12 +218,10 @@ export function AgentCard({
         {s === "done" && marketerBrands.length > 0 && (
           <ResultSummary expanded={expanded} onToggle={toggleExpanded}>
             <Badge tone="warning">
-              {marketerBrands.length} брифів готово
-            </Badge>
+              {marketerBrands.length}{ukrainianCopy.брифівГотово}</Badge>
             {marketerBrands.filter((b: any) => b.urgency === "critical" || b.urgency === "high").length > 0 && (
               <Badge tone="danger">
-                {marketerBrands.filter((b: any) => b.urgency === "critical" || b.urgency === "high").length} термінових
-              </Badge>
+                {marketerBrands.filter((b: any) => b.urgency === "critical" || b.urgency === "high").length}{ukrainianCopy.термінових}</Badge>
             )}
           </ResultSummary>
         )}
@@ -239,24 +229,20 @@ export function AgentCard({
         {s === "done" && (annotations.length > 0 || healthScore) && (
           <ResultSummary expanded={expanded} onToggle={toggleExpanded}>
             {healthScore?.coverage_percent != null && (
-              <Badge tone="warning">
-                Покриття: {healthScore.coverage_percent}%
+              <Badge tone="warning">{ukrainianCopy.покриття}{healthScore.coverage_percent}%
               </Badge>
             )}
             {healthScore?.recommendation_count != null && (
               <Badge>
-                {healthScore.scheduled_recommendations ?? 0} заплановано / {healthScore.recommendation_count} рекомендовано
-              </Badge>
+                {healthScore.scheduled_recommendations ?? 0}{ukrainianCopy.заплановано}{healthScore.recommendation_count}{ukrainianCopy.рекомендовано}</Badge>
             )}
             {criticalAnnotations > 0 && (
               <Badge tone="danger">
-                {criticalAnnotations} критичних прогалин
-              </Badge>
+                {criticalAnnotations}{ukrainianCopy.критичнихПрогалин}</Badge>
             )}
             {annotations.length > 0 && (
               <Badge>
-                {annotations.length} анотацій
-              </Badge>
+                {annotations.length}{ukrainianCopy.анотацій}</Badge>
             )}
           </ResultSummary>
         )}
@@ -269,28 +255,24 @@ export function AgentCard({
               </Badge>
             )}
             <Badge>
-              {activeCampaignCount} активних
-            </Badge>
+              {activeCampaignCount}{ukrainianCopy.активних}</Badge>
             {scheduledCampaignCount > 0 && (
               <Badge>
-                {scheduledCampaignCount} у календарі
-              </Badge>
+                {scheduledCampaignCount}{ukrainianCopy.уКалендарі}</Badge>
             )}
             {pendingRecommendations > 0 && (
               <Badge tone="warning">
-                {pendingRecommendations} очікують погодження
-              </Badge>
+                {pendingRecommendations}{ukrainianCopy.очікуютьПогодження}</Badge>
             )}
             {campaignsBehind > 0 && (
               <Badge tone="danger">
-                {campaignsBehind} відстають
-              </Badge>
+                {campaignsBehind}{ukrainianCopy.відстають}</Badge>
             )}
           </ResultSummary>
         )}
 
         {s === "done" && isWeeklyReport && (output.pm_brief || output.summary) && (
-          <ResultSummary expanded={expanded} onToggle={toggleExpanded} label="Показати звіт ↓">
+          <ResultSummary expanded={expanded} onToggle={toggleExpanded} label={ukrainianCopy.labelПоказатиЗвіт}>
             {output.week && (
               <Badge tone="report">
                 {output.week}
@@ -298,13 +280,11 @@ export function AgentCard({
             )}
             {weeklyPriorities.length > 0 && (
               <Badge>
-                {weeklyPriorities.length} пріоритетів
-              </Badge>
+                {weeklyPriorities.length}{ukrainianCopy.пріоритетів}</Badge>
             )}
             {weeklyDecisions.length > 0 && (
               <Badge tone="warning">
-                {weeklyDecisions.length} рішень PM
-              </Badge>
+                {weeklyDecisions.length}{ukrainianCopy.рішеньPM}</Badge>
             )}
           </ResultSummary>
         )}
@@ -313,9 +293,7 @@ export function AgentCard({
           <p className="mt-2 text-[11px] text-accent-danger font-mono">{run.errorMsg}</p>
         )}
         {run?.latestAttempt?.status === "error" && (
-          <p role="status" className="mt-2 text-xs text-accent-danger">
-            Повторний запуск завершився помилкою. Показано останній успішний результат.
-            {run.latestAttempt.errorMsg ? ` ${run.latestAttempt.errorMsg}` : ""}
+          <p role="status" className="mt-2 text-xs text-accent-danger">{ukrainianCopy.повторнийЗапускЗавершивсяПомилкоюПоказано}{run.latestAttempt.errorMsg ? ` ${run.latestAttempt.errorMsg}` : ""}
           </p>
         )}
 
@@ -333,19 +311,15 @@ export function AgentCard({
               onClick={() => setShowModal(true)}
               className="flex items-center gap-1.5 text-[10px] font-mono text-(--muted) hover:text-(--text) transition-colors border border-(--border) rounded-lg px-3 py-1.5 hover:bg-(--input-bg)"
             >
-              <Eye size={11} aria-hidden="true" />
-              Переглянути аналіз
-            </button>
+              <Eye size={11} aria-hidden="true" />{ukrainianCopy.переглянутиАналіз}</button>
             {output._debug && (
               <button
                 type="button"
                 onClick={() => setShowDebug(true)}
                 className="flex items-center gap-1.5 text-[10px] font-mono text-(--subtle) hover:text-(--text) transition-colors border border-(--border) rounded-lg px-3 py-1.5 hover:bg-(--input-bg)"
-                title="Промт, дані та сирий відповідь AI"
+                title={ukrainianCopy.titleПромтДаніТаСирийВідповідь}
               >
-                <Code2 size={11} aria-hidden="true" />
-                Трасування
-              </button>
+                <Code2 size={11} aria-hidden="true" />{ukrainianCopy.трасування}</button>
             )}
           </div>
         )}
@@ -414,31 +388,29 @@ export function AgentCard({
                           </span>
                           <span className="text-[12px] font-semibold text-(--text)">{item.label}</span>
                           {isRec && (
-                            <span className="text-[9px] font-mono text-accent-cyan ml-auto">★ РЕКОМЕНДОВАНО</span>
+                            <span className="text-[9px] font-mono text-accent-cyan ml-auto">{ukrainianCopy.рЕКОМЕНДОВАНО}</span>
                           )}
                         </div>
                         <div className="flex items-center gap-4 text-[10px] font-mono text-(--muted) mt-1 flex-wrap">
                           {item.discount_percent !== undefined && (
-                            <span>Знижка: <span className="text-(--text)">-{item.discount_percent}%</span></span>
+                            <span>{ukrainianCopy.знижка}<span className="text-(--text)">-{item.discount_percent}%</span></span>
                           )}
                           {item.duration_days && (
-                            <span>Строк: <span className="text-(--text)">{item.duration_days}д</span></span>
+                            <span>{ukrainianCopy.строк}<span className="text-(--text)">{item.duration_days}{ukrainianCopy.д}</span></span>
                           )}
                           {item.forecast && (
-                            <span>Днів запасу після (DOH): <span className="text-(--text)">
-                              {item.forecast.woh_after == null ? "недостатньо даних" : formatWohDays(item.forecast.woh_after)}
+                            <span>{ukrainianCopy.днівЗапасуПісляDOH}<span className="text-(--text)">
+                              {item.forecast.woh_after == null ? ukrainianCopy.недостатньоДаних : formatWohDays(item.forecast.woh_after)}
                             </span></span>
                           )}
                           {item.woh_after !== undefined && (
-                            <span>Днів запасу після (DOH): <span className="text-(--text)">{formatWohDays(item.woh_after)}</span></span>
+                            <span>{ukrainianCopy.днівЗапасуПісляDOH}<span className="text-(--text)">{formatWohDays(item.woh_after)}</span></span>
                           )}
                           {item.qty_multiplier !== undefined && (
-                            <span>Обʼєм: <span className="text-(--text)">×{item.qty_multiplier}</span></span>
+                            <span>{ukrainianCopy.обʼєм}<span className="text-(--text)">×{item.qty_multiplier}</span></span>
                           )}
-                          <span className="ml-auto">
-                            Оцінка: <span style={{ color: score >= 7 ? "var(--cyan-ink)" : score >= 5 ? "var(--amber-ink)" : "var(--danger-ink)" }}>
-                              {score}/10
-                            </span>
+                          <span className="ml-auto">{ukrainianCopy.оцінка}<span style={{ color: score >= 7 ? "var(--cyan-ink)" : score >= 5 ? "var(--amber-ink)" : "var(--danger-ink)" }}>
+                              {score}{englishCopy["10"]}</span>
                           </span>
                         </div>
                         {item.evaluation?.risks?.length > 0 && (
@@ -453,9 +425,7 @@ export function AgentCard({
                             className="mt-2.5 flex items-center gap-1.5 text-[10px] font-mono px-3 py-1.5 rounded-lg border transition-colors"
                             style={{ borderColor: "var(--signal-line)", background: "var(--signal-wash)", color: "var(--signal-ink)" }}
                           >
-                            <Table2 size={11} aria-hidden="true" />
-                            Переглянути в таблиці
-                          </button>
+                            <Table2 size={11} aria-hidden="true" />{ukrainianCopy.переглянутиВТаблиці}</button>
                         )}
                         {agent.id === "reordering" && item.qty_multiplier > 0 && brand.brand_id && (
                           <button
@@ -464,9 +434,7 @@ export function AgentCard({
                             className="mt-2.5 flex items-center gap-1.5 text-[10px] font-mono px-3 py-1.5 rounded-lg border transition-colors"
                             style={{ borderColor: "var(--signal-line)", background: "var(--signal-wash)", color: "var(--signal-ink)" }}
                           >
-                            <Table2 size={11} aria-hidden="true" />
-                            Переглянути в таблиці
-                          </button>
+                            <Table2 size={11} aria-hidden="true" />{ukrainianCopy.переглянутиВТаблиці}</button>
                         )}
                       </div>
                     );
@@ -496,7 +464,7 @@ export function AgentCard({
               </div>
               {brand.key_message && (
                 <div className="px-4 py-2 border-b border-(--border) bg-(--surface2)">
-                  <span className="text-[9px] font-mono text-(--subtle) uppercase tracking-wide">Ключове повідомлення: </span>
+                  <span className="text-[9px] font-mono text-(--subtle) uppercase tracking-wide">{ukrainianCopy.ключовеПовідомлення}</span>
                   <span className="text-[12px] text-(--text)">"{brand.key_message}"</span>
                 </div>
               )}
@@ -506,9 +474,9 @@ export function AgentCard({
                     <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm bg-accent-yellow/15 text-accent-yellow uppercase shrink-0 mt-0.5">{ch}</span>
                     <div className="min-w-0">
                       <p className="text-[11px] text-(--text)">{v.brief}</p>
-                      {v.frequency && <p className="text-[10px] text-(--muted) mt-0.5">Частота: {v.frequency}</p>}
-                      {v.send_timing && <p className="text-[10px] text-(--muted) mt-0.5">Відправити: {v.send_timing}</p>}
-                      {v.budget_recommendation && <p className="text-[10px] text-accent-cyan mt-0.5">Бюджет: {v.budget_recommendation}</p>}
+                      {v.frequency && <p className="text-[10px] text-(--muted) mt-0.5">{ukrainianCopy.частота}{v.frequency}</p>}
+                      {v.send_timing && <p className="text-[10px] text-(--muted) mt-0.5">{ukrainianCopy.відправити}{v.send_timing}</p>}
+                      {v.budget_recommendation && <p className="text-[10px] text-accent-cyan mt-0.5">{ukrainianCopy.бюджет}{v.budget_recommendation}</p>}
                     </div>
                   </div>
                 ) : null)}
@@ -546,17 +514,13 @@ export function AgentCard({
                     type="button"
                     onClick={() => setApprovalTarget(recommendation)}
                     className="mt-3 rounded-lg border border-accent-yellow/30 bg-accent-yellow/10 px-3 py-1.5 text-[10px] font-mono font-semibold text-accent-yellow hover:bg-accent-yellow/15"
-                  >
-                    Погодити й додати до календаря
-                  </button>
+                  >{ukrainianCopy.погодитиЙДодатиДоКалендаря}</button>
                 )}
                 {scheduledRecommendation && (
                   <Link
                     href="/calendar"
                     className="mt-3 inline-flex rounded-lg border border-accent-cyan/30 bg-accent-cyan/10 px-3 py-1.5 text-[10px] font-mono font-semibold text-accent-cyan hover:bg-accent-cyan/15"
-                  >
-                    Відкрити в календарі
-                  </Link>
+                  >{ukrainianCopy.відкритиВКалендарі}</Link>
                 )}
               </div>
             );
@@ -593,19 +557,19 @@ export function AgentCard({
           )}
           {output.pm_brief && (
             <div className="bg-(--row) rounded-xl p-4">
-              <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-2">PM Brief</div>
+              <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-2">{englishCopy.pMBrief}</div>
               <p className="text-[12px] text-(--text) leading-relaxed">{output.pm_brief}</p>
             </div>
           )}
           {output.marketing_brief && (
             <div className="bg-(--row) rounded-xl p-4">
-              <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-2">Marketing Brief</div>
+              <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-2">{englishCopy.marketingBrief}</div>
               <p className="text-[12px] text-(--text) leading-relaxed">{output.marketing_brief}</p>
             </div>
           )}
           {weeklyPriorities.length > 0 && (
             <div>
-              <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-2">Пріоритети</div>
+              <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-2">{ukrainianCopy.пріоритети}</div>
               <div className="space-y-2">
                 {weeklyPriorities.map((p: any) => (
                   <div key={p.rank} className="flex items-start gap-3 py-2 border-b border-(--border) last:border-0">
@@ -626,7 +590,7 @@ export function AgentCard({
           )}
           {weeklyDecisions.length > 0 && (
             <div className="bg-accent-yellow/5 border border-accent-yellow/20 rounded-xl p-3">
-              <div className="text-[9px] font-mono uppercase tracking-widest text-accent-yellow mb-2">Рішення PM</div>
+              <div className="text-[9px] font-mono uppercase tracking-widest text-accent-yellow mb-2">{ukrainianCopy.рішенняPM}</div>
               <ul className="space-y-1">
                 {weeklyDecisions.map((d: string, i: number) => (
                   <li key={i} className="text-[11px] text-(--text)">· {d}</li>

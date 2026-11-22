@@ -2,32 +2,34 @@ import { Field } from "@/components/ui/field/field";
 import { control } from "@/components/ui/control-styles/control-styles";
 import type { CsvOptions } from "@/lib/connectors/csv/schema";
 import type { Lang } from "@/lib/translations";
+import { settingsCsvAmountRulesMessages as englishCopy } from "@/messages/en.json";
+import { settingsCsvAmountRulesMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export type CsvAmountRuleValues = Pick<CsvOptions["policy"]["amounts"], "price" | "absoluteDiscount"> & Pick<CsvOptions, "discountUnit">;
 
 const fields = [
   {
     key: "price",
-    label: { uk: "Ціна в рядку", en: "Line price" },
+    label: { uk: ukrainianCopy.enLinePrice, en: englishCopy.enLinePrice },
     options: [
-      { value: "gross_unit", uk: "За одиницю, до знижки", en: "Unit price before discount" },
-      { value: "net_unit", uk: "За одиницю, після знижки", en: "Unit price after discount" },
+      { value: "gross_unit", uk: ukrainianCopy.enUnitPriceBeforeDiscount, en: englishCopy.enUnitPriceBeforeDiscount },
+      { value: "net_unit", uk: ukrainianCopy.enUnitPriceAfterDiscount, en: englishCopy.enUnitPriceAfterDiscount },
     ],
   },
   {
     key: "discountUnit",
-    label: { uk: "Тип знижки", en: "Discount unit" },
+    label: { uk: ukrainianCopy.enDiscountUnit, en: englishCopy.enDiscountUnit },
     options: [
-      { value: "amount", uk: "Сума", en: "Amount" },
-      { value: "percentage", uk: "Відсоток", en: "Percentage" },
+      { value: "amount", uk: ukrainianCopy.enAmount, en: englishCopy.enAmount },
+      { value: "percentage", uk: ukrainianCopy.enPercentage, en: englishCopy.enPercentage },
     ],
   },
   {
     key: "absoluteDiscount",
-    label: { uk: "Абсолютна знижка", en: "Absolute discount" },
+    label: { uk: ukrainianCopy.enAbsoluteDiscount, en: englishCopy.enAbsoluteDiscount },
     options: [
-      { value: "line", uk: "На весь рядок", en: "Per line" },
-      { value: "unit", uk: "На одиницю", en: "Per unit" },
+      { value: "line", uk: ukrainianCopy.enPerLine, en: englishCopy.enPerLine },
+      { value: "unit", uk: ukrainianCopy.enPerUnit, en: englishCopy.enPerUnit },
     ],
   },
 ] as const;

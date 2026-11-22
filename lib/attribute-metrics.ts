@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getActiveAgentImportRunId } from "@/lib/agent-data-source";
+import { attributeMetricsMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export interface AttributeMetric {
   attribute: string;
@@ -28,8 +29,8 @@ const STR_SLOW = 5;
 
 const CATEGORY_ALIASES = new Map<string, string>([
   ["other", "Other"],
-  ["книги", "Книги"],
-  ["книжки", "Книги"],
+  [ukrainianCopy.книги, ukrainianCopy.книги2],
+  [ukrainianCopy.книжки, ukrainianCopy.книги2],
 ]);
 
 function normalizeCategory(value: string | null): string {

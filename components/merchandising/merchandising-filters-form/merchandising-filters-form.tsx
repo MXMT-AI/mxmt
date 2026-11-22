@@ -14,6 +14,8 @@ import { reportingErrorHelp } from "@/lib/reporting-readiness-copy";
 import { merchandisingCopy } from "@/lib/merchandising-copy";
 import { applyMerchandisingSelection, type MerchandisingFilters, type PeriodMode } from "@/lib/merchandising-navigation";
 import type { NavigationOptions } from "@/lib/merchandising-navigation-store";
+import { merchandisingMerchandisingFiltersFormMessages as englishCopy } from "@/messages/en.json";
+import { merchandisingMerchandisingFiltersFormMessages as ukrainianCopy } from "@/messages/uk.json";
 
 const fieldControl = cn(control, "w-auto min-w-auto touch-manipulation");
 
@@ -193,8 +195,8 @@ export function MerchandisingFiltersForm({
               <option key={channel.id} value={channel.id}>
                 {channel.id === "__unassigned__"
                   ? lang === "uk"
-                    ? "Канал не вказано"
-                    : "Unassigned channel"
+                    ? ukrainianCopy.unassignedChannel
+                    : englishCopy.unassignedChannel
                   : channel.id}
               </option>
             ))}

@@ -8,6 +8,8 @@ import { Text } from "@/components/ui/text/text";
 import { apiFetch } from "@/lib/fetch";
 import { readApiJson } from "@/lib/api-response";
 import type { RecommendationChannel } from "@/lib/calendar-recommendation-approval";
+import { agentsRecommendationApprovalModalMessages as englishCopy } from "@/messages/en.json";
+import { agentsRecommendationApprovalModalMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export type ApprovalRecommendation = {
   recommendation_id: string;
@@ -19,13 +21,13 @@ export type ApprovalRecommendation = {
 };
 
 const CHANNEL_LABELS: Record<RecommendationChannel, string> = {
-  website: "Сайт",
-  smm: "Соцмережі",
-  email: "Email / SMS",
-  ads: "Реклама",
-  store: "Магазин",
-  marketplace: "Маркетплейси",
-  general: "Загальний план",
+  website: ukrainianCopy.websiteСайт,
+  smm: ukrainianCopy.smmСоцмережі,
+  email: englishCopy.email,
+  ads: ukrainianCopy.adsРеклама,
+  store: ukrainianCopy.storeМагазин,
+  marketplace: ukrainianCopy.marketplaceМаркетплейси,
+  general: ukrainianCopy.generalЗагальнийПлан,
 };
 
 export default function RecommendationApprovalModal({
@@ -79,12 +81,12 @@ export default function RecommendationApprovalModal({
       });
       const body = await readApiJson<{ ok?: boolean; error?: string }>(response);
       if (!response.ok || body?.ok !== true) {
-        throw new Error(body?.error ?? "Не вдалося погодити рекомендацію");
+        throw new Error(body?.error ?? ukrainianCopy.errorНеВдалосяПогодитиРекомендацію);
       }
       await onApproved();
       onClose();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Не вдалося погодити рекомендацію");
+      setError(caught instanceof Error ? caught.message : ukrainianCopy.errorНеВдалосяПогодитиРекомендацію);
     } finally {
       inFlight.current = false;
       setSaving(false);
@@ -94,8 +96,8 @@ export default function RecommendationApprovalModal({
   return (
     <Dialog
       title={recommendation.brand_name}
-      subtitle="Погодження плану"
-      closeLabel="Закрити"
+      subtitle={ukrainianCopy.subtitleПогодженняПлану}
+      closeLabel={ukrainianCopy.closeLabelЗакрити}
       closeDisabled={saving}
       onClose={requestClose}
       className="max-w-lg"
@@ -104,7 +106,7 @@ export default function RecommendationApprovalModal({
         <div className="space-y-5 p-5">
           <Text variant="body">{recommendation.decision_summary}</Text>
           <label className="block">
-            <span className="mb-2 block text-[10px] font-mono uppercase tracking-wider text-(--subtle)">Тиждень запуску</span>
+            <span className="mb-2 block text-[10px] font-mono uppercase tracking-wider text-(--subtle)">{ukrainianCopy.тижденьЗапуску}</span>
             <select
               value={weekKeys.includes(weekKey) ? weekKey : ""}
               disabled={saving || weekKeys.length === 0}
@@ -112,13 +114,13 @@ export default function RecommendationApprovalModal({
               onChange={(event) => setWeekKey(event.target.value)}
               className="w-full rounded-lg border border-(--border) bg-(--input-bg) px-3 py-2 text-sm text-(--text) focus:border-accent-yellow/50 focus:outline-hidden"
             >
-              {!weekKeys.includes(weekKey) && <option value="">Немає вибраного тижня</option>}
-              {weekKeys.map((key) => <option key={key} value={key}>Тиждень {key.slice(1)}</option>)}
+              {!weekKeys.includes(weekKey) && <option value="">{ukrainianCopy.немаєВибраногоТижня}</option>}
+              {weekKeys.map((key) => <option key={key} value={key}>{ukrainianCopy.тиждень}{key.slice(1)}</option>)}
             </select>
           </label>
 
           <fieldset disabled={saving}>
-            <legend className="mb-2 text-[10px] font-mono uppercase tracking-wider text-(--subtle)">Канали</legend>
+            <legend className="mb-2 text-[10px] font-mono uppercase tracking-wider text-(--subtle)">{ukrainianCopy.канали}</legend>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {availableChannels.map((channel) => (
                 <label key={channel} className="flex cursor-pointer items-center gap-2 rounded-lg border border-(--border) bg-(--input-bg) px-3 py-2 text-sm text-(--text)">
@@ -135,24 +137,20 @@ export default function RecommendationApprovalModal({
           </fieldset>
 
           {availableChannels.includes("ads") && (
-            <p className="rounded-lg border border-accent-yellow/20 bg-accent-yellow/5 px-3 py-2 text-[11px] text-accent-yellow">
-              Рекламний бюджет потребує окремого погодження PM.
-            </p>
+            <p className="rounded-lg border border-accent-yellow/20 bg-accent-yellow/5 px-3 py-2 text-[11px] text-accent-yellow">{ukrainianCopy.рекламнийБюджетПотребуєОкремогоПогодження}</p>
           )}
           {error && <p role="alert" className="text-xs text-accent-danger">{error}</p>}
         </div>
 
         <div className="flex justify-end gap-2 border-t border-(--border) p-5">
-          <Button onClick={requestClose} disabled={saving} className="px-4 py-2 font-sans text-xs">
-            Скасувати
-          </Button>
+          <Button onClick={requestClose} disabled={saving} className="px-4 py-2 font-sans text-xs">{ukrainianCopy.скасувати}</Button>
           <Button
             type="submit"
             disabled={saving || !canApprove}
             className="gap-2 border-accent-yellow/40 bg-accent-yellow/15 px-4 py-2 font-sans text-xs font-semibold text-accent-yellow hover:bg-accent-yellow/20 hover:text-accent-yellow"
           >
             <CalendarPlus size={14} aria-hidden="true" />
-            {saving ? "Додаємо…" : "Погодити й додати"}
+            {saving ? ukrainianCopy.додаємо : ukrainianCopy.погодитиЙДодати}
           </Button>
         </div>
       </form>

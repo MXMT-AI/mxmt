@@ -4,6 +4,9 @@ import { apiFetch } from "@/lib/fetch";
 import { readApiJson } from "@/lib/api-response";
 import { isPublicConnection } from "@/lib/connectors/public-connection";
 import type { PublicConnection } from "@/lib/connectors/contract";
+import { formatMessage } from "@/i18n/format-message";
+import { settingsUseConnectorConnectionMessages as englishCopy } from "@/messages/en.json";
+import { settingsUseConnectorConnectionMessages as ukrainianCopy } from "@/messages/uk.json";
 export interface ConnectorConnectionMessages {
   validationError?: string;
   configChanged?: string;
@@ -69,12 +72,12 @@ export function useConnectorConnection(
             ? messages.validationError
             : code === "CONNECTOR_CONFIG_CHANGED"
             ? messages.configChanged ?? copy(
-                "Підвищіть версію змінених правил і перевірте підключення знову.",
-                "Increase the revision of changed rules and check again.",
+                ukrainianCopy.increaseTheRevisionOfChanged,
+                englishCopy.increaseTheRevisionOfChanged,
               )
             : messages.failure ?? (messages.failurePrefix ?? copy(
-                "Перевірте поля, підтвердження й доступи. Код: ",
-                "Check fields, confirmations and permissions. Code: ",
+                ukrainianCopy.checkFieldsConfirmationsAndPermissions,
+                englishCopy.checkFieldsConfirmationsAndPermissions,
               )) + code,
         );
         return null;
@@ -82,8 +85,8 @@ export function useConnectorConnection(
       if (!isPublicConnection(d)) {
         setError(
           messages.invalidResponse ?? copy(
-            "Некоректна відповідь сервера. Повторіть спробу.",
-            "Invalid server response. Retry the operation.",
+            ukrainianCopy.invalidServerResponseRetryThe,
+            englishCopy.invalidServerResponseRetryThe,
           ),
         );
         return null;
@@ -93,12 +96,12 @@ export function useConnectorConnection(
       setStatus(
         action === "save"
           ? messages.saved ?? copy(
-              `Збережено. Перевірте доступи, потім виберіть ${name} у джерелах звітів.`,
-              `Saved. Check read scopes, then select ${name} as the reporting source.`,
+              formatMessage(ukrainianCopy.збереженоПеревіртеДоступиПотімВиберіть, { name }),
+              formatMessage(englishCopy.savedCheckReadScopesThen, { name }),
             )
           : messages.checked ?? copy(
-              "Перевірки завершено. Перегляньте результат кожного ресурсу.",
-              "Checks completed. Review each resource result.",
+              ukrainianCopy.checksCompletedReviewEachResource,
+              englishCopy.checksCompletedReviewEachResource,
             ),
       );
       if (action === "save") setDirty(false);
@@ -106,8 +109,8 @@ export function useConnectorConnection(
     } catch {
       setError(
         messages.networkError ?? copy(
-          "Не вдалося підключитися. Повторіть спробу.",
-          "Could not connect. Retry the operation.",
+          ukrainianCopy.couldNotConnectRetryThe,
+          englishCopy.couldNotConnectRetryThe,
         ),
       );
       return null;

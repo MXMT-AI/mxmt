@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { useRef, type ReactNode } from "react";
+import { uiDisclosureMenuMessages as englishCopy } from "@/messages/en.json";
 
 export function DisclosureMenu({
   label,
@@ -43,7 +44,7 @@ export function DisclosureMenu({
     >
       <summary ref={summary} className={cn("cursor-pointer list-none [&::-webkit-details-marker]:hidden", summaryClassName)}>{label}</summary>
       <div className={cn("absolute border border-[color:var(--ui-menu-border,var(--border))] bg-[color:var(--ui-menu-bg,var(--surface))]", panelClassName)} onClick={(event) => {
-        if (event.target instanceof Element && event.target.closest(closeOnSelect ? "a, button" : "a")) {
+        if (event.target instanceof Element && event.target.closest(closeOnSelect ? englishCopy.aButton : "a")) {
           closeMenu(true);
         }
       }}>

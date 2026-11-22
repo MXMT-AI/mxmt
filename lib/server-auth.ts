@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { verifyAccessToken } from "@/lib/auth";
 import { apiError } from "@/lib/api-contracts";
 import { hasRole, type RequiredRole } from "@/lib/roles";
+import { serverAuthMessages as englishApiMessages } from "@/messages/en.json";
 
 export type { RequiredRole } from "@/lib/roles";
 
@@ -81,7 +82,7 @@ export async function requireApiUser(requiredRole?: RequiredRole, requestId?: st
 
     return {
       user: null,
-      response: apiError("Authentication failed", 500, "AUTH_ERROR", undefined, requestId),
+      response: apiError(englishApiMessages.authenticationFailed, 500, "AUTH_ERROR", undefined, requestId),
     };
   }
 }

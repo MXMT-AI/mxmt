@@ -6,6 +6,8 @@ import { AGENT_ROUTES, COMING_SOON } from "@/components/agents/agents.config";
 import type { AgentRunInfo } from "@/components/agents/agents.types";
 import { apiFetch } from "@/lib/fetch";
 import { readApiJson } from "@/lib/api-response";
+import { formatMessage } from "@/i18n/format-message";
+import { agentsUseAgentRunsMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export function useAgentRuns({
   analysisDate,
@@ -32,7 +34,7 @@ export function useAgentRuns({
       if (hasDateFrom) params.set("dateFrom", dateFrom);
       const res = await apiFetch(`/api/agents/status?${params.toString()}`);
       if (!res.ok) {
-        setStatusError(`Не вдалося оновити статус агентів (${res.status})`);
+        setStatusError(formatMessage(ukrainianCopy.неВдалосяОновитиСтатусАгентів, { status: res.status }));
         return;
       }
 
@@ -40,7 +42,7 @@ export function useAgentRuns({
       setRuns(data ?? {});
       setStatusError(null);
     } catch (error) {
-      setStatusError(error instanceof Error ? error.message : "Не вдалося оновити статус агентів");
+      setStatusError(error instanceof Error ? error.message : ukrainianCopy.неВдалосяОновитиСтатусАгентів2);
     } finally {
       setLoading(false);
     }
@@ -64,7 +66,7 @@ export function useAgentRuns({
 
     const route = AGENT_ROUTES[agentId];
     if (!route) {
-      const msg = COMING_SOON[agentId] ?? "Агент у розробці.";
+      const msg = COMING_SOON[agentId] ?? ukrainianCopy.msgАгентУРозробці;
       setRuns((prev) => ({
         ...prev,
         [agentId]: {
@@ -106,7 +108,7 @@ export function useAgentRuns({
       const data = await readApiJson<{ error?: string }>(res);
 
       if (!res.ok) {
-        const errorMsg = data?.error ?? "Невідома помилка";
+        const errorMsg = data?.error ?? ukrainianCopy.errorMsgНевідомаПомилка;
         setRuns((prev) => ({
           ...prev,
           [agentId]: prev[agentId]?.status === "done" && prev[agentId]?.isCurrent

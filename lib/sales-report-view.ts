@@ -1,6 +1,7 @@
 import type { PublishedSalesReport } from "./sales-report";
 import type { DataColumnMetadata } from "./data-table-api";
 import { Prisma } from "@prisma/client";
+import { salesReportViewMessages as englishCopy } from "@/messages/en.json";
 export const SALES_VIEWS = [
   "articles",
   "brands",
@@ -11,31 +12,31 @@ export type SalesView = (typeof SALES_VIEWS)[number];
 export const SALES_COLUMNS: DataColumnMetadata[] = [
   { key: "name", label: "Name", type: "text" },
   { key: "currency", label: "Currency", type: "text" },
-  { key: "revenue", label: "Net revenue", type: "money" },
-  { key: "units", label: "Merchandise units", type: "quantity" },
-  { key: "orderCount", label: "Sale orders", type: "number" },
-  { key: "returnOrderCount", label: "Return orders", type: "number" },
-  { key: "coveredGrossProfit", label: "Covered gross profit", type: "money" },
-  { key: "coveredRevenue", label: "Covered revenue", type: "money" },
-  { key: "gmPct", label: "Covered GM", type: "percentage" },
-  { key: "lyRevenue", label: "Same-date LY revenue", type: "money" },
-  { key: "revenueDelta", label: "Revenue change", type: "money" },
-  { key: "unitsDelta", label: "Unit change", type: "quantity" },
+  { key: "revenue", label: englishCopy.labelNetRevenue, type: "money" },
+  { key: "units", label: englishCopy.labelMerchandiseUnits, type: "quantity" },
+  { key: "orderCount", label: englishCopy.labelSaleOrders, type: "number" },
+  { key: "returnOrderCount", label: englishCopy.labelReturnOrders, type: "number" },
+  { key: "coveredGrossProfit", label: englishCopy.labelCoveredGrossProfit, type: "money" },
+  { key: "coveredRevenue", label: englishCopy.labelCoveredRevenue, type: "money" },
+  { key: "gmPct", label: englishCopy.labelCoveredGM, type: "percentage" },
+  { key: "lyRevenue", label: englishCopy.labelSameDateLYRevenue, type: "money" },
+  { key: "revenueDelta", label: englishCopy.labelRevenueChange, type: "money" },
+  { key: "unitsDelta", label: englishCopy.labelUnitChange, type: "quantity" },
   {
     key: "lyCoveredGrossProfit",
-    label: "LY covered gross profit",
+    label: englishCopy.labelLYCoveredGrossProfit,
     type: "money",
   },
-  { key: "lyGmPct", label: "LY covered GM", type: "percentage" },
+  { key: "lyGmPct", label: englishCopy.labelLYCoveredGM, type: "percentage" },
 
-  { key: "revenueChangePct", label: "Revenue vs LY", type: "percentage" },
+  { key: "revenueChangePct", label: englishCopy.labelRevenueVsLY, type: "percentage" },
   {
     key: "missingProfitCount",
-    label: "Uncovered profit lines",
+    label: englishCopy.labelUncoveredProfitLines,
     type: "number",
   },
-  { key: "coverage", label: "Profit coverage", type: "text" },
-  { key: "comparisonReason", label: "LY availability", type: "text" },
+  { key: "coverage", label: englishCopy.labelProfitCoverage, type: "text" },
+  { key: "comparisonReason", label: englishCopy.labelLYAvailability, type: "text" },
 ];
 export function salesReportView(
   report: PublishedSalesReport,

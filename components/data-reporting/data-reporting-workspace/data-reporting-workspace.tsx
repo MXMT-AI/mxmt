@@ -35,6 +35,8 @@ import {
 } from "@/lib/data-reporting-ui";
 
 import type { InitialTablePreference } from "@/lib/data-table-preferences";
+import { dataReportingDataReportingWorkspaceMessages as englishCopy } from "@/messages/en.json";
+import { dataReportingDataReportingWorkspaceMessages as ukrainianCopy } from "@/messages/uk.json";
 
 interface Props {
   userRole: string;
@@ -143,7 +145,7 @@ export default function DataReportingWorkspace({ userRole, initialPreferences }:
         onDateToChange={(value) => { setDateTo(value); setPeriodError(null); }}
       />
 
-      {reportsReady && <p role="status" className="mb-4 text-sm text-(--text)">{lang==="uk"?"Дані MVP-звітів оновлено. ":"MVP report inputs refreshed. "}<Link className="underline" href="/overview">{lang==="uk"?"Відкрити Огляд":"Open Overview"}</Link></p>}
+      {reportsReady && <p role="status" className="mb-4 text-sm text-(--text)">{lang==="uk"?ukrainianCopy.mVPReportInputsRefreshed:englishCopy.mVPReportInputsRefreshed}<Link className="underline" href="/overview">{lang==="uk"?ukrainianCopy.openOverview:englishCopy.openOverview}</Link></p>}
       {actionError && (
         <div role="alert" className="mb-4 flex items-start gap-2 rounded-lg border border-red-400/20 bg-red-400/10 px-3 py-2.5 text-sm text-accent-danger">
           <AlertTriangle size={15} className="mt-0.5 shrink-0" />

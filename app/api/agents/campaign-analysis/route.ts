@@ -5,6 +5,7 @@ import { apiError, serverError } from "@/lib/api-contracts";
 import { startAgentRun } from "@/lib/agent-runs";
 import { getCurrentDependencyRun, resolveAgentRunContext } from "@/lib/agent-dependencies";
 import { buildCampaignTrackingOutput } from "@/lib/campaign-tracking";
+import { apiAgentsCampaignAnalysisRouteMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export const runtime = "nodejs";
 export const maxDuration = 180;
@@ -21,7 +22,7 @@ export async function POST(req: NextRequest) {
   const calendarState = await getCurrentDependencyRun(tenantId, "calendar_agent", context);
   if (!calendarState.ready) {
     return apiError(
-      "Спочатку запустіть Calendar Agent для поточного імпорту та періоду.",
+      ukrainianCopy.спочаткуЗапустітьCalendarAgentДля,
       409,
       "AGENT_DEPENDENCY_NOT_READY",
       [`Calendar Agent: ${calendarState.reason}`]

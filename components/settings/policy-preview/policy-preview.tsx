@@ -8,6 +8,8 @@ import { apiFetch } from "@/lib/fetch";
 import { readApiJson } from "@/lib/api-response";
 import { inputClass, buttonClass } from "../merchandising-settings-card/merchandising-settings-styles";
 import { currentKyivMonth } from "../merchandising-settings-card/current-kyiv-month";
+import { settingsPolicyPreviewMessages as englishCopy } from "@/messages/en.json";
+import { settingsPolicyPreviewMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export function PolicyPreview({
   lang,
@@ -20,15 +22,15 @@ export function PolicyPreview({
 }) {
   const uk = lang === "uk";
   const labels: Record<string, string> = {
-    revenue: uk ? "Виручка" : "Revenue",
-    cost: uk ? "Відома собівартість" : "Known cost",
+    revenue: uk ? ukrainianCopy.revenue : englishCopy.revenue,
+    cost: uk ? ukrainianCopy.costKnownCost : englishCopy.costKnownCost,
     weeklyVelocity: uk
-      ? "Швидкість, шт/тиж"
-      : "Velocity, units/week",
-    stock: uk ? "Залишок, шт" : "Stock, units",
+      ? ukrainianCopy.weeklyVelocityVelocityUnitsWeek
+      : englishCopy.weeklyVelocityVelocityUnitsWeek,
+    stock: uk ? ukrainianCopy.stock : englishCopy.stock,
     inTransit: uk
-      ? "У дорозі · порожньо — невідомо"
-      : "In transit · blank is unknown",
+      ? ukrainianCopy.inTransit
+      : englishCopy.inTransit,
   };
   const [result, setResult] = useState<Record<string, unknown> | null>(null),
     [error, setError] = useState(""),
@@ -71,8 +73,8 @@ export function PolicyPreview({
     } catch {
       setError(
         uk
-          ? "Не вдалося перевірити. Перевірте числа й повторіть спробу."
-          : "Could not preview. Check the numbers and try again.",
+          ? ukrainianCopy.couldNotPreviewCheckThe
+          : englishCopy.couldNotPreviewCheckThe,
       );
     } finally {
       setBusy(false);
@@ -84,12 +86,12 @@ export function PolicyPreview({
   return (
     <form className="mt-6 border-t border-(--border) pt-4" onSubmit={run}>
       <Heading as="h3" variant="compact" className="text-base font-medium">
-        {uk ? "Перевірка збережених правил SKU" : "Check saved SKU policy"}
+        {uk ? ukrainianCopy.checkSavedSKUPolicy : englishCopy.checkSavedSKUPolicy}
       </Heading>
       <Text variant="body" className="leading-normal text-inherit mt-1 text-sm text-(--muted)">
         {uk
-          ? "Тестовий розрахунок на введених числах. Не змінює звітів."
-          : "Test calculation using entered numbers. Does not change reports."}
+          ? ukrainianCopy.testCalculationUsingEnteredNumbers
+          : englishCopy.testCalculationUsingEnteredNumbers}
       </Text>
       <div className="mt-3 grid grid-cols-2 gap-3">
         {Object.entries(values).map(([field, value]) => (
@@ -108,7 +110,7 @@ export function PolicyPreview({
       </div>
       {canManage && (
         <Button variant="report" type="submit" className={buttonClass + " mt-3"} disabled={busy}>
-          {uk ? "Перевірити на сервері" : "Check on server"}
+          {uk ? ukrainianCopy.checkOnServer : englishCopy.checkOnServer}
         </Button>
       )}
       {error && (
@@ -122,49 +124,49 @@ export function PolicyPreview({
           className="mt-3 space-y-1 text-sm text-(--text)"
         >
           <Text variant="body" className="leading-normal text-inherit">
-            {uk ? "Власність" : "Ownership"}:{" "}
+            {uk ? ukrainianCopy.ownership : englishCopy.ownership}:{" "}
             {policy.ownership === "OWN"
               ? uk
-                ? "Власний сток"
-                : "Own stock"
+                ? ukrainianCopy.ownStock
+                : englishCopy.ownStock
               : policy.ownership === "CONSIGNMENT"
                 ? uk
-                  ? "На реалізації"
-                  : "Consignment"
+                  ? ukrainianCopy.consignment
+                  : englishCopy.consignment
                 : uk
-                  ? "Невідома"
-                  : "Unknown"}
+                  ? ukrainianCopy.unknown
+                  : englishCopy.unknown}
           </Text>
           <Text variant="body" className="leading-normal text-inherit">
-            {uk ? "Валовий прибуток" : "Gross profit"}:{" "}
+            {uk ? ukrainianCopy.grossProfit : englishCopy.grossProfit}:{" "}
             {String(
-              preview.grossProfit ?? (uk ? "Недоступний" : "Unavailable"),
+              preview.grossProfit ?? (uk ? ukrainianCopy.unavailable : englishCopy.unavailable),
             )}
           </Text>
           <Text variant="body" className="leading-normal text-inherit">
-            {uk ? "Дозамовлення, шт" : "Reorder, units"}:{" "}
+            {uk ? ukrainianCopy.reorderUnits : englishCopy.reorderUnits}:{" "}
             {String(
-              preview.orderQuantity ?? (uk ? "Недоступно" : "Unavailable"),
+              preview.orderQuantity ?? (uk ? ukrainianCopy.unavailable2 : englishCopy.unavailable2),
             )}
           </Text>
           {plan && (
             <Text variant="body" className="leading-normal text-inherit">
-              {uk ? "Виконання плану, %" : "Plan attainment, %"}:{" "}
+              {uk ? ukrainianCopy.planAttainment : englishCopy.planAttainment}:{" "}
               {String(
-                plan.attainmentPct ?? (uk ? "Недоступно" : "Unavailable"),
+                plan.attainmentPct ?? (uk ? ukrainianCopy.unavailable2 : englishCopy.unavailable2),
               )}
             </Text>
           )}
           <Text variant="body" className="leading-normal text-inherit">
-            {uk ? "Плече / покриття / MOQ" : "Lead / cover / MOQ"}:{" "}
+            {uk ? ukrainianCopy.leadCoverMOQ : englishCopy.leadCoverMOQ}:{" "}
             {String(policy.leadDays)} / {String(policy.coverDays)} /{" "}
             {String(policy.moq)}
           </Text>
           {Boolean(preview.reorderBlocked) && (
             <Text variant="body" className="leading-normal text-inherit">
               {uk
-                ? "Експорт потребує підтверджених залишків у дорозі та постачальника."
-                : "Export requires confirmed in-transit stock and supplier."}
+                ? ukrainianCopy.exportRequiresConfirmedInTransitStock
+                : englishCopy.exportRequiresConfirmedInTransitStock}
             </Text>
           )}
         </div>

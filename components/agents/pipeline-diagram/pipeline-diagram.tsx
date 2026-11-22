@@ -4,13 +4,14 @@ import { AgentStatusIcon } from "../agent-status-icon/agent-status-icon";
 import { agentStatusPresentation, getAgentRunState } from "../agent-status";
 import { AGENT_BLOCKS } from "@/components/agents/agents.config";
 import type { AgentRunInfo } from "@/components/agents/agents.types";
+import { agentsPipelineDiagramMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export function PipelineDiagram({ runs }: { runs: Record<string, AgentRunInfo> }) {
   const headingId = useId();
 
   return (
     <section aria-labelledby={headingId} className="mb-6 rounded-xl border border-(--border) bg-(--surface) p-4 sm:p-5">
-      <Heading as="h2" variant="compact" id={headingId} className="mb-4">Пайплайн агентів</Heading>
+      <Heading as="h2" variant="compact" id={headingId} className="mb-4">{ukrainianCopy.пайплайнАгентів}</Heading>
       <ol className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {AGENT_BLOCKS.map((block) => (
           <li key={block.id} data-stage={block.id} className="min-w-0 rounded-lg border border-(--signal-line) border-t-[3px] border-t-(--signal) bg-(--signal-wash) p-3">

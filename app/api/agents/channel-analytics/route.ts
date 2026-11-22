@@ -6,6 +6,8 @@ import { requireApiUser } from "@/lib/server-auth";
 import { serverError } from "@/lib/api-contracts";
 import { parseAgentJson } from "@/lib/agent-output";
 import { startAgentRun } from "@/lib/agent-runs";
+import { formatMessage } from "@/i18n/format-message";
+import { apiAgentsChannelAnalyticsRouteMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export const runtime = "nodejs";
 export const maxDuration = 180;
@@ -68,7 +70,7 @@ export async function POST(req: NextRequest) {
         where: { id: run.id },
         data: {
           status: "done",
-          output: { channels: [], message: "В активному імпорті нової бази немає даних про продажі." },
+          output: { channels: [], message: ukrainianCopy.messageВАктивномуІмпортіНовоїБази },
           finishedAt: new Date(),
         },
       });
@@ -105,12 +107,12 @@ ${metrics.channels
       channels: metrics.channels.map((c) => ({
         channel: c.channel,
         status: c.grossSalesLast7d > 0 ? "normal" : "inactive",
-        insight: `Продажі за 7 днів: ${c.grossSalesLast7d} шт; повернення: ${c.returnsLast7d} шт`,
-        recommendation: "Недостатньо даних для рекомендації",
+        insight: formatMessage(ukrainianCopy.insightПродажіЗа7ДнівШт, { grossSalesLast7d: c.grossSalesLast7d, returnsLast7d: c.returnsLast7d }),
+        recommendation: ukrainianCopy.recommendationНедостатньоДанихДляРекомендації,
       })),
       top_channel: metrics.topChannel,
-      summary: "AI-аналіз тимчасово недоступний; показано розраховані метрики.",
-      action: "Перевірити дані за каналами",
+      summary: ukrainianCopy.summaryAIАналізТимчасовоНедоступнийПоказаноРозраховані,
+      action: ukrainianCopy.actionПеревіритиДаніЗаКаналами,
     };
 
     output.metrics = metrics;

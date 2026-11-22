@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { apiFetch } from "@/lib/fetch";
 import type { Answers, Model } from "./onboarding-types";
+import { settingsOnboardingFormUseOnboardingSaveMessages as englishCopy } from "@/messages/en.json";
 
 export function useOnboardingSave({ model, answers, enabled, onSaved }: {
   model: Model;
@@ -28,7 +29,7 @@ export function useOnboardingSave({ model, answers, enabled, onSaved }: {
       if (!response.ok) throw new Error(await response.text());
       onSaved();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Error");
+      setError(cause instanceof Error ? cause.message : englishCopy.error);
     } finally {
       inFlight.current = false;
       setSaving(false);

@@ -2,6 +2,8 @@ import { Text } from "@/components/ui/text/text";
 import type { Lang } from "@/lib/translations";
 import type { Progress, ImportResponse } from "../sales-drive-import-card/import-types";
 import { errorLabel, importStateLabels } from "../sales-drive-import-card/copy";
+import { settingsImportSyncProgressMessages as englishCopy } from "@/messages/en.json";
+import { settingsImportSyncProgressMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export function ImportSyncProgress({ job, syncInfo, lang, generic = false }: {
   job: Progress | null;
@@ -14,39 +16,39 @@ export function ImportSyncProgress({ job, syncInfo, lang, generic = false }: {
   const date = (value: string) => new Date(value).toLocaleString(locale);
   const calculationState = syncInfo.calculation?.state;
   const calculationMessage = calculationState === "COMPLETE"
-    ? uk ? "Показники перераховано." : "Metrics recalculated."
+    ? uk ? ukrainianCopy.calculationMessageMetricsRecalculated : englishCopy.calculationMessageMetricsRecalculated
     : ["WAITING_ENGINE", "PENDING", "RUNNING"].includes(calculationState ?? "")
-      ? uk ? "Дані імпортовано. Оновлюємо показники продажів і запасів…" : "Inputs imported. Updating sales and stock metrics…"
+      ? uk ? ukrainianCopy.calculationMessageInputsImportedUpdatingSalesAnd : englishCopy.calculationMessageInputsImportedUpdatingSalesAnd
       : calculationState === "FAILED"
-        ? uk ? "Не вдалося оновити показники. Повторимо спробу автоматично." : "Could not update metrics. We will retry automatically."
+        ? uk ? ukrainianCopy.calculationMessageCouldNotUpdateMetricsWe : englishCopy.calculationMessageCouldNotUpdateMetricsWe
         : null;
   return (
     <>
       {job && (
         <Text variant="body" className="leading-normal mt-2 break-all text-sm text-(--muted)">
-          {uk ? "Цикл" : "Cycle"}: {job.id}
+          {uk ? ukrainianCopy.cycle : englishCopy.cycle}: {job.id}
         </Text>
       )}
       {job?.state === "COMPLETE" && (
         <Text variant="body" className="leading-normal mt-2 text-sm text-(--muted)">
-          {uk ? "Завершено" : "Completed"}:{" "}
+          {uk ? ukrainianCopy.completed : englishCopy.completed}:{" "}
           {date(job.updatedAt)}
         </Text>
       )}
       <Text variant="body" className="leading-normal mt-2 text-sm text-(--muted)">
-        {uk ? "Останній виклик планувальника" : "Last scheduler tick"}:{" "}
+        {uk ? ukrainianCopy.lastSchedulerTick : englishCopy.lastSchedulerTick}:{" "}
         {syncInfo.lastTickAt
           ? date(syncInfo.lastTickAt)
           : uk
-            ? "ще немає — підключіть зовнішній планувальник"
-            : "none yet — connect an external scheduler"}
+            ? ukrainianCopy.noneYetConnectAn
+            : englishCopy.noneYetConnectAn}
       </Text>
       {syncInfo.backfill && (
         <Text variant="body" className="leading-normal mt-2 text-sm text-(--muted)">
-          {uk ? "Історичний імпорт" : "Historical import"}:{" "}
+          {uk ? ukrainianCopy.historicalImport : englishCopy.historicalImport}:{" "}
           {labels[syncInfo.backfill.state] ?? syncInfo.backfill.state};{" "}
-          {uk ? "сторінок" : "pages"} {syncInfo.backfill.stats.pages ?? 0};{" "}
-          {uk ? "замовлень" : "orders"}{" "}
+          {uk ? ukrainianCopy.pages : englishCopy.pages} {syncInfo.backfill.stats.pages ?? 0};{" "}
+          {uk ? ukrainianCopy.orders : englishCopy.orders}{" "}
           {syncInfo.backfill.stats.orders ?? 0}.
         </Text>
       )}
@@ -54,21 +56,21 @@ export function ImportSyncProgress({ job, syncInfo, lang, generic = false }: {
         <Text variant="body" key={r.resource} className="leading-normal mt-3 text-sm text-(--muted)">
           {r.resource === "orders"
             ? uk
-              ? "Замовлення"
-              : "Orders"
+              ? ukrainianCopy.orders2
+              : englishCopy.orders2
             : uk
-              ? "Залишки"
-              : "Stock"}
-          : {uk ? "останнє завершення" : "last completion"}{" "}
+              ? ukrainianCopy.stock
+              : englishCopy.stock}
+          : {uk ? ukrainianCopy.lastCompletion : englishCopy.lastCompletion}{" "}
           {r.lastSuccess
             ? date(r.lastSuccess)
             : uk
-              ? "ще немає"
-              : "none yet"}
-          ; {uk ? "у черзі" : "pending"}{" "}
+              ? ukrainianCopy.noneYet
+              : englishCopy.noneYet}
+          ; {uk ? ukrainianCopy.pending : englishCopy.pending}{" "}
           {r.pending.toLocaleString(locale)}.{" "}
           {r.lagSeconds !== null &&
-            `${uk ? "Відставання (хв)" : "Lag (min)"}: ${Math.ceil(r.lagSeconds / 60).toLocaleString(locale)}.`}{" "}
+            `${uk ? ukrainianCopy.lagMin : englishCopy.lagMin}: ${Math.ceil(r.lagSeconds / 60).toLocaleString(locale)}.`}{" "}
           {r.errorCode && errorLabel(r.errorCode, uk,generic)}
         </Text>
       ))}
@@ -78,8 +80,8 @@ export function ImportSyncProgress({ job, syncInfo, lang, generic = false }: {
       {job?.state === "PAUSED" && (
         <Text variant="body" className="leading-normal mt-3 text-sm text-(--muted)">
           {uk
-            ? "Відновіть цикл після виправлення з’єднання або налаштувань."
-            : "Resume this cycle after correcting the connection or source settings."}
+            ? ukrainianCopy.resumeThisCycleAfterCorrecting
+            : englishCopy.resumeThisCycleAfterCorrecting}
         </Text>
       )}
     </>

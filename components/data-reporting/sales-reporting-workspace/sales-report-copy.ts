@@ -1,24 +1,9 @@
 import type { Locale } from "@/i18n/routing";
 import type { SalesView } from "@/lib/sales-report-view";
+import { salesWorkspaceCopy as salesWorkspaceCopyEn, dataReportingSalesReportingWorkspaceSalesReportCopyMessages as englishCopy, fallbackError as fallbackErrorEn } from "@/messages/en.json";
+import { salesWorkspaceCopy as salesWorkspaceCopyUk, dataReportingSalesReportingWorkspaceSalesReportCopyMessages as ukrainianCopy, fallbackError as fallbackErrorUk } from "@/messages/uk.json";
 
-export const salesWorkspaceCopy = {
-  uk: {
-    views: { articles: "SKU", brands: "Бренди", categories: "Категорії", channels: "Канали" },
-    coverage: { COMPLETE: "Повне", PARTIAL: "Часткове", UNAVAILABLE: "Недоступне" },
-    dateFrom: "Дата від",
-    dateTo: "Дата до",
-    calculating: "Розрахунок…",
-    applyPeriod: "Застосувати період",
-  },
-  en: {
-    views: { articles: "SKUs", brands: "Brands", categories: "Categories", channels: "Channels" },
-    coverage: { COMPLETE: "Complete", PARTIAL: "Partial", UNAVAILABLE: "Unavailable" },
-    dateFrom: "Date from",
-    dateTo: "Date to",
-    calculating: "Calculating…",
-    applyPeriod: "Apply period",
-  },
-} satisfies Record<Locale, {
+export const salesWorkspaceCopy = { uk: salesWorkspaceCopyUk, en: salesWorkspaceCopyEn } satisfies Record<Locale, {
   views: Record<SalesView, string>;
   coverage: Record<"COMPLETE" | "PARTIAL" | "UNAVAILABLE", string>;
   dateFrom: string;
@@ -29,23 +14,20 @@ export const salesWorkspaceCopy = {
 
 const reportErrors = new Map<string, Record<Locale, string>>([
   ["INVALID_REPORT_PERIOD", {
-    uk: "Перевірте обидві дати: період до 366 днів, без майбутніх дат.",
-    en: "Check both dates: up to 366 days, without future dates.",
+    uk: ukrainianCopy.enCheckBothDatesUpTo,
+    en: englishCopy.enCheckBothDatesUpTo,
   }],
   ["SALESDRIVE_NOT_CONFIGURED", {
-    uk: "Налаштуйте SalesDrive у налаштуваннях.",
-    en: "Configure SalesDrive in Settings.",
+    uk: ukrainianCopy.enConfigureSalesDriveInSettings,
+    en: englishCopy.enConfigureSalesDriveInSettings,
   }],
   ["SALES_IMPORT_NOT_READY", {
-    uk: "Дочекайтесь завершення першого імпорту замовлень.",
-    en: "Wait for the first order import to finish.",
+    uk: ukrainianCopy.enWaitForTheFirstOrder,
+    en: englishCopy.enWaitForTheFirstOrder,
   }],
 ]);
 
-const fallbackError = {
-  uk: "Не вдалося завантажити звіт. Повторіть після синхронізації.",
-  en: "Could not load the report. Retry after synchronization.",
-};
+const fallbackError = { uk: fallbackErrorUk, en: fallbackErrorEn };
 
 export function salesReportErrorMessage(code: string, locale: Locale): string {
   return (reportErrors.get(code) ?? fallbackError)[locale];
@@ -53,49 +35,49 @@ export function salesReportErrorMessage(code: string, locale: Locale): string {
 
 const reasons: Record<string, [string, string]> = {
   IMPORT_QUARANTINED: [
-    "В імпорті є ізольовані замовлення: перевірте якість даних",
-    "Import contains quarantined orders: review data quality",
+    ukrainianCopy.iMPORTQUARANTINEDВІмпортіЄІзольованіЗамовлення,
+    englishCopy.iMPORTQUARANTINEDImportContainsQuarantinedOrdersReview,
   ],
-  INSUFFICIENT_HISTORY: ["Недостатньо історії", "Insufficient history"],
-  MISSING_REVENUE: ["Неповна виручка", "Incomplete revenue"],
-  LY_NON_POSITIVE: ["LY не додатний", "LY is not positive"],
+  INSUFFICIENT_HISTORY: [ukrainianCopy.iNSUFFICIENTHISTORYНедостатньоІсторії, englishCopy.iNSUFFICIENTHISTORY],
+  MISSING_REVENUE: [ukrainianCopy.mISSINGREVENUEНеповнаВиручка, englishCopy.mISSINGREVENUEIncompleteRevenue],
+  LY_NON_POSITIVE: [ukrainianCopy.lYNONPOSITIVELYНеДодатний, englishCopy.lYNONPOSITIVELYIsNotPositive],
   NORMALIZATION_REPLAY_REQUIRED: [
-    "Потрібен повторний імпорт історії",
-    "History replay required",
+    ukrainianCopy.nORMALIZATIONREPLAYREQUIREDПотрібенПовторнийІмпортІсторії,
+    englishCopy.nORMALIZATIONREPLAYREQUIREDHistoryReplayRequired,
   ],
   PROJECT_MAPPING_UNVERIFIED: [
-    "Не підтверджено поле проєкту",
-    "Project field unverified",
+    ukrainianCopy.pROJECTMAPPINGUNVERIFIEDНеПідтвердженоПолеПроєкту,
+    englishCopy.pROJECTMAPPINGUNVERIFIEDProjectFieldUnverified,
   ],
   RETURN_DATE_UNAVAILABLE: [
-    "Невідома дата повернення",
-    "Return date unavailable",
+    ukrainianCopy.rETURNDATEUNAVAILABLEНевідомаДатаПовернення,
+    englishCopy.rETURNDATEUNAVAILABLE,
   ],
   PAYMENT_DATE_UNAVAILABLE: [
-    "Невідома дата оплати",
-    "Payment date unavailable",
+    ukrainianCopy.pAYMENTDATEUNAVAILABLEНевідомаДатаОплати,
+    englishCopy.pAYMENTDATEUNAVAILABLE,
   ],
   INFERRED_PAYMENT_DATE: [
-    "Використано погоджену резервну дату",
-    "Approved inferred sale date",
+    ukrainianCopy.iNFERREDPAYMENTDATEВикористаноПогодженуРезервнуДату,
+    englishCopy.iNFERREDPAYMENTDATEApprovedInferredSaleDate,
   ],
   PRODUCT_KIND_UNVERIFIED: [
-    "Не підтверджено тип товару",
-    "Product type unverified",
+    ukrainianCopy.pRODUCTKINDUNVERIFIEDНеПідтвердженоТипТовару,
+    englishCopy.pRODUCTKINDUNVERIFIEDProductTypeUnverified,
   ],
-  CURRENCY_UNVERIFIED: ["Невідома валюта", "Currency unverified"],
-  REVENUE_UNAVAILABLE: ["Невідомий дохід рядка", "Line revenue unavailable"],
+  CURRENCY_UNVERIFIED: [ukrainianCopy.cURRENCYUNVERIFIEDНевідомаВалюта, englishCopy.cURRENCYUNVERIFIED],
+  REVENUE_UNAVAILABLE: [ukrainianCopy.rEVENUEUNAVAILABLEНевідомийДохідРядка, englishCopy.rEVENUEUNAVAILABLELineRevenueUnavailable],
   SERVICE_PROFIT_UNVERIFIED: [
-    "Не погоджено прибуток послуг",
-    "Service profit treatment unverified",
+    ukrainianCopy.sERVICEPROFITUNVERIFIEDНеПогодженоПрибутокПослуг,
+    englishCopy.sERVICEPROFITUNVERIFIEDServiceProfitTreatmentUnverified,
   ],
-  OWNERSHIP_UNVERIFIED: ["Невідома власність", "Ownership unverified"],
+  OWNERSHIP_UNVERIFIED: [ukrainianCopy.oWNERSHIPUNVERIFIEDНевідомаВласність, englishCopy.oWNERSHIPUNVERIFIED],
   PREORDER_AMOUNT_UNAVAILABLE: [
-    "Невідома сума передзамовлення",
-    "Preorder amount unavailable",
+    ukrainianCopy.pREORDERAMOUNTUNAVAILABLEНевідомаСумаПередзамовлення,
+    englishCopy.pREORDERAMOUNTUNAVAILABLE,
   ],
-  MISSING_COST: ["Невідома собівартість", "Cost unavailable"],
-  COMMISSION_UNVERIFIED: ["Невідома комісія", "Commission unavailable"],
+  MISSING_COST: [ukrainianCopy.mISSINGCOSTНевідомаСобівартість, englishCopy.mISSINGCOSTCostUnavailable],
+  COMMISSION_UNVERIFIED: [ukrainianCopy.cOMMISSIONUNVERIFIEDНевідомаКомісія, englishCopy.cOMMISSIONUNVERIFIEDCommissionUnavailable],
 };
 
 export function salesReportReason(code: string, uk: boolean): string {

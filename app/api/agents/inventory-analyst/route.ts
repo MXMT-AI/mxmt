@@ -12,6 +12,7 @@ import {
   type InventoryAiResult,
 } from "@/lib/inventory-analysis";
 import { runAgentBatches } from "@/lib/agent-batching";
+import { apiAgentsInventoryAnalystRouteMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export const runtime = "nodejs";
 export const maxDuration = 180;
@@ -82,7 +83,7 @@ export async function POST(req: NextRequest) {
         where: { id: run.id },
         data: {
           status: "done",
-          output: { brands: [], message: "Немає брендів із товарами" },
+          output: { brands: [], message: ukrainianCopy.messageНемаєБрендівІзТоварами },
           finishedAt: new Date(),
         },
       });

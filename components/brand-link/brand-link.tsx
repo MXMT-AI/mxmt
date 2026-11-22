@@ -1,6 +1,7 @@
 import { BrandMark } from "@/components/brand-mark/brand-mark";
 import { Link } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
+import { brandLinkMessages as englishCopy } from "@/messages/en.json";
 
 const styles = {
   landing: {
@@ -24,10 +25,9 @@ export function BrandLink({ variant }: { variant: keyof typeof styles }) {
     <Link
       href="/"
       className={cn("items-center gap-[7px] font-bold tracking-[-.045em]", style.link)}
-      aria-label="MXMT Analytics"
+      aria-label={englishCopy.ariaLabelMXMTAnalytics}
     >
-      <BrandMark transparent />
-      MXMT <span className={cn("font-[450]", style.subtitle)}>Analytics</span>
+      <BrandMark transparent />{englishCopy.mXMT}<span className={cn("font-[450]", style.subtitle)}>{englishCopy.analytics}</span>
     </Link>
   );
 }

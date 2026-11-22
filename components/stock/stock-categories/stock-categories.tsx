@@ -14,6 +14,7 @@ import { createTableValueFormatter } from "@/lib/data-reporting-ui";
 import type { StockWorkspaceModel } from "@/lib/merchandising-stock-workspace";
 import { StockStructure } from "../stock-structure/stock-structure";
 import { primaryStockStatuses as primary, stockStatusLabel as statusName } from "@/lib/merchandising-stock-display";
+import { stockStockCategoriesMessages as englishCopy } from "@/messages/en.json";
 
 export function StockCategories({ groups, model, copy, locale, href: scoped, onNavigate }: {
   groups: Block["categories"];
@@ -40,7 +41,7 @@ export function StockCategories({ groups, model, copy, locale, href: scoped, onN
   return (
     <section className={panel}>
       <div className="p-5 space-y-2">
-        <Heading as="h3" variant="compact" className="text-base text-inherit">K3 · {copy.categories}</Heading>
+        <Heading as="h3" variant="compact" className="text-base text-inherit">{englishCopy.k3}{copy.categories}</Heading>
         <Note>{copy.categoryBasis}</Note>
         <Note>
           {copy.sortBy}: {sortLabel} {model.categoryDirection === "desc" ? "↓" : "↑"}

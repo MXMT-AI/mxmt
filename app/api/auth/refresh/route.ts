@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from "@/lib/auth";
 import { apiError, serverError } from "@/lib/api-contracts";
 import { createRequestContext, logError, requestLogContext, withRequestId } from "@/lib/observability";
+import { apiAuthRefreshRouteMessages as englishCopy } from "@/messages/en.json";
 
 export async function POST(request: NextRequest) {
   const context = createRequestContext(request, "api.auth.refresh");
@@ -14,24 +15,24 @@ export async function POST(request: NextRequest) {
     const refreshToken = cookieStore.get("refresh_token")?.value;
 
     if (!refreshToken) {
-      return withRequestId(apiError("No refresh token", 401, "NO_REFRESH_TOKEN", undefined, context.requestId), context.requestId);
+      return withRequestId(apiError(englishCopy.noRefreshToken, 401, "NO_REFRESH_TOKEN", undefined, context.requestId), context.requestId);
     }
 
     let payload;
     try {
       payload = await verifyRefreshToken(refreshToken);
     } catch {
-      return withRequestId(apiError("Invalid refresh token", 401, "INVALID_REFRESH_TOKEN", undefined, context.requestId), context.requestId);
+      return withRequestId(apiError(englishCopy.invalidRefreshToken, 401, "INVALID_REFRESH_TOKEN", undefined, context.requestId), context.requestId);
     }
 
     const user = await prisma.user.findUnique({ where: { id: payload.sub } });
     if (!user?.refreshToken) {
-      return withRequestId(apiError("Session revoked", 401, "SESSION_REVOKED", undefined, context.requestId), context.requestId);
+      return withRequestId(apiError(englishCopy.sessionRevoked, 401, "SESSION_REVOKED", undefined, context.requestId), context.requestId);
     }
 
     const valid = await compare(refreshToken, user.refreshToken);
     if (!valid) {
-      return withRequestId(apiError("Refresh token mismatch", 401, "REFRESH_TOKEN_MISMATCH", undefined, context.requestId), context.requestId);
+      return withRequestId(apiError(englishCopy.refreshTokenMismatch, 401, "REFRESH_TOKEN_MISMATCH", undefined, context.requestId), context.requestId);
     }
 
     const tokenPayload = { sub: user.id, tenantId: user.tenantId, role: user.role };
@@ -65,6 +66,6 @@ export async function POST(request: NextRequest) {
     return withRequestId(NextResponse.json({ ok: true, requestId: context.requestId }), context.requestId);
   } catch (err) {
     logError("Token refresh failed", err, requestLogContext(context));
-    return withRequestId(serverError("Token refresh failed", context.requestId), context.requestId);
+    return withRequestId(serverError(englishCopy.tokenRefreshFailed, context.requestId), context.requestId);
   }
 }

@@ -11,6 +11,9 @@ import { PolicyPreview } from "../policy-preview/policy-preview";
 import type { Entity, Payload } from "../merchandising-settings-card/merchandising-settings-types";
 import { inputClass, buttonClass } from "../merchandising-settings-card/merchandising-settings-styles";
 import { currentKyivMonth } from "../merchandising-settings-card/current-kyiv-month";
+import { formatMessage } from "@/i18n/format-message";
+import { settingsSettingsEditorMessages as englishCopy } from "@/messages/en.json";
+import { settingsSettingsEditorMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export function SettingsEditor({
   lang,
@@ -114,30 +117,30 @@ export function SettingsEditor({
     if (error.startsWith("range:")) {
       const [, min, max] = error.split(":");
       return uk
-        ? `Вкажіть число від ${min} до ${max}.`
+        ? formatMessage(ukrainianCopy.вкажітьЧислоВідДо, { min, max })
         : `Enter a number between ${min} and ${max}.`;
     }
     if (error === "above_healthy")
       return uk
-        ? "Поріг ризику має бути більшим за поріг здорового запасу."
-        : "The risk threshold must exceed the healthy threshold.";
+        ? ukrainianCopy.theRiskThresholdMustExceed
+        : englishCopy.theRiskThresholdMustExceed;
     if (error === "currency_required" || error === "invalid_currency")
       return uk
-        ? "Вкажіть трилітерний код валюти планів, наприклад UAH."
-        : "Enter a three-letter plan currency code, for example UAH.";
+        ? ukrainianCopy.enterAThreeLetterPlanCurrency
+        : englishCopy.enterAThreeLetterPlanCurrency;
     if (error === "project_field_required")
       return uk
-        ? "Вкажіть підтверджене поле ID проєкту в SalesDrive."
-        : "Enter the verified SalesDrive project-ID field.";
+        ? ukrainianCopy.enterTheVerifiedSalesDriveProjectID
+        : englishCopy.enterTheVerifiedSalesDriveProjectID;
     if (error === "commission_requires_consignment")
       return uk
-        ? "Комісія задається для стоку на реалізації."
-        : "Commission applies to consignment stock.";
+        ? ukrainianCopy.commissionAppliesToConsignmentStock
+        : englishCopy.commissionAppliesToConsignmentStock;
     if (error === "invalid_months")
       return uk
-        ? "Виберіть хоча б один місяць сезону."
-        : "Select at least one season month.";
-    return uk ? "Перевірте значення цього поля." : "Check this field value.";
+        ? ukrainianCopy.selectAtLeastOneSeason
+        : englishCopy.selectAtLeastOneSeason;
+    return uk ? ukrainianCopy.checkThisFieldValue : englishCopy.checkThisFieldValue;
   };
   const attrs = (name: string) => ({
     id: `merch-${name}`,
@@ -233,15 +236,15 @@ export function SettingsEditor({
       setError(
         saved
           ? uk
-            ? "Зміни збережено, але список не оновився. Перезавантажте налаштування."
-            : "Changes saved, but the list could not refresh. Reload settings."
+            ? ukrainianCopy.changesSavedButTheList
+            : englishCopy.changesSavedButTheList
           : cause instanceof Error && cause.message === "SETTINGS_CONFLICT"
             ? uk
-              ? "Налаштування вже змінилися. Перезавантажте список і перевірте свої правки."
-              : "Settings changed elsewhere. Reload and review your edits."
+              ? ukrainianCopy.settingsChangedElsewhereReloadAnd
+              : englishCopy.settingsChangedElsewhereReloadAnd
             : uk
-              ? "Не вдалося зберегти. Перевірте позначені поля й повторіть спробу."
-              : "Could not save. Check the marked fields and try again.",
+              ? ukrainianCopy.couldNotSaveCheckThe
+              : englishCopy.couldNotSaveCheckThe,
       );
     } finally {
       setBusy(false);
@@ -251,11 +254,11 @@ export function SettingsEditor({
     <>
       <form ref={formRef} className="mt-5 space-y-5" onSubmit={save} noValidate>
         <Text variant="body" className="leading-normal text-inherit text-sm text-(--muted)">
-          {uk ? "Ревізія" : "Revision"}: {revision}
+          {uk ? ukrainianCopy.revision : englishCopy.revision}: {revision}
           {!revision &&
             (uk
-              ? " · стандартні значення, ще не збережено"
-              : " · defaults, not yet saved")}
+              ? ukrainianCopy.defaultsNotYetSaved
+              : englishCopy.defaultsNotYetSaved)}
         </Text>
         {error && (
           <Text variant="body"
@@ -273,7 +276,7 @@ export function SettingsEditor({
             <>
               <Field
                 name="profileMode"
-                label={uk ? "Конфігурація брендів" : "Brand configuration"}
+                label={uk ? ukrainianCopy.labelBrandConfiguration : englishCopy.labelBrandConfiguration}
                 error={fieldError("profileMode")}
               >
                 <select
@@ -282,10 +285,10 @@ export function SettingsEditor({
                   onChange={(e) => edit("profileMode", e.target.value)}
                 >
                   <option value="MULTIBRAND">
-                    {uk ? "Мультибренд" : "Multibrand"}
+                    {uk ? ukrainianCopy.multibrand : englishCopy.multibrand}
                   </option>
                   <option value="MONOBRAND">
-                    {uk ? "Монобренд" : "Monobrand"}
+                    {uk ? ukrainianCopy.monobrand : englishCopy.monobrand}
                   </option>
                 </select>
               </Field>
@@ -293,8 +296,8 @@ export function SettingsEditor({
                 name="monoBrandId"
                 label={
                   uk
-                    ? "Основний бренд для монобренду"
-                    : "Primary brand for monobrand"
+                    ? ukrainianCopy.labelPrimaryBrandForMonobrand
+                    : englishCopy.labelPrimaryBrandForMonobrand
                 }
                 error={fieldError("monoBrandId")}
               >
@@ -304,7 +307,7 @@ export function SettingsEditor({
                   onChange={(e) => edit("monoBrandId", e.target.value || null)}
                 >
                   <option value="">
-                    {uk ? "Виберіть бренд" : "Choose a brand"}
+                    {uk ? ukrainianCopy.chooseABrand : englishCopy.chooseABrand}
                   </option>
                   {[
                     ...data.brands,
@@ -334,14 +337,14 @@ export function SettingsEditor({
               )}
               {number(
                 "minMarginPct",
-                uk ? "Мінімальна маржа, %" : "Minimum margin, %",
+                uk ? ukrainianCopy.minimumMargin : englishCopy.minimumMargin,
                 0,
                 100,
                 "0.1",
               )}
               {number(
                 "turnoverMonths",
-                uk ? "Норма оборотності, місяців" : "Turnover target, months",
+                uk ? ukrainianCopy.turnoverTargetMonths : englishCopy.turnoverTargetMonths,
                 0.01,
                 120,
                 "0.1",
@@ -349,7 +352,7 @@ export function SettingsEditor({
               <Field
                 name="deadDays"
                 label={
-                  uk ? "Поріг неліквіду, днів" : "Dead stock threshold, days"
+                  uk ? ukrainianCopy.labelDeadStockThresholdDays : englishCopy.labelDeadStockThresholdDays
                 }
                 error={fieldError("deadDays")}
               >
@@ -367,14 +370,14 @@ export function SettingsEditor({
               </Field>
               {number(
                 "healthyWohWeeks",
-                uk ? "Здоровий запас до, тижнів" : "Healthy stock up to, weeks",
+                uk ? ukrainianCopy.healthyStockUpToWeeks : englishCopy.healthyStockUpToWeeks,
                 0.01,
                 520,
                 "0.1",
               )}
               {number(
                 "riskWohWeeks",
-                uk ? "Ризик до, тижнів" : "Risk up to, weeks",
+                uk ? ukrainianCopy.riskUpToWeeks : englishCopy.riskUpToWeeks,
                 0.01,
                 520,
                 "0.1",
@@ -382,36 +385,36 @@ export function SettingsEditor({
               {number(
                 "newProductWeeks",
                 uk
-                  ? "Карантин новинки, тижнів"
-                  : "New product quarantine, weeks",
+                  ? ukrainianCopy.newProductQuarantineWeeks
+                  : englishCopy.newProductQuarantineWeeks,
                 0,
                 52,
               )}
               {number(
                 "leadDays",
                 uk
-                  ? "Стандартне плече поставки, днів"
-                  : "Default supplier lead time, days",
+                  ? ukrainianCopy.defaultSupplierLeadTimeDays
+                  : englishCopy.defaultSupplierLeadTimeDays,
                 0,
                 3650,
               )}
               {number(
                 "coverDays",
                 uk
-                  ? "Покриття після поставки, днів"
-                  : "Post-delivery coverage, days",
+                  ? ukrainianCopy.postDeliveryCoverageDays
+                  : englishCopy.postDeliveryCoverageDays,
                 0,
                 3650,
               )}
               {number(
                 "moq",
-                uk ? "Стандартний MOQ, шт" : "Default MOQ, units",
+                uk ? ukrainianCopy.defaultMOQUnits : englishCopy.defaultMOQUnits,
                 1,
                 1000000,
               )}
               <Field
                 name="planMonth"
-                label={uk ? "Місяць плану" : "Plan month"}
+                label={uk ? ukrainianCopy.labelPlanMonth : englishCopy.labelPlanMonth}
               >
                 <input
                   id="merch-planMonth"
@@ -425,7 +428,7 @@ export function SettingsEditor({
               <Field
                 name="planCurrency"
                 label={
-                  uk ? "Валюта планів, ISO-код" : "Plan currency, ISO code"
+                  uk ? ukrainianCopy.labelPlanCurrencyISOCode : englishCopy.labelPlanCurrencyISOCode
                 }
                 error={fieldError("planCurrency")}
               >
@@ -443,8 +446,8 @@ export function SettingsEditor({
                 name="monthlyPlans"
                 label={
                   uk
-                    ? "План виручки, у валюті звітності"
-                    : "Revenue plan, reporting currency"
+                    ? ukrainianCopy.labelRevenuePlanReportingCurrency
+                    : englishCopy.labelRevenuePlanReportingCurrency
                 }
                 error={fieldError("monthlyPlans")}
               >
@@ -470,8 +473,8 @@ export function SettingsEditor({
               {ids(
                 "saleStatuses",
                 uk
-                  ? "ID статусів-продажів, через кому"
-                  : "Sale status IDs, comma separated",
+                  ? ukrainianCopy.saleStatusIDsCommaSeparated
+                  : englishCopy.saleStatusIDsCommaSeparated,
               )}
               <label className="flex items-center gap-2 self-end py-2 text-sm text-(--text)">
                 <input
@@ -483,23 +486,23 @@ export function SettingsEditor({
                   }
                 />
                 {uk
-                  ? "Підтверджую значення статусів у цьому акаунті"
-                  : "I confirm these statuses for this account"}
+                  ? ukrainianCopy.iConfirmTheseStatusesFor
+                  : englishCopy.iConfirmTheseStatusesFor}
               </label>
               {ids(
                 "excludedChannels",
-                uk ? "Виключені ID каналів" : "Excluded channel IDs",
+                uk ? ukrainianCopy.excludedChannelIDs : englishCopy.excludedChannelIDs,
               )}
               {ids(
                 "excludedProjects",
-                uk ? "Виключені ID проєктів" : "Excluded project IDs",
+                uk ? ukrainianCopy.excludedProjectIDs : englishCopy.excludedProjectIDs,
               )}
               <Field
                 name="projectField"
                 label={
                   uk
-                    ? "Підтверджене поле ID проєкту в SalesDrive"
-                    : "Verified project-ID field in SalesDrive"
+                    ? ukrainianCopy.labelVerifiedProjectIDFieldInSalesDrive
+                    : englishCopy.labelVerifiedProjectIDFieldInSalesDrive
                 }
                 error={fieldError("projectField")}
               >
@@ -515,7 +518,7 @@ export function SettingsEditor({
             <>
               <Field
                 name={resource === "sku" ? "ownershipOverride" : "ownership"}
-                label={uk ? "Власність стоку" : "Stock ownership"}
+                label={uk ? ukrainianCopy.labelStockOwnership : englishCopy.labelStockOwnership}
                 error={fieldError(
                   resource === "sku" ? "ownershipOverride" : "ownership",
                 )}
@@ -541,23 +544,23 @@ export function SettingsEditor({
                 >
                   {resource === "sku" && (
                     <option value="INHERIT">
-                      {uk ? "Успадкувати бренд" : "Inherit brand"}
+                      {uk ? ukrainianCopy.inheritBrand : englishCopy.inheritBrand}
                     </option>
                   )}
-                  <option value="UNKNOWN">{uk ? "Невідомо" : "Unknown"}</option>
+                  <option value="UNKNOWN">{uk ? ukrainianCopy.unknown : englishCopy.unknown}</option>
                   <option value="OWN">
-                    {uk ? "Власний сток" : "Own stock"}
+                    {uk ? ukrainianCopy.ownStock : englishCopy.ownStock}
                   </option>
                   <option value="CONSIGNMENT">
-                    {uk ? "На реалізації" : "Consignment"}
+                    {uk ? ukrainianCopy.consignment : englishCopy.consignment}
                   </option>
                 </select>
               </Field>
               {number(
                 "commissionPct",
                 uk
-                  ? "Комісія, % · порожньо — невідома або успадкована"
-                  : "Commission, % · blank is unknown/inherited",
+                  ? ukrainianCopy.commissionBlankIs
+                  : englishCopy.commissionBlankIs,
                 0,
                 100,
                 "0.000001",
@@ -568,9 +571,9 @@ export function SettingsEditor({
                 label={
                   uk
                     ? resource === "sku"
-                      ? "Постачальник · порожньо — успадкувати бренд"
-                      : "Постачальник бренду"
-                    : "Supplier · SKU blank inherits brand"
+                      ? ukrainianCopy.labelПостачальникПорожньоУспадкувати
+                      : ukrainianCopy.labelПостачальникБренду
+                    : englishCopy.labelSupplierSKUBlankInherits
                 }
                 error={fieldError("supplierId")}
               >
@@ -580,7 +583,7 @@ export function SettingsEditor({
                   onChange={(e) => edit("supplierId", e.target.value || null)}
                 >
                   <option value="">
-                    {uk ? "Не задано / успадкувати" : "Not set / inherit"}
+                    {uk ? ukrainianCopy.notSetInherit : englishCopy.notSetInherit}
                   </option>
                   {data.suppliers.map((s) => (
                     <option key={s.id} value={s.id}>
@@ -594,7 +597,7 @@ export function SettingsEditor({
             <>
               <Field
                 name="name"
-                label={uk ? "Назва постачальника" : "Supplier name"}
+                label={uk ? ukrainianCopy.labelSupplierName : englishCopy.labelSupplierName}
                 error={fieldError("name")}
               >
                 <input
@@ -607,19 +610,19 @@ export function SettingsEditor({
               </Field>
               {number(
                 "leadDays",
-                uk ? "Плече поставки, днів" : "Lead time, days",
+                uk ? ukrainianCopy.leadTimeDays : englishCopy.leadTimeDays,
                 0,
                 3650,
               )}
               {number(
                 "coverDays",
                 uk
-                  ? "Покриття після поставки, днів"
-                  : "Post-delivery coverage, days",
+                  ? ukrainianCopy.postDeliveryCoverageDays
+                  : englishCopy.postDeliveryCoverageDays,
                 0,
                 3650,
               )}
-              {number("moq", uk ? "MOQ, шт" : "MOQ, units", 1, 1000000)}
+              {number("moq", uk ? ukrainianCopy.mOQUnits : englishCopy.mOQUnits, 1, 1000000)}
             </>
           ) : (
             <fieldset
@@ -632,7 +635,7 @@ export function SettingsEditor({
               className="sm:col-span-2"
             >
               <legend className="text-sm text-(--muted)">
-                {uk ? "Місяці сезону" : "Season months"}
+                {uk ? ukrainianCopy.seasonMonths : englishCopy.seasonMonths}
               </legend>
               <div className="mt-2 flex flex-wrap gap-3">
                 {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
@@ -680,7 +683,7 @@ export function SettingsEditor({
                   edit("seasonMonths", [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
                 }
               >
-                {uk ? "Увесь рік" : "All year"}
+                {uk ? ukrainianCopy.allYear : englishCopy.allYear}
               </Button>
             </fieldset>
           )}
@@ -689,11 +692,11 @@ export function SettingsEditor({
           <Button variant="report" type="submit" className={buttonClass} disabled={busy || !dirty}>
             {busy
               ? uk
-                ? "Збереження…"
-                : "Saving…"
+                ? ukrainianCopy.saving
+                : englishCopy.saving
               : uk
-                ? "Зберегти й застосувати"
-                : "Save and apply"}
+                ? ukrainianCopy.saveAndApply
+                : englishCopy.saveAndApply}
           </Button>
         )}
       </form>

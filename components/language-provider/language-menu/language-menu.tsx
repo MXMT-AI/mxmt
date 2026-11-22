@@ -4,10 +4,12 @@ import { Check, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button/button";
 import { DisclosureMenu } from "@/components/ui/disclosure-menu/disclosure-menu";
 import { useChangeLocale } from "../use-change-locale";
+import { languageProviderLanguageMenuMessages as englishCopy } from "@/messages/en.json";
+import { languageProviderLanguageMenuMessages as ukrainianCopy } from "@/messages/uk.json";
 
 const languages = [
-  { locale: "en", label: "English" },
-  { locale: "uk", label: "Українська" },
+  { locale: "en", label: englishCopy.labelEnglish },
+  { locale: "uk", label: ukrainianCopy.labelУкраїнська },
 ] as const;
 
 export function LanguageMenu({ label, title }: { label: string; title: string }) {

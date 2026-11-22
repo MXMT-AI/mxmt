@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { signAccessToken, signRefreshToken } from "@/lib/auth";
 import { apiError, serverError } from "@/lib/api-contracts";
 import { createRequestContext, logError, requestLogContext, withRequestId } from "@/lib/observability";
+import { apiAuthLoginRouteMessages as englishCopy } from "@/messages/en.json";
 
 export async function POST(request: NextRequest) {
   const context = createRequestContext(request, "api.auth.login");
@@ -13,7 +14,7 @@ export async function POST(request: NextRequest) {
     const { email, password } = await request.json();
 
     if (!email || !password) {
-      return withRequestId(apiError("Email and password are required", 400, "VALIDATION_ERROR", undefined, context.requestId), context.requestId);
+      return withRequestId(apiError(englishCopy.emailAndPasswordAreRequired, 400, "VALIDATION_ERROR", undefined, context.requestId), context.requestId);
     }
 
     const user = await prisma.user.findUnique({
@@ -22,7 +23,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!user || !(await compare(password, user.passwordHash))) {
-      return withRequestId(apiError("Invalid credentials", 401, "INVALID_CREDENTIALS", undefined, context.requestId), context.requestId);
+      return withRequestId(apiError(englishCopy.invalidCredentials, 401, "INVALID_CREDENTIALS", undefined, context.requestId), context.requestId);
     }
 
     const tokenPayload = {
@@ -65,6 +66,6 @@ export async function POST(request: NextRequest) {
     }), context.requestId);
   } catch (err) {
     logError("Login failed", err, requestLogContext(context));
-    return withRequestId(serverError("Login failed", context.requestId), context.requestId);
+    return withRequestId(serverError(englishCopy.loginFailed, context.requestId), context.requestId);
   }
 }

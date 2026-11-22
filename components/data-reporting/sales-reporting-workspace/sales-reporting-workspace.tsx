@@ -18,6 +18,8 @@ import { SalesReportDetails } from "../sales-report-details/sales-report-details
 import { salesReportErrorMessage, salesReportReason, salesWorkspaceCopy } from "./sales-report-copy";
 import ReportTable from "../report-table/report-table";
 import { ReportTablePagination, reportPaginationCopy } from "../report-table-pagination/report-table-pagination";
+import { dataReportingSalesReportingWorkspaceMessages as englishCopy } from "@/messages/en.json";
+import { dataReportingSalesReportingWorkspaceMessages as ukrainianCopy } from "@/messages/uk.json";
 
 const control =
   controlBase + " bg-(--surface) py-2 font-sans text-sm touch-manipulation";
@@ -69,12 +71,12 @@ export default function SalesReportingWorkspace() {
     <div className="p-5 md:p-8 min-w-0 space-y-5">
       <header>
         <Heading as="h1" variant="page" className="text-2xl font-semibold tracking-normal">
-          {uk ? "Продажі та маржа SalesDrive" : "SalesDrive sales and margin"}
+          {uk ? ukrainianCopy.salesDriveSalesAndMargin : englishCopy.salesDriveSalesAndMargin}
         </Heading>
         <Text variant="body" className="mt-1 leading-5">
           {uk
-            ? "Продажі за датою оплати, повернення за підтвердженою датою. Валюти показано окремо."
-            : "Sales by payment date and returns by verified return date. Currencies remain separate."}
+            ? ukrainianCopy.salesByPaymentDateAnd
+            : englishCopy.salesByPaymentDateAnd}
         </Text>
       </header>
       <form onSubmit={apply} className="flex flex-wrap items-end gap-3">
@@ -102,12 +104,12 @@ export default function SalesReportingWorkspace() {
           disabled={busy}
           onClick={refresh}
         >
-          {uk ? "Оновити розрахунок" : "Refresh calculation"}
+          {uk ? ukrainianCopy.refreshCalculation : englishCopy.refreshCalculation}
         </Button>
       </form>
       {busy && (
         <p role="status" className="text-sm text-(--muted)">
-          {uk ? "Завантаження…" : "Loading…"}
+          {uk ? ukrainianCopy.loading : englishCopy.loading}
         </p>
       )}
       {error && (
@@ -119,20 +121,20 @@ export default function SalesReportingWorkspace() {
         >
           {salesReportErrorMessage(error, lang)}{" "}
           <Link className="underline" href="/settings">
-            {uk ? "Налаштування" : "Settings"}
+            {uk ? ukrainianCopy.settings : englishCopy.settings}
           </Link>
         </p>
       )}
       {data && !busy && !error && (
         <>
           <p className="text-sm text-(--muted)">
-            {data.period.from} — {data.period.to} · LY {data.period.lyFrom} —{" "}
+            {data.period.from} — {data.period.to}{englishCopy.lY}{data.period.lyFrom} —{" "}
             {data.period.lyTo}
             {(!data.history.current || !data.history.ly) && (
               <span className="block text-(--text) font-medium">
                 {uk
-                  ? "Історія неповна або вхідні дані потребують перевірки. Порівняння LY недоступне."
-                  : "History is incomplete or inputs require review. LY comparison is unavailable."}
+                  ? ukrainianCopy.historyIsIncompleteOrInputs
+                  : englishCopy.historyIsIncompleteOrInputs}
               </span>
             )}
           </p>
@@ -140,7 +142,7 @@ export default function SalesReportingWorkspace() {
             {data.summary.map((row) => <SalesCurrencySummary key={row.currency ?? "unknown"} row={row} uk={uk} />)}
           </div>
           <nav
-            aria-label={uk ? "Фінансові зрізи" : "Financial views"}
+            aria-label={uk ? ukrainianCopy.ariaLabelFinancialViews : englishCopy.ariaLabelFinancialViews}
             className="flex flex-wrap gap-2"
           >
             {Object.entries(copy.views).map(([key, label]) => (
@@ -166,7 +168,7 @@ export default function SalesReportingWorkspace() {
             }}
             className="flex flex-wrap items-end gap-2"
           >
-            <Field label={uk ? "Пошук у зрізі" : "Search this view"} className="flex-1 gap-1 text-sm">
+            <Field label={uk ? ukrainianCopy.labelSearchThisView : englishCopy.labelSearchThisView} className="flex-1 gap-1 text-sm">
               <input
                 name="sales-search"
                 autoComplete="off"
@@ -176,10 +178,10 @@ export default function SalesReportingWorkspace() {
                 onChange={(e) => setQ(e.target.value)}
               />
             </Field>
-            <Button type="submit" className={control}>{uk ? "Знайти" : "Search"}</Button>
+            <Button type="submit" className={control}>{uk ? ukrainianCopy.search : englishCopy.search}</Button>
             {exportHref && (
               <a className={control} href={exportHref}>
-                {uk ? "Експорт CSV" : "Export CSV"}
+                {uk ? ukrainianCopy.exportCSV : englishCopy.exportCSV}
               </a>
             )}
           </form>
@@ -200,8 +202,8 @@ export default function SalesReportingWorkspace() {
           ) : (
             <p className="text-sm text-(--muted)">
               {uk
-                ? "Немає рядків за цими фільтрами."
-                : "No rows match these filters."}
+                ? ukrainianCopy.noRowsMatchTheseFilters
+                : englishCopy.noRowsMatchTheseFilters}
             </p>
           )}
           <ReportTablePagination
@@ -214,12 +216,12 @@ export default function SalesReportingWorkspace() {
           />
           <SalesReportDetails data={data} uk={uk} />
           <Note className="break-all leading-4">
-            {uk ? "Розрахунок" : "Calculation"}: {data.calculationRunId} ·{" "}
-            {uk ? "Версія формул" : "Formula version"} {data.calculationVersion}
+            {uk ? ukrainianCopy.calculation : englishCopy.calculation}: {data.calculationRunId} ·{" "}
+            {uk ? ukrainianCopy.formulaVersion : englishCopy.formulaVersion} {data.calculationVersion}
             .{" "}
             {uk
-              ? "29 лютого → 28 лютого LY. Діапазон історії базується на імпорті за датами створення замовлень, не на підтвердженому бухгалтерському звірянні."
-              : "29 February → 28 February LY. History coverage follows imported order-creation windows, not verified accounting reconciliation."}
+              ? ukrainianCopy["29February28February"]
+              : englishCopy["29February28February"]}
           </Note>
         </>
       )}

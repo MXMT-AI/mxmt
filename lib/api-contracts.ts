@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { formatMessage } from "@/i18n/format-message";
+import { apiContractsMessages as englishApiMessages } from "@/messages/en.json";
 
 export interface ApiErrorBody {
   error: string;
@@ -30,10 +32,10 @@ export function apiError(
 }
 
 export function validationError(details: string[], requestId?: string): NextResponse<ApiErrorBody> {
-  return apiError("Invalid request body", 400, "VALIDATION_ERROR", details, requestId);
+  return apiError(englishApiMessages.invalidRequestBody, 400, "VALIDATION_ERROR", details, requestId);
 }
 
-export function serverError(message = "Internal server error", requestId?: string): NextResponse<ApiErrorBody> {
+export function serverError(message = englishApiMessages.internalServerError, requestId?: string): NextResponse<ApiErrorBody> {
   return apiError(message, 500, "INTERNAL_SERVER_ERROR", undefined, requestId);
 }
 
@@ -55,7 +57,7 @@ export async function parseJsonBody<T = unknown>(
           size += value.byteLength;
           if (size > maxBytes) {
             await reader.cancel();
-            return { data: null, response: apiError("Request body is too large", 413, "BODY_TOO_LARGE", undefined, requestId) };
+            return { data: null, response: apiError(englishApiMessages.requestBodyIsTooLarge, 413, "BODY_TOO_LARGE", undefined, requestId) };
           }
           chunks.push(value);
         }
@@ -69,7 +71,7 @@ export async function parseJsonBody<T = unknown>(
   } catch {
     return {
       data: null,
-      response: apiError("Malformed JSON body", 400, "INVALID_JSON", undefined, requestId),
+      response: apiError(englishApiMessages.malformedJSONBody, 400, "INVALID_JSON", undefined, requestId),
     };
   }
 }
@@ -85,7 +87,7 @@ export async function parseOptionalJsonBody<T = unknown>(
   } catch {
     return {
       data: null,
-      response: apiError("Malformed JSON body", 400, "INVALID_JSON", undefined, requestId),
+      response: apiError(englishApiMessages.malformedJSONBody, 400, "INVALID_JSON", undefined, requestId),
     };
   }
 }
@@ -104,23 +106,23 @@ export function stringField(
   const required = options.required ?? false;
 
   if (raw === undefined || raw === null || raw === "") {
-    if (required) issues.push(`${field} is required`);
+    if (required) issues.push(formatMessage(englishApiMessages.required, { field }));
     return undefined;
   }
 
   if (typeof raw !== "string") {
-    issues.push(`${field} must be a string`);
+    issues.push(formatMessage(englishApiMessages.mustBeString, { field }));
     return undefined;
   }
 
   const trimmed = raw.trim();
   if (!trimmed && required) {
-    issues.push(`${field} is required`);
+    issues.push(formatMessage(englishApiMessages.required, { field }));
     return undefined;
   }
 
   if (options.maxLength && trimmed.length > options.maxLength) {
-    issues.push(`${field} must be at most ${options.maxLength} characters`);
+    issues.push(formatMessage(englishApiMessages.maximumLength, { field, maximum: options.maxLength }));
   }
 
   return trimmed;
@@ -136,22 +138,22 @@ export function numberField(
   const required = options.required ?? false;
 
   if (raw === undefined || raw === null || raw === "") {
-    if (required) issues.push(`${field} is required`);
+    if (required) issues.push(formatMessage(englishApiMessages.required, { field }));
     return undefined;
   }
 
   const parsed = typeof raw === "number" ? raw : Number(raw);
   if (!Number.isFinite(parsed)) {
-    issues.push(`${field} must be a number`);
+    issues.push(formatMessage(englishApiMessages.mustBeNumber, { field }));
     return undefined;
   }
 
   if (options.min !== undefined && parsed < options.min) {
-    issues.push(`${field} must be greater than or equal to ${options.min}`);
+    issues.push(formatMessage(englishApiMessages.minimumValue, { field, minimum: options.min }));
   }
 
   if (options.max !== undefined && parsed > options.max) {
-    issues.push(`${field} must be less than or equal to ${options.max}`);
+    issues.push(formatMessage(englishApiMessages.maximumValue, { field, maximum: options.max }));
   }
 
   return parsed;
@@ -161,13 +163,13 @@ export function optionalDate(value: Record<string, unknown>, field: string, issu
   const raw = value[field];
   if (raw === undefined || raw === null || raw === "") return undefined;
   if (typeof raw !== "string") {
-    issues.push(`${field} must be an ISO date string`);
+    issues.push(formatMessage(englishApiMessages.isoDateString, { field }));
     return undefined;
   }
 
   const date = new Date(raw);
   if (Number.isNaN(date.getTime())) {
-    issues.push(`${field} must be a valid date`);
+    issues.push(formatMessage(englishApiMessages.validDate, { field }));
     return undefined;
   }
 

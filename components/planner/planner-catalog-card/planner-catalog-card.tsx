@@ -6,6 +6,9 @@ import { control } from "@/components/ui/control-styles/control-styles";
 import { cn } from "@/lib/utils";
 import type { CatalogItem } from "../planner-types";
 import { parsePlannerQuantity } from "../planner-quantity";
+import { formatMessage } from "@/i18n/format-message";
+import { plannerPlannerCatalogCardMessages as englishCopy } from "@/messages/en.json";
+import { plannerPlannerCatalogCardMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export function PlannerCatalogCard({ item, addToCart }: {
   item: CatalogItem;
@@ -21,7 +24,7 @@ export function PlannerCatalogCard({ item, addToCart }: {
     if (!input) return;
     const qty = parsePlannerQuantity(input.value, input.validity.badInput, item.minOrder);
     if (qty === null) {
-      input.setCustomValidity("Вкажіть додатну цілу кількість.");
+      input.setCustomValidity(ukrainianCopy.вкажітьДодатнуЦілуКількість);
       input.reportValidity();
       return;
     }
@@ -46,20 +49,18 @@ export function PlannerCatalogCard({ item, addToCart }: {
         </div>
       ) : null}
       <div className="flex items-center gap-2">
-        <span className="text-[10px] text-(--subtle)">{item.stockAvail} avail</span>
+        <span className="text-[10px] text-(--subtle)">{item.stockAvail}{englishCopy.avail}</span>
         <input
           ref={quantity}
           type="number"
-          aria-label={`Кількість для ${item.name} (${item.sku})`}
+          aria-label={formatMessage(ukrainianCopy.ariaLabelКількістьДля, { name: item.name, sku: item.sku })}
           min={1}
           step={1}
           defaultValue={item.minOrder}
           onInput={event => event.currentTarget.setCustomValidity("")}
           className={cn(control, "min-h-0 w-12 bg-white/5 text-xs rounded-sm px-1.5 py-1 text-center")}
         />
-        <Button variant="report" tone="positive" onClick={add} className="min-h-0 flex-1 text-xs font-medium px-0 py-1.5">
-          + Додати
-        </Button>
+        <Button variant="report" tone="positive" onClick={add} className="min-h-0 flex-1 text-xs font-medium px-0 py-1.5">{ukrainianCopy.додати}</Button>
       </div>
     </div>
   );

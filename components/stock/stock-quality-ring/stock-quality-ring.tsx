@@ -10,6 +10,7 @@ import { stockStatusColors, primaryStockStatuses as primary, stockStatusLabel as
 import type { Block, Href } from "../stock-content/stock-content-types";
 import type { StockCopy } from "@/lib/stock-copy";
 import { createTableValueFormatter } from "@/lib/data-reporting-ui";
+import { stockStockQualityRingMessages as englishCopy } from "@/messages/en.json";
 
 const radius = 70;
 const strokeWidth = 18;
@@ -59,7 +60,7 @@ export function StockQualityRing({
   const active = segments.find((segment) => segment.selected && segment.row?.inRing);
   return (
     <div className="space-y-4 p-5">
-      <Heading as="h3" variant="compact" className="text-base text-inherit">K1 · {copy.quality}</Heading>
+      <Heading as="h3" variant="compact" className="text-base text-inherit">{englishCopy.k1}{copy.quality}</Heading>
       <div className="flex flex-col sm:flex-row items-center gap-5">
         <div className="relative w-48 h-48 shrink-0">
           <svg

@@ -5,11 +5,12 @@ import {
   runScheduledDataPipelines,
   scheduledImportDecision,
 } from "@/lib/data-scheduler";
+import { dataSchedulerRouteMessages as englishCopy } from "@/messages/en.json";
 
 export async function handleScheduledDataImport(request: NextRequest) {
   if (!process.env.CRON_SECRET) {
     return NextResponse.json(
-      { ok: false, error: "CRON_SECRET is not configured" },
+      { ok: false, error: englishCopy.errorCRONSECRETIsNotConfigured },
       { status: 503 }
     );
   }
@@ -18,7 +19,7 @@ export async function handleScheduledDataImport(request: NextRequest) {
   }
   try { await purgeExpiredMarketEvidence(); }
   catch {
-    return NextResponse.json({ok:false,error:"Could not enforce market evidence retention"},{status:500,headers:{"Cache-Control":"no-store"}});
+    return NextResponse.json({ok:false,error:englishCopy.errorCouldNotEnforceMarketEvidence},{status:500,headers:{"Cache-Control":"no-store"}});
   }
 
   const decision = scheduledImportDecision();
@@ -40,7 +41,7 @@ export async function handleScheduledDataImport(request: NextRequest) {
   } catch (error) {
     console.error("[cron/data-import] Could not start scheduled pipelines", error);
     return NextResponse.json(
-      { ok: false, error: "Could not load configured data sources", schedule: decision },
+      { ok: false, error: englishCopy.errorCouldNotLoadConfiguredData, schedule: decision },
       { status: 500, headers: { "Cache-Control": "no-store" } }
     );
   }

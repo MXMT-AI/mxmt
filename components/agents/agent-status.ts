@@ -1,11 +1,12 @@
 import { AlertTriangle, CheckCircle2, Clock, RefreshCw, type LucideIcon } from "lucide-react";
 import type { AgentRunInfo, AgentStatus } from "./agents.types";
+import { agentsAgentStatusMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export const agentStatusPresentation = {
-  idle: { Icon: Clock, label: "очікування", color: "text-(--subtle)" },
-  running: { Icon: RefreshCw, label: "працює", color: "text-accent-yellow" },
-  done: { Icon: CheckCircle2, label: "готово", color: "text-accent-cyan" },
-  error: { Icon: AlertTriangle, label: "помилка", color: "text-accent-danger" },
+  idle: { Icon: Clock, label: ukrainianCopy.labelОчікування, color: "text-(--subtle)" },
+  running: { Icon: RefreshCw, label: ukrainianCopy.labelПрацює, color: "text-accent-yellow" },
+  done: { Icon: CheckCircle2, label: ukrainianCopy.labelГотово, color: "text-accent-cyan" },
+  error: { Icon: AlertTriangle, label: ukrainianCopy.labelПомилка, color: "text-accent-danger" },
 } satisfies Record<AgentStatus, { Icon: LucideIcon; label: string; color: string }>;
 
 export function getAgentRunState(run?: Pick<AgentRunInfo, "isCurrent" | "status">) {

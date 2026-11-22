@@ -1,4 +1,6 @@
 import type { BrandMetric } from "@/lib/brand-metrics";
+import { formatMessage } from "@/i18n/format-message";
+import { inventoryAnalysisMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export type InventoryBrandStatus = "critical" | "warning" | "balanced" | "excellent";
 
@@ -60,12 +62,12 @@ function deterministicEvaluation(metric: BrandMetric) {
 
 function fallbackAnalysis(metric: BrandMetric): string {
   if (metric.totalStock <= 0 && metric.salesLast30d > 0) {
-    return "Запас вичерпано, хоча у вибраному періоді були продажі. Потрібно перевірити можливість поповнення.";
+    return ukrainianCopy.запасВичерпаноХочаУВибраному;
   }
   if (metric.totalStock > 0 && metric.avgDailyVelocity <= 0) {
-    return "Немає продажів за вибраний період, але на складі залишається товар. Потрібне рішення щодо активації або уцінки.";
+    return ukrainianCopy.немаєПродажівЗаВибранийПеріод;
   }
-  return `WOH: ${metric.wohDays} дн., STR: ${metric.strPercent}%, тренд: ${metric.trend7dPct}%.`;
+  return formatMessage(ukrainianCopy.wOHДнSTRТренд, { wohDays: metric.wohDays, strPercent: metric.strPercent, trend7dPct: metric.trend7dPct });
 }
 
 export function selectInventoryAiCandidates(metrics: BrandMetric[], limit = 20): BrandMetric[] {

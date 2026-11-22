@@ -1,3 +1,6 @@
+import { formatMessage } from "@/i18n/format-message";
+import { agentOutputMessages as englishCopy } from "@/messages/en.json";
+
 type JsonKind = "object" | "array";
 
 export interface AgentJsonParseResult<T> {
@@ -23,7 +26,7 @@ function extractJson(raw: string, kind: JsonKind): string | null {
 export function parseAgentJson<T>(raw: string, kind: JsonKind): AgentJsonParseResult<T> {
   const json = extractJson(raw, kind);
   if (!json) {
-    return { data: null, error: `No ${kind} JSON found in AI response` };
+    return { data: null, error: formatMessage(englishCopy.errorNoJSONFoundInAI, { kind }) };
   }
 
   try {

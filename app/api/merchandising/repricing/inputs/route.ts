@@ -5,6 +5,7 @@ import { createRepricingInputs } from "@/lib/repricing-store";
 import { repricingApiError } from "@/lib/repricing-api-error";
 import { configuredReportStorage } from "@/lib/merchandising-publication-storage";
 import { readPublishedRepricingInputs } from "@/lib/merchandising-publication";
+import { apiMerchandisingRepricingInputsRouteMessages as englishCopy } from "@/messages/en.json";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -25,7 +26,7 @@ export async function POST(request: NextRequest) {
     data.snapshotId.length > 200
   )
     return apiError(
-      "Invalid screen snapshot identifier",
+      englishCopy.invalidScreenSnapshotIdentifier,
       400,
       "INVALID_REPRICING_INPUT_REQUEST",
     );

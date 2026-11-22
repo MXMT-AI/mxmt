@@ -1,11 +1,13 @@
 import type { PromoSimulation } from "@/lib/promo-calc";
 import type { SheetCell } from "@/lib/xlsx-workbook";
+import { formatMessage } from "@/i18n/format-message";
+import { promoSheetMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export const PROMO_SHEET_HEADERS = [
-  "SKU", "Назва", "Категорія", "Залишок, шт", "Ціна, грн", "Закупка, грн",
-  "Ціна зі знижкою", "Маржа до, %", "Маржа після, %", "Швидкість, шт/д",
-  "Без акції, шт", "Прогноз акції, шт", "Виручка акції, грн", "Маржа акції, грн",
-  "Звільнений капітал, грн", "Залишок після, шт", "WOH після, дн",
+  "SKU", ukrainianCopy.pROMOSHEETHEADERSНазва, ukrainianCopy.pROMOSHEETHEADERSКатегорія, ukrainianCopy.pROMOSHEETHEADERSЗалишокШт, ukrainianCopy.pROMOSHEETHEADERSЦінаГрн, ukrainianCopy.pROMOSHEETHEADERSЗакупкаГрн,
+  ukrainianCopy.pROMOSHEETHEADERSЦінаЗіЗнижкою, ukrainianCopy.pROMOSHEETHEADERSМаржаДо, ukrainianCopy.pROMOSHEETHEADERSМаржаПісля, ukrainianCopy.pROMOSHEETHEADERSШвидкістьШтД,
+  ukrainianCopy.pROMOSHEETHEADERSБезАкціїШт, ukrainianCopy.pROMOSHEETHEADERSПрогнозАкціїШт, ukrainianCopy.pROMOSHEETHEADERSВиручкаАкціїГрн, ukrainianCopy.pROMOSHEETHEADERSМаржаАкціїГрн,
+  ukrainianCopy.pROMOSHEETHEADERSЗвільненийКапіталГрн, ukrainianCopy.pROMOSHEETHEADERSЗалишокПісляШт, ukrainianCopy.pROMOSHEETHEADERSWOHПісляДн,
 ];
 
 const HEADER_ROW = 5;
@@ -16,17 +18,17 @@ export function buildPromoSheetValues(
 ): SheetCell[][] {
   const { formulas } = opts;
   const periodNote =
-    `${sim.periodDays} дн.` +
-    (sim.dateFrom ? ` (${sim.dateFrom} — ${sim.asOf ?? "сьогодні"})` : "");
+    formatMessage(ukrainianCopy.periodNoteДн, { periodDays: sim.periodDays }) +
+    (sim.dateFrom ? ` (${sim.dateFrom} — ${sim.asOf ?? ukrainianCopy.periodNoteСьогодні})` : "");
   const modelNote =
     sim.forecastModel === "ai_percent"
-      ? `${sim.unitsToSellPercent}% залишку (прогноз AI)`
-      : "еластичність ×2 від базової швидкості";
+      ? formatMessage(ukrainianCopy.modelNoteЗалишкуПрогнозAI, { unitsToSellPercent: sim.unitsToSellPercent })
+      : ukrainianCopy.modelNoteЕластичність2ВідБазовоїШвидкості;
 
   const values: SheetCell[][] = [
-    ["Акція", opts.title, "", "Бренд", sim.brandName],
-    ["Знижка, %", sim.discountPercent, "", "Тривалість, дн", sim.durationDays],
-    ["Модель прогнозу", modelNote, "", "Період даних", periodNote],
+    [ukrainianCopy.valuesАкція, opts.title, "", ukrainianCopy.valuesБренд, sim.brandName],
+    [ukrainianCopy.valuesЗнижка, sim.discountPercent, "", ukrainianCopy.valuesТривалістьДн, sim.durationDays],
+    [ukrainianCopy.valuesМодельПрогнозу, modelNote, "", ukrainianCopy.valuesПеріодДаних, periodNote],
     [],
     [...PROMO_SHEET_HEADERS],
   ];
@@ -64,8 +66,8 @@ export function buildPromoSheetValues(
 
   values.push(
     formulas && sim.rows.length > 0
-      ? ["РАЗОМ", "", "", sum("D"), "", "", "", "", "", "", sum("K"), sum("L"), sum("M"), sum("N"), sum("O"), sum("P"), ""]
-      : ["РАЗОМ", "", "", t.stock, "", "", "", "", "", "", t.baselineUnits, t.promoUnits, t.promoRevenue, t.promoMarginUah, t.capitalReleased, t.stockAfter, ""]
+      ? [ukrainianCopy.рАЗОМ, "", "", sum("D"), "", "", "", "", "", "", sum("K"), sum("L"), sum("M"), sum("N"), sum("O"), sum("P"), ""]
+      : [ukrainianCopy.рАЗОМ, "", "", t.stock, "", "", "", "", "", "", t.baselineUnits, t.promoUnits, t.promoRevenue, t.promoMarginUah, t.capitalReleased, t.stockAfter, ""]
   );
 
   return values;

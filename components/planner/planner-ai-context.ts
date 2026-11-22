@@ -1,4 +1,5 @@
 import type { BrandBudgetStatus, CartItem } from "./planner-types";
+import { plannerPlannerAiContextMessages as englishCopy } from "@/messages/en.json";
 
 export interface PlannerAiContext {
   brandCount: number;
@@ -16,7 +17,7 @@ export function buildPlannerAiContext({ brandCount, itemCount, cart, budgetStatu
     .join("\n");
   const cartSummary = cart.length
     ? cart.map((c) => `${c.brandName} — ${c.name} (${c.sku}) x${c.qty} @ ${c.currency}${c.price}`).join("\n")
-    : "Cart is empty";
+    : englishCopy.cartSummaryCartIsEmpty;
 
   const systemPrompt = `You are an AI assistant for a multi-brand fashion buyer.
 

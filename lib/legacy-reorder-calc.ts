@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { brandValueFromAgentId, getActiveAgentImportRunId } from "@/lib/agent-data-source";
-
+import { legacyReorderCalcMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export const REORDER_COVER_DAYS = 45;
 
@@ -55,9 +55,9 @@ export async function simulateReorder(input: ReorderSimulationInput): Promise<Re
   const periodDays = Math.max(1, Math.round((now.getTime() - windowStart.getTime()) / 86400000));
 
   const importRunId = await getActiveAgentImportRunId(tenantId);
-  if (!importRunId) throw new Error("Немає активного успішного імпорту в новій базі");
+  if (!importRunId) throw new Error(ukrainianCopy.errorНемаєАктивногоУспішногоІмпортуВ);
   const brand = brandValueFromAgentId(brandId);
-  const brandName = brand ?? "Без бренда";
+  const brandName = brand ?? ukrainianCopy.brandNameБезБренда;
   const leadTimeDays: number | null = null;
 
   const [products, sales] = await Promise.all([

@@ -13,6 +13,8 @@ import { aiTransaction, executionByKey } from "./ai-execution/budget";
 import { resolveAiEvidence, type AiEvidence } from "./ai-execution/context";
 import { AiExecutionError, aiExecutionFailure, identifier, type AiPrincipal } from "./ai-execution/contracts";
 import { executeAiCapability, type AiAttemptTransport, type AiExecutionResult } from "./ai-execution/execute";
+import { formatMessage } from "@/i18n/format-message";
+import { marketingBriefsMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export const MARKETING_BRIEF_CAPABILITY = {
   id:"marketing_briefs",version:"1",promptVersion:"1",outputFormat:"marketing-briefs-v1" as const,
@@ -36,7 +38,7 @@ async function current(p:AiPrincipal,request:MarketingBriefRequest,tx:SqlClient)
   return {evidence,brand};
 }
 function factualDraft(request:MarketingBriefRequest,evidence:AiEvidence,brand:{id:string;name:string},id:string,generated?:AiExecutionResult<"marketing-briefs-v1">,reason?:string):MarketingDraft {
-  const decision:CommercialDecision={brand_id:brand.id,brand_name:brand.name,type:request.kind==="reorder"?"reorder":"visibility",action:request.kind==="reorder"?"REORDER":"VISIBILITY",label:request.kind==="reorder"?"Підготовка до можливого поповнення":"Підготовка маркетингової пропозиції"};
+  const decision:CommercialDecision={brand_id:brand.id,brand_name:brand.name,type:request.kind==="reorder"?"reorder":"visibility",action:request.kind==="reorder"?"REORDER":"VISIBILITY",label:request.kind==="reorder"?ukrainianCopy.labelПідготовкаДоМожливогоПоповнення:ukrainianCopy.labelПідготовкаМаркетинговоїПропозиції};
   const fallback=buildCommercialFallback(decision,request.campaign.from);
   const rows=evidence.facts.scenario!.offerRows!,stockKey=request.kind==="reprice"?"quantity":"stock";
   const constraints=["DRAFT_REQUIRES_PM_APPROVAL","OFFER_NOT_APPROVED","AI_COPY_REQUIRES_HUMAN_REVIEW",request.budget?"BUDGET_REQUIRES_PM_APPROVAL":"BUDGET_NOT_APPROVED",...(request.kind==="reorder"?["REORDER_IS_NOT_RECEIVED_STOCK"]:[]),
@@ -49,8 +51,8 @@ function factualDraft(request:MarketingBriefRequest,evidence:AiEvidence,brand:{i
       const copy=generated?.generated.drafts[channel];
       const base=channel==="paid_social"?fallback.channels.ads:channel==="smm"?fallback.channels.smm:null;
       return {channel,mode:copy?"generated":"factual_fallback",...(copy?{}:{reason:reason??"AI_INVALID_CHANNEL_OUTPUT"}),
-        objective:copy?.objective??"Підготувати матеріали для погодження.",message:copy?.message??(base?String(base.brief):`Підготувати банер і структуру посадкової сторінки для ${brand.name}; публікація після погодження.`),
-        cta:copy?.cta??"Переглянути добірку",assets:copy?.assets??[channel==="website"?"Макет банера та структура посадкової сторінки":"Добірка фотографій товарів і макет повідомлення"],
+        objective:copy?.objective??ukrainianCopy.objectiveПідготуватиМатеріалиДляПогодження,message:copy?.message??(base?String(base.brief):formatMessage(ukrainianCopy.messageПідготуватиБанерІСтруктуруПосадкової, { name: brand.name })),
+        cta:copy?.cta??ukrainianCopy.ctaПереглянутиДобірку,assets:copy?.assets??[channel==="website"?ukrainianCopy.assetsМакетБанераТаСтруктураПосадкової:ukrainianCopy.assetsДобіркаФотографійТоварівІМакет],
         evidenceRefs:copy?.evidenceRefs??["/scenario/receipt/previewId"],audience:request.audience,brandVoice:request.brandVoice,timing:request.campaign};
     })};
 }
@@ -127,7 +129,7 @@ export async function approveMarketingBrief(p:AiPrincipal,value:unknown,db:SqlDa
     const week=Math.ceil((((date.getTime()-Date.UTC(date.getUTCFullYear(),0,1))/86400000)+1)/7);
     const channels=draft.request.channels.map(c=>channelMap[c]);
     const events=buildRecommendationCalendarEvents({recommendation:{recommendation_id:draftId,brand_id:draft.brand.id,brand_name:draft.brand.name,
-      decision_summary:`Підготувати погоджені матеріали (${draft.request.campaign.from}–${draft.request.campaign.to})`,channels,status:"draft"},weekKey:`w${week}`,selectedChannels:channels});
+      decision_summary:formatMessage(ukrainianCopy.decisionSummaryПідготуватиПогодженіМатеріали, { from: draft.request.campaign.from, to: draft.request.campaign.to }),channels,status:"draft"},weekKey:`w${week}`,selectedChannels:channels});
     let created=0;
     for(const event of events)created+=await tx.$executeRaw(Prisma.sql`INSERT INTO "MarketingEvent" (id,"tenantId","weekKey","rowKey",type,label,source,"sourceAgentRunId","recommendationKey","brandId",channel,"approvedAt","approvedBy")
       VALUES (${randomUUID()},${p.tenantId},${event.weekKey},${event.rowKey},${event.type},${event.label},'agent',${draft.runId},${`marketing:${draftId}`},${draft.brand.id},${event.channel},${now},${p.userId})

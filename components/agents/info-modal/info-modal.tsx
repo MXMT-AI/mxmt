@@ -3,38 +3,40 @@ import { Badge } from "@/components/ui/badge/badge";
 import { Dialog } from "@/components/ui/dialog/dialog";
 import { Heading } from "@/components/ui/heading/heading";
 import { cn } from "@/lib/utils";
+import { agentsInfoModalMessages as englishCopy } from "@/messages/en.json";
+import { agentsInfoModalMessages as ukrainianCopy } from "@/messages/uk.json";
 
 const dateWindows = [
-  ["d7", "= сьогодні − 7 днів → продажі за тиждень"],
-  ["d14", "= сьогодні − 14 днів → попередній тиждень (для тренду)"],
-  ["d30", "= сьогодні − 30 днів → місячна швидкість продажів"],
+  ["d7", ukrainianCopy.dateWindowsСьогодні7Днів],
+  ["d14", ukrainianCopy.dateWindowsСьогодні14Днів],
+  ["d30", ukrainianCopy.dateWindowsСьогодні30Днів],
 ] as const;
 
 const periodFormulas = [
-  ["Швидкість", "= продажі за період ÷ днів у періоді (замість ÷30)"],
-  ["WOH", "= залишок ÷ швидкість за період"],
-  ["Тренд", "= друга половина періоду vs перша половина"],
-  ["STR", "= продажі за останні 7 днів періоду ÷ залишок"],
+  [ukrainianCopy.periodFormulasШвидкість, ukrainianCopy.periodFormulasПродажіЗаПеріод],
+  ["WOH", ukrainianCopy.periodFormulasЗалишокШвидкістьЗа],
+  [ukrainianCopy.periodFormulasТренд, ukrainianCopy.periodFormulasДругаПоловинаПеріодуVs],
+  ["STR", ukrainianCopy.periodFormulasПродажіЗаОстанні7],
 ] as const;
 
 const historicalCaveats = [
   {
     tone: "positive",
-    label: "БЛОК 1–2",
-    agents: "Inventory, Channel, Attributes, Repricing, Reordering",
-    description: <>Продажі — точні (беруться з реальних записів). Залишки на складі — <strong>ближній знімок до обраної дати</strong>. Якщо щоденні знімки не зберігались — будуть використані поточні залишки.</>,
+    label: ukrainianCopy.labelБЛОК12,
+    agents: englishCopy.agentsInventoryChannelAttributesRepricingReordering,
+    description: <>{ukrainianCopy.descriptionПродажіТочніБерутьсяЗ}<strong>{ukrainianCopy.descriptionБлижнійЗнімокДоОбраноїДати}</strong>{ukrainianCopy.descriptionЯкщоЩоденніЗнімкиНе}</>,
   },
   {
     tone: "warning",
-    label: "БЛОК 3",
-    agents: "Commercial Marketer, Calendar Agent",
-    description: <>Ці агенти генерують рекомендації <strong>на майбутнє</strong>: "запусти email сьогодні", "заплануй на наступний тиждень". При аналізі минулої дати рекомендації будуть датовані тим часом — <strong>не actionable</strong>, але корисні для ретроспективи.</>,
+    label: ukrainianCopy.labelБЛОК3,
+    agents: englishCopy.agentsCommercialMarketerCalendarAgent,
+    description: <>{ukrainianCopy.descriptionЦіАгентиГенеруютьРекомендації}<strong>{ukrainianCopy.descriptionНаМайбутнє}</strong>{ukrainianCopy.descriptionЗапустиEmailСьогодніЗаплануй}<strong>{ukrainianCopy.descriptionНеActionable}</strong>{ukrainianCopy.descriptionАлеКорисніДляРетроспективи}</>,
   },
   {
     tone: "report",
-    label: "БЛОК 4",
-    agents: "Campaign Analysis, Weekly Report",
-    description: <>Читають збережені результати попередніх агентів з бази. Обрана дата <strong>майже не впливає</strong> на їх вивід — вони завжди аналізують останні збережені дані.</>,
+    label: ukrainianCopy.labelБЛОК4,
+    agents: englishCopy.agentsCampaignAnalysisWeeklyReport,
+    description: <>{ukrainianCopy.descriptionЧитаютьЗбереженіРезультатиПопередніхАгентів}<strong>{ukrainianCopy.descriptionМайжеНеВпливає}</strong>{ukrainianCopy.descriptionНаЇхВивідВони}</>,
   },
 ] as const;
 
@@ -62,49 +64,39 @@ export function InfoModal({ onClose }: { onClose: () => void }) {
         <span className="flex items-center gap-3">
           <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-accent-cyan/10 text-accent-cyan">
             <Info size={14} aria-hidden="true" />
-          </span>
-          Як працює аналіз даних
-        </span>
+          </span>{ukrainianCopy.titleЯкПрацюєАналізДаних}</span>
       }
-      closeLabel="Закрити інформацію"
+      closeLabel={ukrainianCopy.closeLabelЗакритиІнформацію}
       onClose={onClose}
       className="max-h-[88vh]"
     >
       <div className="px-6 py-5 space-y-5 text-[12px] text-(--muted) leading-relaxed">
         <div className="bg-accent-cyan/5 border border-accent-cyan/20 rounded-xl p-4">
-          <Heading as="h3" variant="eyebrow" className="mb-2 text-accent-cyan">Захист від старих даних</Heading>
-          <p className="text-(--text) mb-2">
-            Агенти <strong>автоматично ігнорують старі дані</strong> — наприклад, дані минулого року або минулого сезону.
-          </p>
-          <p>
-            Кожен агент при запуску обраховує вікна відносно поточного дня:
-          </p>
+          <Heading as="h3" variant="eyebrow" className="mb-2 text-accent-cyan">{ukrainianCopy.захистВідСтарихДаних}</Heading>
+          <p className="text-(--text) mb-2">{ukrainianCopy.агенти}<strong>{ukrainianCopy.автоматичноІгноруютьСтаріДані}</strong>{ukrainianCopy.наприкладДаніМинулогоРоку}</p>
+          <p>{ukrainianCopy.коженАгентПриЗапускуОбраховує}</p>
           <FormulaList entries={dateWindows} className="mt-2" termClassName="text-accent-cyan" />
-          <p className="mt-2">
-            Навіть якщо в базі є записи за попередні роки — агент їх <strong>не бачить</strong>, бо фільтр <span className="font-mono bg-(--input-bg) px-1 rounded-sm">date ≥ d30</span> відсікає все старіше 30 днів. Це стандартна поведінка, коли поле «від» не заповнене.
-          </p>
+          <p className="mt-2">{ukrainianCopy.навітьЯкщоВБазіЄ}<strong>{ukrainianCopy.неБачить}</strong>{ukrainianCopy.боФільтр}<span className="font-mono bg-(--input-bg) px-1 rounded-sm">{englishCopy.dateD30}</span>{ukrainianCopy.відсікаєВсеСтаріше30Днів}</p>
         </div>
 
         <div className="bg-(--surface2) border border-(--border) rounded-xl p-4">
-          <Heading as="h3" variant="eyebrow" className="mb-2">Період даних «від — до» (поля вище)</Heading>
+          <Heading as="h3" variant="eyebrow" className="mb-2">{ukrainianCopy.періодДанихВідДо}</Heading>
           <p className="mb-2">
-            <strong>«До» (дата аналізу)</strong> — агент запускається <strong>ніби зараз — ця дата</strong>. Наприклад, якщо обрати 1 травня — агент вважатиме що "сьогодні" 1 травня і порахує всі вікна відносно неї.
-          </p>
+            <strong>{ukrainianCopy.доДатаАналізу}</strong>{ukrainianCopy.агентЗапускається}<strong>{ukrainianCopy.нібиЗаразЦяДата}</strong>{ukrainianCopy.наприкладЯкщоОбрати1}</p>
           <p className="mb-2">
-            <strong>«Від» (початок вікна)</strong> — необовʼязкове. Якщо заповнене, агенти беруть дані <strong>тільки в межах періоду «від — до»</strong>, і розрахунок змінюється:
-          </p>
+            <strong>{ukrainianCopy.відПочатокВікна}</strong>{ukrainianCopy.необовʼязковеЯкщоЗаповненеАгенти}<strong>{ukrainianCopy.тількиВМежахПеріодуВід}</strong>{ukrainianCopy.іРозрахунокЗмінюється}</p>
           <FormulaList entries={periodFormulas} className="mb-2" termClassName="text-accent-purple" />
-          <p>Корисно для:</p>
+          <p>{ukrainianCopy.корисноДля}</p>
           <ul className="mt-1 space-y-1 list-none pl-0">
-            <li className="flex gap-2"><span className="text-accent-cyan">→</span>Аналізу конкретного сезону: "тільки дані з 1 вересня" (старий сезон не змішується)</li>
-            <li className="flex gap-2"><span className="text-accent-cyan">→</span>Ретроспективи: "який стан був 2 тижні тому?"</li>
-            <li className="flex gap-2"><span className="text-accent-cyan">→</span>Перевірки: "чи правильно агент оцінив би ситуацію тоді?"</li>
+            <li className="flex gap-2"><span className="text-accent-cyan">→</span>{ukrainianCopy.аналізуКонкретногоСезонуТількиДані}</li>
+            <li className="flex gap-2"><span className="text-accent-cyan">→</span>{ukrainianCopy.ретроспективиЯкийСтанБув2}</li>
+            <li className="flex gap-2"><span className="text-accent-cyan">→</span>{ukrainianCopy.перевіркиЧиПравильноАгентОцінив}</li>
           </ul>
         </div>
 
         <div className="border border-(--border) rounded-xl overflow-hidden">
           <div className="px-4 py-3 bg-(--surface2) border-b border-(--border)">
-            <Heading as="h3" variant="eyebrow" className="mb-0">Застереження при аналізі минулих дат</Heading>
+            <Heading as="h3" variant="eyebrow" className="mb-0">{ukrainianCopy.застереженняПриАналізіМинулихДат}</Heading>
           </div>
           <div className="divide-y divide-(--border)">
             {historicalCaveats.map(({ tone, label, agents, description }) => (
@@ -120,12 +112,12 @@ export function InfoModal({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="bg-accent-purple/5 border border-accent-purple/20 rounded-xl p-4">
-          <Heading as="h3" variant="eyebrow" className="mb-2 text-accent-purple">Нюанси власного періоду «від»</Heading>
+          <Heading as="h3" variant="eyebrow" className="mb-2 text-accent-purple">{ukrainianCopy.нюансиВласногоПеріодуВід}</Heading>
           <ul className="space-y-1.5 list-none pl-0">
-            <li className="flex gap-2"><span className="text-accent-purple">·</span>Залишки на складі завжди беруться на дату <strong>«до»</strong> (найближчий знімок) — поле «від» на них не впливає.</li>
-            <li className="flex gap-2"><span className="text-accent-purple">·</span>Дуже короткий період (менше 7 днів) робить тренд і STR нестабільними — половини періоду занадто малі.</li>
-            <li className="flex gap-2"><span className="text-accent-purple">·</span>Дуже довгий період (90+ днів) усереднює швидкість продажів — WOH може виглядати краще/гірше за реальний поточний темп.</li>
-            <li className="flex gap-2"><span className="text-accent-purple">·</span>Обраний період зберігається в кожному запуску агента — його видно у вікні «Трасування» (поля asOf і dateFrom).</li>
+            <li className="flex gap-2"><span className="text-accent-purple">·</span>{ukrainianCopy.залишкиНаСкладіЗавждиБеруться}<strong>{ukrainianCopy.до}</strong>{ukrainianCopy.найближчийЗнімокПолеВід}</li>
+            <li className="flex gap-2"><span className="text-accent-purple">·</span>{ukrainianCopy.дужеКороткийПеріодМенше7}</li>
+            <li className="flex gap-2"><span className="text-accent-purple">·</span>{ukrainianCopy.дужеДовгийПеріод90Днів}</li>
+            <li className="flex gap-2"><span className="text-accent-purple">·</span>{ukrainianCopy.обранийПеріодЗберігаєтьсяВКожному}</li>
           </ul>
         </div>
       </div>

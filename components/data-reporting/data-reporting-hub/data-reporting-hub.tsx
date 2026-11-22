@@ -5,6 +5,8 @@ import { useSearchParams } from "next/navigation";
 import { useLang } from "@/components/language-provider/language-provider";
 import { Button } from "@/components/ui/button/button";
 import type { DataTableKey, InitialTablePreference } from "@/lib/data-table-preferences";
+import { dataReportingDataReportingHubMessages as englishCopy } from "@/messages/en.json";
+import { dataReportingDataReportingHubMessages as ukrainianCopy } from "@/messages/uk.json";
 const DataReportingWorkspace = dynamic(
   () => import("../data-reporting-workspace/data-reporting-workspace"),
 );
@@ -25,12 +27,12 @@ export default function DataReportingHub(props: {
   return (
     <>
       <nav
-        aria-label={lang === "uk" ? "Перегляд даних" : "Data view"}
+        aria-label={lang === "uk" ? ukrainianCopy.ariaLabelDataView : englishCopy.ariaLabelDataView}
         className="px-5 md:px-8 pt-5 flex flex-wrap gap-2"
       >
         {[
-          { value: false, label: "Google Sheets" },
-          { value: true, label: "SalesDrive" },
+          { value: false, label: englishCopy.labelGoogleSheets },
+          { value: true, label: englishCopy.labelSalesDrive },
         ].map((item) => (
           <Button
             key={item.label}

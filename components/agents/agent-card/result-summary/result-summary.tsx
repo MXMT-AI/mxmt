@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
+import { agentsAgentCardResultSummaryMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export function ResultSummary({
   expanded,
   onToggle,
-  label = "Детально ↓",
+  label = ukrainianCopy.labelДетально,
   children,
 }: {
   expanded: boolean;
@@ -20,7 +21,7 @@ export function ResultSummary({
         aria-expanded={expanded}
         className="ml-auto text-[10px] font-mono text-(--muted) hover:text-(--text)"
       >
-        {expanded ? "Згорнути ↑" : label}
+        {expanded ? ukrainianCopy.згорнути : label}
       </button>
     </div>
   );

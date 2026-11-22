@@ -17,6 +17,8 @@ import DataQualitySummary from "../data-quality-summary/data-quality-summary";
 import ImportIssueList from "../import-issue-list/import-issue-list";
 import { useQualitySelection } from "./use-quality-selection";
 import { useDataQuality } from "./use-data-quality";
+import { settingsDataQualityCardMessages as englishCopy } from "@/messages/en.json";
+import { settingsDataQualityCardMessages as ukrainianCopy } from "@/messages/uk.json";
 export default function DataQualityCard({
   lang,
   canManage,
@@ -69,12 +71,12 @@ export default function DataQualityCard({
       aria-busy={busy || loading}
     >
       <Heading as="h2" variant="compact" id="data-quality-title" className="text-base">
-        {uk ? "Якість даних" : "Data quality"}
+        {uk ? ukrainianCopy.dataQuality : englishCopy.dataQuality}
       </Heading>
       <Text variant="body" className="mt-1 leading-normal text-(--muted)">
         {uk
-          ? "Проблеми поточного каталогу з прив’язкою до товарів. Послуги й сертифікати не входять у товарний сток або класифікацію."
-          : "Current catalog exceptions linked to products. Services and gift cards are excluded from merchandise stock and classification."}
+          ? ukrainianCopy.currentCatalogExceptionsLinkedTo
+          : englishCopy.currentCatalogExceptionsLinkedTo}
       </Text>
       {error && (
         <Text
@@ -89,7 +91,7 @@ export default function DataQualityCard({
       )}
       <Text variant="body" role="status" className="mt-3 leading-normal text-(--muted)">
         {message ||
-          (loading || !data ? (uk ? "Завантаження…" : "Loading…") : "")}
+          (loading || !data ? (uk ? ukrainianCopy.loading : englishCopy.loading) : "")}
       </Text>
       <Button
         variant="report"
@@ -100,13 +102,13 @@ export default function DataQualityCard({
           load().catch(() =>
             setError(
               uk
-                ? "Не вдалося оновити дані. Спробуйте ще раз."
-                : "Could not refresh data. Try again.",
+                ? ukrainianCopy.couldNotRefreshDataTry
+                : englishCopy.couldNotRefreshDataTry,
             ),
           );
         }}
       >
-        {uk ? "Оновити діагностику" : "Refresh diagnostics"}
+        {uk ? ukrainianCopy.refreshDiagnostics : englishCopy.refreshDiagnostics}
       </Button>
       {data && (
         <>
@@ -126,17 +128,17 @@ export default function DataQualityCard({
             .map((row) => (
               <Text
                 variant="body"
-                key={row.currency ?? "unknown"}
+                key={row.currency ?? englishCopy.keyUnknown}
                 className="mt-3 leading-normal text-(--text)"
               >
                 {uk
-                  ? "Без бренду · товарний залишок"
-                  : "Unbranded · merchandise stock"}
+                  ? ukrainianCopy.unbrandedMerchandiseStock
+                  : englishCopy.unbrandedMerchandiseStock}
                 :{" "}
                 {row.quantity === null
                   ? uk
-                    ? "невідомо"
-                    : "unknown"
+                    ? ukrainianCopy.unknown
+                    : englishCopy.unknown
                   : Number(row.quantity).toLocaleString(locale)}{" "}
                 · {qualityAmountLabel(row.costValue, row.currency, lang)}
               </Text>

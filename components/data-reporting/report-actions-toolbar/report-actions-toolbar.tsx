@@ -5,6 +5,8 @@ import { rawImportIsLive } from "@/lib/data-import-policy";
 import { cn } from "@/lib/utils";
 import type { ReportAction } from "../use-report-actions/use-report-actions";
 import type { DataStatus } from "../use-report-status/use-report-status";
+import { dataReportingReportActionsToolbarMessages as englishCopy } from "@/messages/en.json";
+import { dataReportingReportActionsToolbarMessages as ukrainianCopy } from "@/messages/uk.json";
 
 const buttonClassName = "gap-2 px-3 py-2 font-sans text-sm";
 const surfaceClassName = "bg-(--surface) hover:bg-(--input-hover)";
@@ -26,7 +28,7 @@ export function ReportActionsToolbar({ lang, copy, loading, action, status, canC
     <div className="flex flex-wrap items-center gap-2">
       <Button onClick={onRefresh} disabled={loading} className={cn(buttonClassName, surfaceClassName)}>
         <RefreshCw size={14} className={loading ? "motion-safe:animate-spin" : undefined} aria-hidden="true" />
-        {lang === "uk" ? "Оновити перегляд" : "Refresh view"}
+        {lang === "uk" ? ukrainianCopy.refreshView : englishCopy.refreshView}
       </Button>
       {canCalculate && (
         <Button onClick={() => onAction("calculate")} disabled={action !== null || !status?.activeImport}
@@ -40,7 +42,7 @@ export function ReportActionsToolbar({ lang, copy, loading, action, status, canC
           <Button onClick={() => onAction("projection")} disabled={action !== null || !canRefreshReports}
             className={cn(buttonClassName, "text-(--text) focus-visible:outline-solid focus-visible:outline-2")}>
             {action === "projection" ? spinner : <RefreshCw size={14} aria-hidden="true" />}
-            {lang === "uk" ? "Оновити MVP-звіти" : "Refresh MVP reports"}
+            {lang === "uk" ? ukrainianCopy.refreshMVPReports : englishCopy.refreshMVPReports}
           </Button>
           <Button onClick={() => onAction("import")} disabled={action !== null || !status?.connection || rawImportIsLive(status?.latestImport ?? null)}
             variant="accent" className={cn(buttonClassName, "inline-flex items-center")}>

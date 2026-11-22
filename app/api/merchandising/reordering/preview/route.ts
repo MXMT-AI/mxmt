@@ -7,6 +7,7 @@ import { merchandisingApiError } from "@/lib/merchandising-api-error";
 import { configuredReportStorage } from "@/lib/merchandising-publication-storage";
 import { readPublishedReorderingPreview } from "@/lib/merchandising-publication";
 import { parseReorderingRequest } from "@/lib/reorder-calc";
+import { apiMerchandisingReorderingPreviewRouteMessages as englishCopy } from "@/messages/en.json";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -32,8 +33,8 @@ export async function POST(request: NextRequest) {
     return error instanceof ReorderingError
       ? apiError(
           error.status === 400
-            ? "Invalid reordering request."
-            : "Reordering inputs unavailable. Check the snapshot and scenario settings.",
+            ? englishCopy.invalidReorderingRequest
+            : englishCopy.reorderingInputsUnavailableCheckThe,
           error.status,
           error.code,
           error.details,

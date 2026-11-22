@@ -14,6 +14,8 @@ import {
   SALES_VIEWS,
   type SalesView,
 } from "@/lib/sales-report-view";
+import { apiDataSalesRouteMessages as englishCopy } from "@/messages/en.json";
+import { apiDataSalesRouteMessages as ukrainianCopy } from "@/messages/uk.json";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 const headers = { "Cache-Control": "no-store" };
@@ -45,10 +47,10 @@ export async function GET(request: NextRequest) {
     (id !== null && (!id || id.length > 200)) ||
     (format !== null && format !== "csv")
   )
-    return apiError("Invalid sales report query", 400, "INVALID_QUERY");
+    return apiError(englishCopy.invalidSalesReportQuery, 400, "INVALID_QUERY");
   if (format === "csv" && !id)
     return apiError(
-      "Select a calculated report before export",
+      englishCopy.selectACalculatedReportBefore,
       400,
       "REPORT_ID_REQUIRED",
     );
@@ -79,9 +81,9 @@ export async function GET(request: NextRequest) {
       const csv =
         "\uFEFF" +
         [
-          [locale === "uk" ? "ID розрахунку" : "Calculation ID", report.calculationRunId],
-          [locale === "uk" ? "Версія формули" : "Formula version", report.calculationVersion],
-          [locale === "uk" ? "Від" : "From", report.period.from, locale === "uk" ? "До" : "To", report.period.to],
+          [locale === "uk" ? ukrainianCopy.calculationID : englishCopy.calculationID, report.calculationRunId],
+          [locale === "uk" ? ukrainianCopy.formulaVersion : englishCopy.formulaVersion, report.calculationVersion],
+          [locale === "uk" ? ukrainianCopy.from : englishCopy.from, report.period.from, locale === "uk" ? ukrainianCopy.to : englishCopy.to, report.period.to],
           table.columns.map((c) => locale === "uk" ? ukSalesColumns[c.key] ?? c.label : c.label),
           ...table.rows.map((row) =>
             table.columns.map((c) => (row as Record<string, unknown>)[c.key]),
@@ -113,12 +115,12 @@ export async function GET(request: NextRequest) {
       return apiError(error.message, 400, "INVALID_REPORT_PERIOD");
     if (error instanceof SalesReportError)
       return apiError(
-        "Sales report unavailable. Check import progress and source settings.",
+        englishCopy.salesReportUnavailableCheckImport,
         error.status,
         error.code,
       );
     return apiError(
-      "Could not calculate sales report. Retry after synchronization completes.",
+      englishCopy.couldNotCalculateSalesReport,
       503,
       "SALES_REPORT_UNAVAILABLE",
     );

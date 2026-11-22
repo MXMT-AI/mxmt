@@ -15,6 +15,8 @@ import { getCurrentDependencyRun, resolveAgentRunContext } from "@/lib/agent-dep
 import { generateMarketingBrief } from "@/lib/marketing-briefs";
 import { AiExecutionError } from "@/lib/ai-execution/contracts";
 import { logError } from "@/lib/observability";
+import { apiAgentsCommercialMarketerRouteMessages as englishCopy } from "@/messages/en.json";
+import { apiAgentsCommercialMarketerRouteMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export const runtime = "nodejs";
 export const maxDuration = 180;
@@ -103,10 +105,10 @@ export async function POST(req: NextRequest) {
         if(error.status>=500)logError("Marketing brief failed",error.cause??error,{tenantId});
         return apiError(error.code,error.status,error.code);
       }
-      logError("Marketing brief failed",error,{tenantId});return serverError("Marketing brief failed");
+      logError("Marketing brief failed",error,{tenantId});return serverError(englishCopy.marketingBriefFailed);
     }
   }
-  if (body?.mode !== undefined) return apiError("Unsupported marketing mode",400,"AI_INVALID_INPUT");
+  if (body?.mode !== undefined) return apiError(englishCopy.unsupportedMarketingMode,400,"AI_INVALID_INPUT");
   const providerOverride: string | undefined = body.provider ?? undefined;
   const asOf: Date | undefined = body.asOf ? new Date(body.asOf) : undefined;
   const dateFrom: Date | undefined = body.dateFrom ? new Date(body.dateFrom) : undefined;
@@ -122,7 +124,7 @@ export async function POST(req: NextRequest) {
       !reorderingState.ready ? `Reordering: ${reorderingState.reason}` : null,
     ].filter((item): item is string => Boolean(item));
     return apiError(
-      "Спочатку запустіть Repricing і Reordering для поточного імпорту та періоду.",
+      ukrainianCopy.спочаткуЗапустітьRepricingІReordering,
       409,
       "AGENT_DEPENDENCY_NOT_READY",
       details
@@ -145,7 +147,7 @@ export async function POST(req: NextRequest) {
     if (decisions.length === 0) {
       await prisma.agentRun.update({
         where: { id: run.id },
-        data: { status: "done", output: { brands: [], message: "Немає валідованих рекомендацій для створення маркетингових брифів." }, finishedAt: new Date() },
+        data: { status: "done", output: { brands: [], message: ukrainianCopy.messageНемаєВалідованихРекомендаційДляСтворення }, finishedAt: new Date() },
       });
       return NextResponse.json({ runId: run.id, brands: [] });
     }
@@ -185,10 +187,10 @@ export async function POST(req: NextRequest) {
     const output: Record<string, any> = {
       analysis_date: analysisDate,
       brands: batched.results,
-      summary: "Маркетингові брифи сформовано за валідованими рекомендаціями щодо ціни, видимості та поповнення.",
+      summary: ukrainianCopy.summaryМаркетинговіБрифиСформованоЗаВалідованими,
       start_immediately: decisions.filter((decision) => decision.type === "markdown").map((decision) => decision.brand_id),
       ...(batched.errors.length > 0
-        ? { message: "Частину брифів сформовано без AI через недоступність провайдера." }
+        ? { message: ukrainianCopy.messageЧастинуБрифівСформованоБезAI }
         : {}),
     };
 

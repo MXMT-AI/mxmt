@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { apiError } from "@/lib/api-contracts";
 import { connectionHandlers } from "@/lib/connectors/connection-route";
 import { isSourceProvider } from "@/lib/connectors/source";
+import { apiConnectorsProviderRouteMessages as englishCopy } from "@/messages/en.json";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -14,7 +15,7 @@ async function handle(
   const { provider } = await context.params;
   if (!isSourceProvider(provider)) {
     const response = apiError(
-      "Unknown connector",
+      englishCopy.unknownConnector,
       404,
       "CONNECTOR_PROVIDER_NOT_FOUND",
     );

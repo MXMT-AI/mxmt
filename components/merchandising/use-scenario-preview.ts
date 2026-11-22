@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { postScenario, scenarioFailure, type ScenarioFailure } from "@/lib/client/scenario-preview-request";
 import { LatestScenarioRequest } from "@/lib/scenario-preview";
+import { merchandisingUseScenarioPreviewMessages as englishCopy } from "@/messages/en.json";
 export function useScenarioPreview<T extends Record<string, unknown>>(
   endpoint: string,
   request: object | null,
@@ -34,7 +35,7 @@ export function useScenarioPreview<T extends Record<string, unknown>>(
           typeof data.previewId !== "string" ||
           data[identity] !== body[identity]
         )
-          throw new Error("Invalid scenario response");
+          throw new Error(englishCopy.errorInvalidScenarioResponse);
         return data;
       },
       (data) => setResult({ key, controls, data }),

@@ -4,6 +4,8 @@ import { qualityLabel, qualityGuidance, qualityFixHref } from "@/lib/data-qualit
 import type { Lang } from "@/lib/translations";
 import type { QualityProduct } from "../data-quality-card/data-quality-types";
 import { productKindLabel } from "../data-quality-card/data-quality-labels";
+import { settingsDataQualityProductCardMessages as englishCopy } from "@/messages/en.json";
+import { settingsDataQualityProductCardMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export function DataQualityProductCard({ row, lang, canManage, disabled, onKindChange }: {
   row: QualityProduct;
@@ -26,8 +28,8 @@ export function DataQualityProductCard({ row, lang, canManage, disabled, onKindC
       <p className="mt-1 text-(--muted)">
         {row.brandKey === "UNBRANDED"
           ? uk
-            ? "Без бренду"
-            : "Unbranded"
+            ? ukrainianCopy.unbranded
+            : englishCopy.unbranded
           : row.brandKey}
       </p>
       {row.issues.length > 0 && (
@@ -40,7 +42,7 @@ export function DataQualityProductCard({ row, lang, canManage, disabled, onKindC
                 className="inline-flex min-h-11 items-center underline focus-visible:outline-solid"
                 href={qualityFixHref(code)}
               >
-                {uk ? "Де виправити" : "Where to fix"}
+                {uk ? ukrainianCopy.whereToFix : englishCopy.whereToFix}
               </Link>
             </li>
           ))}
@@ -49,8 +51,8 @@ export function DataQualityProductCard({ row, lang, canManage, disabled, onKindC
       {row.ageReference.basis === "FIRST_SALE_PROXY" && (
         <p className="mt-2 text-(--muted)">
           {uk
-            ? "Перше підтверджене замовлення як орієнтир віку, не дата надходження:"
-            : "First verified sale as an age proxy, not a receipt date:"}{" "}
+            ? ukrainianCopy.firstVerifiedSaleAsAn
+            : englishCopy.firstVerifiedSaleAsAn}{" "}
           {row.ageReference.date &&
             new Date(row.ageReference.date).toLocaleDateString(
               locale,
@@ -59,9 +61,9 @@ export function DataQualityProductCard({ row, lang, canManage, disabled, onKindC
       )}
       {canManage ? (
         <label className="mt-2 flex flex-wrap items-center gap-2 text-(--muted)">
-          {uk ? "Тип товару" : "Product type"}
+          {uk ? ukrainianCopy.productType : englishCopy.productType}
           <select
-            aria-label={`${uk ? "Тип товару" : "Product type"} ${row.sku}`}
+            aria-label={`${uk ? ukrainianCopy.productType : englishCopy.productType} ${row.sku}`}
             value={row.productKind}
             disabled={disabled}
             onChange={(e) =>
@@ -85,17 +87,17 @@ export function DataQualityProductCard({ row, lang, canManage, disabled, onKindC
       )}
       <details className="mt-2 text-(--muted)">
         <summary className="cursor-pointer focus-visible:outline-solid">
-          {uk ? "Походження даних" : "Data lineage"}
+          {uk ? ukrainianCopy.dataLineage : englishCopy.dataLineage}
         </summary>
         <p className="mt-1 break-all">
-          {uk ? "Джерело" : "Source"}: {row.sourceId}
+          {uk ? ukrainianCopy.source : englishCopy.source}: {row.sourceId}
           <br />
-          {uk ? "Спостереження" : "Observed"}:{" "}
-          {row.observedAt ? new Date(row.observedAt).toLocaleString(locale) : (uk ? "Не підтверджено" : "Unverified")}
+          {uk ? ukrainianCopy.observed : englishCopy.observed}:{" "}
+          {row.observedAt ? new Date(row.observedAt).toLocaleString(locale) : (uk ? ukrainianCopy.unverified : englishCopy.unverified)}
           <br />
-          {uk ? "Імпорт" : "Import"}: {row.importRunId}
+          {uk ? ukrainianCopy.import : englishCopy.import}: {row.importRunId}
           <br />
-          {uk ? "Запис джерела" : "Source record"}:{" "}
+          {uk ? ukrainianCopy.sourceRecord : englishCopy.sourceRecord}:{" "}
           {row.sourceRecordKey}
         </p>
       </details>

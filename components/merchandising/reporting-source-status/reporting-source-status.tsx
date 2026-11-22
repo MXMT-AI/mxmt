@@ -6,9 +6,10 @@ import type { ReportingSourceProvider } from "@/lib/reporting-source-contract";
 import { useLang } from "@/components/language-provider/language-provider";
 import { useReportingSourceStatus } from "../use-reporting-source-status";
 import { reportingSourceStatusCopy } from "./copy";
+import { merchandisingReportingSourceStatusMessages as englishCopy } from "@/messages/en.json";
 
 const providerNames: Partial<Record<ReportingSourceProvider, string>> = {
-  sheets: "Google Sheets",
+  sheets: englishCopy.sheetsGoogleSheets,
   salesdrive: "SalesDrive",
 };
 

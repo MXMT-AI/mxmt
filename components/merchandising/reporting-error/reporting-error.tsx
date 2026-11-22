@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button/button";
 import { Heading } from "@/components/ui/heading/heading";
 import { button } from "@/components/ui/button/button-styles";
 import { panel } from "@/components/ui/panel/panel-styles";
+import { merchandisingReportingErrorMessages as englishCopy } from "@/messages/en.json";
+import { merchandisingReportingErrorMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export default function ReportingError({
   code,
@@ -26,7 +28,7 @@ export default function ReportingError({
       <p className="max-w-prose">{help.message}</p>
       <div className="flex flex-wrap gap-3">
         <Button variant="report" onClick={onRetry}>
-          {lang === "uk" ? "Повторити" : "Retry"}
+          {lang === "uk" ? ukrainianCopy.retry : englishCopy.retry}
         </Button>
         <Link className={button} href={help.href}>
           {help.action}

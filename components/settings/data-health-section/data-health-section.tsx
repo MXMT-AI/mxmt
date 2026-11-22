@@ -5,6 +5,8 @@ import { Text } from "@/components/ui/text/text";
 import type { Lang } from "@/lib/translations";
 import DataQualityCard from "../data-quality-card/data-quality-card";
 import SalesDriveImportCard from "../sales-drive-import-card/sales-drive-import-card";
+import { settingsDataHealthSectionMessages as englishCopy } from "@/messages/en.json";
+import { settingsDataHealthSectionMessages as ukrainianCopy } from "@/messages/uk.json";
 
 const resources = ["sync", "inventory", "orders"] as const;
 
@@ -27,8 +29,8 @@ export default function DataHealthSection({ lang, canManage, manualUpload = fals
       {manualUpload ? (
         <Text variant="body" className="mb-10 leading-normal text-(--muted)">
           {lang === "uk"
-            ? "CSV оновлюється через перевірку та активацію нового пакета вище."
-            : "Refresh CSV data by previewing and activating a new packet above."}
+            ? ukrainianCopy.refreshCSVDataByPreviewing
+            : englishCopy.refreshCSVDataByPreviewing}
         </Text>
       ) : resources.map(resource => (
         <SalesDriveImportCard

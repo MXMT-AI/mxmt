@@ -13,6 +13,8 @@ import { useConnectorConnection } from "../use-connector-connection";
 import { salesDriveConnectionMessages } from "./connection-messages";
 import { SalesDriveDiagnostics } from "../sales-drive-diagnostics/sales-drive-diagnostics";
 import type { PublicConnection } from "@/lib/connectors/contract";
+import { settingsSalesDriveConnectionCardMessages as englishCopy } from "@/messages/en.json";
+import { settingsSalesDriveConnectionCardMessages as ukrainianCopy } from "@/messages/uk.json";
 
 interface Props { initial: PublicConnection; lang: "uk" | "en"; canManage: boolean }
 
@@ -44,21 +46,21 @@ export default function SalesDriveConnectionCard({ initial, lang, canManage }: P
 
   return (
     <section id="salesdrive" className="mb-10 scroll-mt-6" aria-labelledby="salesdrive-heading">
-      <Heading as="h2" variant="compact" id="salesdrive-heading" className="text-base">SalesDrive</Heading>
+      <Heading as="h2" variant="compact" id="salesdrive-heading" className="text-base">{englishCopy.salesDrive}</Heading>
       <Text variant="body" className="leading-normal text-inherit mt-1 mb-4 text-sm text-(--muted)">
-        {uk ? "Підключення лише для читання замовлень, товарів, залишків і надходжень." : "Read-only access to orders, products, stock and receipts."}
+        {uk ? ukrainianCopy.readOnlyAccessToOrdersProducts : englishCopy.readOnlyAccessToOrdersProducts}
       </Text>
       <div className={panel + " p-5 space-y-5"}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <Text variant="body" className="leading-normal text-inherit text-sm font-medium text-(--text)">{connection.accountHost ?? (uk ? "Не підключено" : "Not connected")}</Text>
-            <Text variant="body" className="leading-normal text-inherit mt-1 text-sm text-(--muted)">{!connection.configured ? uk ? "Збережіть налаштування для перевірки доступу." : "Save configuration to check access."
-              : !connection.lastCheck ? uk ? "Доступ ще не перевірено" : "Access has not been checked"
-              : connection.lastCheck.ok ? uk ? "Налаштовані джерела доступні" : "Configured sources are accessible"
-              : uk ? "З’єднання потребує уваги" : "Connection needs attention"}</Text>
+            <Text variant="body" className="leading-normal text-inherit text-sm font-medium text-(--text)">{connection.accountHost ?? (uk ? ukrainianCopy.notConnected : englishCopy.notConnected)}</Text>
+            <Text variant="body" className="leading-normal text-inherit mt-1 text-sm text-(--muted)">{!connection.configured ? uk ? ukrainianCopy.saveConfigurationToCheckAccess : englishCopy.saveConfigurationToCheckAccess
+              : !connection.lastCheck ? uk ? ukrainianCopy.accessHasNotBeenChecked : englishCopy.accessHasNotBeenChecked
+              : connection.lastCheck.ok ? uk ? ukrainianCopy.configuredSourcesAreAccessible : englishCopy.configuredSourcesAreAccessible
+              : uk ? ukrainianCopy.connectionNeedsAttention : englishCopy.connectionNeedsAttention}</Text>
           </div>
           {canManage && connection.configured && <Button variant="report" type="button" className={buttonClass} disabled={busy !== null} onClick={() => void perform("check")}>
-            {busy === "check" ? uk ? "Перевіряємо…" : "Checking…" : uk ? "Перевірити з’єднання" : "Check connection"}
+            {busy === "check" ? uk ? ukrainianCopy.checking : englishCopy.checking : uk ? ukrainianCopy.checkConnection : englishCopy.checkConnection}
           </Button>}
         </div>
 
@@ -68,24 +70,24 @@ export default function SalesDriveConnectionCard({ initial, lang, canManage }: P
         <SalesDriveDiagnostics check={connection.lastCheck} lang={lang} />
 
         {canManage ? <details className="border-t border-(--border) pt-4" open={!connection.configured}>
-          <summary className="cursor-pointer text-sm font-medium text-(--text)">{uk ? "Налаштувати з’єднання" : "Configure connection"}</summary>
+          <summary className="cursor-pointer text-sm font-medium text-(--text)">{uk ? ukrainianCopy.configureConnection : englishCopy.configureConnection}</summary>
           <form ref={formRef} onSubmit={save} onChange={() => setDirty(true)} className="mt-4 space-y-4">
             <Note className="leading-relaxed text-(--muted)">{uk
-              ? "Створіть ключ читання замовлень на рівні бази та окремий ключ читання надходжень на рівні акаунту. Увімкніть YML-експорт. Ключі та посилання не відображаються після збереження. Для заміни введіть їх знову; порожні необов’язкові поля вимикають відповідний доступ."
-              : "Create an orders read key at form level and a receipts read key at account level. Enable YML export. Saved keys and the feed link are never displayed. Re-enter them to replace the configuration; blank optional fields disable that access."}</Note>
+              ? ukrainianCopy.createAnOrdersReadKey
+              : englishCopy.createAnOrdersReadKey}</Note>
             <fieldset disabled={busy !== null} className="space-y-4">
-              <Field htmlFor="salesdrive-host" label={uk ? "Домен акаунту" : "Account hostname"} className="gap-1 text-sm text-(--text)">
-                <input id="salesdrive-host" name="accountHost" defaultValue={connection.accountHost ?? ""} required maxLength={100} autoComplete="off" spellCheck={false} placeholder="example.salesdrive.me…" className={fieldClass} /></Field>
-              <Field htmlFor="salesdrive-orders-key" label={uk ? "Ключ читання замовлень" : "Orders read key"} className="gap-1 text-sm text-(--text)">
+              <Field htmlFor="salesdrive-host" label={uk ? ukrainianCopy.labelAccountHostname : englishCopy.labelAccountHostname} className="gap-1 text-sm text-(--text)">
+                <input id="salesdrive-host" name="accountHost" defaultValue={connection.accountHost ?? ""} required maxLength={100} autoComplete="off" spellCheck={false} placeholder={englishCopy.placeholderExampleSalesdriveMe} className={fieldClass} /></Field>
+              <Field htmlFor="salesdrive-orders-key" label={uk ? ukrainianCopy.labelOrdersReadKey : englishCopy.labelOrdersReadKey} className="gap-1 text-sm text-(--text)">
                 <input id="salesdrive-orders-key" type="password" name="ordersApiKey" required maxLength={512} autoComplete="off" spellCheck={false} className={fieldClass} /></Field>
-              <Field htmlFor="salesdrive-receipts-key" label={uk ? "Ключ читання надходжень (необов’язково)" : "Receipts read key (optional)"} className="gap-1 text-sm text-(--text)">
+              <Field htmlFor="salesdrive-receipts-key" label={uk ? ukrainianCopy.labelReceiptsReadKeyOptional : englishCopy.labelReceiptsReadKeyOptional} className="gap-1 text-sm text-(--text)">
                 <input id="salesdrive-receipts-key" type="password" name="receiptsApiKey" maxLength={512} autoComplete="off" spellCheck={false} className={fieldClass} /></Field>
-              <Field htmlFor="salesdrive-yml" label={uk ? "YML-посилання з токеном (необов’язково)" : "YML link with token (optional)"} className="gap-1 text-sm text-(--text)">
+              <Field htmlFor="salesdrive-yml" label={uk ? ukrainianCopy.labelYMLLinkWithTokenOptional : englishCopy.labelYMLLinkWithTokenOptional} className="gap-1 text-sm text-(--text)">
                 <input id="salesdrive-yml" type="password" name="ymlUrl" maxLength={2048} autoComplete="off" spellCheck={false} className={fieldClass} /></Field>
-              <Button variant="report" type="submit" className={buttonClass}>{busy === "save" ? uk ? "Зберігаємо…" : "Saving…" : uk ? "Зберегти з’єднання" : "Save connection"}</Button>
+              <Button variant="report" type="submit" className={buttonClass}>{busy === "save" ? uk ? ukrainianCopy.saving : englishCopy.saving : uk ? ukrainianCopy.saveConnection : englishCopy.saveConnection}</Button>
             </fieldset>
           </form>
-        </details> : <Note className="text-(--muted) leading-normal">{uk ? "Змінити або перевірити з’єднання може адміністратор." : "An administrator can configure or check the connection."}</Note>}
+        </details> : <Note className="text-(--muted) leading-normal">{uk ? ukrainianCopy.anAdministratorCanConfigureOr : englishCopy.anAdministratorCanConfigureOr}</Note>}
       </div>
     </section>
   );

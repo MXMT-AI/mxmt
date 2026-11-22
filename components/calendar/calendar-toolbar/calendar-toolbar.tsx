@@ -4,6 +4,8 @@ import { panel } from "@/components/ui/panel/panel-styles";
 import type { Locale } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
 import type { CalendarTab } from "../marketing-calendar/calendar-types";
+import { calendarCalendarToolbarMessages as englishCopy } from "@/messages/en.json";
+import { calendarCalendarToolbarMessages as ukrainianCopy } from "@/messages/uk.json";
 
 const buttonClassName = "flex items-center gap-1.5 px-2.5 py-1.5 font-sans text-xs";
 const inactiveClassName = "bg-(--input-bg) text-(--subtle) hover:text-(--muted)";
@@ -22,8 +24,8 @@ export function CalendarToolbar({ locale, tab, onTabChange, showDemo, onToggleDe
 }) {
   const uk = locale === "uk";
   const labels = uk
-    ? { plan: "Мій план", agent: "Аналіз агента", stock: "Залишки" }
-    : { plan: "My Plan", agent: "Agent Analysis", stock: "Stock" };
+    ? { plan: ukrainianCopy.planМійПлан, agent: ukrainianCopy.agentАналізАгента, stock: ukrainianCopy.stockЗалишки }
+    : { plan: englishCopy.planMyPlan, agent: englishCopy.agent, stock: "Stock" };
 
   return (
     <div className="flex gap-2 items-center flex-wrap">
@@ -31,19 +33,19 @@ export function CalendarToolbar({ locale, tab, onTabChange, showDemo, onToggleDe
         onClick={onGenerate}
         disabled={aiLoading}
         className={cn(buttonClassName, hasAiPlan ? "bg-accent-purple/10 border-accent-purple/30 text-accent-purple" : inactiveClassName)}
-        title={uk ? "Згенерувати план через AI" : "Generate AI plan"}
+        title={uk ? ukrainianCopy.titleGenerateAIPlan : englishCopy.titleGenerateAIPlan}
       >
         <Sparkles size={12} aria-hidden="true" className={aiLoading ? "motion-safe:animate-pulse" : undefined} />
-        {aiLoading ? (uk ? "Генеруємо…" : "Generating…") : hasAiPlan ? (uk ? "AI план ✓" : "AI plan ✓") : (uk ? "AI план" : "AI plan")}
+        {aiLoading ? (uk ? ukrainianCopy.generating : englishCopy.generating) : hasAiPlan ? (uk ? ukrainianCopy.aIPlan : englishCopy.aIPlan) : (uk ? ukrainianCopy.aIPlan2 : englishCopy.aIPlan2)}
       </Button>
       <Button
         onClick={onToggleDemo}
         aria-pressed={showDemo}
-        title={showDemo ? (uk ? "Сховати демо-шаблон" : "Hide demo template") : (uk ? "Показати демо-шаблон" : "Show demo template")}
+        title={showDemo ? (uk ? ukrainianCopy.titleHideDemoTemplate : englishCopy.titleHideDemoTemplate) : (uk ? ukrainianCopy.titleShowDemoTemplate : englishCopy.titleShowDemoTemplate)}
         className={cn(buttonClassName, showDemo ? "bg-accent-yellow/10 border-accent-yellow/30 text-accent-yellow" : inactiveClassName)}
       >
         {showDemo ? <Eye size={12} aria-hidden="true" /> : <EyeOff size={12} aria-hidden="true" />}
-        {uk ? "Шаблон" : "Template"}
+        {uk ? ukrainianCopy.template : englishCopy.template}
       </Button>
       <div className={cn(panel, "flex rounded-lg overflow-hidden")}>
         {tabs.map(value => (
@@ -54,7 +56,7 @@ export function CalendarToolbar({ locale, tab, onTabChange, showDemo, onToggleDe
         ))}
       </div>
       <Button onClick={onAdd} tone="positive" className="px-3 py-1.5 font-sans text-xs font-medium">
-        {uk ? "+ Додати подію" : "+ Add event"}
+        {uk ? ukrainianCopy.addEvent : englishCopy.addEvent}
       </Button>
     </div>
   );

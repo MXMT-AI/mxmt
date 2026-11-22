@@ -6,6 +6,7 @@ import { DailySkuError } from "./sku-daily-store";
 import { SalesPeriodError } from "./sales-period";
 import { DailySkuPeriodError } from "./sku-daily-period";
 import { logError, requestLogContext, type RequestContext } from "./observability";
+import { merchandisingApiErrorMessages as englishApiMessages } from "@/messages/en.json";
 export function merchandisingApiError(error: unknown, context?: RequestContext) {
   if (
     error instanceof ConnectorSourceError ||
@@ -25,7 +26,7 @@ export function merchandisingApiError(error: unknown, context?: RequestContext) 
   if (context)
     logError("Merchandising data request failed", error, requestLogContext(context));
   return apiError(
-    "Could not load merchandising data. Retry after synchronization completes.",
+    englishApiMessages.couldNotLoadMerchandisingDataRetry,
     503,
     "SCREEN_DATA_UNAVAILABLE",
     undefined,

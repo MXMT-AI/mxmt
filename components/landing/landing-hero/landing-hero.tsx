@@ -20,7 +20,7 @@ export function LandingHero({ copy }: { copy: LandingCopy }) {
       <div className="pt-[clamp(180px,19.5vw,290px)] pb-[clamp(44px,4vw,66px)] max-[640px]:pt-[155px] max-[640px]:pb-9">
         <p className="mb-[18px] flex items-center gap-2.5 font-mono text-xs leading-[1.4] font-medium text-landing-audience before:size-2 before:rounded-full before:bg-landing-mint before:shadow-[0_0_16px_var(--landing-mint-glow)]">{copy.audience}</p>
         <Heading as="h1" variant="hero" id="hero-heading">
-          {copy.headline[0]} <span className="block">{copy.headline[1]}</span>
+          {copy.headline.firstLine} <span className="block">{copy.headline.secondLine}</span>
         </Heading>
         <Text variant="lead" className="max-[640px]:mt-[17px]">{copy.description}</Text>
         <Actions>

@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { readWorkbook, sheetToJson } from "@/lib/workbook-compat.mjs";
 import { requireApiUser } from "@/lib/server-auth";
 import { apiError, serverError } from "@/lib/api-contracts";
+import { apiPlannerCatalogsUploadRouteMessages as englishCopy } from "@/messages/en.json";
+import { apiPlannerCatalogsUploadRouteMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -103,30 +105,30 @@ export async function POST(request: NextRequest) {
     const season = (formData.get("season") as string) || "SS25";
 
     if (!file || !brandId) {
-      return apiError("file and brandId are required", 400, "VALIDATION_ERROR");
+      return apiError(englishCopy.fileAndBrandIdAreRequired, 400, "VALIDATION_ERROR");
     }
 
     if (file.size === 0 || file.size > MAX_UPLOAD_BYTES) {
-      return apiError("File must be between 1 byte and 4 MB", 400, "VALIDATION_ERROR");
+      return apiError(englishCopy.fileMustBeBetween1, 400, "VALIDATION_ERROR");
     }
 
     const brand = await prisma.brand.findFirst({ where: { id: brandId, tenantId } });
     if (!brand) {
-      return apiError("Brand not found", 404, "NOT_FOUND");
+      return apiError(englishCopy.brandNotFound, 404, "NOT_FOUND");
     }
 
     const buffer = await file.arrayBuffer();
     const wb = readWorkbook(buffer, { type: "buffer" });
     const firstSheetName = wb.SheetNames[0];
     if (!firstSheetName) {
-      return apiError("Workbook has no sheets", 400, "VALIDATION_ERROR");
+      return apiError(englishCopy.workbookHasNoSheets, 400, "VALIDATION_ERROR");
     }
 
     const ws = wb.Sheets[firstSheetName];
     const rows = sheetToJson<CatalogRow>(ws, { defval: "" });
 
     if (rows.length === 0) {
-      return apiError("File is empty", 400, "VALIDATION_ERROR");
+      return apiError(englishCopy.fileIsEmpty, 400, "VALIDATION_ERROR");
     }
 
     if (rows.length > MAX_CATALOG_ROWS) {
@@ -137,28 +139,28 @@ export async function POST(request: NextRequest) {
     let skippedRows = 0;
 
     for (const row of rows) {
-      const skuCode = cell(row, "SKU", "sku", "Артикул");
-      const name = cell(row, "Name", "name", "Назва", "Наименование");
+      const skuCode = cell(row, "SKU", "sku", ukrainianCopy.артикул);
+      const name = cell(row, "Name", "name", ukrainianCopy.назва, ukrainianCopy.наименование);
 
       if (!skuCode || !name) {
         skippedRows++;
         continue;
       }
 
-      const priceWholesale = Math.max(0, numberCell(row, 0, "Price", "price", "Ціна"));
+      const priceWholesale = Math.max(0, numberCell(row, 0, "Price", "price", ukrainianCopy.ціна));
       const retailValue = numberCell(row, Number.NaN, "Retail", "retail", "RRP", "rrp");
 
       dedupedItems.set(skuCode, {
         skuCode,
         name,
-        category: cell(row, "Category", "category", "Категорія", "Категория") || "Other",
+        category: cell(row, "Category", "category", ukrainianCopy.категорія, ukrainianCopy.категория) || "Other",
         color: cell(row, "Color", "color") || null,
         style: cell(row, "Style", "style") || null,
         material: cell(row, "Material", "material") || null,
         priceWholesale,
         priceRetail: Number.isFinite(retailValue) ? Math.max(0, retailValue) : null,
-        minOrder: Math.max(1, intCell(row, 1, "MinOrder", "minOrder", "МінЗамовлення")),
-        stockAvail: Math.max(0, intCell(row, 0, "Stock", "stock", "Залишок")),
+        minOrder: Math.max(1, intCell(row, 1, "MinOrder", "minOrder", ukrainianCopy.мінЗамовлення)),
+        stockAvail: Math.max(0, intCell(row, 0, "Stock", "stock", ukrainianCopy.залишок)),
         leadTimeDays: Math.max(1, intCell(row, brand.leadTimeDays, "LeadTime", "leadTime")),
         tags: cell(row, "Tags", "tags")
           .split(",")
@@ -169,7 +171,7 @@ export async function POST(request: NextRequest) {
 
     const parsedItems = [...dedupedItems.values()];
     if (parsedItems.length === 0) {
-      return apiError("No valid catalog rows found", 400, "VALIDATION_ERROR");
+      return apiError(englishCopy.noValidCatalogRowsFound, 400, "VALIDATION_ERROR");
     }
 
     const upload = await prisma.$transaction(async (tx) => {
@@ -217,6 +219,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ uploadId: upload.upload.id, itemCount: upload.count, skippedRows });
   } catch (err) {
     console.error("[catalog/upload]", err);
-    return serverError("Upload failed");
+    return serverError(englishCopy.uploadFailed);
   }
 }

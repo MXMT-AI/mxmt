@@ -13,6 +13,8 @@ import {
   type CalendarRecommendation,
   type RecommendationChannel,
 } from "@/lib/calendar-recommendation-approval";
+import { apiAgentsCalendarAgentRecommendationsApproveRouteMessages as englishCopy } from "@/messages/en.json";
+import { apiAgentsCalendarAgentRecommendationsApproveRouteMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export const runtime = "nodejs";
 
@@ -42,13 +44,13 @@ export async function POST(request: NextRequest) {
 
   const { data, response: parseResponse } = await parseJsonBody(request);
   if (parseResponse) return parseResponse;
-  if (!isRecord(data)) return validationError(["body must be an object"]);
+  if (!isRecord(data)) return validationError([englishCopy.bodyMustBeAnObject]);
   if (data.mode === "marketing_v2") {
     const {mode:_,...command}=data;
     try{return NextResponse.json(await approveMarketingBrief({tenantId,userId},command),{headers:{"Cache-Control":"no-store"}});}
     catch(error){const failure=aiExecutionFailure(error);if(failure.status>=500)logError("Marketing approval failed",failure.cause??failure,{tenantId});return apiError(failure.code,failure.status,failure.code);}
   }
-  if (data.mode !== undefined) return apiError("Unsupported approval mode",400,"AI_INVALID_INPUT");
+  if (data.mode !== undefined) return apiError(englishCopy.unsupportedApprovalMode,400,"AI_INVALID_INPUT");
 
   const issues: string[] = [];
   const calendarRunId = stringField(data, "calendarRunId", issues, { required: true, maxLength: 64 });
@@ -60,10 +62,10 @@ export async function POST(request: NextRequest) {
     : [];
 
   if (weekKey && !/^w(?:[1-9]|[1-4]\d|5[0-3])$/.test(weekKey)) {
-    issues.push("weekKey must be an ISO week key from w1 to w53");
+    issues.push(englishCopy.weekKeyMustBeAnISOWeek);
   }
   if (!Array.isArray(rawChannels) || rawChannels.length === 0 || channels.length !== rawChannels.length) {
-    issues.push("channels must be a non-empty array of supported channels");
+    issues.push(englishCopy.channelsMustBeANonEmptyArray);
   }
   if (issues.length > 0) return validationError(issues);
 
@@ -71,13 +73,13 @@ export async function POST(request: NextRequest) {
     const calendarRun = await prisma.agentRun.findFirst({
       where: { id: calendarRunId!, tenantId, agentType: "calendar_agent", status: "done" },
     });
-    if (!calendarRun) return apiError("Запуск Calendar Agent не знайдено.", 404, "CALENDAR_RUN_NOT_FOUND");
+    if (!calendarRun) return apiError(ukrainianCopy.запускCalendarAgentНеЗнайдено, 404, "CALENDAR_RUN_NOT_FOUND");
 
     const context = buildAgentRunContext(calendarRun.input as Record<string, unknown>);
     const currentState = await getCurrentDependencyRun(tenantId, "calendar_agent", context);
     if (!currentState.ready || currentState.run?.id !== calendarRun.id) {
       return apiError(
-        "Рекомендація застаріла. Перезапустіть Calendar Agent і погодьте актуальний план.",
+        ukrainianCopy.рекомендаціяЗастарілаПерезапустітьCalendarAgent,
         409,
         "STALE_CALENDAR_RECOMMENDATION"
       );
@@ -86,7 +88,7 @@ export async function POST(request: NextRequest) {
     const recommendation = readRecommendations(calendarRun.output)
       .find((item) => item.recommendation_id === recommendationId);
     if (!recommendation) {
-      return apiError("Рекомендацію не знайдено в цьому запуску Calendar Agent.", 404, "RECOMMENDATION_NOT_FOUND");
+      return apiError(ukrainianCopy.рекомендаціюНеЗнайденоВЦьому, 404, "RECOMMENDATION_NOT_FOUND");
     }
 
     const events = buildRecommendationCalendarEvents({
@@ -95,7 +97,7 @@ export async function POST(request: NextRequest) {
       selectedChannels: channels,
     });
     if (events.length === 0) {
-      return validationError(["selected channels are not part of this recommendation"]);
+      return validationError([englishCopy.selectedChannelsAreNotPart]);
     }
 
     const recommendationKey = `${calendarRun.id}:${recommendation.recommendation_id}`;

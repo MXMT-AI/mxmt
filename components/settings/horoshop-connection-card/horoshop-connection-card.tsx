@@ -13,6 +13,8 @@ import StatusMappingFields, {
   type StatusMappingRow,
 } from "../status-mapping-fields/status-mapping-fields";
 import ConnectorDiagnostics from "../connector-diagnostics/connector-diagnostics";
+import { settingsHoroshopConnectionCardMessages as englishCopy } from "@/messages/en.json";
+import { settingsHoroshopConnectionCardMessages as ukrainianCopy } from "@/messages/uk.json";
 export default function HoroshopConnectionCard({
   initial,
   lang,
@@ -63,8 +65,8 @@ export default function HoroshopConnectionCard({
     if (new Set(statuses.map((s) => s.id)).size !== statuses.length) {
       setError(
         copy(
-          "Коди статусів мають бути унікальними.",
-          "Status codes must be unique.",
+          ukrainianCopy.statusCodesMustBeUnique,
+          englishCopy.statusCodesMustBeUnique,
         ),
       );
       return;
@@ -102,32 +104,30 @@ export default function HoroshopConnectionCard({
       className="mb-10 scroll-mt-6 space-y-4"
     >
       <div>
-        <Heading as="h2" variant="compact" id="horoshop-heading" className="text-base">
-          Horoshop
-        </Heading>
+        <Heading as="h2" variant="compact" id="horoshop-heading" className="text-base">{englishCopy.horoshop}</Heading>
         <Text variant="body" className="mt-1 max-w-3xl leading-normal text-(--muted)">
           {copy(
-            "Лише читання. Кожне оновлення повторно читає всю доступну історію замовлень.",
-            "Read-only. Each refresh rescans the entire accessible order history.",
+            ukrainianCopy.readOnlyEachRefreshRescansThe,
+            englishCopy.readOnlyEachRefreshRescansThe,
           )}
         </Text>
       </div>
       <div className={panel + " space-y-4 p-4 sm:p-5"}>
         <Text variant="body" className="wrap-break-word leading-normal text-(--muted)">
           {connection.configured
-            ? copy("Налаштовано: ", "Configured: ") + connection.accountHost
-            : copy("Не налаштовано", "Not configured")}
+            ? copy(ukrainianCopy.configured, englishCopy.configured) + connection.accountHost
+            : copy(ukrainianCopy.notConfigured, englishCopy.notConfigured)}
         </Text>
         <Text variant="body" className="leading-normal text-(--muted)">
           {copy(
-            "Адміністратор має дозволити точний HTTPS-домен магазину на сервері. Логін і пароль зберігаються зашифрованими та не повертаються у відповідях.",
-            "An operator must allow the exact HTTPS shop origin on the server. Login and password are encrypted and never returned in responses.",
+            ukrainianCopy.anOperatorMustAllowThe,
+            englishCopy.anOperatorMustAllowThe,
           )}
         </Text>
         <Note className="leading-normal">
           {copy(
-            "Ознака оплати не підтверджує дату повної оплати. Приходи, повернення, собівартість та історичні залишки недоступні; автоматична синхронізація вимкнена. Успішне читання не доводить відсутність прав запису — видайте окремий обмежений доступ.",
-            "A paid flag does not establish a full-payment date. Receipts, refunds, costs and historical stock are unavailable; automatic sync is disabled. Successful reads do not prove the absence of write permissions: issue separate restricted credentials.",
+            ukrainianCopy.aPaidFlagDoesNot,
+            englishCopy.aPaidFlagDoesNot,
           )}
         </Note>
         {canManage ? (
@@ -148,7 +148,7 @@ export default function HoroshopConnectionCard({
             <fieldset disabled={busy} className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field
-                  label={copy("HTTPS-адреса магазину", "Shop HTTPS origin")}
+                  label={copy(ukrainianCopy.shopHTTPSOrigin, englishCopy.shopHTTPSOrigin)}
                 >
                   <input
                     name="origin"
@@ -156,11 +156,11 @@ export default function HoroshopConnectionCard({
                     required
                     className={control}
                     defaultValue={initial.accountHost ?? ""}
-                    placeholder="https://shop.example.com…"
+                    placeholder={englishCopy.placeholderHttpsShopExampleCom}
                     spellCheck={false}
                   />
                 </Field>
-                <Field label={copy("Часовий пояс магазину", "Shop timezone")}>
+                <Field label={copy(ukrainianCopy.shopTimezone, englishCopy.shopTimezone)}>
                   <input
                     name="timezone"
                     required
@@ -169,7 +169,7 @@ export default function HoroshopConnectionCard({
                     spellCheck={false}
                   />
                 </Field>
-                <Field label={copy("Логін інтеграції", "Integration login")}>
+                <Field label={copy(ukrainianCopy.integrationLogin, englishCopy.integrationLogin)}>
                   <input
                     name="login"
                     required
@@ -179,7 +179,7 @@ export default function HoroshopConnectionCard({
                   />
                 </Field>
                 <Field
-                  label={copy("Пароль інтеграції", "Integration password")}
+                  label={copy(ukrainianCopy.integrationPassword, englishCopy.integrationPassword)}
                 >
                   <input
                     name="password"
@@ -189,7 +189,7 @@ export default function HoroshopConnectionCard({
                     autoComplete="new-password"
                   />
                 </Field>
-                <Field label={copy("Версія правил", "Mapping revision")}>
+                <Field label={copy(ukrainianCopy.mappingRevision, englishCopy.mappingRevision)}>
                   <input
                     name="mappingRevision"
                     type="number"
@@ -201,7 +201,7 @@ export default function HoroshopConnectionCard({
                     className={control}
                   />
                 </Field>
-                <Field label={copy("Валюта ISO", "ISO currency")}>
+                <Field label={copy(ukrainianCopy.iSOCurrency, englishCopy.iSOCurrency)}>
                   <input
                     name="currency"
                     pattern="[A-Z]{3}"
@@ -213,8 +213,8 @@ export default function HoroshopConnectionCard({
                 </Field>
                 <Field
                   label={copy(
-                    "Підтверджений ліміт запитів",
-                    "Confirmed request limit",
+                    ukrainianCopy.confirmedRequestLimit,
+                    englishCopy.confirmedRequestLimit,
                   )}
                 >
                   <input
@@ -229,8 +229,8 @@ export default function HoroshopConnectionCard({
                 </Field>
                 <Field
                   label={copy(
-                    "Період ліміту в секундах",
-                    "Limit window in seconds",
+                    ukrainianCopy.limitWindowInSeconds,
+                    englishCopy.limitWindowInSeconds,
                   )}
                 >
                   <input
@@ -245,8 +245,8 @@ export default function HoroshopConnectionCard({
                 </Field>
                 <Field
                   label={copy(
-                    "Підтверджена кількість модифікацій у каталозі (необов’язково)",
-                    "Verified catalog modification count (optional)",
+                    ukrainianCopy.verifiedCatalogModificationCountOptional,
+                    englishCopy.verifiedCatalogModificationCountOptional,
                   )}
                 >
                   <input
@@ -260,8 +260,8 @@ export default function HoroshopConnectionCard({
                 </Field>
                 <Field
                   label={copy(
-                    "Назви складів через кому",
-                    "Warehouse sync names, comma-separated",
+                    ukrainianCopy.warehouseSyncNamesCommaSeparated,
+                    englishCopy.warehouseSyncNamesCommaSeparated,
                   )}
                 >
                   <input
@@ -281,14 +281,14 @@ export default function HoroshopConnectionCard({
               />
               <p className="text-xs text-(--muted)">
                 {copy(
-                  "Коди статусів дивіться після перевірки нижче. Не вважайте доставлене замовлення підтвердженим продажем без дати оплати.",
-                  "Read status codes in the checks below. A delivered order is not a verified sale without a payment date.",
+                  ukrainianCopy.readStatusCodesInThe,
+                  englishCopy.readStatusCodesInThe,
                 )}
               </p>
               <Field
                 label={copy(
-                  "Посилання на підтвердження версії API, доступів, квоти й правил",
-                  "API version, permissions, quota and mapping evidence reference",
+                  ukrainianCopy.aPIVersionPermissionsQuotaAnd,
+                  englishCopy.aPIVersionPermissionsQuotaAnd,
                 )}
               >
                 <input
@@ -303,22 +303,22 @@ export default function HoroshopConnectionCard({
                   [
                     "stableOrderPagination",
                     copy(
-                      "Підтверджено стабільний порядок замовлень за offset без пропусків під час змін",
-                      "Verified stable offset order pagination without skips during modifications",
+                      ukrainianCopy.verifiedStableOffsetOrderPagination,
+                      englishCopy.verifiedStableOffsetOrderPagination,
                     ),
                   ],
                   [
                     "physicalStock",
                     copy(
-                      "Підтверджено фізичні залишки на вказаних складах",
-                      "Verified physical stock in the listed warehouses",
+                      ukrainianCopy.verifiedPhysicalStockInThe,
+                      englishCopy.verifiedPhysicalStockInThe,
                     ),
                   ],
                   [
                     "netUnitPrice",
                     copy(
-                      "Підтверджено ціну одиниці після знижок; комплекти й нерозподілені знижки залишаються невідомими",
-                      "Verified net unit prices; bundles and unallocated discounts remain unknown",
+                      ukrainianCopy.verifiedNetUnitPricesBundles,
+                      englishCopy.verifiedNetUnitPricesBundles,
                     ),
                   ],
                 ] as const
@@ -334,15 +334,15 @@ export default function HoroshopConnectionCard({
               <label className="flex min-h-11 items-center gap-3 text-sm text-(--muted)">
                 <input type="checkbox" name="mappingApproved" required />
                 {copy(
-                  "Погоджую зазначені правила та підтвердження. Неперевірені дані залишаються невідомими.",
-                  "I approve the rules and referenced account evidence. Unverified data remains unknown.",
+                  ukrainianCopy.iApproveTheRulesAnd,
+                  englishCopy.iApproveTheRulesAnd,
                 )}
               </label>
               <div className="flex flex-wrap gap-3">
                 <Button variant="report" type="submit" className="text-(--text) hover:bg-(--input-hover)" disabled={busy}>
                   {busy
-                    ? copy("Обробка…", "Processing…")
-                    : copy("Зберегти Horoshop", "Save Horoshop")}
+                    ? copy(ukrainianCopy.processing, englishCopy.processing)
+                    : copy(ukrainianCopy.saveHoroshop, englishCopy.saveHoroshop)}
                 </Button>
                 <Button
                   variant="report"
@@ -351,7 +351,7 @@ export default function HoroshopConnectionCard({
                   disabled={busy || dirty || !connection.configured}
                   onClick={() => void perform("check")}
                 >
-                  {copy("Перевірити доступи", "Check read scopes")}
+                  {copy(ukrainianCopy.checkReadScopes, englishCopy.checkReadScopes)}
                 </Button>
               </div>
             </fieldset>

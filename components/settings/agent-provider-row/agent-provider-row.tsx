@@ -1,5 +1,6 @@
 import type { AgentProvider } from "@/lib/client/agent-providers";
 import type { AgentProviderConfig } from "../agent-providers-card/agent-provider-config";
+import { settingsAgentProviderRowMessages as englishCopy } from "@/messages/en.json";
 
 export function AgentProviderRow({ agent, current, onChange }: {
   agent: AgentProviderConfig;
@@ -39,7 +40,7 @@ export function AgentProviderRow({ agent, current, onChange }: {
                 : "text-(--subtle) hover:text-(--muted)"
             }`}
           >
-            {p === "anthropic" ? "Anthropic" : "OpenAI"}
+            {p === "anthropic" ? englishCopy.anthropic : englishCopy.openAI}
           </button>
         ))}
       </div>

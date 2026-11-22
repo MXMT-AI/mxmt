@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, ChevronDown, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button/button";
+import { agentsDebugSectionMessages as englishCopy } from "@/messages/en.json";
+import { agentsDebugSectionMessages as ukrainianCopy } from "@/messages/uk.json";
 
 type CopyStatus = "idle" | "copied" | "failed";
 
@@ -37,17 +39,17 @@ function CopyButton({ text }: { text: string }) {
     <>
       <Button
         onClick={handleCopy}
-        aria-label="Копіювати текст"
+        aria-label={ukrainianCopy.ariaLabelКопіюватиТекст}
         className="shrink-0 gap-1 rounded-sm px-2 py-0.5 text-[9px] text-(--subtle)"
       >
         {status === "copied"
           ? <Check size={9} className="text-accent-cyan" aria-hidden="true" />
           : <Copy size={9} aria-hidden="true" />}
-        {status === "idle" ? "copy" : status}
+        {status === "idle" ? englishCopy.copy : status}
       </Button>
       <span role="status" className="sr-only">
-        {status === "copied" && "Текст скопійовано."}
-        {status === "failed" && "Не вдалося скопіювати текст."}
+        {status === "copied" && ukrainianCopy.текстСкопійовано}
+        {status === "failed" && ukrainianCopy.неВдалосяСкопіюватиТекст}
       </span>
     </>
   );
@@ -69,7 +71,7 @@ export default function DebugSection({
       <summary className="flex w-full cursor-pointer list-none items-center justify-between gap-2 rounded-xl px-4 py-3 text-left transition-colors hover:bg-white/2 [&::-webkit-details-marker]:hidden">
         <span className="text-[10px] font-mono uppercase tracking-widest text-(--subtle)">{title}</span>
         <span className="flex shrink-0 items-center gap-2">
-          <span className="text-[9px] font-mono text-(--subtle)">{content.length} chars</span>
+          <span className="text-[9px] font-mono text-(--subtle)">{content.length}{englishCopy.chars}</span>
           <ChevronDown size={12} className="text-(--subtle) group-open/debug:rotate-180" aria-hidden="true" />
         </span>
       </summary>

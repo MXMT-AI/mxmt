@@ -8,6 +8,7 @@ import { Pager } from "@/components/ui/pager/pager";
 import { createTableValueFormatter } from "@/lib/data-reporting-ui";
 import type { SalesCopy } from "@/lib/sales-copy";
 import type { SalesCurrencyBlock, SalesHref } from "../sales-types";
+import { salesSalesChannelsSectionMessages as englishCopy } from "@/messages/en.json";
 
 type SalesChannelRow = SalesCurrencyBlock["channels"]["rows"][number];
 
@@ -21,7 +22,7 @@ export function SalesChannelsSection({ channels, copy, locale, href }: {
   return (
     <section className={panel}>
       <div className="p-5 space-y-2">
-        <Heading as="h3" variant="compact" className="text-base text-inherit">S2 · {copy.channels}</Heading>
+        <Heading as="h3" variant="compact" className="text-base text-inherit">{englishCopy.s2}{copy.channels}</Heading>
         <Note>{copy.channelScope}</Note>
       </div>
       <ReportTable

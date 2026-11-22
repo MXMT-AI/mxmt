@@ -15,6 +15,8 @@ import { AnalystFilterButtons, AnalystFilterCards } from "../analyst-filters/ana
 import { AnalystSkuTable } from "../analyst-sku-table/analyst-sku-table";
 import type { AnalystFilter } from "../sku-flags";
 import { useAnalystClassification } from "./use-analyst-classification";
+import { analystAnalystAppMessages as englishCopy } from "@/messages/en.json";
+import { analystAnalystAppMessages as ukrainianCopy } from "@/messages/uk.json";
 
 interface Props {
   initialSkus: ClassifiedSku[];
@@ -46,23 +48,23 @@ export default function AnalystApp({ initialSkus, initialSummary, businessModel,
       <header className="mb-6 flex items-center justify-between gap-3">
         <div>
           <Text variant="body" className="mb-1 font-mono text-[10px] tracking-widest text-(--subtle) uppercase">
-            {uk ? "Аналітика" : "Analytics"}
+            {uk ? ukrainianCopy.analytics : englishCopy.analytics}
           </Text>
           <Heading as="h1" variant="page" className="text-2xl tracking-normal">
-            {uk ? "Агент Аналітик" : "Analyst Agent"}
+            {uk ? ukrainianCopy.analystAgent : englishCopy.analystAgent}
           </Heading>
         </div>
         {(!empty || error) && (
           <Button onClick={() => void reload(activeFlag)} disabled={loading} className="px-3 py-2 font-sans text-sm">
             <RefreshCw size={13} className={loading ? "motion-safe:animate-spin" : undefined} aria-hidden="true" />
-            {uk ? "Оновити" : "Refresh"}
+            {uk ? ukrainianCopy.refresh : englishCopy.refresh}
           </Button>
         )}
       </header>
 
       {error && (
         <Note role="alert" className="mb-4 text-accent-danger">
-          {uk ? "Не вдалося оновити дані. Спробуйте ще раз." : "Could not refresh data. Please try again."}
+          {uk ? ukrainianCopy.couldNotRefreshDataPlease : englishCopy.couldNotRefreshDataPlease}
         </Note>
       )}
 
@@ -70,19 +72,19 @@ export default function AnalystApp({ initialSkus, initialSummary, businessModel,
         <section className="mt-8 rounded-xl border border-accent-yellow/20 bg-(--surface) p-8 text-center">
           <div className="mb-3 text-3xl" aria-hidden="true">📦</div>
           <Heading as="h2" variant="compact" className="mb-2 text-base">
-            {uk ? "Немає даних для аналізу" : "No data to analyze"}
+            {uk ? ukrainianCopy.noDataToAnalyze : englishCopy.noDataToAnalyze}
           </Heading>
           <Text variant="body" className="mb-4">
             {uk
-              ? "Імпортуйте товари та дані продажів щоб агент міг класифікувати асортимент"
-              : "Import products and sales data so the agent can classify your assortment"}
+              ? ukrainianCopy.importProductsAndSalesData
+              : englishCopy.importProductsAndSalesData}
           </Text>
           <ActionLink
             href="/settings"
             variant="secondary"
             className="min-h-0 rounded-lg border-accent-yellow/20 bg-accent-yellow/10 px-4 py-2 font-medium text-accent-yellow hover:border-accent-yellow/20 hover:bg-accent-yellow/20 hover:text-accent-yellow"
           >
-            {uk ? "Підключити дані →" : "Connect data →"}
+            {uk ? ukrainianCopy.connectData : englishCopy.connectData}
           </ActionLink>
         </section>
       ) : (

@@ -9,16 +9,17 @@ import { panel } from "@/components/ui/panel/panel-styles";
 import { DEFAULT_AGENT_PROVIDER, type AgentProvider } from "@/lib/client/agent-providers";
 import type { Lang } from "@/lib/translations";
 import { aiProviderCopy } from "./copy";
+import { settingsAiProviderCardMessages as englishCopy } from "@/messages/en.json";
 
 const PROVIDERS: { id: AgentProvider; name: string; model: string }[] = [
   {
     id: "anthropic",
-    name: "Claude",
+    name: englishCopy.nameClaude,
     model: "claude-sonnet-4-6",
   },
   {
     id: "openai",
-    name: "OpenAI",
+    name: englishCopy.nameOpenAI,
     model: "gpt-4o",
   },
 ];

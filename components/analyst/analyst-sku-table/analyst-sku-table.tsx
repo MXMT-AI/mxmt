@@ -7,14 +7,16 @@ import type { ClassifiedSku } from "@/lib/analyst-types";
 import { cn } from "@/lib/utils";
 
 import { SKU_FLAGS } from "../sku-flags";
+import { analystAnalystSkuTableMessages as englishCopy } from "@/messages/en.json";
+import { analystAnalystSkuTableMessages as ukrainianCopy } from "@/messages/uk.json";
 
 const columns = [
-  { uk: "Артикул / Назва", en: "SKU / Name", className: "px-4 text-left" },
-  { uk: "Бренд / Категорія", en: "Brand / Category", className: "hidden text-left md:table-cell" },
-  { uk: "Залишок", en: "Stock", className: "text-right" },
-  { uk: "Продажі 7д / 30д", en: "Sales 7d / 30d", className: "hidden text-right lg:table-cell" },
-  { uk: "Днів запасу", en: "Days of stock", className: "hidden text-right lg:table-cell" },
-  { uk: "Статус", en: "Status", className: "text-center" },
+  { uk: ukrainianCopy.enSKUName, en: englishCopy.enSKUName, className: "px-4 text-left" },
+  { uk: ukrainianCopy.enBrandCategory, en: englishCopy.enBrandCategory, className: "hidden text-left md:table-cell" },
+  { uk: ukrainianCopy.enStock, en: englishCopy.enStock, className: "text-right" },
+  { uk: ukrainianCopy.enSales7d30d, en: englishCopy.enSales7d30d, className: "hidden text-right lg:table-cell" },
+  { uk: ukrainianCopy.enDaysOfStock, en: englishCopy.enDaysOfStock, className: "hidden text-right lg:table-cell" },
+  { uk: ukrainianCopy.enStatus, en: englishCopy.enStatus, className: "text-center" },
 ];
 
 const pageSizes = [20, 50, 100];
@@ -41,7 +43,7 @@ export function AnalystSkuTable({ skus, locale, page, onPageChange, filters }: {
     <>
       <div className="mb-4 flex flex-wrap items-center gap-2">
         {filters}
-        <Field label={uk ? "На сторінці:" : "Per page:"} className="ml-auto flex-row items-center gap-2 text-(--subtle)">
+        <Field label={uk ? ukrainianCopy.labelPerPage : englishCopy.labelPerPage} className="ml-auto flex-row items-center gap-2 text-(--subtle)">
           <select
             value={pageSize}
             onChange={(event) => {
@@ -79,7 +81,7 @@ export function AnalystSkuTable({ skus, locale, page, onPageChange, filters }: {
                 </td>
                 <td className="px-3 py-3 text-right">
                   <span className="text-(--text) font-mono">{sku.stock}</span>
-                  <span className="text-(--subtle) text-[10px] ml-1">{uk ? "шт" : "pcs"}</span>
+                  <span className="text-(--subtle) text-[10px] ml-1">{uk ? ukrainianCopy.pcs : englishCopy.pcs}</span>
                 </td>
                 <td className="px-3 py-3 text-right hidden lg:table-cell">
                   <span className="text-(--text) font-mono">{sku.sold7}</span>
@@ -101,7 +103,7 @@ export function AnalystSkuTable({ skus, locale, page, onPageChange, filters }: {
             {pagedSkus.length === 0 && (
               <tr>
                 <td colSpan={columns.length} className="text-center text-(--subtle) py-8 text-sm">
-                  {uk ? "Немає товарів для відображення" : "No items to display"}
+                  {uk ? ukrainianCopy.noItemsToDisplay : englishCopy.noItemsToDisplay}
                 </td>
               </tr>
             )}
@@ -110,21 +112,21 @@ export function AnalystSkuTable({ skus, locale, page, onPageChange, filters }: {
       </div>
 
       {totalPages > 1 && (
-        <nav aria-label={uk ? "Сторінки таблиці SKU" : "SKU table pages"} className="mb-8 flex flex-wrap items-center justify-between gap-2">
+        <nav aria-label={uk ? ukrainianCopy.ariaLabelSKUTablePages : englishCopy.ariaLabelSKUTablePages} className="mb-8 flex flex-wrap items-center justify-between gap-2">
           <span className="font-mono text-xs text-(--subtle)">
-            {offset + 1}–{Math.min(offset + pageSize, skus.length)} {uk ? "з" : "of"} {skus.length}
+            {offset + 1}–{Math.min(offset + pageSize, skus.length)} {uk ? ukrainianCopy.of : englishCopy.of} {skus.length}
           </span>
           <div className="flex flex-wrap items-center gap-1">
             <Button
               onClick={() => onPageChange(1)}
               disabled={currentPage === 1}
-              aria-label={uk ? "Перша сторінка" : "First page"}
+              aria-label={uk ? ukrainianCopy.ariaLabelFirstPage : englishCopy.ariaLabelFirstPage}
               className={edgeButtonClassName}
             >
               «
             </Button>
             <Button onClick={() => onPageChange(currentPage - 1)} disabled={currentPage === 1} className={pageButtonClassName}>
-              {uk ? "← Назад" : "← Prev"}
+              {uk ? ukrainianCopy.prev : englishCopy.prev}
             </Button>
             {Array.from({ length: pageCount }, (_, index) => {
               const number = firstPage + index;
@@ -144,12 +146,12 @@ export function AnalystSkuTable({ skus, locale, page, onPageChange, filters }: {
               );
             })}
             <Button onClick={() => onPageChange(currentPage + 1)} disabled={currentPage === totalPages} className={pageButtonClassName}>
-              {uk ? "Далі →" : "Next →"}
+              {uk ? ukrainianCopy.next : englishCopy.next}
             </Button>
             <Button
               onClick={() => onPageChange(totalPages)}
               disabled={currentPage === totalPages}
-              aria-label={uk ? "Остання сторінка" : "Last page"}
+              aria-label={uk ? ukrainianCopy.ariaLabelLastPage : englishCopy.ariaLabelLastPage}
               className={edgeButtonClassName}
             >
               »

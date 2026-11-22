@@ -10,6 +10,8 @@ import { useImportProgress, isImportRunning } from "./use-import-progress";
 
 import { ImportSyncProgress } from "../import-sync-progress/import-sync-progress";
 import { ImportJobDetails } from "../import-job-details/import-job-details";
+import { settingsSalesDriveImportCardMessages as englishCopy } from "@/messages/en.json";
+import { settingsSalesDriveImportCardMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export default function SalesDriveImportCard({
   lang,
@@ -42,49 +44,49 @@ export default function SalesDriveImportCard({
       <Heading as="h2" variant="compact" id={headingId} className="text-base">
         {sync
           ? uk
-            ? generic?"Синхронізація даних":"Синхронізація SalesDrive"
-            : generic?"Data synchronization":"SalesDrive synchronization"
+            ? generic?ukrainianCopy.синхронізаціяДаних:ukrainianCopy.синхронізаціяSalesDrive
+            : generic?englishCopy.dataSynchronization:englishCopy.salesDriveSynchronization
           : inventory
             ? uk
-              ? generic?"Каталог і залишки":"Каталог і залишки SalesDrive"
-              : generic?"Catalogue and stock":"SalesDrive catalogue and stock"
+              ? generic?ukrainianCopy.каталогІЗалишки:ukrainianCopy.каталогІЗалишкиSalesDrive
+              : generic?englishCopy.catalogueAndStock:englishCopy.salesDriveCatalogueAndStock
             : uk
-              ? generic?"Історія замовлень":"Історія замовлень SalesDrive"
-              : generic?"Order history":"SalesDrive order history"}
+              ? generic?ukrainianCopy.історіяЗамовлень:ukrainianCopy.історіяЗамовленьSalesDrive
+              : generic?englishCopy.orderHistory:englishCopy.salesDriveOrderHistory}
       </Heading>
       <Text variant="body" className="leading-normal mt-1 text-sm text-(--muted)">
         {sync
           ? uk
-            ? "Замовлення — кожні дві години. Залишки — о 03:00 за Києвом. Автоматичні оновлення потребують підключеного зовнішнього планувальника."
-            : "Orders every two hours; stock at 03:00 Kyiv. Automatic updates require a connected external scheduler."
+            ? ukrainianCopy.ordersEveryTwoHoursStock
+            : englishCopy.ordersEveryTwoHoursStock
           : inventory
             ? uk
-              ? "Надходження, каталог і поточні залишки. Історія залишків починається з першого спостереження."
-              : "Receipts, catalogue and current stock. Stock history starts with the first observation."
+              ? ukrainianCopy.receiptsCatalogueAndCurrentStock
+              : englishCopy.receiptsCatalogueAndCurrentStock
             : uk
-              ? "Історія за два роки, потім — оновлені замовлення. Імпорт зберігає прогрес між запусками."
-              : "Two years of history, then updated orders. Progress is saved between runs."}
+              ? ukrainianCopy.twoYearsOfHistoryThen
+              : englishCopy.twoYearsOfHistoryThen}
       </Text>
       <Text variant="body" className="leading-normal mt-3 text-sm text-(--text)" role="status">
         {!loaded
           ? uk
-            ? "Завантаження…"
-            : "Loading…"
+            ? ukrainianCopy.loading
+            : englishCopy.loading
           : job
             ? (labels[job.state] ?? job.state)
             : uk
-              ? "Імпорт ще не запускався."
-              : "No import has been started."}
+              ? ukrainianCopy.noImportHasBeenStarted
+              : englishCopy.noImportHasBeenStarted}
       </Text>
       {job && <ImportJobDetails job={job} resource={resource} lang={lang} generic={generic} />}
       {sync && <ImportSyncProgress job={job} syncInfo={syncInfo} lang={lang} generic={generic} />}
       {inventory && coverage && (
         <Text variant="body" className="leading-normal mt-3 text-sm text-(--muted)">
           {coverage.firstObservedAt
-            ? `${uk ? "Перше спостереження" : "First observation"}: ${new Date(coverage.firstObservedAt).toLocaleString(uk ? "uk-UA" : "en-GB")}. ${uk ? "Днів зі знімками" : "Days with snapshots"}: ${coverage.observedDays}. ${uk ? "Пропущених днів" : "Missing days"}: ${coverage.missingDays ?? 0}. ${uk ? "Раніша історія недоступна." : "Earlier history is unavailable."}`
+            ? `${uk ? ukrainianCopy.firstObservation : englishCopy.firstObservation}: ${new Date(coverage.firstObservedAt).toLocaleString(uk ? "uk-UA" : "en-GB")}. ${uk ? ukrainianCopy.daysWithSnapshots : englishCopy.daysWithSnapshots}: ${coverage.observedDays}. ${uk ? ukrainianCopy.missingDays : englishCopy.missingDays}: ${coverage.missingDays ?? 0}. ${uk ? ukrainianCopy.earlierHistoryIsUnavailable : englishCopy.earlierHistoryIsUnavailable}`
             : uk
-              ? "Історії залишків ще немає. Перший успішний імпорт створить поточний знімок."
-              : "No stock history yet. The first successful import creates a current snapshot."}
+              ? ukrainianCopy.noStockHistoryYetThe
+              : englishCopy.noStockHistoryYetThe}
         </Text>
       )}
       {error && (
@@ -115,15 +117,15 @@ export default function SalesDriveImportCard({
             >
               {sync
                 ? uk
-                  ? "Оновити дані"
-                  : "Refresh data"
+                  ? ukrainianCopy.refreshData
+                  : englishCopy.refreshData
                 : inventory
                   ? uk
-                    ? "Оновити каталог і залишки"
-                    : "Refresh catalogue and stock"
+                    ? ukrainianCopy.refreshCatalogueAndStock
+                    : englishCopy.refreshCatalogueAndStock
                   : uk
-                    ? "Імпортувати два роки"
-                    : "Import two years"}
+                    ? ukrainianCopy.importTwoYears
+                    : englishCopy.importTwoYears}
             </Button>
             {!inventory && !sync && (
               <Button variant="report"
@@ -131,7 +133,7 @@ export default function SalesDriveImportCard({
                 disabled={!loaded || busy || !job || job.state !== "COMPLETE"}
                 onClick={() => act("incremental")}
               >
-                {uk ? "Імпортувати зміни" : "Import changes"}
+                {uk ? ukrainianCopy.importChanges : englishCopy.importChanges}
               </Button>
             )}
             {job && ["PAUSED", "FAILED"].includes(job.state) && (
@@ -140,7 +142,7 @@ export default function SalesDriveImportCard({
                 disabled={busy}
                 onClick={() => act("resume")}
               >
-                {uk ? "Відновити" : "Resume"}
+                {uk ? ukrainianCopy.resume : englishCopy.resume}
               </Button>
             )}
             {sync &&
@@ -152,8 +154,8 @@ export default function SalesDriveImportCard({
                   onClick={() => act("resumeBackfill")}
                 >
                   {uk
-                    ? "Відновити історичний імпорт"
-                    : "Resume historical import"}
+                    ? ukrainianCopy.resumeHistoricalImport
+                    : englishCopy.resumeHistoricalImport}
                 </Button>
               )}
             {polling && (
@@ -162,7 +164,7 @@ export default function SalesDriveImportCard({
                 disabled={busy || (!sync && job?.state === "RUNNING")}
                 onClick={() => act("step")}
               >
-                {uk ? "Обробити наступну сторінку" : "Process next page"}
+                {uk ? ukrainianCopy.processNextPage : englishCopy.processNextPage}
               </Button>
             )}
           </>
@@ -175,13 +177,13 @@ export default function SalesDriveImportCard({
             load().catch(() =>
               setError(
                 uk
-                  ? "Не вдалося оновити прогрес."
-                  : "Could not refresh progress.",
+                  ? ukrainianCopy.couldNotRefreshProgress
+                  : englishCopy.couldNotRefreshProgress,
               ),
             );
           }}
         >
-          {uk ? "Оновити прогрес" : "Refresh progress"}
+          {uk ? ukrainianCopy.refreshProgress : englishCopy.refreshProgress}
         </Button>
       </div>
     </section>

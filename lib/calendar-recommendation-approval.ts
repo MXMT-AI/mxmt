@@ -1,3 +1,6 @@
+import { calendarRecommendationApprovalMessages as englishCopy } from "@/messages/en.json";
+import { calendarRecommendationApprovalMessages as ukrainianCopy } from "@/messages/uk.json";
+
 export const RECOMMENDATION_CHANNELS = ["smm", "email", "ads", "store", "marketplace", "general", "website"] as const;
 
 export type RecommendationChannel = (typeof RECOMMENDATION_CHANNELS)[number];
@@ -21,12 +24,12 @@ export type RecommendationCalendarEvent = {
 
 const CHANNEL_CONFIG: Record<RecommendationChannel, { rowKey: string; type: string; label: string }> = {
   smm: { rowKey: "smm1", type: "agent", label: "SMM" },
-  email: { rowKey: "comm", type: "agent", label: "Email" },
-  ads: { rowKey: "ads1", type: "promo", label: "Реклама" },
-  store: { rowKey: "promo", type: "promo", label: "Магазин" },
-  marketplace: { rowKey: "focus", type: "agent", label: "Маркетплейс" },
-  general: { rowKey: "focus", type: "agent", label: "Загальний план" },
-  website: { rowKey: "ban1", type: "agent", label: "Сайт" },
+  email: { rowKey: "comm", type: "agent", label: englishCopy.labelEmail },
+  ads: { rowKey: "ads1", type: "promo", label: ukrainianCopy.labelРеклама },
+  store: { rowKey: "promo", type: "promo", label: ukrainianCopy.labelМагазин },
+  marketplace: { rowKey: "focus", type: "agent", label: ukrainianCopy.labelМаркетплейс },
+  general: { rowKey: "focus", type: "agent", label: ukrainianCopy.labelЗагальнийПлан },
+  website: { rowKey: "ban1", type: "agent", label: ukrainianCopy.labelСайт },
 };
 
 export function isRecommendationChannel(value: unknown): value is RecommendationChannel {

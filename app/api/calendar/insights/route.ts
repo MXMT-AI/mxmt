@@ -3,7 +3,8 @@ import { prisma } from "@/lib/prisma";
 import type { SkuFlag } from "@/lib/analyst-types";
 import { LEGACY_CLASSIFICATION_FILTER, classify, getThresholds, snapshotStock, canClassifyProduct } from "@/lib/classify";
 import { requireApiUser } from "@/lib/server-auth";
-
+import { formatMessage } from "@/i18n/format-message";
+import { apiCalendarInsightsRouteMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export interface CalendarInsight {
   type: "warn" | "agent" | "stock";
@@ -103,10 +104,10 @@ export async function GET() {
     insights.push({
       type: "warn",
       brand,
-      week: weeksLeft <= 1 ? "Цей тиждень" : `~${weeksLeft} тижні`,
-      title: `${brand} — лише ${r.daysOfStock} днів залишку`,
-      desc: `При поточних продажах ${r.avgDaily30} шт/день товар закінчиться через ${r.daysOfStock} днів. Зупиніть рекламу або терміново замовте поповнення.`,
-      impact: `Ризик: втрата продажів ~${Math.round(r.avgDaily30 * 14)} шт за 2 тижні без поповнення`,
+      week: weeksLeft <= 1 ? ukrainianCopy.weekЦейТиждень : formatMessage(ukrainianCopy.weekТижні, { weeksLeft }),
+      title: formatMessage(ukrainianCopy.titleЛишеДнівЗалишку, { brand, daysOfStock: r.daysOfStock }),
+      desc: formatMessage(ukrainianCopy.descПриПоточнихПродажахШтДеньТовар, { avgDaily30: r.avgDaily30, daysOfStock: r.daysOfStock }),
+      impact: formatMessage(ukrainianCopy.impactРизикВтратаПродажівШт, { value1: Math.round(r.avgDaily30 * 14) }),
       weekKey: `w${targetWeek}`,
       rowKey: "supply",
     });
@@ -123,10 +124,10 @@ export async function GET() {
     insights.push({
       type: "agent",
       brand,
-      week: "Зараз",
-      title: `${brand} росте +${growth}% за тиждень — збільшуй рекламу`,
-      desc: `Продажі за 7 днів: ${r.sold7} шт (середній денний +${growth}% vs місяць). Запас ${r.daysOfStock} днів — є куди рости.`,
-      impact: `Рекомендація: збільш Ads бюджет на ${brand} на 50–100% поки є попит`,
+      week: ukrainianCopy.weekЗараз,
+      title: formatMessage(ukrainianCopy.titleРостеЗаТиждень, { brand, growth }),
+      desc: formatMessage(ukrainianCopy.descПродажіЗа7ДнівШт, { sold7: r.sold7, growth, daysOfStock: r.daysOfStock }),
+      impact: formatMessage(ukrainianCopy.impactРекомендаціяЗбільшAdsБюджетНа, { brand }),
       weekKey: `w${baseWeek}`,
       rowKey: "accent",
     });
@@ -142,10 +143,10 @@ export async function GET() {
     insights.push({
       type: "stock",
       brand,
-      week: "Невідкладно",
-      title: `${brand} — ${r.stock} шт заморожено без продажів`,
-      desc: `За останні 30 днів — 0 продажів. Потрібна кампанія знижок або вивіз з вітрини.`,
-      impact: `Flash-sale -20–30% звільнить капітал та місце для нового товару`,
+      week: ukrainianCopy.weekНевідкладно,
+      title: formatMessage(ukrainianCopy.titleШтЗамороженоБезПродажів, { brand, stock: r.stock }),
+      desc: ukrainianCopy.descЗаОстанні30Днів,
+      impact: ukrainianCopy.impactFlashSale2030ЗвільнитьКапіталТа,
       weekKey: `w${baseWeek}`,
       rowKey: "promo",
     });

@@ -4,6 +4,8 @@ import { useState } from "react";
 import type { Lang } from "@/lib/translations";
 import { Button } from "@/components/ui/button/button";
 import { Dialog } from "@/components/ui/dialog/dialog";
+import { merchandisingScenarioDraftTransferMessages as englishCopy } from "@/messages/en.json";
+import { merchandisingScenarioDraftTransferMessages as ukrainianCopy } from "@/messages/uk.json";
 
 type ScenarioVersion = { snapshotId: string; asOf?: string };
 
@@ -24,15 +26,15 @@ export function ScenarioDraftTransfer({ lang, onTransfer }: {
 }) {
   const [open, setOpen] = useState(true);
   const uk = lang === "uk";
-  const title = uk ? "Перенести правки до нового зрізу?" : "Transfer edits to the new snapshot?";
-  const keep = uk ? "Залишити попередній зріз" : "Keep previous snapshot";
-  const transfer = uk ? "Перенести правки" : "Transfer edits";
+  const title = uk ? ukrainianCopy.titleTransferEditsToTheNew : englishCopy.titleTransferEditsToTheNew;
+  const keep = uk ? ukrainianCopy.keep : englishCopy.keep;
+  const transfer = uk ? ukrainianCopy.transfer : englishCopy.transfer;
 
   return (
     <>
       <div className="flex flex-wrap items-center gap-3">
         <p className="text-sm" role="status">
-          {uk ? "Чернетка відкрита на попередньому зрізі." : "The draft is open on the previous snapshot."}
+          {uk ? ukrainianCopy.theDraftIsOpenOn : englishCopy.theDraftIsOpenOn}
         </p>
         <Button variant="report" onClick={() => setOpen(true)}>{transfer}</Button>
       </div>
@@ -46,8 +48,8 @@ export function ScenarioDraftTransfer({ lang, onTransfer }: {
           <div className="space-y-4 p-6">
             <p>
               {uk
-                ? "Після перенесення система перевірить ці правки за даними нового зрізу."
-                : "After transfer, the system checks these edits against the new snapshot."}
+                ? ukrainianCopy.afterTransferTheSystemChecks
+                : englishCopy.afterTransferTheSystemChecks}
             </p>
             <div className="flex flex-wrap justify-end gap-2">
               <Button variant="report" onClick={() => setOpen(false)}>{keep}</Button>

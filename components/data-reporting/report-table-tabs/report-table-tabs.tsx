@@ -2,13 +2,14 @@ import type { KeyboardEvent } from "react";
 import { Button } from "@/components/ui/button/button";
 import { DATA_TABLE_KEYS, type DataTableKey } from "@/lib/data-table-preferences";
 import { cn } from "@/lib/utils";
+import { dataReportingReportTableTabsMessages as englishCopy } from "@/messages/en.json";
 
 const labels = {
-  product_yml: "Product YML 2.0",
+  product_yml: englishCopy.productYml,
   zavod_api: "ZAVOD_API",
-  article_report: "ARTICLE REPORT",
-  by_brand: "BY BRAND",
-  by_category: "BY CATEGORY",
+  article_report: englishCopy.articleReport,
+  by_brand: englishCopy.byBrand,
+  by_category: englishCopy.byCategory,
 } satisfies Record<DataTableKey, string>;
 
 export const reportTablePanelId = "data-table-panel";

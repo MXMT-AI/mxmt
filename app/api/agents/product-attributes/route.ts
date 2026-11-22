@@ -10,6 +10,8 @@ import { buildAttributeAnalysis } from "@/lib/attribute-analysis";
 import { analyzeProductAttributes } from "@/lib/product-attribute-report";
 import { productAttributeApiError } from "@/lib/product-attribute-api";
 import { apiError } from "@/lib/api-contracts";
+import { apiAgentsProductAttributesRouteMessages as englishCopy } from "@/messages/en.json";
+import { apiAgentsProductAttributesRouteMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export const runtime = "nodejs";
 export const maxDuration = 180;
@@ -58,7 +60,7 @@ export async function POST(req: NextRequest) {
     try{return NextResponse.json(await analyzeProductAttributes({tenantId,userId:user.userId},body),{headers:{"Cache-Control":"private, no-store"}});}
     catch(error){return productAttributeApiError(error);}
   }
-  if(body?.mode!==undefined)return apiError("Unsupported attribute mode",400,"INVALID_ATTRIBUTE_REPORT");
+  if(body?.mode!==undefined)return apiError(englishCopy.unsupportedAttributeMode,400,"INVALID_ATTRIBUTE_REPORT");
   const providerOverride: string | undefined = body.provider ?? undefined;
   const asOf: Date | undefined = body.asOf ? new Date(body.asOf) : undefined;
   const dateFrom: Date | undefined = body.dateFrom ? new Date(body.dateFrom) : undefined;
@@ -78,7 +80,7 @@ export async function POST(req: NextRequest) {
         where: { id: run.id },
         data: {
           status: "done",
-          output: { by_category: [], message: "Нет данных по категориям в активном импорте новой базы." },
+          output: { by_category: [], message: ukrainianCopy.messageНетДанныхПоКатегориямВ },
           finishedAt: new Date(),
         },
       });

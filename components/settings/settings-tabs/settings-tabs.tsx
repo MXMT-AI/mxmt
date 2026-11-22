@@ -5,11 +5,13 @@ import { SectionHeader } from "@/components/ui/section-header/section-header";
 import { useEffect, useState } from "react";
 import MerchandisingSettingsCard from "../merchandising-settings-card/merchandising-settings-card";
 import AgentProvidersCard from "../agent-providers-card/agent-providers-card";
+import { settingsSettingsTabsMessages as englishCopy } from "@/messages/en.json";
+import { settingsSettingsTabsMessages as ukrainianCopy } from "@/messages/uk.json";
 
 const tabs = [
-  { id: "general", uk: "Загальне", en: "General" },
-  { id: "merchandising", uk: "Мерчандайзинг", en: "Merchandising" },
-  { id: "agents", uk: "Агенти", en: "Agents" },
+  { id: "general", uk: ukrainianCopy.enGeneral, en: englishCopy.enGeneral },
+  { id: "merchandising", uk: ukrainianCopy.enMerchandising, en: englishCopy.enMerchandising },
+  { id: "agents", uk: ukrainianCopy.enAgents, en: englishCopy.enAgents },
 ] as const;
 type Tab = typeof tabs[number]["id"];
 
@@ -41,7 +43,7 @@ export default function SettingsTabs({
     if (
       merchDirty &&
       !window.confirm(
-        uk ? "Відкинути незбережені зміни?" : "Discard unsaved changes?",
+        uk ? ukrainianCopy.discardUnsavedChanges : englishCopy.discardUnsavedChanges,
       )
     )
       return;
@@ -54,7 +56,7 @@ export default function SettingsTabs({
 
   return (
     <div>
-      <nav aria-label={uk ? "Розділи налаштувань" : "Settings sections"} className="flex flex-wrap items-center gap-1 border-b border-(--border) mb-8">
+      <nav aria-label={uk ? ukrainianCopy.ariaLabelSettingsSections : englishCopy.ariaLabelSettingsSections} className="flex flex-wrap items-center gap-1 border-b border-(--border) mb-8">
         {tabs.map((t) => (
           <Button variant="report"
             key={t.id}
@@ -88,8 +90,8 @@ export default function SettingsTabs({
         <div>
           <SectionHeader
             className="mb-6 [&_h2]:mb-1"
-            title={uk ? "Провайдер для кожного агента" : "Provider per agent"}
-            description={uk ? "Виберіть AI провайдера для кожного агента окремо" : "Choose AI provider for each agent individually"}
+            title={uk ? ukrainianCopy.titleProviderPerAgent : englishCopy.titleProviderPerAgent}
+            description={uk ? ukrainianCopy.descriptionChooseAIProviderForEach : englishCopy.descriptionChooseAIProviderForEach}
           />
           <AgentProvidersCard />
         </div>

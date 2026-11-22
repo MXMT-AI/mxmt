@@ -6,14 +6,15 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button/button";
 import type { PlannerSection } from "../planner-types";
+import { plannerPlannerToolbarMessages as ukrainianCopy } from "@/messages/uk.json";
 
 const tabs = [
-  { id: "dashboard", label: "Огляд", icon: LayoutDashboard },
-  { id: "catalog", label: "Каталог", icon: Package },
-  { id: "duplicates", label: "Дублі", icon: GitCompare },
-  { id: "cart", label: "Замовлення", icon: ShoppingCart },
+  { id: "dashboard", label: ukrainianCopy.labelОгляд, icon: LayoutDashboard },
+  { id: "catalog", label: ukrainianCopy.labelКаталог, icon: Package },
+  { id: "duplicates", label: ukrainianCopy.labelДублі, icon: GitCompare },
+  { id: "cart", label: ukrainianCopy.labelЗамовлення, icon: ShoppingCart },
   { id: "ai", label: "AI", icon: Sparkles },
-  { id: "brands", label: "Бренди", icon: Building2 },
+  { id: "brands", label: ukrainianCopy.labelБренди, icon: Building2 },
 ] satisfies Array<{ id: PlannerSection; label: string; icon: LucideIcon }>;
 
 const actionClassName = "min-h-0 gap-2 px-3 py-1.5 font-medium";
@@ -38,7 +39,7 @@ export function PlannerToolbar({
 }) {
   return (
     <div className="bg-(--surface) border-b border-(--border) px-6 flex items-center justify-between h-13 shrink-0">
-      <nav aria-label="Розділи планувальника" className="flex items-center gap-1">
+      <nav aria-label={ukrainianCopy.ariaLabelРозділиПланувальника} className="flex items-center gap-1">
         {tabs.map(({ id, label, icon: Icon }) => (
           <Button
             key={id}
@@ -64,23 +65,21 @@ export function PlannerToolbar({
         </div>
         {section === "catalog" ? (
           <Button variant="report" tone="positive" onClick={onUpload} className={actionClassName}>
-            <Upload size={13} aria-hidden="true" /> Завантажити
-          </Button>
+            <Upload size={13} aria-hidden="true" />{ukrainianCopy.завантажити}</Button>
         ) : null}
         {section === "duplicates" ? (
           <Button variant="report" onClick={onScan} disabled={loading} className="min-h-0 gap-2 px-3 py-1.5 bg-white/4 text-(--text) font-medium hover:bg-white/8">
-            <Search size={13} aria-hidden="true" /> {loading ? "Скануємо…" : "Сканувати"}
+            <Search size={13} aria-hidden="true" /> {loading ? ukrainianCopy.скануємо : ukrainianCopy.сканувати}
           </Button>
         ) : null}
         {section === "cart" && hasCartItems ? (
           <Button variant="report" tone="accent" onClick={onExport} disabled={exporting} className={actionClassName}>
-            <Download size={13} aria-hidden="true" /> {exporting ? "Готуємо Excel…" : "Експорт ЗП"}
+            <Download size={13} aria-hidden="true" /> {exporting ? ukrainianCopy.готуємоExcel : ukrainianCopy.експортЗП}
           </Button>
         ) : null}
         {section === "brands" ? (
           <Button variant="report" tone="positive" onClick={onAddBrand} className={actionClassName}>
-            <Plus size={13} aria-hidden="true" /> Додати бренд
-          </Button>
+            <Plus size={13} aria-hidden="true" />{ukrainianCopy.додатиБренд}</Button>
         ) : null}
       </div>
     </div>

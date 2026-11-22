@@ -37,6 +37,8 @@ import { useCsvUploads } from "./use-csv-uploads";
 import { useCsvImportPolling } from "./use-csv-import-polling";
 import { CsvRecentUploads } from "../csv-recent-uploads/csv-recent-uploads";
 import { CsvPreviewPanel } from "../csv-preview-panel/csv-preview-panel";
+import { settingsCsvImportCardMessages as englishCopy } from "@/messages/en.json";
+import { settingsCsvImportCardMessages as ukrainianCopy } from "@/messages/uk.json";
 
 const initialOptions: CsvOptions = {
   schemaVersion: 1,
@@ -49,7 +51,7 @@ const initialOptions: CsvOptions = {
   discountUnit: "amount",
   policy: {
     statuses: { "5": "SALE", "7": "RETURN" },
-    channels: { "1": "Shop" },
+    channels: { "1": englishCopy["1Shop"] },
     amounts: {
       price: "gross_unit",
       absoluteDiscount: "line",
@@ -77,7 +79,7 @@ export default function CsvImportCard({
       { code: "5", kind: "SALE" },
       { code: "7", kind: "RETURN" },
     ]),
-    [channelRows, setChannelRows] = useState([{ code: "1", name: "Shop" }]);
+    [channelRows, setChannelRows] = useState([{ code: "1", name: englishCopy["1Shop"] }]);
   const [receiptRules, setReceiptRules] = useState<CsvReceiptRuleValues>({
     postedStatus: "", supplierCode: "", supplierId: "", costVerified: false,
   });
@@ -91,15 +93,15 @@ export default function CsvImportCard({
   };
   const failure = (e: unknown, resource?: CsvResource) => {
     if (resource && e instanceof CsvError) {
-      setMessage(`${names[lang][resource]}: ${copy("рядок", "row")} ${e.row || 1} — ${e.code}`);
+      setMessage(`${names[lang][resource]}: ${copy(ukrainianCopy.row, englishCopy.row)} ${e.row || 1} — ${e.code}`);
       return;
     }
     const code = e instanceof Error ? e.message : "CSV_OPERATION_FAILED";
     setMessage(
       errorCopy[code]?.[uk ? 0 : 1] ??
         copy(
-          "Операцію не завершено. Перевірте файли та повторіть спробу. Код: ",
-          "Operation failed. Check the files and retry. Code: ",
+          ukrainianCopy.operationFailedCheckTheFiles,
+          englishCopy.operationFailedCheckTheFiles,
         ) + code,
     );
   };
@@ -122,7 +124,7 @@ export default function CsvImportCard({
     }
   }, []);
   const onUploadsError = useCallback(() => {
-    setMessage(uk ? "Не вдалося завантажити CSV-імпорти." : "Could not load CSV imports.");
+    setMessage(uk ? ukrainianCopy.couldNotLoadCSVImports : englishCopy.couldNotLoadCSVImports);
   }, [uk]);
   const { source, uploads, suppliers, reload: load } = useCsvUploads(canManage, {
     onLoaded: onUploadsLoaded,
@@ -142,7 +144,7 @@ export default function CsvImportCard({
       window.dispatchEvent(new Event("connector-inputs-changed"));
       await load();
     },
-    onError: () => setMessage(copy("Не вдалося оновити стан імпорту.", "Could not refresh import status.")),
+    onError: () => setMessage(copy(ukrainianCopy.couldNotRefreshImportStatus, englishCopy.couldNotRefreshImportStatus)),
   });
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -199,7 +201,7 @@ export default function CsvImportCard({
           >
             <fieldset disabled={busy} className="space-y-5">
               <legend className="sr-only">
-                {copy("Файли та правила імпорту", "Import files and rules")}
+                {copy(ukrainianCopy.importFilesAndRules, englishCopy.importFilesAndRules)}
               </legend>
               <CsvPacketSettings
                 value={{ timezone: options.timezone, currency: options.policy.amounts.currency, mappingRevision: options.mappingRevision }}
@@ -246,8 +248,8 @@ export default function CsvImportCard({
                 }}
               />
               <ChannelMappingFields
-                legend={uk ? "Канали продажів" : "Sales channels"}
-                nameLabel={uk ? "Назва каналу" : "Channel name"}
+                legend={uk ? ukrainianCopy.legendSalesChannels : englishCopy.legendSalesChannels}
+                nameLabel={uk ? ukrainianCopy.nameLabelChannelName : englishCopy.nameLabelChannelName}
                 rows={channelRows}
                 lang={lang}
                 onChange={rows => {

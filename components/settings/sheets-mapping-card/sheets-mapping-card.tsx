@@ -19,6 +19,8 @@ import {
   type SheetsMappingPreview,
 } from "@/lib/sheets-mapping-contract";
 import { useSheetsMappingData } from "./use-sheets-mapping-data";
+import { settingsSheetsMappingCardMessages as englishCopy } from "@/messages/en.json";
+import { settingsSheetsMappingCardMessages as ukrainianCopy } from "@/messages/uk.json";
 export default function SheetsMappingCard({
   lang,
   canManage,
@@ -93,16 +95,16 @@ export default function SheetsMappingCard({
     <section className={panel + " mb-10 p-5"}>
       <Heading as="h2" variant="compact" className="text-base">
         {uk
-          ? "Google Sheets · зіставлення даних"
-          : "Google Sheets · data mapping"}
+          ? ukrainianCopy.googleSheetsDataMapping
+          : englishCopy.googleSheetsDataMapping}
       </Heading>
       <Text variant="body" className="leading-normal text-base text-inherit mt-1 mb-4 text-sm text-(--muted)">
         {uk
-          ? "Перевірте поля й бізнес-правила на збереженому імпорті. Попередній перегляд і погодження не змінюють джерело звітів та не запускають розрахунки."
-          : "Review fields and business rules against a saved import. Preview and approval do not switch reporting source or calculate reports."}
+          ? ukrainianCopy.reviewFieldsAndBusinessRules
+          : englishCopy.reviewFieldsAndBusinessRules}
       </Text>
       <div className="flex flex-wrap items-end gap-3">
-        <Field label={uk ? "Збережена таблиця" : "Saved spreadsheet"}>
+        <Field label={uk ? ukrainianCopy.labelSavedSpreadsheet : englishCopy.labelSavedSpreadsheet}>
           <select
             className={control}
             value={sourceId}
@@ -110,7 +112,7 @@ export default function SheetsMappingCard({
             onChange={(e) => setSourceId(e.target.value)}
           >
             <option value="">
-              {uk ? "Виберіть таблицю" : "Select spreadsheet"}
+              {uk ? ukrainianCopy.selectSpreadsheet : englishCopy.selectSpreadsheet}
             </option>
             {sources.map((s) => (
               <option key={s.sourceId} value={s.sourceId}>
@@ -126,38 +128,38 @@ export default function SheetsMappingCard({
             disabled={busy || loading}
             onClick={() => setReload((n) => n + 1)}
           >
-            {uk ? "Завантажити знову" : "Reload mapping"}
+            {uk ? ukrainianCopy.reloadMapping : englishCopy.reloadMapping}
           </Button>
         ) : null}
       </div>
       {sourcesLoading ? (
         <Text variant="body" role="status" className="leading-normal text-base text-inherit mt-3 text-sm">
-          {uk ? "Завантажуємо таблиці…" : "Loading spreadsheets…"}
+          {uk ? ukrainianCopy.loadingSpreadsheets : englishCopy.loadingSpreadsheets}
         </Text>
       ) : !sources.length && !error ? (
         <Text variant="body" className="leading-normal text-base text-inherit mt-3 text-sm text-(--muted)">
           {uk
-            ? "Збережених таблиць ще немає. Спочатку імпортуйте Google Sheets у "
-            : "No saved spreadsheets yet. Import Google Sheets in "}
+            ? ukrainianCopy.noSavedSpreadsheetsYetImport
+            : englishCopy.noSavedSpreadsheetsYetImport}
           <Link className="underline" href="/data-reporting">
-            {uk ? "Дані та звіти" : "Data & Reports"}
+            {uk ? ukrainianCopy.dataReports : englishCopy.dataReports}
           </Link>
           .
         </Text>
       ) : null}
       {loading ? (
         <Text variant="body" role="status" className="leading-normal text-base text-inherit mt-3">
-          {uk ? "Завантажуємо поля…" : "Loading fields…"}
+          {uk ? ukrainianCopy.loadingFields : englishCopy.loadingFields}
         </Text>
       ) : null}
       {meta && draft ? (
         <fieldset disabled={busy || loading} className="mt-5 min-w-0 space-y-5">
           <legend className="text-sm text-(--muted)">
-            {uk ? "Імпорт" : "Import"}:{" "}
+            {uk ? ukrainianCopy.import : englishCopy.import}:{" "}
             {new Date(meta.input.importedAt).toLocaleString(
               uk ? "uk-UA" : "en-GB",
             )}{" "}
-            · {uk ? "Версія" : "Revision"} {meta.revision} ·{" "}
+            · {uk ? ukrainianCopy.revision : englishCopy.revision} {meta.revision} ·{" "}
             {meta.input.timezone}
           </legend>
           {(["products", "orders"] as const).map(resource => (
@@ -179,11 +181,11 @@ export default function SheetsMappingCard({
           >
             {busy
               ? uk
-                ? "Перевіряємо…"
-                : "Checking…"
+                ? ukrainianCopy.checking
+                : englishCopy.checking
               : uk
-                ? "Перевірити зіставлення"
-                : "Preview mapping"}
+                ? ukrainianCopy.previewMapping
+                : englishCopy.previewMapping}
           </Button>
         </fieldset>
       ) : null}

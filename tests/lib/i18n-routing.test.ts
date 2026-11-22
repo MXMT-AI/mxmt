@@ -5,8 +5,19 @@ import { proxy as middleware } from "@/proxy";
 import { getPathname } from "@/i18n/navigation";
 import { localizeHref } from "@/i18n/routing";
 import { safeReturnPath } from "@/i18n/redirect";
+import { formatMessage } from "@/i18n/format-message";
+import { getInterfaceMessages } from "@/i18n/interface-messages";
 import uk from "@/messages/uk.json";
 import en from "@/messages/en.json";
+
+function catalogPaths(catalog: Record<string, unknown>, prefix = ""): string[] {
+  return Object.entries(catalog).flatMap(([key, value]) => {
+    const path = prefix ? `${prefix}.${key}` : key;
+    return value !== null && typeof value === "object"
+      ? catalogPaths(value as Record<string, unknown>, path)
+      : [path];
+  });
+}
 
 function request(path: string, cookie = "") {
   return new NextRequest(`https://mxmt.example${path}`, {
@@ -98,6 +109,16 @@ describe("localized destinations", () => {
     expect(safeReturnPath("/uk/sales?currency=EUR#row", "en")).toBe("/en/sales?currency=EUR#row");
   });
   it("has the same translation keys in both languages", () => {
-    expect(Object.keys(en).sort()).toEqual(Object.keys(uk).sort());
+    expect(catalogPaths(en).sort()).toEqual(catalogPaths(uk).sort());
+  });
+  it.each([en, uk])("forwards only shared interface messages to next-intl", catalog => {
+    const messages = getInterfaceMessages(catalog);
+    expect(messages.nav_documentation).toBe(catalog.nav_documentation);
+    expect(messages).not.toHaveProperty("landingCopy");
+    expect(Object.values(messages).every(value => typeof value === "string")).toBe(true);
+  });
+  it("formats catalog placeholders without interpreting the interpolated values", () => {
+    expect(formatMessage("{name}: {count} · {name}", { name: "{count}", count: 0 }))
+      .toBe("{count}: 0 · {count}");
   });
 });

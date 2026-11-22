@@ -1,6 +1,7 @@
 import {calculateSalesGroupedRows} from "./grouped-reports";
 import { prisma } from "@/lib/prisma";
 import { getActiveAgentImportRunId } from "@/lib/agent-data-source";
+import { channelMetricsMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export interface ChannelMetric {
   channel: string;
@@ -25,7 +26,7 @@ export interface ChannelMetrics {
   periodDays: number;
 }
 
-const UNKNOWN_CHANNEL = "Невідомий канал";
+const UNKNOWN_CHANNEL = ukrainianCopy.uNKNOWNCHANNELНевідомийКанал;
 
 function channelColumnKey(columns: unknown): string | null {
   if (!Array.isArray(columns)) return null;

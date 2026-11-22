@@ -13,6 +13,7 @@ import {
   type ReorderingOverride,
   type ReorderingSku,
 } from "./reordering-contract";
+import { reorderCalcMessages as englishApiMessages } from "@/messages/en.json";
 export class ReorderingError extends Error {
   constructor(
     readonly code: string,
@@ -92,7 +93,7 @@ export function parseReorderingRequest(value: unknown): ReorderingRequest {
       root.mode === undefined ? "shortage" : root.mode
     ) as ReorderingRequest["mode"];
   if (!["shortage", "brand", "all"].includes(mode))
-    issues.push("mode: expected shortage, brand or all");
+    issues.push(englishApiMessages.modeExpectedShortageBrandOrAll);
   const f = record(
       root.filters,
       ["brandId", "categoryId", "supplierId", "skuId", "currency"],
@@ -111,9 +112,9 @@ export function parseReorderingRequest(value: unknown): ReorderingRequest {
     filters.currency !== undefined &&
     !/^([A-Z]{3}|__unassigned__)$/.test(filters.currency)
   )
-    issues.push("filters.currency: invalid currency");
+    issues.push(englishApiMessages.filtersCurrencyInvalidCurrency);
   if (mode === "brand" && !filters.brandId)
-    issues.push("filters.brandId: required for brand mode");
+    issues.push(englishApiMessages.filtersBrandIdRequiredForBrandMode);
   const parameters = params(
     record(root.parameters, ["leadDays", "coverDays", "moq"], "parameters"),
     "parameters",
@@ -124,7 +125,7 @@ export function parseReorderingRequest(value: unknown): ReorderingRequest {
       !Array.isArray(root.overrides) ||
       root.overrides.length > REORDERING_INPUT_LIMIT
     )
-      issues.push("overrides: invalid or oversized list");
+      issues.push(englishApiMessages.overridesInvalidOrOversizedList);
     else
       overrides = root.overrides.map((entry, index) => {
         const path = `overrides.${index}`,
@@ -154,7 +155,7 @@ export function parseReorderingRequest(value: unknown): ReorderingRequest {
       });
   }
   if (new Set(overrides.map((r) => r.skuId)).size !== overrides.length)
-    issues.push("overrides: duplicate SKU identifiers");
+    issues.push(englishApiMessages.overridesDuplicateSKUIdentifiers);
   const page =
       root.page === undefined ? 1 : integer(root.page, 1, 100000, "page"),
     pageSize =

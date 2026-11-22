@@ -4,6 +4,7 @@ import { SHEETS_SOURCE_FILTER } from "@/lib/data-source";
 import { ARTICLE_CALCULATION_VERSION } from "@/lib/article-report";
 
 import type { DataTableKey } from "./data-table-preferences";
+import { dataTableApiMessages as englishCopy } from "@/messages/en.json";
 
 export { DATA_TABLE_KEYS, isDataTableKey, type DataTableKey } from "./data-table-preferences";
 
@@ -70,20 +71,20 @@ const ARTICLE_COLUMNS: DataColumnMetadata[] = [
   { key: "name", label: "Name", type: "text", defaultVisible: true },
   { key: "brand", label: "Brand", type: "text", defaultVisible: true },
   { key: "category", label: "Category", type: "text", defaultVisible: true },
-  { key: "costPrice", label: "Cost Price", type: "money", defaultVisible: true },
+  { key: "costPrice", label: englishCopy.labelCostPrice, type: "money", defaultVisible: true },
   { key: "rrp", label: "RRP", type: "money", defaultVisible: true },
-  { key: "retailPrice", label: "Retail Price", type: "money", defaultVisible: true },
+  { key: "retailPrice", label: englishCopy.labelRetailPrice, type: "money", defaultVisible: true },
   { key: "discount", label: "Discount", type: "percentage", defaultVisible: true },
   { key: "gmPct", label: "GM%", type: "percentage", defaultVisible: true },
-  { key: "salesUnits", label: "Sales, units", type: "quantity", defaultVisible: true },
-  { key: "salesUah", label: "Sales, UAH", type: "money", defaultVisible: true },
-  { key: "costOfSalesUah", label: "Cost of Sales, UAH", type: "money", defaultVisible: true },
-  { key: "gpUah", label: "GP UAH", type: "money", defaultVisible: true },
-  { key: "salesGmPct", label: "Sales GM%", type: "percentage", defaultVisible: true },
-  { key: "stockUnits", label: "Stock units", type: "quantity", defaultVisible: true },
-  { key: "stockUah", label: "Stock UAH", type: "money", defaultVisible: true },
+  { key: "salesUnits", label: englishCopy.labelSalesUnits, type: "quantity", defaultVisible: true },
+  { key: "salesUah", label: englishCopy.labelSalesUAH, type: "money", defaultVisible: true },
+  { key: "costOfSalesUah", label: englishCopy.labelCostOfSalesUAH, type: "money", defaultVisible: true },
+  { key: "gpUah", label: englishCopy.labelGPUAH, type: "money", defaultVisible: true },
+  { key: "salesGmPct", label: englishCopy.labelSalesGM, type: "percentage", defaultVisible: true },
+  { key: "stockUnits", label: englishCopy.labelStockUnits, type: "quantity", defaultVisible: true },
+  { key: "stockUah", label: englishCopy.labelStockUAH, type: "money", defaultVisible: true },
   { key: "strPct", label: "STR%", type: "percentage", defaultVisible: true },
-  { key: "avgSalesLastTwoWeeks", label: "AVG Sales Last 2 week", type: "quantity", defaultVisible: true },
+  { key: "avgSalesLastTwoWeeks", label: englishCopy.labelAVGSalesLast2Week, type: "quantity", defaultVisible: true },
   { key: "woh", label: "WOH", type: "number", defaultVisible: true },
 ];
 
@@ -91,15 +92,15 @@ function groupedColumns(label: "Brand" | "Category"): DataColumnMetadata[] {
   const key = label.toLowerCase();
   return [
     { key, label, type: "text", defaultVisible: true },
-    { key: "salesUah", label: "Sales, UAH", type: "money", defaultVisible: true },
-    { key: "salesUnits", label: "Sales, units", type: "quantity", defaultVisible: true },
-    { key: "costOfSalesUah", label: "Cost of Sales, UAH", type: "money", defaultVisible: true },
-    { key: "gpUah", label: "GP UAH", type: "money", defaultVisible: true },
-    { key: "stockUnits", label: "Stock units", type: "quantity", defaultVisible: true },
-    { key: "stockUah", label: "Stock UAH", type: "money", defaultVisible: true },
-    { key: "strPct", label: "STR% units", type: "percentage", defaultVisible: true },
-    { key: "salesSharePct", label: "% Sales", type: "percentage", defaultVisible: true },
-    { key: "avgSalesLastTwoWeeks", label: "AVG Sales Last 2 week", type: "quantity", defaultVisible: true },
+    { key: "salesUah", label: englishCopy.labelSalesUAH, type: "money", defaultVisible: true },
+    { key: "salesUnits", label: englishCopy.labelSalesUnits, type: "quantity", defaultVisible: true },
+    { key: "costOfSalesUah", label: englishCopy.labelCostOfSalesUAH, type: "money", defaultVisible: true },
+    { key: "gpUah", label: englishCopy.labelGPUAH, type: "money", defaultVisible: true },
+    { key: "stockUnits", label: englishCopy.labelStockUnits, type: "quantity", defaultVisible: true },
+    { key: "stockUah", label: englishCopy.labelStockUAH, type: "money", defaultVisible: true },
+    { key: "strPct", label: englishCopy.labelSTRUnits, type: "percentage", defaultVisible: true },
+    { key: "salesSharePct", label: englishCopy.labelSales, type: "percentage", defaultVisible: true },
+    { key: "avgSalesLastTwoWeeks", label: englishCopy.labelAVGSalesLast2Week, type: "quantity", defaultVisible: true },
     { key: "woh", label: "WOH", type: "number", defaultVisible: true },
   ];
 }

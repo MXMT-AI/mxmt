@@ -1,3 +1,6 @@
+import { formatMessage } from "@/i18n/format-message";
+import { apiResponseMessages as ukrainianCopy } from "@/messages/uk.json";
+
 export async function readApiJson<T extends Record<string, unknown>>(response: Response): Promise<T> {
   const text = await response.text();
   if (!text) return {} as T;
@@ -7,8 +10,8 @@ export async function readApiJson<T extends Record<string, unknown>>(response: R
   } catch {
     return {
       error: response.ok
-        ? "Сервер повернув некоректну відповідь"
-        : `Запит завершився з помилкою HTTP ${response.status}`,
+        ? ukrainianCopy.errorСерверПовернувНекоректнуВідповідь
+        : formatMessage(ukrainianCopy.errorЗапитЗавершивсяЗПомилкоюHTTP, { status: response.status }),
     } as unknown as T;
   }
 }

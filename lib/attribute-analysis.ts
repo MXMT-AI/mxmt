@@ -1,4 +1,6 @@
 import type { AttributeMetric } from "@/lib/attribute-metrics";
+import { formatMessage } from "@/i18n/format-message";
+import { attributeAnalysisMessages as ukrainianCopy } from "@/messages/uk.json";
 
 interface AttributeAiCategory {
   category?: string;
@@ -7,7 +9,7 @@ interface AttributeAiCategory {
 }
 
 export function physicalAttributeRecommendation(status:"SPARSE"|"REVIEW_MAPPING"|"COVERED"){
-  return status==="SPARSE"?"Мала група: перевірити репрезентативність перед бізнес-рішенням.":status==="REVIEW_MAPPING"?"Перевірити поля джерела та погоджений словник значень.":"Порівняти збережені продажі, повернення та залишки у відповідному періоді.";
+  return status==="SPARSE"?ukrainianCopy.малаГрупаПеревіритиРепрезентативністьПеред:status==="REVIEW_MAPPING"?ukrainianCopy.перевіритиПоляДжерелаТаПогоджений:ukrainianCopy.порівнятиЗбереженіПродажіПоверненняТа;
 }
 
 interface AttributeAiOutput {
@@ -25,20 +27,20 @@ type CategoryMetric = Pick<
 
 function dataInsight(metric: CategoryMetric): string {
   if (metric.status === "stockout") {
-    return `За вибраний період: валові продажі — ${metric.grossSalesLast30d} од., повернення — ${metric.returnsLast30d} од., чисті продажі — ${metric.salesLast30d} од.; поточний залишок — 0 од.`;
+    return formatMessage(ukrainianCopy.заВибранийПеріодВаловіПродажі, { grossSalesLast30d: metric.grossSalesLast30d, returnsLast30d: metric.returnsLast30d, salesLast30d: metric.salesLast30d });
   }
   if (metric.status === "inactive") {
-    return `За вибраний період: валові продажі — 0 од., повернення — ${metric.returnsLast30d} од.; поточний залишок — 0 од.`;
+    return formatMessage(ukrainianCopy.заВибранийПеріодВаловіПродажі2, { returnsLast30d: metric.returnsLast30d });
   }
-  return `STR за 7 днів — ${metric.strPercent}%, валові продажі за вибраний період — ${metric.grossSalesLast30d} од., повернення — ${metric.returnsLast30d} од., чисті продажі — ${metric.salesLast30d} од., залишок — ${metric.totalStock} од.`;
+  return formatMessage(ukrainianCopy.sTRЗа7Днів, { strPercent: metric.strPercent, grossSalesLast30d: metric.grossSalesLast30d, returnsLast30d: metric.returnsLast30d, salesLast30d: metric.salesLast30d, totalStock: metric.totalStock });
 }
 
 function defaultRecommendation(metric: CategoryMetric): string {
-  if (metric.status === "stockout") return "Перевірити поповнення товарів із підтвердженим попитом.";
-  if (metric.status === "inactive") return "Виключити неактивну категорію з аналізу залишків або перевірити довідник.";
-  if (metric.status === "dead") return "Запланувати уцінку або очищення залишків.";
-  if (metric.status === "slow") return "Посилити промо та перевірити ціну.";
-  return "Продовжити моніторинг показників.";
+  if (metric.status === "stockout") return ukrainianCopy.перевіритиПоповненняТоварівІзПідтвердженим;
+  if (metric.status === "inactive") return ukrainianCopy.виключитиНеактивнуКатегоріюЗАналізу;
+  if (metric.status === "dead") return ukrainianCopy.заплануватиУцінкуАбоОчищенняЗалишків;
+  if (metric.status === "slow") return ukrainianCopy.посилитиПромоТаПеревіритиЦіну;
+  return ukrainianCopy.продовжитиМоніторингПоказників;
 }
 
 export function buildAttributeAnalysis(categories: CategoryMetric[], ai: AttributeAiOutput | null) {
@@ -56,7 +58,7 @@ export function buildAttributeAnalysis(categories: CategoryMetric[], ai: Attribu
     by_category: byCategory,
     bestsellers: categories.filter((item) => item.status === "bestseller").map((item) => item.attribute),
     dead_stock: categories.filter((item) => item.status === "dead").map((item) => item.attribute),
-    summary: ai?.summary?.trim() || "Статуси категорій розраховано за продажами та фактичним залишком.",
-    action: ai?.action?.trim() || "Спочатку опрацювати дефіцит і реальний dead stock.",
+    summary: ai?.summary?.trim() || ukrainianCopy.summaryСтатусиКатегорійРозрахованоЗаПродажами,
+    action: ai?.action?.trim() || ukrainianCopy.actionСпочаткуОпрацюватиДефіцитІРеальний,
   };
 }

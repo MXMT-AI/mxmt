@@ -5,6 +5,7 @@ import type { DataTableResponse } from "@/lib/data-table-api";
 import type { DataTableKey, InitialTablePreference } from "@/lib/data-table-preferences";
 import { responseMessage } from "@/lib/client/data-reporting-response";
 import { apiFetch } from "@/lib/fetch";
+import { dataReportingUseReportTableMessages as englishCopy } from "@/messages/en.json";
 
 type TableResult = {
   key: string;
@@ -48,7 +49,7 @@ export function useReportTable({ activeTab, page, preference, reloadVersion, sea
         }
       } catch (error) {
         if (!signal.aborted) {
-          setResult({ key, table: null, error: error instanceof Error ? error.message : "Could not load data" });
+          setResult({ key, table: null, error: error instanceof Error ? error.message : englishCopy.errorCouldNotLoadData });
         }
       }
     }

@@ -8,6 +8,8 @@ import type { Brand } from "../planner-types";
 import { uploadPlannerCatalog } from "@/lib/client/planner-upload-request";
 
 import { Upload } from "lucide-react";
+import { plannerUploadModalMessages as englishCopy } from "@/messages/en.json";
+import { plannerUploadModalMessages as ukrainianCopy } from "@/messages/uk.json";
 
 const MAX_CATALOG_UPLOAD_BYTES = 4 * 1024 * 1024;
 
@@ -24,9 +26,9 @@ export function UploadModal({ brands, onClose, onSuccess }: {
 
   async function handleFile(file: File) {
     if (inFlight.current) return;
-    if (!brandId) { setError("Select a brand first"); return; }
+    if (!brandId) { setError(englishCopy.selectABrandFirst); return; }
     if (file.size === 0 || file.size > MAX_CATALOG_UPLOAD_BYTES) {
-      setError("Файл має бути не більшим за 4 МБ");
+      setError(ukrainianCopy.файлМаєБутиНеБільшим);
       return;
     }
     inFlight.current = true;
@@ -36,7 +38,7 @@ export function UploadModal({ brands, onClose, onSuccess }: {
       const itemCount = await uploadPlannerCatalog(file, brandId, season);
       onSuccess(`✓ Uploaded ${itemCount} items`);
     } catch {
-      setError("Не вдалося завантажити каталог. Спробуйте ще раз.");
+      setError(ukrainianCopy.неВдалосяЗавантажитиКаталогСпробуйте);
     } finally {
       inFlight.current = false;
       setLoading(false);
@@ -44,14 +46,12 @@ export function UploadModal({ brands, onClose, onSuccess }: {
   }
 
   return (
-    <Dialog title="Завантажити каталог" closeLabel="Закрити" onClose={onClose} closeDisabled={loading} className="max-w-md">
+    <Dialog title={ukrainianCopy.titleЗавантажитиКаталог} closeLabel={ukrainianCopy.closeLabelЗакрити} onClose={onClose} closeDisabled={loading} className="max-w-md">
       <div className="p-7">
-        <p className="text-(--muted) text-xs font-mono mb-4">
-          Колонки: SKU, Name, Category, Color, Style, Material, Price, Retail, MinOrder, Stock, LeadTime, Tags
-        </p>
+        <p className="text-(--muted) text-xs font-mono mb-4">{ukrainianCopy.колонкиSKUNameCategoryColor}</p>
 
         <fieldset disabled={loading} className="space-y-3 mb-5">
-          <Field label="Бренд" className={plannerField}>
+          <Field label={ukrainianCopy.labelБренд} className={plannerField}>
             <select
               value={brandId}
               onChange={(e) => setBrandId(e.target.value)}
@@ -60,21 +60,21 @@ export function UploadModal({ brands, onClose, onSuccess }: {
               {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>
           </Field>
-          <Field label="Сезон" className={plannerField}>
+          <Field label={ukrainianCopy.labelСезон} className={plannerField}>
             <input
               type="text"
               value={season}
               onChange={(e) => setSeason(e.target.value)}
               className={plannerControl}
-              placeholder="SS26"
+              placeholder={englishCopy.placeholderSS26}
             />
           </Field>
         </fieldset>
 
         <label className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-8 cursor-pointer transition-colors ${loading ? "opacity-50 cursor-not-allowed" : "border-white/10 hover:border-accent-cyan/40"}`}>
           <Upload aria-hidden="true" size={24} className="text-(--muted) mb-2" />
-          <span className="text-sm text-(--muted)">{loading ? "Завантажуємо…" : "Оберіть файл .xlsx / .xls / .csv"}</span>
-          <span className="text-[10px] text-(--subtle) mt-1">До 4 МБ і 5 000 рядків</span>
+          <span className="text-sm text-(--muted)">{loading ? ukrainianCopy.завантажуємо : ukrainianCopy.оберітьФайлXlsxXls}</span>
+          <span className="text-[10px] text-(--subtle) mt-1">{ukrainianCopy.до4МБІ5}</span>
           <input type="file" accept=".xlsx,.xls,.csv" className="hidden" disabled={loading}
             onChange={event => {
               const file = event.currentTarget.files?.[0];

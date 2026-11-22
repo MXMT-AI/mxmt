@@ -2,8 +2,9 @@ import { Section } from "@/components/ui/section/section";
 import { Heading } from "@/components/ui/heading/heading";
 import { Text } from "@/components/ui/text/text";
 import type { LandingCopy } from "../copy";
+import { landingIntegrationsSectionMessages as englishCopy } from "@/messages/en.json";
 
-const sources = ["Google Sheets", "SalesDrive", "KeyCRM", "Horoshop", "Shopify", "CSV"];
+const sources = [englishCopy.sourcesGoogleSheets, "SalesDrive", "KeyCRM", "Horoshop", "Shopify", "CSV"];
 
 export function IntegrationsSection({ copy }: { copy: LandingCopy }) {
   return (

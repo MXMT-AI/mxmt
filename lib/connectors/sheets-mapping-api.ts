@@ -1,10 +1,11 @@
 import { apiError, isRecord } from "../api-contracts";
 import { AiExecutionError } from "../ai-execution/contracts";
 import { SheetsMappingError } from "./sheets-mapping-validation";
+import { connectorsSheetsMappingApiMessages as englishApiMessages } from "@/messages/en.json";
 export function sheetsMappingApiError(error: unknown, requestId?: string) {
   if (error instanceof Error && ["CATALOG_IDENTITY_CONFLICT", "DUPLICATE_CATALOG_SKU"].includes(error.message))
     return apiError(
-      "The catalogue has conflicting product identities. Review source product IDs and SKU mappings before refreshing reports.",
+      englishApiMessages.theCatalogueHasConflictingProductIdentities,
       422,
       "SHEETS_CATALOG_IDENTITY_CONFLICT",
       undefined,
@@ -12,7 +13,7 @@ export function sheetsMappingApiError(error: unknown, requestId?: string) {
     );
   if (error instanceof SheetsMappingError || error instanceof AiExecutionError)
     return apiError(
-      "Check the source, mapping fields, active import and preview revision.",
+      englishApiMessages.checkTheSourceMappingFieldsActive,
       error.status,
       error.code,
       undefined,
@@ -37,7 +38,7 @@ export function sheetsMappingApiError(error: unknown, requestId?: string) {
     },
   );
   return apiError(
-    "Sheets mapping is temporarily unavailable.",
+    englishApiMessages.sheetsMappingIsTemporarilyUnavailable,
     503,
     "SHEETS_MAPPING_UNAVAILABLE",
     undefined,

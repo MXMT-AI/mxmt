@@ -24,6 +24,8 @@ import DataHealthSection from "@/components/settings/data-health-section/data-he
 import SalesDriveConnectionCard from "@/components/settings/sales-drive-connection-card/sales-drive-connection-card";
 import { requireCurrentUser } from "@/lib/server-auth";
 import { getProviderConnection, getSalesDriveConnection } from "@/lib/connectors/service";
+import { settingsSettingsPageMessages as englishCopy } from "@/messages/en.json";
+import { settingsSettingsPageMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export default async function SettingsPage() {
   const user = await requireCurrentUser();
@@ -47,9 +49,9 @@ export default async function SettingsPage() {
     <>
       <section className="mb-10">
         <SectionHeader
-          title={lang === "uk" ? "Бриф онбордингу" : "Onboarding brief"}
-          description={lang === "uk" ? "Визначає логіку Агента Аналітика" : "Defines Analyst Agent logic"}
-          action={onboarding && <Badge tone="positive" className="rounded-lg px-2.5 py-1">✓ {lang === "uk" ? "Заповнено" : "Completed"}</Badge>}
+          title={lang === "uk" ? ukrainianCopy.titleOnboardingBrief : englishCopy.titleOnboardingBrief}
+          description={lang === "uk" ? ukrainianCopy.descriptionDefinesAnalystAgentLogic : englishCopy.descriptionDefinesAnalystAgentLogic}
+          action={onboarding && <Badge tone="positive" className="rounded-lg px-2.5 py-1">✓ {lang === "uk" ? ukrainianCopy.actionCompleted : englishCopy.actionCompleted}</Badge>}
         />
 
         {onboarding && (
@@ -57,13 +59,13 @@ export default async function SettingsPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-1">
-                  {lang === "uk" ? "Бізнес-модель" : "Business model"}
+                  {lang === "uk" ? ukrainianCopy.generalContentBusinessModel : englishCopy.generalContentBusinessModel}
                 </div>
                 <div className="text-(--text) font-semibold">{onboarding.businessModel}</div>
               </div>
               <div>
                 <div className="text-[9px] font-mono uppercase tracking-widest text-(--subtle) mb-1">
-                  {lang === "uk" ? "Заповнено" : "Completed"}
+                  {lang === "uk" ? ukrainianCopy.actionCompleted : englishCopy.actionCompleted}
                 </div>
                 <div className="text-(--muted) text-sm">
                   {new Date(onboarding.completedAt).toLocaleDateString(lang === "uk" ? "uk-UA" : "en-GB")}
@@ -99,16 +101,16 @@ export default async function SettingsPage() {
 
       <section className="mb-10">
         <SectionHeader
-          title={lang === "uk" ? "Google Drive синхронізація" : "Google Drive sync"}
-          description={lang === "uk" ? "Автоматичний імпорт даних з Excel файлу" : "Auto-import data from Excel file"}
+          title={lang === "uk" ? ukrainianCopy.titleGoogleDriveSync : englishCopy.titleGoogleDriveSync}
+          description={lang === "uk" ? ukrainianCopy.descriptionAutoImportDataFromExcelFile : englishCopy.descriptionAutoImportDataFromExcelFile}
         />
         <DriveSyncCard lastSync={driveSync?.driveFileId === sheetsConnection?.fileId ? driveSync : null} lang={lang} driveMode={getDriveMode(sheetsConnection?.fileId ?? null)} />
       </section>
 
       <section className="mb-10">
         <SectionHeader
-          title={lang === "uk" ? "AI Модель (глобально)" : "AI Model (global)"}
-          description={lang === "uk" ? "Дефолтний провайдер якщо не вказано для агента" : "Default provider if not set per agent"}
+          title={lang === "uk" ? ukrainianCopy.titleAIModelGlobal : englishCopy.titleAIModelGlobal}
+          description={lang === "uk" ? ukrainianCopy.descriptionDefaultProviderIfNotSet : englishCopy.descriptionDefaultProviderIfNotSet}
         />
         <AIProviderCard lang={lang} />
       </section>
@@ -121,10 +123,10 @@ export default async function SettingsPage() {
         {t.nav_settings}
       </div>
       <Heading as="h1" variant="page" className="mb-1 text-2xl tracking-normal">
-        {lang === "uk" ? "Налаштування" : "Settings"}
+        {lang === "uk" ? ukrainianCopy.settings : englishCopy.settings}
       </Heading>
       <Text variant="body" className="mb-8 leading-normal text-(--muted)">
-        {lang === "uk" ? "Онбординг, джерела даних, інтеграції" : "Onboarding, data sources, integrations"}
+        {lang === "uk" ? ukrainianCopy.onboardingDataSourcesIntegrations : englishCopy.onboardingDataSourcesIntegrations}
       </Text>
 
       <SettingsTabs lang={lang} generalContent={generalContent} canManage={canManage} />

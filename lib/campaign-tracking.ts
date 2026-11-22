@@ -1,3 +1,6 @@
+import { formatMessage } from "@/i18n/format-message";
+import { campaignTrackingMessages as ukrainianCopy } from "@/messages/uk.json";
+
 type CalendarCampaign = {
   brand_id?: unknown;
   brand_name?: unknown;
@@ -102,11 +105,11 @@ export function buildCampaignTrackingOutput({
       : `brand-${index + 1}`;
     const plannedAction = typeof campaign.decision_summary === "string" && campaign.decision_summary.trim()
       ? campaign.decision_summary.trim()
-      : "Погоджена маркетингова активність";
+      : ukrainianCopy.plannedActionПогодженаМаркетинговаАктивність;
     const events = cleanEvents(campaign.events);
     const eventDescription = events.length > 0
       ? events.map((event) => `${event.weekKey}: ${event.label}`).join("; ")
-      : "подію додано до календаря";
+      : ukrainianCopy.eventDescriptionПодіюДоданоДоКалендаря;
 
     return [{
       campaign_id: `camp_${brandId}`,
@@ -116,8 +119,8 @@ export function buildCampaignTrackingOutput({
       days_running: null,
       performance_score: null,
       planned_action: plannedAction,
-      actual_observation: `У календарі: ${eventDescription}. Немає підтвердженої дати фактичного запуску та метрик після старту.`,
-      next_action: "Після запуску зафіксувати фактичну дату й дочекатися нових продажів перед оцінкою ефективності.",
+      actual_observation: formatMessage(ukrainianCopy.actualObservationУКалендаріНемаєПідтвердженої, { eventDescription }),
+      next_action: ukrainianCopy.nextActionПісляЗапускуЗафіксуватиФактичнуДату,
       urgency: "medium",
       calendar_events: events,
     }];
@@ -125,8 +128,8 @@ export function buildCampaignTrackingOutput({
 
   const scheduledCount = campaigns.length;
   const summary = scheduledCount === 0
-    ? `Активних кампаній немає. ${pendingRecommendations} із ${recommendationCount} рекомендацій очікують погодження та додавання до календаря.`
-    : `${scheduledCount} рекомендацій представлені в календарі, але оцінювати їхню ефективність ще рано: немає підтвердження фактичного запуску та даних після старту. ${pendingRecommendations} рекомендацій ще очікують погодження.`;
+    ? formatMessage(ukrainianCopy.summaryАктивнихКампанійНемаєІзРекомендацій, { pendingRecommendations, recommendationCount })
+    : formatMessage(ukrainianCopy.summaryРекомендаційПредставленіВКалендаріАле, { scheduledCount, pendingRecommendations });
 
   return {
     analysis_date: now.toISOString().slice(0, 10),
