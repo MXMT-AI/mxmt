@@ -6,6 +6,7 @@ import { LandingHeader } from "../landing-header/landing-header";
 import { LandingHero } from "../landing-hero/landing-hero";
 import { ProductSection } from "../product-section/product-section";
 import { WorkflowSection } from "../workflow-section/workflow-section";
+import { AgentsSection } from "../agents-section/agents-section";
 import { IntegrationsSection } from "../integrations-section/integrations-section";
 import { ClosingSection } from "../closing-section/closing-section";
 import { SiteFooter } from "../site-footer/site-footer";
@@ -34,6 +35,8 @@ export default async function Home() {
         <ProductSection copy={copy} />
 
         <WorkflowSection copy={copy} />
+
+        <AgentsSection copy={copy.agents} />
 
         <IntegrationsSection copy={copy} />
 

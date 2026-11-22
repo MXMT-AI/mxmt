@@ -1,0 +1,150 @@
+.section {
+  position: relative;
+  isolation: isolate;
+  border-block-end: 1px solid var(--landing-line);
+  background: var(--landing-canvas);
+}
+
+.backdrop {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  overflow: clip;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 18% 80%, var(--landing-art-mid), transparent 48%),
+    radial-gradient(ellipse at 100% 0%, var(--landing-art-mid), transparent 37%);
+}
+
+.network {
+  --wire: color-mix(in srgb, var(--landing-mint) 38%, transparent);
+  position: relative;
+  inline-size: min(100%, 29rem);
+  block-size: clamp(7rem, 27cqi, 10rem);
+  align-self: center;
+  margin-block-start: 0.5rem;
+  pointer-events: none;
+}
+
+.network::before {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background: radial-gradient(circle, var(--wire) 1px, transparent 1px) 0 0 / 15px 15px;
+  mask-image: radial-gradient(ellipse, #000 18%, transparent 73%);
+}
+
+.node {
+  position: absolute;
+  inset: var(--y) auto auto var(--x);
+  display: grid;
+  place-items: center;
+  inline-size: 2.625rem;
+  block-size: 2.625rem;
+  border: 1px solid var(--wire);
+  border-radius: 0.625rem;
+  color: var(--landing-mint);
+  background: color-mix(in srgb, var(--landing-panel) 86%, var(--landing-art-center));
+  box-shadow: 0 0 1rem color-mix(in srgb, var(--landing-mint) 12%, transparent);
+  translate: -50% -50%;
+}
+
+.catalogue { --x: 14%; --y: 34%; }
+.analytics { --x: 39%; --y: 67%; }
+.stock { --x: 64%; --y: 29%; }
+.report { --x: 86%; --y: 52%; }
+
+.track {
+  position: absolute;
+  border-inline-end: 1px solid var(--wire);
+}
+
+.catalogueTrack {
+  inset: 34% 61% 33% 14%;
+  border-block-start: 1px solid var(--wire);
+  border-start-end-radius: 0.75rem;
+}
+
+.analyticsTrack {
+  inset: 29% 36% 33% 39%;
+  border-block-end: 1px solid var(--wire);
+  border-end-end-radius: 0.75rem;
+}
+
+.stockTrack {
+  inset: 29% 14% 48% 64%;
+  border-block-start: 1px solid var(--wire);
+  border-start-end-radius: 0.75rem;
+}
+
+@supports ((animation-timeline: view()) and (animation-range: entry)) {
+  @media (prefers-reduced-motion: no-preference) {
+    .section {
+      view-timeline: --agent-section;
+    }
+
+    .network {
+      animation: network-drift linear both;
+      animation-timeline: --agent-section;
+      animation-range: entry 10% exit 90%;
+    }
+
+    .network::before {
+      animation: grid-drift linear both;
+      animation-timeline: --agent-section;
+    }
+  }
+}
+
+@keyframes network-drift {
+  from { transform: translateY(0.5rem); }
+  to { transform: translateY(-0.5rem); }
+}
+
+@keyframes grid-drift {
+  from { transform: translateY(-1rem); }
+  to { transform: translateY(1rem); }
+}
+
+.container {
+  container-type: inline-size;
+}
+
+.layout {
+  display: grid;
+  align-items: start;
+  gap: 2rem;
+}
+
+.overview {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  align-self: center;
+  gap: 1rem;
+  text-align: start;
+}
+
+.intro {
+  max-inline-size: 50ch;
+}
+
+.stages {
+  display: grid;
+  gap: 1.75rem;
+  margin: 0;
+  padding: 0;
+}
+
+.stage {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 1rem;
+}
+
+@container (min-width: 55rem) {
+  .layout {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    gap: clamp(2.5rem, 6vw, 5.5rem);
+  }
+}

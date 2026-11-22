@@ -11,6 +11,17 @@ export const landingCopy = {
     menu: "Меню",
     product: "Можливості",
     workflow: "Як це працює",
+    agents: {
+      nav: "Агенти",
+      heading: "Від аналізу запасів до тижневого звіту",
+      description: "Дев’ять агентів допомагають зрозуміти, що відбувається з товарами, підготувати сценарії та спланувати дії на вибраний період.",
+      stages: [
+        { title: "Продажі й запаси", description: "Знаходять проблеми із запасами, порівнюють канали та показують, які категорії продаються краще." },
+        { title: "Ціни й поповнення", description: "Готують сценарії уцінки для надлишків і дозамовлення там, де запас закінчується." },
+        { title: "Маркетинг і календар", description: "Готують брифи й пропонують дати кампаній. Ви переглядаєте чернетки перед погодженням." },
+        { title: "Кампанії й звіт", description: "Відстежують заплановані кампанії та збирають пріоритети й рішення для тижневого звіту." },
+      ],
+    },
     integrations: "Інтеграції",
     login: "Увійти",
     register: "Створити кабінет",
@@ -44,6 +55,17 @@ export const landingCopy = {
     menu: "Menu",
     product: "Product",
     workflow: "How it works",
+    agents: {
+      nav: "Agents",
+      heading: "From stock analysis to a weekly report",
+      description: "Nine agents help you understand product performance, prepare scenarios and plan actions for a selected period.",
+      stages: [
+        { title: "Sales and stock", description: "Spot inventory issues, compare sales channels and see which categories sell best." },
+        { title: "Pricing and replenishment", description: "Prepare markdown scenarios for excess stock and reorder scenarios for products running low." },
+        { title: "Marketing and calendar", description: "Draft briefs and suggest campaign dates. You review drafts before approving them." },
+        { title: "Campaigns and reporting", description: "Track scheduled campaigns and collect priorities and decisions for your weekly report." },
+      ],
+    },
     integrations: "Integrations",
     login: "Log in",
     register: "Create a workspace",
@@ -77,6 +99,12 @@ export const landingCopy = {
   menu: string;
   product: string;
   workflow: string;
+  agents: {
+    nav: string;
+    heading: string;
+    description: string;
+    stages: [Feature, Feature, Feature, Feature];
+  };
   integrations: string;
   login: string;
   register: string;

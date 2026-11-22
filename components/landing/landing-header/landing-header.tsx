@@ -20,6 +20,7 @@ export function LandingHeader({ locale }: { locale: Locale }) {
   const sectionLinks = (
     <>
       <a href="#workflow">{copy.workflow}</a>
+      <a href="#agents">{copy.agents.nav}</a>
       <a href="#integrations">{copy.integrations}</a>
       <Link href="/docs">{t("nav_documentation")}</Link>
     </>
