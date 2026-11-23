@@ -9,6 +9,8 @@ import { isRecord } from "./api-contracts";
 export * from "./repricing-contract";
 import {
   REPRICING_VERSION,
+  REPRICING_CALCULATION_VERSION,
+  REPRICING_DISCOUNT_STEP,
   REPRICING_INPUT_LIMIT,
   type RepricingParameters,
   type RepricingFilters,
@@ -167,6 +169,9 @@ export function parseRepricingRequest(value: unknown): RepricingRequest {
     issues.push(englishApiMessages.parametersDurationDaysExpected410Or14);
   if (parameters.minDiscountPct > parameters.maxDiscountPct)
     issues.push(englishApiMessages.parametersMinDiscountPctCannotExceedMaximumDiscount);
+  else if (Math.ceil(parameters.minDiscountPct / REPRICING_DISCOUNT_STEP) >
+           Math.floor(parameters.maxDiscountPct / REPRICING_DISCOUNT_STEP))
+    issues.push(englishApiMessages.parametersDiscountRangeRequiresMultipleOfFive);
   if (p.liquidationReason !== undefined && p.liquidationReason !== null) {
     if (
       typeof p.liquidationReason !== "string" ||
@@ -381,6 +386,8 @@ export function calculateRepricing(
     throw new RepricingError("INVALID_REPRICING_INPUTS", 422);
   const { parameters: p, filters: f } = request,
     editContext = repricingEditContext(inputs.id, p, f);
+  const minimumStep = Math.ceil(p.minDiscountPct / REPRICING_DISCOUNT_STEP);
+  const maximumStep = Math.floor(p.maxDiscountPct / REPRICING_DISCOUNT_STEP);
   if (
     (request.selection.length || request.manualPrices.length) &&
     request.editContext !== editContext
@@ -455,7 +462,7 @@ export function calculateRepricing(
     const rank = ranks.get(r.skuId),
       selectionRequested = rank !== undefined,
       manualPrice = manual.has(r.skuId);
-    const discount =
+    const interpolatedDiscount =
       rank === undefined
         ? D(0)
         : p.goal === "SEASON" || selected.length === 1
@@ -465,6 +472,11 @@ export function calculateRepricing(
                 .mul(selected.length - 1 - rank)
                 .div(selected.length - 1),
             );
+    const roundedStep = interpolatedDiscount
+      .div(REPRICING_DISCOUNT_STEP).toDecimalPlaces(0, 4).toNumber();
+    const discount = rank === undefined
+      ? D(0)
+      : D(Math.min(maximumStep, Math.max(minimumStep, roundedStep))).mul(REPRICING_DISCOUNT_STEP);
     let newPrice = r.currentPrice === null ? null : D(r.currentPrice),
       floorLimited = false;
     const priceErrors: string[] = [];
@@ -579,7 +591,7 @@ export function calculateRepricing(
   });
   const previewId = payloadHash({
     kind: "REPRICING_PREVIEW",
-    version: REPRICING_VERSION,
+    version: REPRICING_CALCULATION_VERSION,
     inputSetId: inputs.id,
     parameters: p,
     filters: f,
@@ -591,7 +603,7 @@ export function calculateRepricing(
     filterOptions,
     inputSetId: inputs.id,
     snapshotId: inputs.snapshotId,
-    calculationVersion: REPRICING_VERSION,
+    calculationVersion: REPRICING_CALCULATION_VERSION,
     currency: "UAH",
     asOf: inputs.asOf,
     editContext,

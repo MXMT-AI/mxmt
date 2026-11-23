@@ -59,7 +59,19 @@ describe("R1–R4 deterministic repricing", () => {
     );
     expect(r.rows[0].targetDiscountPct).toBe("40");
     expect(r.rows[21].targetDiscountPct).toBe("15");
+    expect(new Set(r.rows.filter(x => x.selected).map(x => x.targetDiscountPct)))
+      .toEqual(new Set(["15", "20", "25", "30", "35", "40"]));
     expect(run([...rows].reverse())).toEqual(r);
+  });
+  it("rounds to the nearest five inside the chosen bounds and uses it to calculate prices", () => {
+    const rows = ["a", "b", "c", "d", "e"].map(id => sku(id, { currentPrice: "1000" }));
+    const parameters = { minDiscountPct: 17, maxDiscountPct: 42, sharePct: 100 };
+    const result = run(rows, { parameters });
+    expect(result.rows.map(row => [row.targetDiscountPct, row.newPrice])).toEqual([
+      ["40", "600"], ["35", "650"], ["30", "700"], ["25", "750"], ["20", "800"],
+    ]);
+    expect(() => run(rows, { parameters: { ...parameters, minDiscountPct: 21, maxDiscountPct: 24 } }))
+      .toThrow("INVALID_REPRICING_REQUEST");
   });
   it("uses max for k=1, handles k=0 and re-ranks the final manual selection", () => {
     const rows = [sku("a"), sku("b"), sku("c")];

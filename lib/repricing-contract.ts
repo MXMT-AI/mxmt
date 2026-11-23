@@ -1,4 +1,6 @@
 export const REPRICING_VERSION = 1;
+export const REPRICING_CALCULATION_VERSION = 2;
+export const REPRICING_DISCOUNT_STEP = 5;
 export const REPRICING_INPUT_LIMIT = 20000;
 export const REPRICING_PRESETS = {
   GENTLE: { minDiscountPct: 5, maxDiscountPct: 20, sharePct: 50 },

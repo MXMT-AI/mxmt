@@ -9,9 +9,17 @@ export function RepricingDiscountCell({ row, copy, locale, settled }: {
   settled: boolean;
 }) {
   if (!settled) return "—";
+  const actual = format(row.effectiveDiscount, "percentage", locale);
+  const recommended = format(Number(row.targetDiscountPct) / 100, "percentage", locale);
+  const hasRecommendation = row.selectionRequested && !row.manualPrice;
   return (
     <span>
-      {format(row.effectiveDiscount, "percentage", locale)}
+      {hasRecommendation ? recommended : row.manualPrice ? null : "—"}
+      {row.manualPrice || (hasRecommendation && actual !== recommended) ? (
+        <small className="block text-(--muted)">
+          {copy.actualDiscount} {actual}
+        </small>
+      ) : null}
       {row.floorLimited ? (
         <small
           className={

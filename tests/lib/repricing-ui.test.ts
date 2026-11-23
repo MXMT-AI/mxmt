@@ -13,6 +13,22 @@ import { RepricingDiscountCell } from "@/components/repricing/repricing-discount
 import Table from "@/components/repricing/repricing-table/repricing-table";
 import type { RepricingPreview } from "@/components/repricing/use-repricing-preview";
 import { repricingUiSkus } from "../helpers/repricing-workspace";
+
+it("shows the suggested percentage separately from the actual discount", () => {
+  const row = {
+    ...data.rows[0], selectionRequested: true, manualPrice: false,
+    targetDiscountPct: "25", effectiveDiscount: "0.2375",
+  };
+  const render = (manualPrice: boolean) => renderToStaticMarkup(
+    createElement(RepricingDiscountCell, {
+      row: { ...row, manualPrice }, locale: "en-US", copy: repricingCopy.en, settled: true,
+    }),
+  );
+  expect(render(false)).toContain(">25%<");
+  expect(render(false)).toContain("Actual 23.75%");
+  expect(render(true)).toContain("Actual 23.75%");
+  expect(render(true)).not.toContain(">25%<");
+});
 const data = {
   ...calculateRepricing(
     {

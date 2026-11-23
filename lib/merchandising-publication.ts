@@ -16,7 +16,7 @@ import {
   readNavigationOptions,
   type NavigationOptions,
 } from "./merchandising-navigation-store";
-import { parseRepricingRequest } from "./repricing";
+import { parseRepricingRequest, REPRICING_CALCULATION_VERSION } from "./repricing";
 import { parseReorderingRequest } from "./reorder-calc";
 import { createRepricingInputs, getRepricingPreview } from "./repricing-store";
 import { getReorderingPreview } from "./reordering-store";
@@ -223,8 +223,11 @@ export async function readPublishedRepricingPreview(
     await readReportPublication(tenantId, storage), "repricingInputSetId", request.inputSetId,
   );
   if (!publication) return null;
-  if (JSON.stringify(request) === JSON.stringify(parseRepricingRequest({ inputSetId: request.inputSetId })))
-    return readScenarioFile(tenantId, publication, "repricing-preview", storage);
+  if (JSON.stringify(request) === JSON.stringify(parseRepricingRequest({ inputSetId: request.inputSetId }))) {
+    const cached = await readScenarioFile(tenantId, publication, "repricing-preview", storage);
+    if (cached.calculationVersion === REPRICING_CALCULATION_VERSION || publication.dataVersion !== 1)
+      return cached;
+  }
   return withPublishedInputs(tenantId, publication, storage, (db) =>
     getRepricingPreview(tenantId, request, db, { published: true }),
   );

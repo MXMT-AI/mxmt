@@ -8,6 +8,7 @@ import {
   createRepricingInputs,
   getRepricingPreview,
 } from "@/lib/repricing-store";
+import { REPRICING_CALCULATION_VERSION } from "@/lib/repricing-contract";
 import { getReorderingPreview } from "@/lib/reordering-store";
 import { publishMerchandisingReports, readPublishedReorderingPreview } from "@/lib/merchandising-publication";
 import { databaseReportStorage } from "@/lib/workspace-report-storage";
@@ -115,7 +116,7 @@ describe("atomic snapshot exports and action history", () => {
     expect(action.context.dataVersion).toMatchObject({
       snapshotId,
       inputSetId: inputsId,
-      calculationVersion: 1,
+      calculationVersion: REPRICING_CALCULATION_VERSION,
     });
     expect(action.after.rows).toHaveLength(file.rowCount);
     expect(action.after.files[0].content).toBe(file.content);

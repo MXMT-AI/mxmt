@@ -20,7 +20,7 @@ import {
   readPublishedRepricingPreview,
   readReportPublication,
 } from "@/lib/merchandising-publication";
-import { parseRepricingRequest } from "@/lib/repricing";
+import { parseRepricingRequest, REPRICING_CALCULATION_VERSION } from "@/lib/repricing";
 import { getRepricingPreview } from "@/lib/repricing-store";
 import { getReorderingPreview } from "@/lib/reordering-store";
 import { parseReorderingRequest } from "@/lib/reorder-calc";
@@ -111,6 +111,20 @@ it("runs the documented thesis CSV exercise in a new workspace", async () => {
       dataVersion: 1,
       dateFrom: "2026-09-01", dateTo: "2026-09-30", asOf: "2026-09-30",
     });
+    const olderPreviewStorage = {
+      ...storage,
+      async read(path: string) {
+        const file = await storage.read(path);
+        return file && path.endsWith("/repricing-preview.json")
+          ? { ...file, text: JSON.stringify({ ...JSON.parse(file.text), calculationVersion: 1, previewId: "old" }) }
+          : file;
+      },
+    };
+    const defaultPricing = parseRepricingRequest({ inputSetId: active.repricingInputSetId });
+    const repriced = await readPublishedRepricingPreview(tenantId, defaultPricing, olderPreviewStorage);
+    expect(repriced?.calculationVersion).toBe(REPRICING_CALCULATION_VERSION);
+    expect(repriced?.previewId).not.toBe("old");
+    expect(repriced?.inputSetId).toBe(active.repricingInputSetId);
     await expect(publishMerchandisingReports(tenantId, {
       dateFrom: "2026-09-01", dateTo: "2026-10-01",
     }, storage, db)).rejects.toMatchObject({ code: "PUBLISHED_DATE_INCOMPLETE" });
