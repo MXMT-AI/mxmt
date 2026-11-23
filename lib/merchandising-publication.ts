@@ -149,6 +149,19 @@ async function withPublishedInputs<T>(
   return withPublicationDatabase(text, run);
 }
 
+export async function withPublishedScenarioInputs<T>(
+  tenantId: string,
+  selection: { snapshotId: string } | { inputSetId: string },
+  storage: ReportPublicationStorage,
+  run: (db: SqlDatabase) => Promise<T>,
+): Promise<T | null> {
+  const active = await readReportPublication(tenantId, storage);
+  const publication = "snapshotId" in selection
+    ? findPublishedVersion(active, "snapshotId", selection.snapshotId)
+    : findPublishedVersion(active, "repricingInputSetId", selection.inputSetId);
+  return publication ? withPublishedInputs(tenantId, publication, storage, run) : null;
+}
+
 export async function readPublishedScreen(
   tenantId: string,
   screen: ScreenName,

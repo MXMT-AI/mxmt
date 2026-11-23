@@ -3,7 +3,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { gunzipSync, gzipSync } from "node:zlib";
 import { Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
-import type { SqlDatabase } from "./connectors/database";
+import type { SqlClient } from "./connectors/database";
 import {
   configuredReportStorage,
   type ReportPublicationStorage,
@@ -42,7 +42,7 @@ function encode(text: string): StoredFile {
 
 export function databaseReportStorage(
   tenantId: string,
-  db: SqlDatabase = prisma,
+  db: SqlClient = prisma,
 ): ReportPublicationStorage {
   const prefix = `merchandising/v1/${createHash("sha256").update(tenantId).digest("hex")}/`;
   function storageKey(path: string) {
@@ -105,10 +105,10 @@ export function databaseReportStorage(
   };
 }
 
-export async function workspaceReportStorage(tenantId: string) {
+export async function workspaceReportStorage(tenantId: string, db: SqlClient = prisma) {
   const configured = configuredReportStorage(tenantId);
   if (configured) return configured;
-  const storage = databaseReportStorage(tenantId);
+  const storage = databaseReportStorage(tenantId, db);
   const tenantHash = createHash("sha256").update(tenantId).digest("hex");
   const active = await storage.read(`merchandising/v1/${tenantHash}/active.json`);
   return active ? storage : null;

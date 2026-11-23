@@ -10,6 +10,8 @@ import { parseRepricingRequest } from "./repricing";
 import { parseReorderingRequest } from "./reorder-calc";
 import { calculateRepricingInSnapshot } from "./repricing-store";
 import { calculateReorderingInSnapshot } from "./reordering-store";
+import { withPublishedScenarioInputs } from "./merchandising-publication";
+import { workspaceReportStorage } from "./workspace-report-storage";
 import {
   repricingCsv,
   reorderingCsv,
@@ -36,6 +38,9 @@ interface ExportRecord {
   context: { kind: string; requestHash: string };
   after: StoredExport;
 }
+type ScenarioResult =
+  | Awaited<ReturnType<typeof calculateRepricingInSnapshot>>
+  | Awaited<ReturnType<typeof calculateReorderingInSnapshot>>;
 export function parseScenarioExport(value: unknown) {
   if (
     !isRecord(value) ||
@@ -138,18 +143,18 @@ export async function createScenarioExport(
       Prisma.sql`SELECT id FROM "User" WHERE id=${actorId} AND "tenantId"=${tenantId}`,
     );
     if (!actor) throw new ScenarioExportError("EXPORT_ACTOR_UNAVAILABLE", 403);
-    const result =
+    const calculate = (inputs: SqlClient, published = false): Promise<ScenarioResult> =>
       command.kind === "reprice"
-        ? await calculateRepricingInSnapshot(
-            tenantId,
-            parseRepricingRequest(command.scenario),
-            tx,
-          )
-        : await calculateReorderingInSnapshot(
-            tenantId,
-            parseReorderingRequest(command.scenario),
-            tx,
-          );
+        ? calculateRepricingInSnapshot(tenantId, parseRepricingRequest(command.scenario), inputs, { published })
+        : calculateReorderingInSnapshot(tenantId, parseReorderingRequest(command.scenario), inputs, { published });
+    const storage = await workspaceReportStorage(tenantId, tx);
+    const publishedResult = storage && await withPublishedScenarioInputs(
+      tenantId,
+      command.scenario,
+      storage,
+      (frozenDb) => withCalculationSnapshot(frozenDb, (frozenTx) => calculate(frozenTx, true)),
+    );
+    const result = publishedResult ?? await calculate(tx);
     if (result.previewId !== command.previewId)
       throw new ScenarioExportError("EXPORT_PREVIEW_MISMATCH", 409);
     const built =
@@ -204,7 +209,9 @@ export async function createScenarioExport(
     )
       throw new ScenarioExportError("EXPORT_AUDIT_SIZE_LIMIT", 422);
     await tx.$executeRaw(
-      Prisma.sql`INSERT INTO "MerchandisingAction" (id,"tenantId","actorId","configId",action,"entityType","entityId","idempotencyKey",after,context,"createdAt") VALUES (${actionId},${tenantId},${actorId},${result.snapshotId},${command.kind},'SCENARIO_EXPORT',${command.exportId},${`export:${command.exportId}`},${JSON.stringify(after)}::jsonb,${JSON.stringify(context)}::jsonb,${now.toISOString()}::timestamptz) ON CONFLICT ("tenantId","idempotencyKey") DO NOTHING`,
+      Prisma.sql`INSERT INTO "MerchandisingAction" (id,"tenantId","actorId","configId",action,"entityType","entityId","idempotencyKey",after,context,"createdAt") VALUES (${actionId},${tenantId},${actorId},
+        (SELECT id FROM "MerchandisingConfig" WHERE "tenantId"=${tenantId} AND id=${result.snapshotId}),
+        ${command.kind},'SCENARIO_EXPORT',${command.exportId},${`export:${command.exportId}`},${JSON.stringify(after)}::jsonb,${JSON.stringify(context)}::jsonb,${now.toISOString()}::timestamptz) ON CONFLICT ("tenantId","idempotencyKey") DO NOTHING`,
     );
     const published = await readExport(tenantId, command.exportId, tx);
     if (!published)

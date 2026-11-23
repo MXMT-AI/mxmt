@@ -9,6 +9,9 @@ import {
   getRepricingPreview,
 } from "@/lib/repricing-store";
 import { getReorderingPreview } from "@/lib/reordering-store";
+import { publishMerchandisingReports, readPublishedReorderingPreview } from "@/lib/merchandising-publication";
+import { databaseReportStorage } from "@/lib/workspace-report-storage";
+import { parseReorderingRequest } from "@/lib/reorder-calc";
 import {
   createScenarioExport,
   readScenarioExportFile,
@@ -20,6 +23,46 @@ let f: Awaited<ReturnType<typeof createStockWorkspaceDb>>,
 const exportId = "11111111-1111-4111-8111-111111111111",
   reorderId = "22222222-2222-4222-8222-222222222222";
 let command: Record<string, unknown>;
+
+it("downloads an edited supplier order from published inputs after the live snapshot is removed", async () => {
+  const { pg, db } = await createStockWorkspaceDb();
+  try {
+    await pg.exec(`UPDATE "Brand" SET "supplierId"='supplier' WHERE id='brand-active';
+      UPDATE "InventorySnapshot" SET "qtyInTransit"=0,"inTransitVerifiedAt"='2026-10-25T05:00:00Z'`);
+    const storage = databaseReportStorage("a", db);
+    const publication = await publishMerchandisingReports("a", screenSelection, storage, db);
+    await pg.query('DELETE FROM "MerchandisingConfig" WHERE id=$1', [publication.snapshotId]);
+    const scenario = parseReorderingRequest({
+      snapshotId: publication.snapshotId,
+      mode: "brand",
+      filters: { brandId: "brand-active" },
+      overrides: [{ skuId: "sku-oos", inTransitQuantity: "1" }],
+      pageSize: 1,
+    });
+    const preview = await readPublishedReorderingPreview("a", scenario, storage);
+    expect(preview?.rows).toHaveLength(1);
+    const receipt = await createScenarioExport("a", "owner", {
+      exportId: reorderId,
+      kind: "reorder",
+      previewId: preview!.previewId,
+      scenario,
+      target: { supplierId: "supplier", currency: "UAH" },
+    }, db);
+    expect(receipt.files).toHaveLength(1);
+    expect(receipt.files[0].rowCount).toBeGreaterThan(1);
+    const file = await readScenarioExportFile("a", reorderId, receipt.files[0].id, db);
+    expect(file.content.startsWith("\uFEFF")).toBe(true);
+    const { rows } = await pg.query(`SELECT "configId",context->'dataVersion'->>'snapshotId' AS snapshot,
+      after->'rows' AS rows FROM "MerchandisingAction" WHERE id=$1`, [receipt.actionId]);
+    expect(rows).toEqual([expect.objectContaining({
+      configId: null,
+      snapshot: publication.snapshotId,
+      rows: expect.arrayContaining([expect.objectContaining({ skuId: "sku-oos", inTransitQuantity: "1" })]),
+    })]);
+  } finally {
+    await pg.close();
+  }
+}, 30_000);
 beforeAll(async () => {
   f = await createStockWorkspaceDb();
   await f.pg.exec(
