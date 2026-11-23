@@ -22,22 +22,22 @@ export function CsvHistoryRules({ value, lang, onChange }: {
   lang: Lang;
   onChange: (value: CsvHistoryRuleValues) => void;
 }) {
-  const copy = (uk: string, en: string) => lang === "uk" ? uk : en;
+  const copy = lang === "uk" ? ukrainianCopy : englishCopy;
   return (
     <fieldset className="space-y-3">
-      <legend className="text-sm text-(--text)">{copy(ukrainianCopy.verifiedHistoryCoverage, englishCopy.verifiedHistoryCoverage)}</legend>
+      <legend className="text-sm text-(--text)">{copy.verifiedHistoryCoverage}</legend>
       <label className="flex gap-2 text-sm text-(--muted)">
         <input type="checkbox" checked={value.orders} onChange={event => onChange({ ...value, orders: event.target.checked })} />
-        {copy(ukrainianCopy.theFileContainsCompleteOrder, englishCopy.theFileContainsCompleteOrder)}
+        {copy.theFileContainsCompleteOrder}
       </label>
       <label className="flex gap-2 text-sm text-(--muted)">
         <input type="checkbox" checked={value.receipts} onChange={event => onChange({ ...value, receipts: event.target.checked })} />
-        {copy(ukrainianCopy.theFileContainsCompleteReceipt, englishCopy.theFileContainsCompleteReceipt)}
+        {copy.theFileContainsCompleteReceipt}
       </label>
       {value.receipts && (
         <label className="flex gap-2 text-sm text-(--muted)">
           <input type="checkbox" checked={value.receiptBaseline} onChange={event => onChange({ ...value, receiptBaseline: event.target.checked })} />
-          {copy(ukrainianCopy.thisIncludesEveryReceiptSince, englishCopy.thisIncludesEveryReceiptSince)}
+          {copy.thisIncludesEveryReceiptSince}
         </label>
       )}
       {(value.orders || value.receipts) && (

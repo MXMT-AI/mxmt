@@ -39,7 +39,7 @@ export default function StatusMappingFields({
   onChange: (rows: StatusMappingRow[]) => void;
   lang: Lang;
 }) {
-  const copy = (uk: string, en: string) => (lang === "uk" ? uk : en);
+  const copy = lang === "uk" ? ukrainianCopy : englishCopy;
   const atLimit = config.maxRows !== undefined && rows.length >= config.maxRows;
   function change(index: number, field: keyof StatusMappingRow, value: string) {
     onChange(rows.map((row, i) => i === index ? { ...row, [field]: value } : row));
@@ -50,11 +50,11 @@ export default function StatusMappingFields({
   return (
     <fieldset className="space-y-3">
       <legend className="text-sm text-(--text)">
-        {copy(ukrainianCopy.statusMeanings, englishCopy.statusMeanings)}
+        {copy.statusMeanings}
       </legend>
       {rows.map((s, i) => (
         <div key={i} className="grid grid-cols-2 gap-3">
-          <Field label={copy(ukrainianCopy.statusCode, englishCopy.statusCode)}>
+          <Field label={copy.statusCode}>
             <input
               name={`status-code-${i}`}
               autoComplete="off"
@@ -66,7 +66,7 @@ export default function StatusMappingFields({
               onChange={event => change(i, "id", event.target.value)}
             />
           </Field>
-          <Field label={copy(ukrainianCopy.meaning, englishCopy.meaning)}>
+          <Field label={copy.meaning}>
             <select
               name={`status-meaning-${i}`}
               className={control}
@@ -74,7 +74,7 @@ export default function StatusMappingFields({
               onChange={event => change(i, "kind", event.target.value)}
             >
               {config.options.map(option => (
-                <option key={option.value} value={option.value}>{copy(option.uk, option.en)}</option>
+                <option key={option.value} value={option.value}>{option[lang]}</option>
               ))}
             </select>
           </Field>
@@ -86,7 +86,7 @@ export default function StatusMappingFields({
         className="text-(--text) hover:bg-(--input-hover)"
         onClick={add}
       >
-        {copy(ukrainianCopy.addStatus, englishCopy.addStatus)}
+        {copy.addStatus}
       </Button>
     </fieldset>
   );

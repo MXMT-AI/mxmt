@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getActiveAgentImportRunId } from "@/lib/agent-data-source";
-import { readPublishedAgentData } from "@/lib/published-agent-data";
+import { loadAgentMetricRows } from "@/lib/agent-metrics-source";
 import { financialDecimal as D } from "./merchandising-policy";
 import {
   classifyWoh,
@@ -279,33 +279,30 @@ export async function getBrandMetrics(
   const importRunId = await getActiveAgentImportRunId(tenantId);
   if (!importRunId) return [];
 
-  const published = await readPublishedAgentData(tenantId, importRunId, w.windowStart, asOf);
-  const [products, sales] = published
-    ? [published.products, published.sales] as const
-    : await Promise.all([
-    prisma.sourceProduct.findMany({
-      where: { tenantId, importRunId },
-      select: { productId: true, brand: true, costPrice: true, retailPrice: true, stockUnits: true },
-    }),
-    prisma.sourceSaleLine.findMany({
-      where: {
-        tenantId,
-        importRunId,
-        paymentDate: { gte: w.windowStart, ...(asOf ? { lte: asOf } : {}) },
-        resolvedProductId: { not: null },
-        normalizedQuantity: { not: null },
-        normalizedSales: { not: null },
-        normalizedCost: { not: null },
-      },
-      select: {
-        resolvedProductId: true,
-        paymentDate: true,
-        normalizedQuantity: true,
-        normalizedSales: true,
-        normalizedCost: true,
-      },
-    }),
-  ]);
+  const [products, sales] = await loadAgentMetricRows(
+    tenantId, importRunId, w.windowStart, asOf,
+    (published) => [published.products, published.sales] as const,
+    ({ importScope, saleScope }) => Promise.all([
+      prisma.sourceProduct.findMany({
+        where: importScope,
+        select: { productId: true, brand: true, costPrice: true, retailPrice: true, stockUnits: true },
+      }),
+      prisma.sourceSaleLine.findMany({
+        where: {
+          ...saleScope,
+          normalizedSales: { not: null },
+          normalizedCost: { not: null },
+        },
+        select: {
+          resolvedProductId: true,
+          paymentDate: true,
+          normalizedQuantity: true,
+          normalizedSales: true,
+          normalizedCost: true,
+        },
+      }),
+    ]),
+  );
 
   const grouped = new Map<string | null, Array<(typeof products)[number]>>();
   for (const product of products) {

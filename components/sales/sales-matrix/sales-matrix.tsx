@@ -3,7 +3,7 @@ import ReportTable from "@/components/data-reporting/report-table/report-table";
 import { PartialMarker } from "@/components/ui/partial-marker/partial-marker";
 import type { SalesCell, SalesWorkspaceModel } from "@/lib/merchandising-sales-workspace";
 import type { DataColumnMetadata } from "@/lib/data-table-api";
-import { createTableValueFormatter } from "@/lib/data-reporting-ui";
+import { createReportMonthFormatter, createTableValueFormatter } from "@/lib/data-reporting-ui";
 import type { SalesCopy } from "@/lib/sales-copy";
 import type { SalesMatrixRow, SalesHref } from "../sales-types";
 import { salesTone } from "../sales-tone";
@@ -33,16 +33,12 @@ export function SalesMatrix({
       : metric === "units"
         ? "quantity"
         : "money";
-  const monthFormatter = new Intl.DateTimeFormat(locale, {
-    month: "short",
-    year: "2-digit",
-    timeZone: "UTC",
-  });
+  const formatMonth = createReportMonthFormatter(locale, "2-digit");
   const columns: DataColumnMetadata[] = [
     { key: "name", label: copy.name, type: "text" },
     ...months.map((m) => ({
       key: m,
-      label: monthFormatter.format(new Date(m + "-01T12:00:00Z")),
+      label: formatMonth(m),
       type,
     })),
     { key: "total", label: copy.total, type },

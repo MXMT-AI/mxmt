@@ -5,7 +5,7 @@ import { panel } from "@/components/ui/panel/panel-styles";
 import { Heading } from "@/components/ui/heading/heading";
 import { Text } from "@/components/ui/text/text";
 import { Note } from "@/components/ui/note/note";
-import { Pager } from "@/components/ui/pager/pager";
+import { ReportTableFooter } from "@/components/data-reporting/report-table/report-table-footer";
 import { StockCost } from "../stock-cost/stock-cost";
 import type { StockCopy } from "@/lib/stock-copy";
 import type { Block, Group, Href } from "../stock-content/stock-content-types";
@@ -109,14 +109,15 @@ export function StockCategories({ groups, model, copy, locale, href: scoped, onN
           );
         }}
       />
-      {!groups.rows.length ? (
-        <Text variant="body" className="leading-normal text-base text-inherit p-5 text-sm text-(--muted)">{copy.empty}</Text>
-      ) : null}
-      <Pager
+      <ReportTableFooter
         pagination={groups.pagination}
         control="categoryPage"
         href={scoped}
         copy={copy}
+        rowCount={groups.rows.length}
+        emptyState={
+          <Text variant="body" className="leading-normal text-base text-inherit p-5 text-sm text-(--muted)">{copy.empty}</Text>
+        }
       />
     </section>
   );

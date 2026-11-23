@@ -17,23 +17,20 @@ export function CsvPopulationRules({ value, lang, onChange }: {
   lang: Lang;
   onChange: (value: PopulationValues) => void;
 }) {
-  const copy = (uk: string, en: string) => lang === "uk" ? uk : en;
+  const copy = lang === "uk" ? ukrainianCopy : englishCopy;
   return (
     <>
       <div className="grid gap-4 sm:grid-cols-2">
         {fields.map(field => (
           <Field key={field.key} label={field[lang]}>
             <select className={control} value={value[field.key]} onChange={event => onChange({ ...value, [field.key]: event.target.value })}>
-              <option value="partial">{copy(ukrainianCopy.partialPopulation, englishCopy.partialPopulation)}</option>
-              <option value="complete">{copy(ukrainianCopy.completeSourcePopulation, englishCopy.completeSourcePopulation)}</option>
+              <option value="partial">{copy.partialPopulation}</option>
+              <option value="complete">{copy.completeSourcePopulation}</option>
             </select>
           </Field>
         ))}
       </div>
-      <Note className="leading-normal">{copy(
-        ukrainianCopy.uploadProductsAndStockTogether,
-        englishCopy.uploadProductsAndStockTogether,
-      )}</Note>
+      <Note className="leading-normal">{copy.uploadProductsAndStockTogether}</Note>
     </>
   );
 }

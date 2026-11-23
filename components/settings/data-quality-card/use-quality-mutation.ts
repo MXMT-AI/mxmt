@@ -17,7 +17,7 @@ export function useQualityMutation({ lang, canManage, loading, reload, onAliasSa
 }) {
   const [busy, setBusy] = useState(false);
   const inFlight = useRef(false);
-  const copy = (uk: string, en: string) => lang === "uk" ? uk : en;
+  const copy = lang === "uk" ? ukrainianCopy : englishCopy;
   async function save(change: DataQualityChange) {
     if (!canManage || loading || inFlight.current) return;
     inFlight.current = true;
@@ -31,12 +31,12 @@ export function useQualityMutation({ lang, canManage, loading, reload, onAliasSa
       if (change.action === "alias") onAliasSaved();
       await reload();
       onMessage(change.action === "alias"
-        ? copy(ukrainianCopy.aliasSavedRefreshTheCatalog, englishCopy.aliasSavedRefreshTheCatalog)
-        : copy(ukrainianCopy.productTypeSaved, englishCopy.productTypeSaved));
+        ? copy.aliasSavedRefreshTheCatalog
+        : copy.productTypeSaved);
     } catch {
       onError(saved
-        ? copy(ukrainianCopy.changesSavedButDiagnosticsCould, englishCopy.changesSavedButDiagnosticsCould)
-        : copy(ukrainianCopy.couldNotSaveChangesCheck, englishCopy.couldNotSaveChangesCheck));
+        ? copy.changesSavedButDiagnosticsCould
+        : copy.couldNotSaveChangesCheck);
     } finally {
       inFlight.current = false;
       setBusy(false);

@@ -24,8 +24,7 @@ export default function KeyCrmConnectionCard({
   lang: "uk" | "en";
   canManage: boolean;
 }) {
-  const uk = lang === "uk",
-    copy = (a: string, b: string) => (uk ? a : b);
+  const copy = lang === "uk" ? ukrainianCopy : englishCopy;
   const { connection, busy, error, status, dirty, alert, setError, setDirty, perform: mutateConnection } =
     useConnectorConnection("keycrm", initial, lang, keyCrmConnectionMessages[lang]);
   const [approved, setApproved] = useState(false),
@@ -64,10 +63,7 @@ export default function KeyCrmConnectionCard({
       new Set(channels.map((s) => s.id)).size !== channels.length
     ) {
       setError(
-        copy(
-          ukrainianCopy.statusChannelCodesMustBeUnique,
-          englishCopy.statusChannelCodesMustBeUnique,
-        ),
+        copy.statusChannelCodesMustBeUnique,
       );
       return;
     }
@@ -115,28 +111,19 @@ export default function KeyCrmConnectionCard({
       <div>
         <Heading as="h2" variant="compact" id="keycrm-heading" className="text-base">{englishCopy.keyCRM}</Heading>
         <Text variant="body" className="mt-1 max-w-3xl leading-normal text-(--muted)">
-          {copy(
-            ukrainianCopy.readOnlyRequestsToTheFixed,
-            englishCopy.readOnlyRequestsToTheFixed,
-          )}
+          {copy.readOnlyRequestsToTheFixed}
         </Text>
       </div>
       <div className={panel + " space-y-4 p-4 sm:p-5"}>
         <Text variant="body" className="leading-normal text-(--muted)">
           {connection.configured
-            ? copy(ukrainianCopy.configured, englishCopy.configured) + connection.accountHost
-            : copy(ukrainianCopy.notConfigured, englishCopy.notConfigured)}
+            ? copy.configured + connection.accountHost
+            : copy.notConfigured}
           .{" "}
-          {copy(
-            ukrainianCopy["20RequestsMinuteKeySupplierReceiptsAnd"],
-            englishCopy["20RequestsMinuteKeySupplierReceiptsAnd"],
-          )}
+          {copy["20RequestsMinuteKeySupplierReceiptsAnd"]}
         </Text>
         <Note className="leading-normal">
-          {copy(
-            ukrainianCopy.successfulReadsDoNotProve,
-            englishCopy.successfulReadsDoNotProve,
-          )}
+          {copy.successfulReadsDoNotProve}
         </Note>
         {canManage && (
           <form
@@ -154,14 +141,11 @@ export default function KeyCrmConnectionCard({
           >
             <fieldset disabled={busy} className="space-y-4">
               <legend className="sr-only">
-                {copy(ukrainianCopy.keyCRMSettings, englishCopy.keyCRMSettings)}
+                {copy.keyCRMSettings}
               </legend>
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field
-                  label={copy(
-                    ukrainianCopy.logicalAccountIDNotThe,
-                    englishCopy.logicalAccountIDNotThe,
-                  )}
+                  label={copy.logicalAccountIDNotThe}
                 >
                   <input
                     name="accountId"
@@ -173,7 +157,7 @@ export default function KeyCrmConnectionCard({
                     spellCheck={false}
                   />
                 </Field>
-                <Field label={copy(ukrainianCopy.aPIKey, englishCopy.aPIKey)}>
+                <Field label={copy.aPIKey}>
                   <input
                     name="apiKey"
                     type="password"
@@ -186,7 +170,7 @@ export default function KeyCrmConnectionCard({
                   />
                 </Field>
                 <Field
-                  label={copy(ukrainianCopy.reportingTimezone, englishCopy.reportingTimezone)}
+                  label={copy.reportingTimezone}
                 >
                   <input
                     name="timezone"
@@ -196,7 +180,7 @@ export default function KeyCrmConnectionCard({
                     maxLength={100}
                   />
                 </Field>
-                <Field label={copy(ukrainianCopy.mappingRevision, englishCopy.mappingRevision)}>
+                <Field label={copy.mappingRevision}>
                   <input
                     name="mappingRevision"
                     type="number"
@@ -209,10 +193,7 @@ export default function KeyCrmConnectionCard({
                 </Field>
               </div>
               <Note className="leading-normal">
-                {copy(
-                  ukrainianCopy.keepAccountIDAndTimezone,
-                  englishCopy.keepAccountIDAndTimezone,
-                )}
+                {copy.keepAccountIDAndTimezone}
               </Note>
               <StatusMappingFields rows={statuses} lang={lang} onChange={rows=>{mutate();setStatuses(rows);}} />
               <ChannelMappingFields
@@ -225,7 +206,7 @@ export default function KeyCrmConnectionCard({
                 }}
               />
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label={copy(ukrainianCopy.verifiedCurrency, englishCopy.verifiedCurrency)}>
+                <Field label={copy.verifiedCurrency}>
                   <input
                     name="currency"
                     className={control}
@@ -236,10 +217,7 @@ export default function KeyCrmConnectionCard({
                   />
                 </Field>
                 <Field
-                  label={copy(
-                    ukrainianCopy.approvedMappingReference,
-                    englishCopy.approvedMappingReference,
-                  )}
+                  label={copy.approvedMappingReference}
                 >
                   <input
                     name="reference"
@@ -253,34 +231,22 @@ export default function KeyCrmConnectionCard({
                 [
                   net,
                   setNet,
-                  copy(
-                    ukrainianCopy.priceSoldIsTheNetUnit,
-                    englishCopy.priceSoldIsTheNetUnit,
-                  ),
+                  copy.priceSoldIsTheNetUnit,
                 ],
                 [
                   cost,
                   setCost,
-                  copy(
-                    ukrainianCopy.purchasedPriceIsVerifiedUnitCost,
-                    englishCopy.purchasedPriceIsVerifiedUnitCost,
-                  ),
+                  copy.purchasedPriceIsVerifiedUnitCost,
                 ],
                 [
                   paid,
                   setPaid,
-                  copy(
-                    ukrainianCopy.fullPaymentDateIsThe,
-                    englishCopy.fullPaymentDateIsThe,
-                  ),
+                  copy.fullPaymentDateIsThe,
                 ],
                 [
                   stock,
                   setStock,
-                  copy(
-                    ukrainianCopy.quantityIsPhysicalStockIncluding,
-                    englishCopy.quantityIsPhysicalStockIncluding,
-                  ),
+                  copy.quantityIsPhysicalStockIncluding,
                 ],
               ].map(([checked, setter, label], i) => (
                 <label
@@ -298,10 +264,7 @@ export default function KeyCrmConnectionCard({
                 </label>
               ))}
               <Field
-                label={copy(
-                  ukrainianCopy.includedWarehouseIDsCommaSeparatedEmpty,
-                  englishCopy.includedWarehouseIDsCommaSeparatedEmpty,
-                )}
+                label={copy.includedWarehouseIDsCommaSeparatedEmpty}
               >
                 <input
                   name="warehouseIds"
@@ -312,26 +275,20 @@ export default function KeyCrmConnectionCard({
               </Field>
               <details className="space-y-3 text-sm text-(--muted)">
                 <summary className="cursor-pointer">
-                  {copy(
-                    ukrainianCopy.verifiedAccessibleHistoryIntervalOptional,
-                    englishCopy.verifiedAccessibleHistoryIntervalOptional,
-                  )}
+                  {copy.verifiedAccessibleHistoryIntervalOptional}
                 </summary>
                 <Text variant="body" className="leading-normal text-(--muted)">
-                  {copy(
-                    ukrainianCopy.anEmptyResponseDoesNot,
-                    englishCopy.anEmptyResponseDoesNot,
-                  )}
+                  {copy.anEmptyResponseDoesNot}
                 </Text>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <Field label={copy(ukrainianCopy.fromISOUTC, englishCopy.fromISOUTC)}>
+                  <Field label={copy.fromISOUTC}>
                     <input
                       className={control}
                       name="historyFrom"
                       placeholder={englishCopy.placeholder20250101T000000000Z}
                     />
                   </Field>
-                  <Field label={copy(ukrainianCopy.toISOUTC, englishCopy.toISOUTC)}>
+                  <Field label={copy.toISOUTC}>
                     <input
                       className={control}
                       name="historyTo"
@@ -340,7 +297,7 @@ export default function KeyCrmConnectionCard({
                   </Field>
                 </div>
                 <Field
-                  label={copy(ukrainianCopy.historyEvidenceReference, englishCopy.historyEvidenceReference)}
+                  label={copy.historyEvidenceReference}
                 >
                   <input
                     className={control}
@@ -356,16 +313,13 @@ export default function KeyCrmConnectionCard({
                   checked={approved}
                   onChange={(e) => setApproved(e.target.checked)}
                 />
-                {copy(
-                  ukrainianCopy.iApproveTheSelectedRules,
-                  englishCopy.iApproveTheSelectedRules,
-                )}
+                {copy.iApproveTheSelectedRules}
               </label>
               <div className="flex flex-wrap gap-3">
                 <Button variant="report" type="submit" className="text-(--text) hover:bg-(--input-hover)" disabled={busy}>
                   {busy
-                    ? copy(ukrainianCopy.processing, englishCopy.processing)
-                    : copy(ukrainianCopy.saveKeyCRM, englishCopy.saveKeyCRM)}
+                    ? copy.processing
+                    : copy.saveKeyCRM}
                 </Button>
                 <Button
                   variant="report"
@@ -374,7 +328,7 @@ export default function KeyCrmConnectionCard({
                   disabled={busy || dirty || !connection.configured}
                   onClick={() => void perform("check")}
                 >
-                  {copy(ukrainianCopy.checkReadScopes, englishCopy.checkReadScopes)}
+                  {copy.checkReadScopes}
                 </Button>
               </div>
             </fieldset>

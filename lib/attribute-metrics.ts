@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getActiveAgentImportRunId } from "@/lib/agent-data-source";
-import { readPublishedAgentData } from "@/lib/published-agent-data";
+import { loadAgentMetricRows } from "@/lib/agent-metrics-source";
 import { attributeMetricsMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export interface AttributeMetric {
@@ -56,29 +56,24 @@ export async function getAttributeMetrics(
     return { byCategory: [], bySubcategory: [], topCategories: [], deadCategories: [] };
   }
 
-  const published = await readPublishedAgentData(tenantId, importRunId, d30, asOf);
-  const [products, sales] = published
-    ? [published.products, published.sales] as const
-    : await Promise.all([
-    prisma.sourceProduct.findMany({
-      where: { tenantId, importRunId },
-      select: {
-        productId: true,
-        category: true,
-        stockUnits: true,
-      },
-    }),
-    prisma.sourceSaleLine.findMany({
-      where: {
-        tenantId,
-        importRunId,
-        paymentDate: { gte: d30, ...(asOf ? { lte: asOf } : {}) },
-        resolvedProductId: { not: null },
-        normalizedQuantity: { not: null },
-      },
-      select: { resolvedProductId: true, paymentDate: true, normalizedQuantity: true },
-    }),
-  ]);
+  const [products, sales] = await loadAgentMetricRows(
+    tenantId, importRunId, d30, asOf,
+    (published) => [published.products, published.sales] as const,
+    ({ importScope, saleScope }) => Promise.all([
+      prisma.sourceProduct.findMany({
+        where: importScope,
+        select: {
+          productId: true,
+          category: true,
+          stockUnits: true,
+        },
+      }),
+      prisma.sourceSaleLine.findMany({
+        where: saleScope,
+        select: { resolvedProductId: true, paymentDate: true, normalizedQuantity: true },
+      }),
+    ]),
+  );
 
   const salesByProduct = new Map<string, {
     grossSold7: number;

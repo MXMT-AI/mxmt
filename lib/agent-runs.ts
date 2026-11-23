@@ -70,3 +70,17 @@ export async function startAgentRun({
     throw error;
   }
 }
+
+export async function completeAgentRun(id: string, output: Prisma.InputJsonValue): Promise<void> {
+  await prisma.agentRun.update({
+    where: { id },
+    data: { status: "done", output, finishedAt: new Date() },
+  });
+}
+
+export async function failAgentRun(id: string, errorMsg: string): Promise<void> {
+  await prisma.agentRun.update({
+    where: { id },
+    data: { status: "error", errorMsg, finishedAt: new Date() },
+  });
+}

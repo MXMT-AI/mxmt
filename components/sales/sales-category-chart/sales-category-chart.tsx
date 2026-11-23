@@ -3,7 +3,7 @@
 import { useId } from "react";
 import { Link } from "@/i18n/navigation";
 import { Note } from "@/components/ui/note/note";
-import { createTableValueFormatter } from "@/lib/data-reporting-ui";
+import { createReportMonthFormatter, createTableValueFormatter } from "@/lib/data-reporting-ui";
 import type { SalesCopy } from "@/lib/sales-copy";
 import type { SalesCurrencyBlock, SalesHref } from "../sales-types";
 import { SalesMatrix } from "../sales-matrix/sales-matrix";
@@ -55,10 +55,7 @@ export function SalesCategoryChart({
     height = 100,
     scale = height / (max - min),
     baseline = max * scale;
-  const monthFormatter = new Intl.DateTimeFormat(locale, {
-    month: "short",
-    timeZone: "UTC",
-  });
+  const formatMonth = createReportMonthFormatter(locale);
   return (
     <figure className="p-5 space-y-4">
       <figcaption className="text-xs text-(--muted)">
@@ -117,7 +114,7 @@ export function SalesCategoryChart({
                   fontSize="8"
                   fill="var(--muted)"
                 >
-                  {monthFormatter.format(new Date(month + "-01T12:00:00Z"))}
+                  {formatMonth(month)}
                 </text>
               </g>
             );

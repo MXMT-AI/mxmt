@@ -421,6 +421,14 @@ async function importArticleReport(
 }
 
 
+async function loadSkuIdsByCode(tenantId: string, skuCodes: string[]) {
+  const skus = await prisma.sku.findMany({
+    where: { tenantId, sku: { in: skuCodes } },
+    select: { id: true, sku: true },
+  });
+  return new Map(skus.map((sku) => [sku.sku, sku.id]));
+}
+
 async function importZavodApi(tenantId: string, rows: Row[]): Promise<number> {
   const aggregates = new Map<string, { skuCode: string; date: Date; qtySold: number; revenue: number }>();
 
@@ -445,11 +453,7 @@ async function importZavodApi(tenantId: string, rows: Row[]): Promise<number> {
   }
 
   const aggregateList = [...aggregates.values()];
-  const skus = await prisma.sku.findMany({
-    where: { tenantId, sku: { in: [...new Set(aggregateList.map((item) => item.skuCode))] } },
-    select: { id: true, sku: true },
-  });
-  const skuMap = new Map(skus.map((sku) => [sku.sku, sku.id]));
+  const skuMap = await loadSkuIdsByCode(tenantId, [...new Set(aggregateList.map((item) => item.skuCode))]);
 
   let count = 0;
   await runInBatches(aggregateList, async (aggregate) => {
@@ -511,11 +515,7 @@ async function importInventory(tenantId: string, rows: Row[]): Promise<number> {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const skuCodes = [...new Set(rows.map((row) => str(row, "SKU", "sku", "Артикул", "Article", "article", "Код")).filter(Boolean))];
-  const skus = await prisma.sku.findMany({
-    where: { tenantId, sku: { in: skuCodes } },
-    select: { id: true, sku: true },
-  });
-  const skuMap = new Map(skus.map((sku) => [sku.sku, sku.id]));
+  const skuMap = await loadSkuIdsByCode(tenantId, skuCodes);
 
   let count = 0;
   await runInBatches(rows, async (row) => {
@@ -531,11 +531,7 @@ async function importInventory(tenantId: string, rows: Row[]): Promise<number> {
 
 async function importSales(tenantId: string, rows: Row[]): Promise<number> {
   const skuCodes = [...new Set(rows.map((row) => str(row, "SKU", "sku", "Артикул", "Код", "product.sku")).filter(Boolean))];
-  const skus = await prisma.sku.findMany({
-    where: { tenantId, sku: { in: skuCodes } },
-    select: { id: true, sku: true },
-  });
-  const skuMap = new Map(skus.map((sku) => [sku.sku, sku.id]));
+  const skuMap = await loadSkuIdsByCode(tenantId, skuCodes);
 
   let count = 0;
   await runInBatches(rows, async (row) => {

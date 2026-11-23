@@ -1,4 +1,5 @@
 "use client";
+import { commonActions } from "@/i18n/common-actions";
 import { useState } from "react";
 import { useImportIssues } from "./use-import-issues";
 import { qualityLabel, qualityGuidance } from "@/lib/data-quality-copy";
@@ -53,7 +54,7 @@ export default function ImportIssueList({
         </select>
       </Field>
       {loading ? (
-        <Text variant="body" role="status" className="leading-normal text-inherit">{uk ? ukrainianCopy.loading : englishCopy.loading}</Text>
+        <Text variant="body" role="status" className="leading-normal text-inherit">{commonActions[lang].loading}</Text>
       ) : error ? (
         <Text variant="body" role="alert" className="leading-normal text-inherit">
           {uk
@@ -64,7 +65,7 @@ export default function ImportIssueList({
             onClick={retry}
             type="button"
           >
-            {uk ? ukrainianCopy.retry : englishCopy.retry}
+            {commonActions[lang].retry}
           </Button>
         </Text>
       ) : (

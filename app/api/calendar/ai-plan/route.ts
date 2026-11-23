@@ -1,8 +1,7 @@
+import { isoWeek } from "@/lib/iso-week";
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { chat } from "@/lib/ai";
-import { LEGACY_CLASSIFICATION_FILTER, classify, getThresholds, snapshotStock, canClassifyProduct } from "@/lib/classify";
-import type { SkuFlag } from "@/lib/analyst-types";
+import { loadAnalystClassificationRows } from "@/lib/analyst-classification";
 import { requireApiUser } from "@/lib/server-auth";
 import { parseAgentJson } from "@/lib/agent-output";
 import { apiCalendarAiPlanRouteMessages as englishCopy } from "@/messages/en.json";
@@ -10,13 +9,6 @@ import { apiCalendarAiPlanRouteMessages as englishCopy } from "@/messages/en.jso
 export const runtime = "nodejs";
 export const maxDuration = 180;
 
-function getISOWeek(d: Date): number {
-  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-  const day = date.getUTCDay() || 7;
-  date.setUTCDate(date.getUTCDate() + 4 - day);
-  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
-  return Math.ceil((((date.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
-}
 
 function generateWeekDates(count: number): { weekKey: string; start: string; end: string }[] {
   const result = [];
@@ -34,7 +26,7 @@ function generateWeekDates(count: number): { weekKey: string; start: string; end
     const fmt = (d: Date) =>
       `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}`;
     result.push({
-      weekKey: `w${getISOWeek(start)}`,
+      weekKey: `w${isoWeek(start, "local").week}`,
       start: fmt(start),
       end: fmt(end),
     });
@@ -61,10 +53,10 @@ const UA_EVENTS = [
 ];
 
 function getHolidaysForWeek(weekKey: string, year: number): typeof UA_EVENTS {
-  const isoWeek = parseInt(weekKey.replace("w", ""), 10);
+  const week = parseInt(weekKey.replace("w", ""), 10);
   return UA_EVENTS.filter(({ month, day }) => {
     const d = new Date(year, month - 1, day);
-    return getISOWeek(d) === isoWeek;
+    return isoWeek(d, "local").week === week;
   });
 }
 
@@ -80,56 +72,7 @@ export async function POST() {
   if (response) return response;
   const { tenantId } = user;
 
-  const since30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-  const since7 = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-
-  const [skus, snapshots, sales30raw, sales7raw, onboarding] = await Promise.all([
-    prisma.sku.findMany({
-      where: { tenantId, ...LEGACY_CLASSIFICATION_FILTER, status: { in: ["ACTIVE", "NEW"] } },
-      include: { brand: { select: { name: true, leadTimeDays: true } } },
-    }),
-    prisma.inventorySnapshot.findMany({
-      where: { tenantId, sourceId: null },
-      orderBy: { snapshotDate: "desc" },
-      distinct: ["skuId"],
-      select: { skuId: true, qtyOnHand: true, quantity:true },
-    }),
-    prisma.salesRecord.groupBy({
-      by: ["skuId"],
-      where: { tenantId, date: { gte: since30 } },
-      _sum: { qtySold: true },
-    }),
-    prisma.salesRecord.groupBy({
-      by: ["skuId"],
-      where: { tenantId, date: { gte: since7 } },
-      _sum: { qtySold: true },
-    }),
-    prisma.onboardingBrief.findUnique({ where: { tenantId } }),
-  ]);
-
-  const thresholds = getThresholds(onboarding?.businessModel ?? null);
-  const stockMap = Object.fromEntries(snapshots.map((s) => [s.skuId, snapshotStock(s)]));
-  const s30Map = Object.fromEntries(sales30raw.map((s) => [s.skuId, s._sum.qtySold ?? 0]));
-  const s7Map = Object.fromEntries(sales7raw.map((s) => [s.skuId, s._sum.qtySold ?? 0]));
-
-  const classified = skus.filter(s=>canClassifyProduct(s,stockMap[s.id])).map((s) => {
-    const stock = stockMap[s.id]!;
-    const sold30 = s30Map[s.id] ?? 0;
-    const sold7 = s7Map[s.id] ?? 0;
-    const leadTime = s.brand?.leadTimeDays ?? 14;
-    const avg30 = sold30 / 30;
-    const days = avg30 > 0 ? Math.round(stock / avg30) : stock > 0 ? 9999 : 0;
-    return {
-      name: s.name,
-      brand: s.brand?.name ?? null,
-      category: s.category,
-      stock,
-      sold7,
-      sold30,
-      daysOfStock: days,
-      flag: classify(stock, sold7, sold30, leadTime, thresholds) as SkuFlag,
-    };
-  });
+  const { skus: classified, businessModel } = await loadAnalystClassificationRows(tenantId);
 
   const weeks = generateWeekDates(8);
   const year = new Date().getFullYear();
@@ -159,7 +102,7 @@ ${dead.length > 0 ? dead.map((s) => `- ${s.name}${s.brand ? ` (${s.brand})` : ""
 ✅ Норма (стабільні позиції):
 ${ok.slice(0, 5).map((s) => `- ${s.name}${s.brand ? ` (${s.brand})` : ""}: ${s.stock} шт`).join("\n")}
 
-БІЗНЕС-МОДЕЛЬ: ${onboarding?.businessModel ?? "не вказано"}`;
+БІЗНЕС-МОДЕЛЬ: ${businessModel ?? "не вказано"}`;
 
   const userPrompt = `Ось наступні 8 тижнів з датами та святами:
 

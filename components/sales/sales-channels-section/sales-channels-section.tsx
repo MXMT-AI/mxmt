@@ -4,7 +4,7 @@ import { panel } from "@/components/ui/panel/panel-styles";
 import { Heading } from "@/components/ui/heading/heading";
 import { Note } from "@/components/ui/note/note";
 import { PartialMarker } from "@/components/ui/partial-marker/partial-marker";
-import { Pager } from "@/components/ui/pager/pager";
+import { ReportTableFooter } from "@/components/data-reporting/report-table/report-table-footer";
 import { createTableValueFormatter } from "@/lib/data-reporting-ui";
 import type { SalesCopy } from "@/lib/sales-copy";
 import type { SalesCurrencyBlock, SalesHref } from "../sales-types";
@@ -71,16 +71,17 @@ export function SalesChannelsSection({ channels, copy, locale, href }: {
           )
         }
       />
-      {!channels.rows.length ? (
-        <p className="p-5 text-sm text-(--muted)">
-          {copy.noRows}
-        </p>
-      ) : null}
-      <Pager
+      <ReportTableFooter
         pagination={channels.pagination}
         control="channelPage"
         href={href}
         copy={copy}
+        rowCount={channels.rows.length}
+        emptyState={
+          <p className="p-5 text-sm text-(--muted)">
+            {copy.noRows}
+          </p>
+        }
       />
     </section>
   );

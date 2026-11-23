@@ -148,6 +148,25 @@ describe("merchandising API snapshot and RBAC boundary", () => {
         expect(await response.json()).toEqual({ ...report, publishedAt });
       }
       expect(commands).toEqual(["get", "set", "get", "get"]);
+
+      m.cookies.clear();
+      expect((await route("overview")).status).toBe(401);
+      await login();
+      expect(await (await route("overview")).json()).toEqual({ ...report, publishedAt });
+
+      const nextVersion = "de607352-dfce-4494-93fe-30c174eddadf";
+      const nextSnapshot = "refreshed-snapshot";
+      const nextReport = { ...report, context: { snapshotId: nextSnapshot } };
+      const activePath = `${path}/active.json`;
+      const active = await publication.read(activePath);
+      await publication.write(`${path}/${nextVersion}/overview.json`, JSON.stringify(nextReport));
+      expect(await publication.publish(activePath, JSON.stringify({
+        version: nextVersion, snapshotId: nextSnapshot, navigation: { monobrand: false }, publishedAt,
+      }), active!.revision)).toBe(true);
+      vi.stubEnv("UPSTASH_REDIS_REST_URL", "");
+      const refreshed = await route("overview", `?snapshotId=${nextSnapshot}`);
+      expect(refreshed.headers.get("X-MXMT-Report-Source")).toBe("published");
+      expect(await refreshed.json()).toEqual({ ...nextReport, publishedAt });
       expect(m.read).not.toHaveBeenCalled();
       expect(m.create).not.toHaveBeenCalled();
     } finally {

@@ -1,5 +1,6 @@
 "use client";
 
+import { commonActions } from "@/i18n/common-actions";
 import { Link } from "@/i18n/navigation";
 import { reportingErrorHelp } from "@/lib/reporting-readiness-copy";
 import type { Lang } from "@/lib/translations";
@@ -28,7 +29,7 @@ export default function ReportingError({
       <p className="max-w-prose">{help.message}</p>
       <div className="flex flex-wrap gap-3">
         <Button variant="report" onClick={onRetry}>
-          {lang === "uk" ? ukrainianCopy.retry : englishCopy.retry}
+          {commonActions[lang].retry}
         </Button>
         <Link className={button} href={help.href}>
           {help.action}

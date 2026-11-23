@@ -6,7 +6,7 @@ import { button } from "@/components/ui/button/button-styles";
 import { Heading } from "@/components/ui/heading/heading";
 import { Text } from "@/components/ui/text/text";
 import { Note } from "@/components/ui/note/note";
-import { Pager } from "@/components/ui/pager/pager";
+import { ReportTableFooter } from "@/components/data-reporting/report-table/report-table-footer";
 import type { OverviewResponse } from "@/components/merchandising/use-merchandising-screen";
 import type { StockCopy } from "@/lib/stock-copy";
 import { stockStatusLabel as statusName } from "@/lib/merchandising-stock-display";
@@ -76,15 +76,17 @@ export function StockSkuTable({ table, monobrand, params, href, copy, locale }: 
           );
         }}
       />
-      <Pager
+      <ReportTableFooter
         pagination={table.pagination}
         control="page"
         href={href}
         copy={copy}
+        rowCount={table.rows.length}
+        emptyAfterPager
+        emptyState={
+          <Text variant="body" className="p-5 leading-normal text-inherit">{copy.empty}</Text>
+        }
       />
-      {!table.rows.length ? (
-        <Text variant="body" className="p-5 leading-normal text-inherit">{copy.empty}</Text>
-      ) : null}
     </section>
   );
 }

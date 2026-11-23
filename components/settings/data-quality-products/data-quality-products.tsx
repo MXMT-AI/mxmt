@@ -26,32 +26,32 @@ export function DataQualityProducts({ rows, pagination, page, code, query, lang,
   onPage: (page: number) => void;
   onKindChange: (skuId: string, kind: string) => void | Promise<void>;
 }) {
-  const copy = (uk: string, en: string) => lang === "uk" ? uk : en;
+  const copy = lang === "uk" ? ukrainianCopy : englishCopy;
   const locale = lang === "uk" ? "uk-UA" : "en-GB";
   const pages = Math.max(1, Math.ceil(pagination.totalRows / pagination.pageSize));
   return (
     <>
       <Heading as="h3" variant="compact" ref={headingRef} tabIndex={-1} className="mt-6 text-base text-inherit scroll-mt-6 focus-visible:outline-solid">
-        {code ? `${copy(ukrainianCopy.issue, englishCopy.issue)}: ${qualityLabel(code, lang)}` : copy(ukrainianCopy.products, englishCopy.products)}
+        {code ? `${copy.issue}: ${qualityLabel(code, lang)}` : copy.products}
       </Heading>
       <form className="mt-6 flex flex-wrap items-end gap-2" onSubmit={event => { event.preventDefault(); onSearch(); }}>
-        <Field label={copy(ukrainianCopy.searchSKUOrName, englishCopy.searchSKUOrName)} className="flex-1 gap-0 text-sm">
+        <Field label={copy.searchSKUOrName} className="flex-1 gap-0 text-sm">
           <input name="quality-search" autoComplete="off" maxLength={200} value={query} onChange={event => onQueryChange(event.target.value)} className={control + " mt-1 block w-full"} />
         </Field>
-        <Button variant="report" type="submit" disabled={disabled}>{copy(ukrainianCopy.search, englishCopy.search)}</Button>
+        <Button variant="report" type="submit" disabled={disabled}>{copy.search}</Button>
       </form>
       <div className="mt-4 space-y-4">
         {rows.map(row => <DataQualityProductCard key={row.id} row={row} lang={lang} canManage={canManage} disabled={disabled} onKindChange={onKindChange} />)}
       </div>
       {!rows.length && (
         <Text variant="body" className="mt-3 leading-normal text-(--muted)">
-          {copy(ukrainianCopy.noProductsMatchThisIssue, englishCopy.noProductsMatchThisIssue)}
+          {copy.noProductsMatchThisIssue}
         </Text>
       )}
       <div className="mt-4 flex flex-wrap items-center gap-2">
-        <Button variant="report" disabled={page === 1 || disabled} onClick={() => onPage(page - 1)}>{copy(ukrainianCopy.previous, englishCopy.previous)}</Button>
+        <Button variant="report" disabled={page === 1 || disabled} onClick={() => onPage(page - 1)}>{copy.previous}</Button>
         <span className="text-sm text-(--muted)">{page.toLocaleString(locale)} / {pages.toLocaleString(locale)}</span>
-        <Button variant="report" disabled={page >= pages || disabled} onClick={() => onPage(page + 1)}>{copy(ukrainianCopy.next, englishCopy.next)}</Button>
+        <Button variant="report" disabled={page >= pages || disabled} onClick={() => onPage(page + 1)}>{copy.next}</Button>
       </div>
     </>
   );

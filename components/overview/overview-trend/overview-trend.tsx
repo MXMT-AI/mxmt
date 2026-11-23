@@ -1,3 +1,4 @@
+import { createReportMonthFormatter } from "@/lib/data-reporting-ui";
 import { useId } from "react";
 import type { OverviewCopy } from "@/lib/overview-copy";
 import type { OverviewModel } from "@/lib/merchandising-overview";
@@ -19,7 +20,7 @@ export function OverviewTrend({
   copy: OverviewCopy;
 }) {
   const titleId = useId();
-  const monthFormatter = new Intl.DateTimeFormat(locale, { month: "short", timeZone: "UTC" });
+  const formatMonth = createReportMonthFormatter(locale);
   const yearLabels = `${copy.currentYear} / ${copy.priorYear}`;
   const chartWidth = rows.length * 26;
   let hasNegative = false;
@@ -91,7 +92,7 @@ export function OverviewTrend({
               fontSize="9"
               fill="var(--muted)"
             >
-              {monthFormatter.format(new Date(month + "-01T12:00:00Z"))}
+              {formatMonth(month)}
             </text>
           </g>
         ))}

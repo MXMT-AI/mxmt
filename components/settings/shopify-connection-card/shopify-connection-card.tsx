@@ -21,7 +21,7 @@ export default function ShopifyConnectionCard({
   lang: "uk" | "en";
   canManage: boolean;
 }) {
-  const copy = (uk: string, en: string) => (lang === "uk" ? uk : en),
+  const copy = lang === "uk" ? ukrainianCopy : englishCopy,
     form = useRef<HTMLFormElement>(null);
   const { connection, busy, dirty, error, status, alert, setDirty, perform } =
     useConnectorConnection("shopify", initial, lang);
@@ -66,29 +66,20 @@ export default function ShopifyConnectionCard({
       <div>
         <Heading as="h2" variant="compact" id="shopify-heading" className="text-base">{englishCopy.shopify}</Heading>
         <Text variant="body" className="leading-normal mt-1 text-sm text-(--muted)">
-          {copy(
-            ukrainianCopy.readOnlyShopifyAdminAPI202610,
-            englishCopy.readOnlyShopifyAdminAPI202610,
-          )}
+          {copy.readOnlyShopifyAdminAPI202610}
         </Text>
       </div>
       <div className={panel + " space-y-4 p-4 sm:p-5"}>
         <Text variant="body" className="leading-normal wrap-break-word text-sm text-(--muted)">
           {connection.configured
-            ? copy(ukrainianCopy.configured, englishCopy.configured) + connection.accountHost
-            : copy(ukrainianCopy.notConfigured, englishCopy.notConfigured)}
+            ? copy.configured + connection.accountHost
+            : copy.notConfigured}
         </Text>
         <Text variant="body" className="leading-normal text-sm text-(--muted)">
-          {copy(
-            ukrainianCopy.useThePermanentMyshopifyComDomain,
-            englishCopy.useThePermanentMyshopifyComDomain,
-          )}
+          {copy.useThePermanentMyshopifyComDomain}
         </Text>
         <Note className="leading-normal text-(--muted)">
-          {copy(
-            ukrainianCopy.defaultOrderAccessCovers60,
-            englishCopy.defaultOrderAccessCovers60,
-          )}
+          {copy.defaultOrderAccessCovers60}
         </Note>
         {canManage ? (
           <form
@@ -110,10 +101,7 @@ export default function ShopifyConnectionCard({
             <fieldset disabled={busy} className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field
-                  label={copy(
-                    ukrainianCopy.permanentShopifyDomain,
-                    englishCopy.permanentShopifyDomain,
-                  )}
+                  label={copy.permanentShopifyDomain}
                 >
                   <input
                     name="shop"
@@ -125,7 +113,7 @@ export default function ShopifyConnectionCard({
                     className={control}
                   />
                 </Field>
-                <Field label={copy(ukrainianCopy.shopifyAppID, englishCopy.shopifyAppID)}>
+                <Field label={copy.shopifyAppID}>
                   <input
                     name="appId"
                     required
@@ -135,7 +123,7 @@ export default function ShopifyConnectionCard({
                   />
                 </Field>
                 <Field
-                  label={copy(ukrainianCopy.adminAPIAccessToken, englishCopy.adminAPIAccessToken)}
+                  label={copy.adminAPIAccessToken}
                 >
                   <input
                     name="accessToken"
@@ -146,7 +134,7 @@ export default function ShopifyConnectionCard({
                     className={control}
                   />
                 </Field>
-                <Field label={copy(ukrainianCopy.shopTimezone, englishCopy.shopTimezone)}>
+                <Field label={copy.shopTimezone}>
                   <input
                     name="timezone"
                     required
@@ -155,7 +143,7 @@ export default function ShopifyConnectionCard({
                     className={control}
                   />
                 </Field>
-                <Field label={copy(ukrainianCopy.mappingRevision, englishCopy.mappingRevision)}>
+                <Field label={copy.mappingRevision}>
                   <input
                     name="mappingRevision"
                     required
@@ -167,7 +155,7 @@ export default function ShopifyConnectionCard({
                     className={control}
                   />
                 </Field>
-                <Field label={copy(ukrainianCopy.shopISOCurrency, englishCopy.shopISOCurrency)}>
+                <Field label={copy.shopISOCurrency}>
                   <input
                     name="currency"
                     required
@@ -179,10 +167,7 @@ export default function ShopifyConnectionCard({
                 </Field>
               </div>
               <Field
-                label={copy(
-                  ukrainianCopy.locationIDsCommaSeparated,
-                  englishCopy.locationIDsCommaSeparated,
-                )}
+                label={copy.locationIDsCommaSeparated}
               >
                 <input
                   name="locationIds"
@@ -192,10 +177,7 @@ export default function ShopifyConnectionCard({
                 />
               </Field>
               <Field
-                label={copy(
-                  ukrainianCopy.accessAndMappingApprovalReference,
-                  englishCopy.accessAndMappingApprovalReference,
-                )}
+                label={copy.accessAndMappingApprovalReference}
               >
                 <input
                   name="reference"
@@ -206,28 +188,19 @@ export default function ShopifyConnectionCard({
               </Field>
               <label className="flex min-h-11 items-center gap-3 text-sm text-(--muted)">
                 <input type="checkbox" name="physicalStock" />
-                {copy(
-                  ukrainianCopy.iApprovePhysicalOnHandFor,
-                  englishCopy.iApprovePhysicalOnHandFor,
-                )}
+                {copy.iApprovePhysicalOnHandFor}
               </label>
               <label className="flex min-h-11 items-center gap-3 text-sm text-(--muted)">
                 <input type="checkbox" name="financials" />
-                {copy(
-                  ukrainianCopy.iApproveShopMoneyMerchandiseAmounts,
-                  englishCopy.iApproveShopMoneyMerchandiseAmounts,
-                )}
+                {copy.iApproveShopMoneyMerchandiseAmounts}
               </label>
               <details>
                 <summary className="min-h-11 cursor-pointer py-2 text-sm text-(--text) focus-visible:outline-solid">
-                  {copy(
-                    ukrainianCopy.verifiedHistoryOptional,
-                    englishCopy.verifiedHistoryOptional,
-                  )}
+                  {copy.verifiedHistoryOptional}
                 </summary>
                 <div className="space-y-4 pt-2">
                   <Field
-                    label={copy(ukrainianCopy.historyStartUTC, englishCopy.historyStartUTC)}
+                    label={copy.historyStartUTC}
                   >
                     <input
                       name="historyFrom"
@@ -236,7 +209,7 @@ export default function ShopifyConnectionCard({
                       className={control}
                     />
                   </Field>
-                  <Field label={copy(ukrainianCopy.historyEndUTC, englishCopy.historyEndUTC)}>
+                  <Field label={copy.historyEndUTC}>
                     <input
                       name="historyTo"
                       placeholder={englishCopy.placeholder20261027T000000Z}
@@ -245,10 +218,7 @@ export default function ShopifyConnectionCard({
                     />
                   </Field>
                   <Field
-                    label={copy(
-                      ukrainianCopy.historyReconciliationReference,
-                      englishCopy.historyReconciliationReference,
-                    )}
+                    label={copy.historyReconciliationReference}
                   >
                     <input
                       name="historyReference"
@@ -259,23 +229,17 @@ export default function ShopifyConnectionCard({
                 </div>
               </details>
               <Note className="leading-normal text-(--muted)">
-                {copy(
-                  ukrainianCopy.eventCodes1FullPayment,
-                  englishCopy.eventCodes1FullPayment,
-                )}
+                {copy.eventCodes1FullPayment}
               </Note>
               <label className="flex min-h-11 items-center gap-3 text-sm text-(--muted)">
                 <input type="checkbox" name="mappingApproved" required />
-                {copy(
-                  ukrainianCopy.iApproveTheSelectedRules,
-                  englishCopy.iApproveTheSelectedRules,
-                )}
+                {copy.iApproveTheSelectedRules}
               </label>
               <div className="flex flex-wrap gap-3">
                 <Button variant="report" type="submit" disabled={busy} className="text-(--text) hover:bg-(--input-hover)">
                   {busy
-                    ? copy(ukrainianCopy.processing, englishCopy.processing)
-                    : copy(ukrainianCopy.saveShopify, englishCopy.saveShopify)}
+                    ? copy.processing
+                    : copy.saveShopify}
                 </Button>
                 <Button variant="report"
                   type="button"
@@ -283,7 +247,7 @@ export default function ShopifyConnectionCard({
                   onClick={() => void perform("check")}
                   className="text-(--text) hover:bg-(--input-hover)"
                 >
-                  {copy(ukrainianCopy.checkReadScopes, englishCopy.checkReadScopes)}
+                  {copy.checkReadScopes}
                 </Button>
               </div>
             </fieldset>

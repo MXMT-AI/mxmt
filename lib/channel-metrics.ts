@@ -1,7 +1,7 @@
 import {calculateSalesGroupedRows} from "./grouped-reports";
 import { prisma } from "@/lib/prisma";
 import { getActiveAgentImportRunId } from "@/lib/agent-data-source";
-import { readPublishedAgentData } from "@/lib/published-agent-data";
+import { loadAgentMetricRows } from "@/lib/agent-metrics-source";
 import { channelMetricsMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export interface ChannelMetric {
@@ -66,36 +66,33 @@ export async function getChannelMetrics(
     return { channels: [], totalStock: 0, topChannel: "—", bottomChannel: "—", periodDays };
   }
 
-  const published = await readPublishedAgentData(tenantId, importRunId, d30, asOf);
-  const [sales, products, snapshot] = published
-    ? [published.sales, published.products, null] as const
-    : await Promise.all([
-    prisma.sourceSaleLine.findMany({
-      where: {
-        tenantId,
-        importRunId,
-        paymentDate: { gte: d30, ...(asOf ? { lte: asOf } : {}) },
-        resolvedProductId: { not: null },
-        normalizedQuantity: { not: null },
-        normalizedSales: { not: null },
-      },
-      select: {
-        paymentDate: true,
-        resolvedProductId: true,
-        normalizedQuantity: true,
-        normalizedSales: true,
-        sourceValues: true,
-      },
-    }),
-    prisma.sourceProduct.findMany({
-      where: { tenantId, importRunId },
-      select: { stockUnits: true },
-    }),
-    prisma.dataSheetSnapshot.findUnique({
-      where: { importRunId_sheetKey: { importRunId, sheetKey: "zavod_api" } },
-      select: { columns: true },
-    }),
-  ]);
+  const [sales, products, snapshot] = await loadAgentMetricRows(
+    tenantId, importRunId, d30, asOf,
+    (published) => [published.sales, published.products, null] as const,
+    ({ importScope, saleScope }) => Promise.all([
+      prisma.sourceSaleLine.findMany({
+        where: {
+          ...saleScope,
+          normalizedSales: { not: null },
+        },
+        select: {
+          paymentDate: true,
+          resolvedProductId: true,
+          normalizedQuantity: true,
+          normalizedSales: true,
+          sourceValues: true,
+        },
+      }),
+      prisma.sourceProduct.findMany({
+        where: importScope,
+        select: { stockUnits: true },
+      }),
+      prisma.dataSheetSnapshot.findUnique({
+        where: { importRunId_sheetKey: { importRunId, sheetKey: "zavod_api" } },
+        select: { columns: true },
+      }),
+    ]),
+  );
 
   const totalStock = products.reduce((sum, product) => sum + Number(product.stockUnits), 0);
   const channelSourceKey = channelColumnKey(snapshot?.columns);

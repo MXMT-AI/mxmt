@@ -1368,7 +1368,6 @@
     "salesDriveSalesAndMargin": "Продажі та маржа SalesDrive",
     "salesByPaymentDateAnd": "Продажі за датою оплати, повернення за підтвердженою датою. Валюти показано окремо.",
     "refreshCalculation": "Оновити розрахунок",
-    "loading": "Завантаження…",
     "settings": "Налаштування",
     "lY": " · LY ",
     "historyIsIncompleteOrInputs": "Історія неповна або вхідні дані потребують перевірки. Порівняння LY недоступне.",
@@ -1633,7 +1632,6 @@
     "settingsLink": "Налаштувати власність і постачальників"
   },
   "merchandisingReportingErrorMessages": {
-    "retry": "Повторити"
   },
   "reportingSourceStatusCopy": {
     "label": "Стан джерела звітів",
@@ -2227,7 +2225,6 @@
   "settingsDataQualityCardMessages": {
     "dataQuality": "Якість даних",
     "currentCatalogExceptionsLinkedTo": "Проблеми поточного каталогу з прив’язкою до товарів. Послуги й сертифікати не входять у товарний сток або класифікацію.",
-    "loading": "Завантаження…",
     "couldNotRefreshDataTry": "Не вдалося оновити дані. Спробуйте ще раз.",
     "refreshDiagnostics": "Оновити діагностику",
     "keyUnknown": "unknown",
@@ -2451,9 +2448,7 @@
     "labelShow": "Показати",
     "ariaLabelWarningCode": "Код попередження",
     "allWarnings": "Усі попередження",
-    "loading": "Завантаження…",
     "warningsUnavailablePleaseRetry": "Попередження недоступні. Повторіть спробу.",
-    "retry": "Повторити",
     "source": "Джерело",
     "import": "Імпорт",
     "sourceRecord": "Запис джерела",
@@ -2608,7 +2603,6 @@
     "merchandisingRules": "Правила мерчандайзингу",
     "clientOwnershipAndSupplyPolicies": "Налаштування клієнта, власності й постачання. Зміни зберігаються з версією та журналом.",
     "ariaLabelMerchandisingSections": "Розділи мерчандайзингу",
-    "loading": "Завантаження…",
     "labelSearchNameOrSKU": "Пошук назви або SKU",
     "search": "Знайти",
     "newSupplier": "Новий постачальник",
@@ -2875,7 +2869,6 @@
     "ordersEveryTwoHoursStock": "Замовлення — кожні дві години. Залишки — о 03:00 за Києвом. Автоматичні оновлення потребують підключеного зовнішнього планувальника.",
     "receiptsCatalogueAndCurrentStock": "Надходження, каталог і поточні залишки. Історія залишків починається з першого спостереження.",
     "twoYearsOfHistoryThen": "Історія за два роки, потім — оновлені замовлення. Імпорт зберігає прогрес між запусками.",
-    "loading": "Завантаження…",
     "noImportHasBeenStarted": "Імпорт ще не запускався.",
     "firstObservation": "Перше спостереження",
     "daysWithSnapshots": "Днів зі знімками",
@@ -3276,8 +3269,7 @@
     "invalidServerResponseRetryThe": "Некоректна відповідь сервера. Повторіть спробу.",
     "некоректнаВідповідьСервераПовторітьСпробу": "Некоректна відповідь сервера. Повторіть спробу.",
     "invalidServerResponseRetryThe2": "Invalid server response. Retry the operation.",
-    "збереженоПеревіртеДоступиПотімВиберіть": "Збережено. Перевірте доступи, потім виберіть {name} у джерелах звітів.",
-    "savedCheckReadScopesThen": "Saved. Check read scopes, then select {name} as the reporting source.",
+    "savedCheckReadScopesThen": "Збережено. Перевірте доступи, потім виберіть {name} у джерелах звітів.",
     "checksCompletedReviewEachResource": "Перевірки завершено. Перегляньте результат кожного ресурсу.",
     "перевіркиЗавершеноПерегляньтеРезультатКожного": "Перевірки завершено. Перегляньте результат кожного ресурсу.",
     "checksCompletedReviewEachResource2": "Checks completed. Review each resource result.",
@@ -3937,7 +3929,6 @@
     "back": "До Огляду",
     "intro": "Плануйте поповнення за залишками, швидкістю продажів та умовами постачальників.",
     "refresh": "Оновити дані",
-    "retry": "Повторити",
     "loading": "Завантаження даних дозамовлення…",
     "updating": "Оновлення рекомендацій…",
     "ready": "Рекомендації оновлено",
@@ -4057,7 +4048,6 @@
     "back": "До Огляду",
     "intro": "Неліквід і повільні позиції, впорядковані за замороженими грошима.",
     "refresh": "Оновити дані",
-    "retry": "Повторити",
     "loading": "Завантаження даних переоцінки…",
     "updating": "Оновлення розрахунку…",
     "ready": "Розрахунок оновлено",
@@ -4283,7 +4273,6 @@
     "changed": "Розрахунок змінився. Дочекайтеся актуального preview та повторіть експорт.",
     "conflict": "Запит експорту конфліктує з попереднім запитом. Оновіть сторінку та спробуйте ще раз.",
     "historyError": "Не вдалося завантажити історію експорту.",
-    "retry": "Повторити",
     "previous": "Назад",
     "next": "Далі",
     "page": "Сторінка"
@@ -4539,5 +4528,9 @@
   },
   "driveLimitsMessages": {
     "rowLimit": "Google Drive workbook cannot exceed {maximum} total rows"
+  },
+  "commonActionMessages": {
+    "loading": "Завантаження…",
+    "retry": "Повторити"
   }
 }

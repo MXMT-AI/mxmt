@@ -24,7 +24,7 @@ export default function HoroshopConnectionCard({
   lang: "uk" | "en";
   canManage: boolean;
 }) {
-  const copy = (uk: string, en: string) => (lang === "uk" ? uk : en);
+  const copy = lang === "uk" ? ukrainianCopy : englishCopy;
   const {
     connection,
     busy,
@@ -64,10 +64,7 @@ export default function HoroshopConnectionCard({
       value = (k: string) => String(d.get(k) ?? "");
     if (new Set(statuses.map((s) => s.id)).size !== statuses.length) {
       setError(
-        copy(
-          ukrainianCopy.statusCodesMustBeUnique,
-          englishCopy.statusCodesMustBeUnique,
-        ),
+        copy.statusCodesMustBeUnique,
       );
       return;
     }
@@ -106,29 +103,20 @@ export default function HoroshopConnectionCard({
       <div>
         <Heading as="h2" variant="compact" id="horoshop-heading" className="text-base">{englishCopy.horoshop}</Heading>
         <Text variant="body" className="mt-1 max-w-3xl leading-normal text-(--muted)">
-          {copy(
-            ukrainianCopy.readOnlyEachRefreshRescansThe,
-            englishCopy.readOnlyEachRefreshRescansThe,
-          )}
+          {copy.readOnlyEachRefreshRescansThe}
         </Text>
       </div>
       <div className={panel + " space-y-4 p-4 sm:p-5"}>
         <Text variant="body" className="wrap-break-word leading-normal text-(--muted)">
           {connection.configured
-            ? copy(ukrainianCopy.configured, englishCopy.configured) + connection.accountHost
-            : copy(ukrainianCopy.notConfigured, englishCopy.notConfigured)}
+            ? copy.configured + connection.accountHost
+            : copy.notConfigured}
         </Text>
         <Text variant="body" className="leading-normal text-(--muted)">
-          {copy(
-            ukrainianCopy.anOperatorMustAllowThe,
-            englishCopy.anOperatorMustAllowThe,
-          )}
+          {copy.anOperatorMustAllowThe}
         </Text>
         <Note className="leading-normal">
-          {copy(
-            ukrainianCopy.aPaidFlagDoesNot,
-            englishCopy.aPaidFlagDoesNot,
-          )}
+          {copy.aPaidFlagDoesNot}
         </Note>
         {canManage ? (
           <form
@@ -148,7 +136,7 @@ export default function HoroshopConnectionCard({
             <fieldset disabled={busy} className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field
-                  label={copy(ukrainianCopy.shopHTTPSOrigin, englishCopy.shopHTTPSOrigin)}
+                  label={copy.shopHTTPSOrigin}
                 >
                   <input
                     name="origin"
@@ -160,7 +148,7 @@ export default function HoroshopConnectionCard({
                     spellCheck={false}
                   />
                 </Field>
-                <Field label={copy(ukrainianCopy.shopTimezone, englishCopy.shopTimezone)}>
+                <Field label={copy.shopTimezone}>
                   <input
                     name="timezone"
                     required
@@ -169,7 +157,7 @@ export default function HoroshopConnectionCard({
                     spellCheck={false}
                   />
                 </Field>
-                <Field label={copy(ukrainianCopy.integrationLogin, englishCopy.integrationLogin)}>
+                <Field label={copy.integrationLogin}>
                   <input
                     name="login"
                     required
@@ -179,7 +167,7 @@ export default function HoroshopConnectionCard({
                   />
                 </Field>
                 <Field
-                  label={copy(ukrainianCopy.integrationPassword, englishCopy.integrationPassword)}
+                  label={copy.integrationPassword}
                 >
                   <input
                     name="password"
@@ -189,7 +177,7 @@ export default function HoroshopConnectionCard({
                     autoComplete="new-password"
                   />
                 </Field>
-                <Field label={copy(ukrainianCopy.mappingRevision, englishCopy.mappingRevision)}>
+                <Field label={copy.mappingRevision}>
                   <input
                     name="mappingRevision"
                     type="number"
@@ -201,7 +189,7 @@ export default function HoroshopConnectionCard({
                     className={control}
                   />
                 </Field>
-                <Field label={copy(ukrainianCopy.iSOCurrency, englishCopy.iSOCurrency)}>
+                <Field label={copy.iSOCurrency}>
                   <input
                     name="currency"
                     pattern="[A-Z]{3}"
@@ -212,10 +200,7 @@ export default function HoroshopConnectionCard({
                   />
                 </Field>
                 <Field
-                  label={copy(
-                    ukrainianCopy.confirmedRequestLimit,
-                    englishCopy.confirmedRequestLimit,
-                  )}
+                  label={copy.confirmedRequestLimit}
                 >
                   <input
                     name="requestsPerWindow"
@@ -228,10 +213,7 @@ export default function HoroshopConnectionCard({
                   />
                 </Field>
                 <Field
-                  label={copy(
-                    ukrainianCopy.limitWindowInSeconds,
-                    englishCopy.limitWindowInSeconds,
-                  )}
+                  label={copy.limitWindowInSeconds}
                 >
                   <input
                     name="windowSeconds"
@@ -244,10 +226,7 @@ export default function HoroshopConnectionCard({
                   />
                 </Field>
                 <Field
-                  label={copy(
-                    ukrainianCopy.verifiedCatalogModificationCountOptional,
-                    englishCopy.verifiedCatalogModificationCountOptional,
-                  )}
+                  label={copy.verifiedCatalogModificationCountOptional}
                 >
                   <input
                     name="catalogCount"
@@ -259,10 +238,7 @@ export default function HoroshopConnectionCard({
                   />
                 </Field>
                 <Field
-                  label={copy(
-                    ukrainianCopy.warehouseSyncNamesCommaSeparated,
-                    englishCopy.warehouseSyncNamesCommaSeparated,
-                  )}
+                  label={copy.warehouseSyncNamesCommaSeparated}
                 >
                   <input
                     name="warehouses"
@@ -280,16 +256,10 @@ export default function HoroshopConnectionCard({
                 }}
               />
               <p className="text-xs text-(--muted)">
-                {copy(
-                  ukrainianCopy.readStatusCodesInThe,
-                  englishCopy.readStatusCodesInThe,
-                )}
+                {copy.readStatusCodesInThe}
               </p>
               <Field
-                label={copy(
-                  ukrainianCopy.aPIVersionPermissionsQuotaAnd,
-                  englishCopy.aPIVersionPermissionsQuotaAnd,
-                )}
+                label={copy.aPIVersionPermissionsQuotaAnd}
               >
                 <input
                   name="reference"
@@ -302,24 +272,15 @@ export default function HoroshopConnectionCard({
                 [
                   [
                     "stableOrderPagination",
-                    copy(
-                      ukrainianCopy.verifiedStableOffsetOrderPagination,
-                      englishCopy.verifiedStableOffsetOrderPagination,
-                    ),
+                    copy.verifiedStableOffsetOrderPagination,
                   ],
                   [
                     "physicalStock",
-                    copy(
-                      ukrainianCopy.verifiedPhysicalStockInThe,
-                      englishCopy.verifiedPhysicalStockInThe,
-                    ),
+                    copy.verifiedPhysicalStockInThe,
                   ],
                   [
                     "netUnitPrice",
-                    copy(
-                      ukrainianCopy.verifiedNetUnitPricesBundles,
-                      englishCopy.verifiedNetUnitPricesBundles,
-                    ),
+                    copy.verifiedNetUnitPricesBundles,
                   ],
                 ] as const
               ).map(([name, label]) => (
@@ -333,16 +294,13 @@ export default function HoroshopConnectionCard({
               ))}
               <label className="flex min-h-11 items-center gap-3 text-sm text-(--muted)">
                 <input type="checkbox" name="mappingApproved" required />
-                {copy(
-                  ukrainianCopy.iApproveTheRulesAnd,
-                  englishCopy.iApproveTheRulesAnd,
-                )}
+                {copy.iApproveTheRulesAnd}
               </label>
               <div className="flex flex-wrap gap-3">
                 <Button variant="report" type="submit" className="text-(--text) hover:bg-(--input-hover)" disabled={busy}>
                   {busy
-                    ? copy(ukrainianCopy.processing, englishCopy.processing)
-                    : copy(ukrainianCopy.saveHoroshop, englishCopy.saveHoroshop)}
+                    ? copy.processing
+                    : copy.saveHoroshop}
                 </Button>
                 <Button
                   variant="report"
@@ -351,7 +309,7 @@ export default function HoroshopConnectionCard({
                   disabled={busy || dirty || !connection.configured}
                   onClick={() => void perform("check")}
                 >
-                  {copy(ukrainianCopy.checkReadScopes, englishCopy.checkReadScopes)}
+                  {copy.checkReadScopes}
                 </Button>
               </div>
             </fieldset>

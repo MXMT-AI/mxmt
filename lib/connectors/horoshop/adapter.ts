@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { isRecord } from "@/lib/api-contracts";
 import { ConnectorReadError } from "../read-error";
+import { readConnectorResponse, recordConnectionChecks } from "../read-http";
 import { parseSourceJson } from "../json";
 import { exact, sourceDate } from "../order-normalization";
 import { retryAfter } from "../budget";
@@ -122,9 +123,8 @@ export class HoroshopConnector implements MerchandisingConnector {
     return redact(value);
   }
   private async post(path: Path, data: Row, secret?: string) {
-    let response: Response;
-    try {
-      response = await this.fetcher(
+    const response = await readConnectorResponse(() =>
+      this.fetcher(
         new URL(`/api/${path}/`, this.config.origin),
         {
           method: "POST",
@@ -137,28 +137,8 @@ export class HoroshopConnector implements MerchandisingConnector {
           },
           body: JSON.stringify(data),
         },
-      );
-    } catch (e) {
-      if (e instanceof ConnectorReadError) throw e;
-      throw new ConnectorReadError(
-        e instanceof Error && ["AbortError", "TimeoutError"].includes(e.name)
-          ? "TIMEOUT"
-          : "NETWORK_ERROR",
-      );
-    }
-    if (!response.ok) {
-      await response.body?.cancel().catch(() => undefined);
-      throw new ConnectorReadError(
-        [401, 403].includes(response.status)
-          ? "AUTH_FAILED"
-          : response.status === 429
-            ? "RATE_LIMITED"
-            : "NETWORK_ERROR",
-        response.status === 429
-          ? retryAfter(response.headers.get("Retry-After"))
-          : undefined,
-      );
-    }
+      ),
+    );
     if (!response.body) invalid();
     const reader = response.body!.getReader(),
       chunks: Uint8Array[] = [];
@@ -567,20 +547,7 @@ export class HoroshopConnector implements MerchandisingConnector {
   async checkConnection(): Promise<ConnectionCheck> {
     const checks: ConnectionCheck["checks"] = [];
     let statuses = unavailable("NOT_CHECKED");
-    const check = async (
-      resource: ConnectionCheck["checks"][number]["resource"],
-      fn: () => Promise<unknown>,
-    ) => {
-      try {
-        await fn();
-        checks.push({ resource, code: "OK" });
-      } catch (e) {
-        checks.push({
-          resource,
-          code: e instanceof ConnectorReadError ? e.code : "NETWORK_ERROR",
-        });
-      }
-    };
+    const check = recordConnectionChecks(checks);
     await check("orders", () => this.getOrders({ limit: 1 }));
     await check("statuses", async () => {
       statuses = await this.getStatuses();

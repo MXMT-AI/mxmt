@@ -13,7 +13,7 @@ import { prisma } from "./prisma";
 const flagOrder: Record<SkuFlag, number> = { hit: 0, stockout: 1, slow: 2, dead: 3, ok: 4 };
 const dayMs = 24 * 60 * 60 * 1000;
 
-export async function loadAnalystClassification(
+export async function loadAnalystClassificationRows(
   tenantId: string,
   { brand, category }: { brand?: string | null; category?: string | null } = {},
 ) {
@@ -57,7 +57,6 @@ export async function loadAnalystClassification(
   const sales30BySku = new Map(sales30.map((sale) => [sale.skuId, sale._sum.qtySold]));
   const sales7BySku = new Map(sales7.map((sale) => [sale.skuId, sale._sum.qtySold]));
   const classified: ClassifiedSku[] = [];
-  const summary: ClassifySummary = { total: 0, hit: 0, stockout: 0, slow: 0, dead: 0, ok: 0 };
 
   for (const sku of skus) {
     const stock = stockBySku.get(sku.id);
@@ -86,17 +85,25 @@ export async function loadAnalystClassification(
       leadTime,
       flag,
     });
-    summary[flag]++;
   }
-
-  summary.total = classified.length;
-  classified.sort((a, b) => flagOrder[a.flag] - flagOrder[b.flag]);
 
   return {
     skus: classified,
-    summary,
     businessModel,
     catalogSkuCount: skus.length,
     hasOnboarding: onboarding != null,
   };
+}
+
+export async function loadAnalystClassification(
+  tenantId: string,
+  filters: { brand?: string | null; category?: string | null } = {},
+) {
+  const data = await loadAnalystClassificationRows(tenantId, filters);
+  const summary: ClassifySummary = {
+    total: data.skus.length, hit: 0, stockout: 0, slow: 0, dead: 0, ok: 0,
+  };
+  for (const sku of data.skus) summary[sku.flag]++;
+  data.skus.sort((a, b) => flagOrder[a.flag] - flagOrder[b.flag]);
+  return { ...data, summary };
 }

@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import { requireApiUser } from "@/lib/server-auth";
 import { parseJsonBody, isRecord, apiError } from "@/lib/api-contracts";
 import { createRepricingInputs } from "@/lib/repricing-store";
 import { repricingApiError } from "@/lib/repricing-api-error";
-import { workspaceReportStorage } from "@/lib/workspace-report-storage";
+import { merchandisingReportResponse } from "@/lib/merchandising-report-response";
 import { readPublishedRepricingInputs } from "@/lib/merchandising-publication";
 import { apiMerchandisingRepricingInputsRouteMessages as englishCopy } from "@/messages/en.json";
 export const dynamic = "force-dynamic";
@@ -31,14 +31,12 @@ export async function POST(request: NextRequest) {
       "INVALID_REPRICING_INPUT_REQUEST",
     );
   try {
-    const storage = await workspaceReportStorage(user.tenantId);
-    const published = storage && await readPublishedRepricingInputs(user.tenantId, data.snapshotId, storage);
-    return NextResponse.json(
-      published ?? await createRepricingInputs(user.tenantId, data.snapshotId),
-      { status: 201, headers: {
-        "Cache-Control": "no-store",
-        "X-MXMT-Report-Source": published ? "published" : "postgres",
-      } },
+    const { snapshotId } = data;
+    return await merchandisingReportResponse(
+      user.tenantId,
+      (storage) => readPublishedRepricingInputs(user.tenantId, snapshotId, storage),
+      () => createRepricingInputs(user.tenantId, snapshotId),
+      201,
     );
   } catch (error) {
     return repricingApiError(error);

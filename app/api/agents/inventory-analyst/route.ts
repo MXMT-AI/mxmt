@@ -5,7 +5,7 @@ import { chat } from "@/lib/ai";
 import { requireApiUser } from "@/lib/server-auth";
 import { serverError } from "@/lib/api-contracts";
 import { parseAgentJson } from "@/lib/agent-output";
-import { closeStaleAgentRuns, startAgentRun } from "@/lib/agent-runs";
+import { closeStaleAgentRuns, completeAgentRun, failAgentRun, startAgentRun } from "@/lib/agent-runs";
 import {
   buildInventoryResults,
   selectInventoryAiCandidates,
@@ -79,14 +79,7 @@ export async function POST(req: NextRequest) {
     const metrics = await getBrandMetrics(tenantId, asOf, dateFrom);
 
     if (metrics.length === 0) {
-      await prisma.agentRun.update({
-        where: { id: run.id },
-        data: {
-          status: "done",
-          output: { brands: [], message: ukrainianCopy.messageНемаєБрендівІзТоварами },
-          finishedAt: new Date(),
-        },
-      });
+      await completeAgentRun(run.id, { brands: [], message: ukrainianCopy.messageНемаєБрендівІзТоварами });
       return NextResponse.json({ runId: run.id, brands: [] });
     }
 
@@ -149,18 +142,12 @@ export async function POST(req: NextRequest) {
       dateFrom: body.dateFrom ?? null,
       analyzedAt: new Date().toISOString(),
     };
-    await prisma.agentRun.update({
-      where: { id: run.id },
-      data: { status: "done", output: { brands: output, _debug }, finishedAt: new Date() },
-    });
+    await completeAgentRun(run.id, { brands: output, _debug });
 
     return NextResponse.json({ runId: run.id, brands: output });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    await prisma.agentRun.update({
-      where: { id: run.id },
-      data: { status: "error", errorMsg: msg, finishedAt: new Date() },
-    });
+    await failAgentRun(run.id, msg);
     return serverError(msg);
   }
 }

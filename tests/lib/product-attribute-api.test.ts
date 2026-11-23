@@ -4,7 +4,7 @@ vi.mock("server-only",()=>({}));
 const m=vi.hoisted(()=>({cookies:new Map<string,string>(),analyze:vi.fn(),save:vi.fn(),read:vi.fn(),approve:vi.fn(),sample:vi.fn(),legacy:vi.fn(),update:vi.fn()}));
 vi.mock("@/lib/prisma",()=>({prisma:{agentRun:{update:m.update}}}));vi.mock("next/headers",()=>({cookies:async()=>({get:(key:string)=>({value:m.cookies.get(key)})})}));
 vi.mock("@/lib/product-attribute-report",()=>({analyzeProductAttributes:m.analyze}));vi.mock("@/lib/product-attribute-store",()=>({saveAttributeDictionary:m.save,readAttributeDictionary:m.read,approveAttributeDictionary:m.approve,sampleProductAttributes:m.sample}));
-vi.mock("@/lib/attribute-metrics",()=>({getAttributeMetrics:m.legacy}));vi.mock("@/lib/agent-runs",()=>({startAgentRun:async()=>({run:{id:"legacy-run"},response:null})}));
+vi.mock("@/lib/attribute-metrics",()=>({getAttributeMetrics:m.legacy}));vi.mock("@/lib/agent-runs",async (importOriginal)=>({...await importOriginal<typeof import("@/lib/agent-runs")>(),startAgentRun:async()=>({run:{id:"legacy-run"},response:null})}));
 import {POST as analyze} from "@/app/api/agents/product-attributes/route";
 import {POST as save,GET as read} from "@/app/api/merchandising/attributes/dictionaries/[dictionary-id]/route";
 import {POST as approve} from "@/app/api/merchandising/attributes/dictionaries/[dictionary-id]/approve/route";

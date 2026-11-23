@@ -2,6 +2,7 @@ import { isValidElement, type ReactNode } from "react";
 import { expect, it } from "vitest";
 import { SalesChannelsSection } from "@/components/sales/sales-channels-section/sales-channels-section";
 import ReportTable from "@/components/data-reporting/report-table/report-table";
+import { ReportTableFooter } from "@/components/data-reporting/report-table/report-table-footer";
 import { Pager } from "@/components/ui/pager/pager";
 import { PartialMarker } from "@/components/ui/partial-marker/partial-marker";
 import { salesCopy } from "@/lib/sales-copy";
@@ -40,8 +41,18 @@ it.each(["uk", "en"] as const)("preserves unknown channel navigation and partial
 it("keeps channel pagination scoped separately and shows the empty-state message", () => {
   const copy = salesCopy.en;
   const tree = nodes(SalesChannelsSection({ channels: { rows: [], pagination }, copy, locale: "en-GB", href }));
-  expect(tree.some(node => node.type === "p" && node.props.children === copy.noRows)).toBe(true);
-  const pager = tree.find(node => node.type === Pager)!.props;
+  const footer = tree.find(node => node.type === ReportTableFooter);
+  expect(footer).toBeDefined();
+  const footerTree = nodes(ReportTableFooter({
+    pagination,
+    control: footer!.props.control,
+    href: footer!.props.href,
+    copy,
+    rowCount: footer!.props.rowCount,
+    emptyState: footer!.props.emptyState,
+  }));
+  expect(footerTree.some(node => node.type === "p" && node.props.children === copy.noRows)).toBe(true);
+  const pager = footerTree.find(node => node.type === Pager)!.props;
   expect(pager.control).toBe("channelPage");
   expect(pager.pagination).toBe(pagination);
   const url = new URL(pager.href({ channelPage: "1" }), "https://example.test");

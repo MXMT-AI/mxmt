@@ -1,5 +1,4 @@
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
-import { NextRequest } from "next/server";
 vi.mock("server-only", () => ({}));
 const state = vi.hoisted(() => ({
   models: null as any,
@@ -15,9 +14,8 @@ vi.mock("@/lib/prisma", () => ({
 vi.mock("@/lib/server-fetch", () => ({
   fetchWithTimeout: (u: URL, i: RequestInit) => state.fetcher(u, i),
 }));
-import { createScreenDb } from "../helpers/screen-db";
-import { connectorModels } from "../helpers/connector-models";
-import { signAccessToken } from "@/lib/auth";
+import type { createScreenDb } from "../helpers/screen-db";
+import { connectorApiRequest, loginConnectorApi, setupConnectorApi } from "../helpers/connector-api";
 import {
   shopifyConfig as config,
   shopifyFetcher,
@@ -25,27 +23,10 @@ import {
 import { GET, PUT, POST } from "@/app/api/connectors/[provider]/route";
 const ctx = { params: Promise.resolve({ provider: "shopify" }) };
 let f: Awaited<ReturnType<typeof createScreenDb>>;
-const login = async (role = "ADMIN", tenantId = "a") => {
-  state.cookie = await signAccessToken({ sub: "owner", tenantId, role });
-};
-const req = (method = "GET", body?: unknown) =>
-  new NextRequest("http://localhost/api/connectors/shopify", {
-    method,
-    headers: { "Content-Type": "application/json" },
-    ...(body ? { body: JSON.stringify(body) } : {}),
-  });
+const login = (role?: string, tenantId?: string) => loginConnectorApi(state, role, tenantId);
+const req = connectorApiRequest("http://localhost/api/connectors/shopify");
 beforeAll(async () => {
-  vi.stubEnv("JWT_SECRET", "synthetic-auth-secret-for-shopify-tests");
-  vi.stubEnv(
-    "CONNECTOR_ENCRYPTION_KEY",
-    Buffer.alloc(32, 9).toString("base64"),
-  );
-  f = await createScreenDb();
-  state.models = {
-    ...connectorModels(f.db),
-    $transaction: (cb: any) =>
-      f.db.$transaction((tx) => cb(connectorModels(tx))),
-  };
+  f = await setupConnectorApi(state, "JWT_SECRET", "synthetic-auth-secret-for-shopify-tests");
   state.fetcher.mockImplementation(shopifyFetcher());
 }, 30000);
 afterAll(async () => {

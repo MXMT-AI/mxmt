@@ -17,25 +17,25 @@ export function CsvReceiptRules({ value, suppliers, lang, onChange }: {
   lang: Lang;
   onChange: (value: CsvReceiptRuleValues) => void;
 }) {
-  const copy = (uk: string, en: string) => lang === "uk" ? uk : en;
+  const copy = lang === "uk" ? ukrainianCopy : englishCopy;
   return (
     <fieldset className="grid gap-4 sm:grid-cols-3">
-      <legend className="mb-3 text-sm text-(--text)">{copy(ukrainianCopy.verifiedReceipts, englishCopy.verifiedReceipts)}</legend>
-      <Field label={copy(ukrainianCopy.postedStatusCode, englishCopy.postedStatusCode)}>
+      <legend className="mb-3 text-sm text-(--text)">{copy.verifiedReceipts}</legend>
+      <Field label={copy.postedStatusCode}>
         <input className={control} required value={value.postedStatus} onChange={event => onChange({ ...value, postedStatus: event.target.value })} />
       </Field>
-      <Field label={copy(ukrainianCopy.supplierCodeInFile, englishCopy.supplierCodeInFile)}>
+      <Field label={copy.supplierCodeInFile}>
         <input className={control} required value={value.supplierCode} onChange={event => onChange({ ...value, supplierCode: event.target.value })} />
       </Field>
-      <Field label={copy(ukrainianCopy.supplier, englishCopy.supplier)}>
+      <Field label={copy.supplier}>
         <select className={control} required value={value.supplierId} onChange={event => onChange({ ...value, supplierId: event.target.value })}>
-          <option value="">{copy(ukrainianCopy.chooseSupplier, englishCopy.chooseSupplier)}</option>
+          <option value="">{copy.chooseSupplier}</option>
           {suppliers.map(supplier => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
         </select>
       </Field>
       <label className="flex items-start gap-2 text-sm text-(--muted) sm:col-span-3">
         <input type="checkbox" checked={value.costVerified} onChange={event => onChange({ ...value, costVerified: event.target.checked })} />
-        {copy(ukrainianCopy.purchaseCostIsAVerified, englishCopy.purchaseCostIsAVerified)}
+        {copy.purchaseCostIsAVerified}
       </label>
     </fieldset>
   );

@@ -1,4 +1,5 @@
 "use client";
+import { commonActions } from "@/i18n/common-actions";
 import { Button } from "@/components/ui/button/button";
 import { Heading } from "@/components/ui/heading/heading";
 import { panel } from "@/components/ui/panel/panel-styles";
@@ -91,7 +92,7 @@ export default function DataQualityCard({
       )}
       <Text variant="body" role="status" className="mt-3 leading-normal text-(--muted)">
         {message ||
-          (loading || !data ? (uk ? ukrainianCopy.loading : englishCopy.loading) : "")}
+          (loading || !data ? (commonActions[lang].loading) : "")}
       </Text>
       <Button
         variant="report"

@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import { requireApiUser } from "@/lib/server-auth";
 import { parseJsonBody, apiError } from "@/lib/api-contracts";
 import { getReorderingPreview } from "@/lib/reordering-store";
 import { ReorderingError } from "@/lib/reorder-calc";
 import { merchandisingApiError } from "@/lib/merchandising-api-error";
-import { workspaceReportStorage } from "@/lib/workspace-report-storage";
+import { merchandisingReportResponse } from "@/lib/merchandising-report-response";
 import { readPublishedReorderingPreview } from "@/lib/merchandising-publication";
 import { parseReorderingRequest } from "@/lib/reorder-calc";
 import { apiMerchandisingReorderingPreviewRouteMessages as englishCopy } from "@/messages/en.json";
@@ -21,14 +21,11 @@ export async function POST(request: NextRequest) {
   );
   if (invalid) return invalid;
   try {
-    const storage = await workspaceReportStorage(user.tenantId);
-    const published = storage && await readPublishedReorderingPreview(user.tenantId, parseReorderingRequest(data), storage);
-    return NextResponse.json(published ?? await getReorderingPreview(user.tenantId, data), {
-      headers: {
-        "Cache-Control": "no-store",
-        "X-MXMT-Report-Source": published ? "published" : "postgres",
-      },
-    });
+    return await merchandisingReportResponse(
+      user.tenantId,
+      (storage) => readPublishedReorderingPreview(user.tenantId, parseReorderingRequest(data), storage),
+      () => getReorderingPreview(user.tenantId, data),
+    );
   } catch (error) {
     return error instanceof ReorderingError
       ? apiError(

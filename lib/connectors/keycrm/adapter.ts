@@ -4,8 +4,8 @@ import { Prisma } from "@prisma/client";
 import { isRecord } from "@/lib/api-contracts";
 import { parseSourceJson } from "../json";
 import { ConnectorReadError } from "../read-error";
+import { readConnectorResponse, recordConnectionChecks } from "../read-http";
 import { payloadHash } from "../order-storage";
-import { retryAfter } from "../budget";
 import { sourceDate, exact } from "../order-normalization";
 import { utcWatermark } from "../requests";
 import { parseKeyCrmConfig, type KeyCrmConfig } from "./config";
@@ -20,7 +20,6 @@ import type {
   StockDto,
   OrderDto,
   ReceiptDto,
-  CheckCode,
 } from "../contract";
 type Row = Record<string, unknown>;
 type Fetcher = (url: URL, init: RequestInit) => Promise<Response>;
@@ -114,9 +113,8 @@ export class KeyCrmConnector implements MerchandisingConnector {
   ): Promise<{ body: Row; raw: string; observedAt: string }> {
     const url = new URL("https://openapi.keycrm.app/v1" + path);
     for (const [k, v] of Object.entries(query)) url.searchParams.set(k, v);
-    let response: Response;
-    try {
-      response = await this.fetcher(url, {
+    const response = await readConnectorResponse(() =>
+      this.fetcher(url, {
         method: "GET",
         redirect: "error",
         cache: "no-store",
@@ -125,28 +123,8 @@ export class KeyCrmConnector implements MerchandisingConnector {
           Authorization: `Bearer ${this.config.apiKey}`,
           Accept: "application/json",
         },
-      });
-    } catch (e) {
-      if (e instanceof ConnectorReadError) throw e;
-      throw new ConnectorReadError(
-        e instanceof Error && ["AbortError", "TimeoutError"].includes(e.name)
-          ? "TIMEOUT"
-          : "NETWORK_ERROR",
-      );
-    }
-    if (!response.ok) {
-      await response.body?.cancel().catch(() => undefined);
-      throw new ConnectorReadError(
-        response.status === 401 || response.status === 403
-          ? "AUTH_FAILED"
-          : response.status === 429
-            ? "RATE_LIMITED"
-            : "NETWORK_ERROR",
-        response.status === 429
-          ? retryAfter(response.headers.get("Retry-After"))
-          : undefined,
-      );
-    }
+      }),
+    );
     if (!response.body) throw new ConnectorReadError("INVALID_RESPONSE");
     const reader = response.body.getReader(),
       chunks: Uint8Array[] = [];
@@ -550,23 +528,7 @@ export class KeyCrmConnector implements MerchandisingConnector {
     const checks: ConnectionCheck["checks"] = [];
     let statuses = empty("NOT_CHECKED"),
       channels = empty("NOT_CHECKED");
-    const check = async (
-      resource: ConnectionCheck["checks"][number]["resource"],
-      read: () => Promise<unknown>,
-    ) => {
-      try {
-        await read();
-        checks.push({ resource, code: "OK" });
-      } catch (e) {
-        checks.push({
-          resource,
-          code:
-            e instanceof ConnectorReadError
-              ? e.code
-              : ("NETWORK_ERROR" as CheckCode),
-        });
-      }
-    };
+    const check = recordConnectionChecks(checks);
     await check("orders", () => this.getOrders({ limit: 1 }));
     await check("statuses", async () => {
       statuses = await this.dictionary("/order/status", true);

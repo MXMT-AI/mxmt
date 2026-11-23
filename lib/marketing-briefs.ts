@@ -1,3 +1,4 @@
+import { isoWeek } from "@/lib/iso-week";
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { Prisma } from "@prisma/client";
@@ -124,9 +125,8 @@ export async function approveMarketingBrief(p:AiPrincipal,value:unknown,db:SqlDa
     }
     if(!approved)throw new AiExecutionError("AI_MARKETING_OFFER_NOT_APPROVED");
     if(!draft.request.budget&&draft.request.channels.includes("paid_social"))throw new AiExecutionError("AI_MARKETING_BUDGET_REQUIRED");
-    const start=new Date(`${draft.request.campaign.from}T00:00:00Z`),date=new Date(start);
-    date.setUTCDate(date.getUTCDate()+4-(date.getUTCDay()||7));
-    const week=Math.ceil((((date.getTime()-Date.UTC(date.getUTCFullYear(),0,1))/86400000)+1)/7);
+    const start = new Date(`${draft.request.campaign.from}T00:00:00Z`);
+    const { year, week } = isoWeek(start, "utc");
     const channels=draft.request.channels.map(c=>channelMap[c]);
     const events=buildRecommendationCalendarEvents({recommendation:{recommendation_id:draftId,brand_id:draft.brand.id,brand_name:draft.brand.name,
       decision_summary:formatMessage(ukrainianCopy.decisionSummaryПідготуватиПогодженіМатеріали, { from: draft.request.campaign.from, to: draft.request.campaign.to }),channels,status:"draft"},weekKey:`w${week}`,selectedChannels:channels});
@@ -136,7 +136,7 @@ export async function approveMarketingBrief(p:AiPrincipal,value:unknown,db:SqlDa
       ON CONFLICT ("tenantId","recommendationKey","rowKey") DO NOTHING`);
     const calendarKey=`marketing-calendar:${draftId}`;
     await tx.$executeRaw(Prisma.sql`INSERT INTO "MerchandisingAction" (id,"tenantId","actorId",action,"entityType","entityId","idempotencyKey",after,context)
-      VALUES (${randomUUID()},${p.tenantId},${p.userId},'MARKETING_CALENDAR_APPROVED','MARKETING_APPROVAL',${draftId},${calendarKey},${JSON.stringify({draftId,events,year:date.getUTCFullYear(),approvedBy:p.userId,approvedAt:now.toISOString()})}::jsonb,'{"kind":"MARKETING_CALENDAR_V1"}') ON CONFLICT ("tenantId","idempotencyKey") DO NOTHING`);
+      VALUES (${randomUUID()},${p.tenantId},${p.userId},'MARKETING_CALENDAR_APPROVED','MARKETING_APPROVAL',${draftId},${calendarKey},${JSON.stringify({draftId,events,year,approvedBy:p.userId,approvedAt:now.toISOString()})}::jsonb,'{"kind":"MARKETING_CALENDAR_V1"}') ON CONFLICT ("tenantId","idempotencyKey") DO NOTHING`);
     const execution=await executionByKey({tenantId:p.tenantId,userId:row.actorId},executionKey(draftId),tx);
     return {draftId,created,events,usage:execution?{executionId:execution.id,state:execution.state,charged:execution.charged,currency:execution.metadata.policy.currency}:null};
   },true);

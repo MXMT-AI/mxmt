@@ -1,5 +1,6 @@
 "use client";
 
+import { commonActions } from "@/i18n/common-actions";
 import { Button } from "@/components/ui/button/button";
 import { Heading } from "@/components/ui/heading/heading";
 import { Text } from "@/components/ui/text/text";
@@ -69,9 +70,7 @@ export default function SalesDriveImportCard({
       </Text>
       <Text variant="body" className="leading-normal mt-3 text-sm text-(--text)" role="status">
         {!loaded
-          ? uk
-            ? ukrainianCopy.loading
-            : englishCopy.loading
+          ? commonActions[lang].loading
           : job
             ? (labels[job.state] ?? job.state)
             : uk

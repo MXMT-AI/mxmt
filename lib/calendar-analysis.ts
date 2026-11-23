@@ -1,3 +1,4 @@
+import { isoWeek } from "@/lib/iso-week";
 import { formatMessage } from "@/i18n/format-message";
 import { calendarAnalysisMessages as ukrainianCopy } from "@/messages/uk.json";
 
@@ -78,26 +79,13 @@ function normalizeText(value: string): string {
     .trim();
 }
 
-function isoWeek(dateInput: Date): { year: number; week: number } {
-  const date = new Date(Date.UTC(
-    dateInput.getUTCFullYear(),
-    dateInput.getUTCMonth(),
-    dateInput.getUTCDate()
-  ));
-  const day = date.getUTCDay() || 7;
-  date.setUTCDate(date.getUTCDate() + 4 - day);
-  const year = date.getUTCFullYear();
-  const yearStart = new Date(Date.UTC(year, 0, 1));
-  const week = Math.ceil((((date.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
-  return { year, week };
-}
 
 export function calendarWindow(date: Date, weeks = 4): { label: string; weekKeys: string[] } {
-  const current = isoWeek(date);
+  const current = isoWeek(date, "utc");
   const weekKeys = Array.from({ length: weeks }, (_, index) => {
     const next = new Date(date);
     next.setUTCDate(next.getUTCDate() + index * 7);
-    return `w${isoWeek(next).week}`;
+    return `w${isoWeek(next, "utc").week}`;
   });
   return {
     label: `${current.year}-W${String(current.week).padStart(2, "0")}`,

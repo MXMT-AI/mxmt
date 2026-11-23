@@ -137,3 +137,8 @@ export function nextSortDirection(
     ? "desc"
     : "asc";
 }
+
+export function createReportMonthFormatter(locale: string, year?: "2-digit") {
+  const formatter = new Intl.DateTimeFormat(locale, { month: "short", year, timeZone: "UTC" });
+  return (month: string) => formatter.format(new Date(`${month}-01T12:00:00Z`));
+}

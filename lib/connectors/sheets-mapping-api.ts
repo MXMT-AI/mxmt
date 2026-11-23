@@ -1,4 +1,7 @@
-import { apiError, isRecord } from "../api-contracts";
+import { randomUUID } from "node:crypto";
+import { NextResponse, type NextRequest } from "next/server";
+import { apiError, isRecord, parseJsonBody } from "../api-contracts";
+import { requireApiUser } from "../server-auth";
 import { AiExecutionError } from "../ai-execution/contracts";
 import { SheetsMappingError } from "./sheets-mapping-validation";
 import { connectorsSheetsMappingApiMessages as englishApiMessages } from "@/messages/en.json";
@@ -44,4 +47,30 @@ export function sheetsMappingApiError(error: unknown, requestId?: string) {
     undefined,
     requestId,
   );
+}
+
+export async function sheetsMutationResponse(
+  request: NextRequest,
+  params: Promise<{ "source-id": string }>,
+  mutate: (actor: { tenantId: string; userId: string }, sourceId: string, data: unknown) => Promise<unknown>,
+  { maxBytes, queryError, trackRequest = false }: {
+    maxBytes: number;
+    queryError: "INVALID_SHEETS_MAPPING_REQUEST" | "INVALID_SHEETS_PROJECTION_REQUEST";
+    trackRequest?: boolean;
+  },
+) {
+  const { user, response } = await requireApiUser("ADMIN");
+  if (response) return response;
+  const requestId = trackRequest ? randomUUID() : undefined;
+  const { data, response: invalid } = await parseJsonBody(request, requestId, maxBytes);
+  if (invalid) return invalid;
+
+  try {
+    if (request.nextUrl.search) throw new SheetsMappingError(queryError);
+    const { tenantId, userId } = user;
+    const result = await mutate({ tenantId, userId }, (await params)["source-id"], data);
+    return NextResponse.json(result, { headers: { "Cache-Control": "private, no-store" } });
+  } catch (error) {
+    return sheetsMappingApiError(error, requestId);
+  }
 }

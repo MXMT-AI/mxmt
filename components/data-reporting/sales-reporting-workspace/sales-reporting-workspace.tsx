@@ -1,4 +1,5 @@
 "use client";
+import { commonActions } from "@/i18n/common-actions";
 import { Link } from "@/i18n/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useLang } from "@/components/language-provider/language-provider";
@@ -109,7 +110,7 @@ export default function SalesReportingWorkspace() {
       </form>
       {busy && (
         <p role="status" className="text-sm text-(--muted)">
-          {uk ? ukrainianCopy.loading : englishCopy.loading}
+          {commonActions[lang].loading}
         </p>
       )}
       {error && (

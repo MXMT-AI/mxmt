@@ -70,7 +70,7 @@ export default function CsvImportCard({
 }) {
   const labels = csvImportCopy[lang];
   const uk = lang === "uk",
-    copy = (a: string, b: string) => (uk ? a : b),
+    copy = lang === "uk" ? ukrainianCopy : englishCopy,
     router = useRouter();
   const [options, setOptions] = useState<CsvOptions>(initialOptions),
     [preview, setPreview] = useState<Preview | null>(null),
@@ -93,16 +93,13 @@ export default function CsvImportCard({
   };
   const failure = (e: unknown, resource?: CsvResource) => {
     if (resource && e instanceof CsvError) {
-      setMessage(`${names[lang][resource]}: ${copy(ukrainianCopy.row, englishCopy.row)} ${e.row || 1} — ${e.code}`);
+      setMessage(`${names[lang][resource]}: ${copy.row} ${e.row || 1} — ${e.code}`);
       return;
     }
     const code = e instanceof Error ? e.message : "CSV_OPERATION_FAILED";
     setMessage(
       errorCopy[code]?.[uk ? 0 : 1] ??
-        copy(
-          ukrainianCopy.operationFailedCheckTheFiles,
-          englishCopy.operationFailedCheckTheFiles,
-        ) + code,
+        copy.operationFailedCheckTheFiles + code,
     );
   };
   const { busy, run } = useCsvOperation(canManage);
@@ -151,7 +148,7 @@ export default function CsvImportCard({
       window.dispatchEvent(new Event("connector-inputs-changed"));
       await load();
     },
-    onError: () => setMessage(copy(ukrainianCopy.couldNotRefreshImportStatus, englishCopy.couldNotRefreshImportStatus)),
+    onError: () => setMessage(copy.couldNotRefreshImportStatus),
   });
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -208,7 +205,7 @@ export default function CsvImportCard({
           >
             <fieldset disabled={busy} className="space-y-5">
               <legend className="sr-only">
-                {copy(ukrainianCopy.importFilesAndRules, englishCopy.importFilesAndRules)}
+                {copy.importFilesAndRules}
               </legend>
               <CsvPacketSettings
                 value={{ timezone: options.timezone, currency: options.policy.amounts.currency, mappingRevision: options.mappingRevision }}

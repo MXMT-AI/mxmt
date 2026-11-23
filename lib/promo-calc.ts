@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { brandValueFromAgentId, getActiveAgentImportRunId } from "@/lib/agent-data-source";
-import { readPublishedAgentData } from "@/lib/published-agent-data";
+import { loadAgentMetricRows } from "@/lib/agent-metrics-source";
 import { promoCalcMessages as ukrainianCopy } from "@/messages/uk.json";
 
 const ELASTICITY = 2;
@@ -75,34 +75,29 @@ export async function simulatePromo(input: PromoSimulationInput): Promise<PromoS
   const brand = brandValueFromAgentId(brandId);
   const brandName = brand ?? ukrainianCopy.brandNameБезБренда;
 
-  const published = await readPublishedAgentData(tenantId, importRunId, windowStart, input.asOf);
-  const [products, sales] = published
-    ? [published.products.filter((product) => product.brand === brand), published.sales] as const
-    : await Promise.all([
-    prisma.sourceProduct.findMany({
-      where: { tenantId, importRunId, brand },
-      select: {
-        productId: true,
-        article: true,
-        vendorCode: true,
-        name: true,
-        category: true,
-        retailPrice: true,
-        costPrice: true,
-        stockUnits: true,
-      },
-    }),
-    prisma.sourceSaleLine.findMany({
-      where: {
-        tenantId,
-        importRunId,
-        paymentDate: { gte: windowStart, ...(input.asOf ? { lte: input.asOf } : {}) },
-        resolvedProductId: { not: null },
-        normalizedQuantity: { not: null },
-      },
-      select: { resolvedProductId: true, normalizedQuantity: true },
-    }),
-  ]);
+  const [products, sales] = await loadAgentMetricRows(
+    tenantId, importRunId, windowStart, input.asOf,
+    (published) => [published.products.filter((product) => product.brand === brand), published.sales] as const,
+    ({ importScope, saleScope }) => Promise.all([
+      prisma.sourceProduct.findMany({
+        where: { ...importScope, brand },
+        select: {
+          productId: true,
+          article: true,
+          vendorCode: true,
+          name: true,
+          category: true,
+          retailPrice: true,
+          costPrice: true,
+          stockUnits: true,
+        },
+      }),
+      prisma.sourceSaleLine.findMany({
+        where: saleScope,
+        select: { resolvedProductId: true, normalizedQuantity: true },
+      }),
+    ]),
+  );
 
   const soldByProduct = new Map<string, number>();
   for (const sale of sales) {

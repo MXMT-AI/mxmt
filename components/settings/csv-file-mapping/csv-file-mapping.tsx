@@ -16,7 +16,7 @@ export function CsvFileMapping({ resource, draft, delimiter = ",", lang, onChoos
   onDelimiter: (resource: CsvResource, delimiter: CsvFileInput["delimiter"]) => void;
   onColumnChange: (resource: CsvResource, field: string, header: string) => void;
 }) {
-  const copy = (uk: string, en: string) => lang === "uk" ? uk : en;
+  const copy = lang === "uk" ? ukrainianCopy : englishCopy;
   return (
     <details
       id={`csv-file-${resource}`}
@@ -27,7 +27,7 @@ export function CsvFileMapping({ resource, draft, delimiter = ",", lang, onChoos
         {draft ? ` — ${draft.name}` : ""}
       </summary>
       <div className="mt-4 space-y-4">
-        <Field label={copy(ukrainianCopy.delimiter, englishCopy.delimiter)}>
+        <Field label={copy.delimiter}>
           <select
             className={control}
             value={delimiter}
@@ -38,14 +38,14 @@ export function CsvFileMapping({ resource, draft, delimiter = ",", lang, onChoos
               )
             }
           >
-            <option value=",">{copy(ukrainianCopy.comma, englishCopy.comma)}</option>
+            <option value=",">{copy.comma}</option>
             <option value=";">
-              {copy(ukrainianCopy.semicolon, englishCopy.semicolon)}
+              {copy.semicolon}
             </option>
-            <option value={"\t"}>{copy(ukrainianCopy.tab, englishCopy.tab)}</option>
+            <option value={"\t"}>{copy.tab}</option>
           </select>
         </Field>
-        <Field label={copy(ukrainianCopy.cSVFile, englishCopy.cSVFile)}>
+        <Field label={copy.cSVFile}>
           <input
             className={control}
             type="file"
@@ -62,7 +62,7 @@ export function CsvFileMapping({ resource, draft, delimiter = ",", lang, onChoos
           download={`${resource}-v1.csv`}
           href={`data:text/csv;charset=utf-8,${encodeURIComponent(CSV_FIELDS[resource].join(",") + "\n")}`}
         >
-          {copy(ukrainianCopy.columnTemplate, englishCopy.columnTemplate)}
+          {copy.columnTemplate}
         </a>
         {draft && (
           <>
@@ -83,7 +83,7 @@ export function CsvFileMapping({ resource, draft, delimiter = ",", lang, onChoos
                     onChange={(e) => onColumnChange(resource, field, e.target.value)}
                   >
                     <option value="">
-                      {copy(ukrainianCopy.notMapped, englishCopy.notMapped)}
+                      {copy.notMapped}
                     </option>
                     {draft.headers.map((h) => (
                       <option key={h} value={h}>

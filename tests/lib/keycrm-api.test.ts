@@ -1,5 +1,4 @@
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
-import { NextRequest } from "next/server";
 vi.mock("server-only", () => ({}));
 const state = vi.hoisted(() => ({
   models: null as any,
@@ -15,9 +14,8 @@ vi.mock("@/lib/prisma", () => ({
 vi.mock("@/lib/server-fetch", () => ({
   fetchWithTimeout: (url: URL, init: RequestInit) => state.fetcher(url, init),
 }));
-import { createScreenDb } from "../helpers/screen-db";
-import { connectorModels as models } from "../helpers/connector-models";
-import { signAccessToken } from "@/lib/auth";
+import type { createScreenDb } from "../helpers/screen-db";
+import { connectorApiRequest, loginConnectorApi, setupConnectorApi } from "../helpers/connector-api";
 import {
   keyCrmConfig,
   keyCrmPage,
@@ -29,31 +27,13 @@ import {
 import { GET, PUT, POST } from "@/app/api/connectors/[provider]/route";
 const ctx = { params: Promise.resolve({ provider: "keycrm" }) };
 let f: Awaited<ReturnType<typeof createScreenDb>>;
-const login = async (role = "ADMIN", tenantId = "a") => {
-  state.cookie = await signAccessToken({ sub: "owner", tenantId, role });
-};
-const request = (method = "GET", body?: unknown) =>
-  new NextRequest("https://app.test/api/connectors/keycrm", {
-    method,
-    headers: {
-      "Content-Type": "application/json",
-      "x-tenant-id": "b",
-      "x-user-role": "SUPER_ADMIN",
-    },
-    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
-  });
+const login = (role?: string, tenantId?: string) => loginConnectorApi(state, role, tenantId);
+const request = connectorApiRequest("https://app.test/api/connectors/keycrm", {
+  "x-tenant-id": "b",
+  "x-user-role": "SUPER_ADMIN",
+});
 beforeAll(async () => {
-  vi.stubEnv("JWT_ACCESS_SECRET", "keycrm-fixture-auth");
-  vi.stubEnv(
-    "CONNECTOR_ENCRYPTION_KEY",
-    Buffer.alloc(32, 9).toString("base64"),
-  );
-  f = await createScreenDb();
-  state.models = {
-    ...models(f.db),
-    $transaction: (callback: any) =>
-      f.db.$transaction((tx) => callback(models(tx))),
-  };
+  f = await setupConnectorApi(state, "JWT_ACCESS_SECRET", "keycrm-fixture-auth");
   state.fetcher.mockImplementation(async (url: URL) => {
     const limit = Number(url.searchParams.get("limit") ?? 50),
       page = Number(url.searchParams.get("page") ?? 1);

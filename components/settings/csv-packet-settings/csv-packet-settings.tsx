@@ -13,16 +13,16 @@ export function CsvPacketSettings({ value, timezoneLocked, lang, onChange }: {
   lang: Lang;
   onChange: (value: CsvPacketSettingValues) => void;
 }) {
-  const copy = (uk: string, en: string) => lang === "uk" ? uk : en;
+  const copy = lang === "uk" ? ukrainianCopy : englishCopy;
   return (
     <div className="grid gap-4 sm:grid-cols-3">
-      <Field label={copy(ukrainianCopy.dateTimezone, englishCopy.dateTimezone)}>
+      <Field label={copy.dateTimezone}>
         <input className={control} value={value.timezone} readOnly={timezoneLocked} required maxLength={100} onChange={event => onChange({ ...value, timezone: event.target.value })} />
       </Field>
-      <Field label={copy(ukrainianCopy.amountCurrency, englishCopy.amountCurrency)}>
+      <Field label={copy.amountCurrency}>
         <input className={control} value={value.currency} required pattern="[A-Z]{3}" maxLength={3} onChange={event => onChange({ ...value, currency: event.target.value.toUpperCase() })} />
       </Field>
-      <Field label={copy(ukrainianCopy.mappingRevision, englishCopy.mappingRevision)}>
+      <Field label={copy.mappingRevision}>
         <input className={control} type="number" min={1} max={1000000} required value={value.mappingRevision} onChange={event => onChange({ ...value, mappingRevision: Number(event.target.value) })} />
       </Field>
     </div>

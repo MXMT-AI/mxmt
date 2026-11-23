@@ -1368,7 +1368,6 @@
     "salesDriveSalesAndMargin": "SalesDrive sales and margin",
     "salesByPaymentDateAnd": "Sales by payment date and returns by verified return date. Currencies remain separate.",
     "refreshCalculation": "Refresh calculation",
-    "loading": "Loading…",
     "settings": "Settings",
     "lY": " · LY ",
     "historyIsIncompleteOrInputs": "History is incomplete or inputs require review. LY comparison is unavailable.",
@@ -1633,7 +1632,6 @@
     "settingsLink": "Configure ownership and suppliers"
   },
   "merchandisingReportingErrorMessages": {
-    "retry": "Retry"
   },
   "reportingSourceStatusCopy": {
     "label": "Reporting source status",
@@ -2227,7 +2225,6 @@
   "settingsDataQualityCardMessages": {
     "dataQuality": "Data quality",
     "currentCatalogExceptionsLinkedTo": "Current catalog exceptions linked to products. Services and gift cards are excluded from merchandise stock and classification.",
-    "loading": "Loading…",
     "couldNotRefreshDataTry": "Could not refresh data. Try again.",
     "refreshDiagnostics": "Refresh diagnostics",
     "keyUnknown": "unknown",
@@ -2451,9 +2448,7 @@
     "labelShow": "Show",
     "ariaLabelWarningCode": "Warning code",
     "allWarnings": "All warnings",
-    "loading": "Loading…",
     "warningsUnavailablePleaseRetry": "Warnings unavailable. Please retry.",
-    "retry": "Retry",
     "source": "Source",
     "import": "Import",
     "sourceRecord": "Source record",
@@ -2608,7 +2603,6 @@
     "merchandisingRules": "Merchandising rules",
     "clientOwnershipAndSupplyPolicies": "Client, ownership and supply policies. Changes retain revisions and an audit trail.",
     "ariaLabelMerchandisingSections": "Merchandising sections",
-    "loading": "Loading…",
     "labelSearchNameOrSKU": "Search name or SKU",
     "search": "Search",
     "newSupplier": "New supplier",
@@ -2875,7 +2869,6 @@
     "ordersEveryTwoHoursStock": "Orders every two hours; stock at 03:00 Kyiv. Automatic updates require a connected external scheduler.",
     "receiptsCatalogueAndCurrentStock": "Receipts, catalogue and current stock. Stock history starts with the first observation.",
     "twoYearsOfHistoryThen": "Two years of history, then updated orders. Progress is saved between runs.",
-    "loading": "Loading…",
     "noImportHasBeenStarted": "No import has been started.",
     "firstObservation": "First observation",
     "daysWithSnapshots": "Days with snapshots",
@@ -3276,7 +3269,6 @@
     "invalidServerResponseRetryThe": "Invalid server response. Retry the operation.",
     "некоректнаВідповідьСервераПовторітьСпробу": "Некоректна відповідь сервера. Повторіть спробу.",
     "invalidServerResponseRetryThe2": "Invalid server response. Retry the operation.",
-    "збереженоПеревіртеДоступиПотімВиберіть": "Збережено. Перевірте доступи, потім виберіть {name} у джерелах звітів.",
     "savedCheckReadScopesThen": "Saved. Check read scopes, then select {name} as the reporting source.",
     "checksCompletedReviewEachResource": "Checks completed. Review each resource result.",
     "перевіркиЗавершеноПерегляньтеРезультатКожного": "Перевірки завершено. Перегляньте результат кожного ресурсу.",
@@ -3937,7 +3929,6 @@
     "back": "Back to Overview",
     "intro": "Plan replenishment from stock, sales velocity and supplier terms.",
     "refresh": "Refresh data",
-    "retry": "Retry",
     "loading": "Loading reordering inputs…",
     "updating": "Updating recommendations…",
     "ready": "Recommendations updated",
@@ -4057,7 +4048,6 @@
     "back": "Back to Overview",
     "intro": "Dead and slow-moving stock, ordered by frozen capital.",
     "refresh": "Refresh data",
-    "retry": "Retry",
     "loading": "Loading repricing inputs…",
     "updating": "Updating preview…",
     "ready": "Preview updated",
@@ -4283,7 +4273,6 @@
     "changed": "The preview changed. Wait for the current preview and export again.",
     "conflict": "The export request conflicts with a previous request. Refresh the page and try again.",
     "historyError": "Could not load export history.",
-    "retry": "Retry",
     "previous": "Previous",
     "next": "Next",
     "page": "Page"
@@ -4539,5 +4528,9 @@
   },
   "driveLimitsMessages": {
     "rowLimit": "Google Drive workbook cannot exceed {maximum} total rows"
+  },
+  "commonActionMessages": {
+    "loading": "Loading…",
+    "retry": "Retry"
   }
 }

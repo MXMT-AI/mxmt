@@ -24,7 +24,7 @@ export function useConnectorConnection(
   lang: "uk" | "en",
   messages: ConnectorConnectionMessages = {},
 ) {
-  const copy = (uk: string, en: string) => (lang === "uk" ? uk : en),
+  const copy = lang === "uk" ? ukrainianCopy : englishCopy,
     name = { shopify: "Shopify", horoshop: "Horoshop", keycrm: "KeyCRM", salesdrive: "SalesDrive" }[provider];
   const [connection, setConnection] = useState(initial),
     [activeAction, setActiveAction] = useState<"save" | "check" | null>(null),
@@ -71,23 +71,14 @@ export function useConnectorConnection(
             : code === "VALIDATION_ERROR" && messages.validationError
             ? messages.validationError
             : code === "CONNECTOR_CONFIG_CHANGED"
-            ? messages.configChanged ?? copy(
-                ukrainianCopy.increaseTheRevisionOfChanged,
-                englishCopy.increaseTheRevisionOfChanged,
-              )
-            : messages.failure ?? (messages.failurePrefix ?? copy(
-                ukrainianCopy.checkFieldsConfirmationsAndPermissions,
-                englishCopy.checkFieldsConfirmationsAndPermissions,
-              )) + code,
+            ? messages.configChanged ?? copy.increaseTheRevisionOfChanged
+            : messages.failure ?? (messages.failurePrefix ?? copy.checkFieldsConfirmationsAndPermissions) + code,
         );
         return null;
       }
       if (!isPublicConnection(d)) {
         setError(
-          messages.invalidResponse ?? copy(
-            ukrainianCopy.invalidServerResponseRetryThe,
-            englishCopy.invalidServerResponseRetryThe,
-          ),
+          messages.invalidResponse ?? copy.invalidServerResponseRetryThe,
         );
         return null;
       }
@@ -95,23 +86,14 @@ export function useConnectorConnection(
       window.dispatchEvent(new Event("connector-connection-changed"));
       setStatus(
         action === "save"
-          ? messages.saved ?? copy(
-              formatMessage(ukrainianCopy.збереженоПеревіртеДоступиПотімВиберіть, { name }),
-              formatMessage(englishCopy.savedCheckReadScopesThen, { name }),
-            )
-          : messages.checked ?? copy(
-              ukrainianCopy.checksCompletedReviewEachResource,
-              englishCopy.checksCompletedReviewEachResource,
-            ),
+          ? messages.saved ?? formatMessage(copy.savedCheckReadScopesThen, { name })
+          : messages.checked ?? copy.checksCompletedReviewEachResource,
       );
       if (action === "save") setDirty(false);
       return d;
     } catch {
       setError(
-        messages.networkError ?? copy(
-          ukrainianCopy.couldNotConnectRetryThe,
-          englishCopy.couldNotConnectRetryThe,
-        ),
+        messages.networkError ?? copy.couldNotConnectRetryThe,
       );
       return null;
     } finally {

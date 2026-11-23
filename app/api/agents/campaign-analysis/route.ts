@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { requireApiUser } from "@/lib/server-auth";
 import { apiError, serverError } from "@/lib/api-contracts";
-import { startAgentRun } from "@/lib/agent-runs";
+import { completeAgentRun, failAgentRun, startAgentRun } from "@/lib/agent-runs";
 import { getCurrentDependencyRun, resolveAgentRunContext } from "@/lib/agent-dependencies";
 import { buildCampaignTrackingOutput } from "@/lib/campaign-tracking";
 import { apiAgentsCampaignAnalysisRouteMessages as ukrainianCopy } from "@/messages/uk.json";
@@ -57,17 +56,11 @@ export async function POST(req: NextRequest) {
       analyzedAt: new Date().toISOString(),
     };
 
-    await prisma.agentRun.update({
-      where: { id: run.id },
-      data: { status: "done", output, finishedAt: new Date() },
-    });
+    await completeAgentRun(run.id, output);
     return NextResponse.json({ runId: run.id, ...output });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    await prisma.agentRun.update({
-      where: { id: run.id },
-      data: { status: "error", errorMsg: msg, finishedAt: new Date() },
-    });
+    await failAgentRun(run.id, msg);
     return serverError(msg);
   }
 }

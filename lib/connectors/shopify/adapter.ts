@@ -5,6 +5,7 @@ import { isRecord } from "@/lib/api-contracts";
 import { parseSourceJson } from "../json";
 import { payloadHash } from "../order-storage";
 import { ConnectorReadError } from "../read-error";
+import { readConnectorResponse, recordConnectionChecks } from "../read-http";
 import { retryAfter } from "../budget";
 import { utcWatermark } from "../requests";
 import type {
@@ -116,9 +117,8 @@ export class ShopifyConnector implements MerchandisingConnector {
     return object(redact(row));
   };
   private async query(name: QueryName, variables: Row = {}): Promise<Saved> {
-    let response: Response;
-    try {
-      response = await this.fetcher(
+    const response = await readConnectorResponse(() =>
+      this.fetcher(
         new URL(
           `https://${this.config.shop}/admin/api/${SHOPIFY_VERSION}/graphql.json`,
         ),
@@ -134,28 +134,8 @@ export class ShopifyConnector implements MerchandisingConnector {
           },
           body: JSON.stringify({ query: QUERIES[name], variables }),
         },
-      );
-    } catch (e) {
-      if (e instanceof ConnectorReadError) throw e;
-      throw new ConnectorReadError(
-        e instanceof Error && ["AbortError", "TimeoutError"].includes(e.name)
-          ? "TIMEOUT"
-          : "NETWORK_ERROR",
-      );
-    }
-    if (!response.ok) {
-      await response.body?.cancel().catch(() => undefined);
-      throw new ConnectorReadError(
-        [401, 403].includes(response.status)
-          ? "AUTH_FAILED"
-          : response.status === 429
-            ? "RATE_LIMITED"
-            : "NETWORK_ERROR",
-        response.status === 429
-          ? retryAfter(response.headers.get("Retry-After"))
-          : undefined,
-      );
-    }
+      ),
+    );
     if (response.headers.get("X-Shopify-API-Version") !== SHOPIFY_VERSION) {
       await response.body?.cancel().catch(() => undefined);
       invalid();
@@ -590,20 +570,7 @@ export class ShopifyConnector implements MerchandisingConnector {
   }
   async checkConnection(): Promise<ConnectionCheck> {
     const checks: ConnectionCheck["checks"] = [];
-    const check = async (
-      resource: ConnectionCheck["checks"][number]["resource"],
-      fn: () => Promise<unknown>,
-    ) => {
-      try {
-        await fn();
-        checks.push({ resource, code: "OK" });
-      } catch (e) {
-        checks.push({
-          resource,
-          code: e instanceof ConnectorReadError ? e.code : "NETWORK_ERROR",
-        });
-      }
-    };
+    const check = recordConnectionChecks(checks);
     let verified: Awaited<ReturnType<ShopifyConnector["identity"]>> | null =
       null;
     let firstVariant: Row | undefined;

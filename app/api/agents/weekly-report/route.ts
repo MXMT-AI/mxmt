@@ -1,23 +1,16 @@
+import { isoWeek } from "@/lib/iso-week";
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { chat } from "@/lib/ai";
 import { requireApiUser } from "@/lib/server-auth";
 import { apiError, serverError } from "@/lib/api-contracts";
 import { parseAgentJson } from "@/lib/agent-output";
-import { startAgentRun } from "@/lib/agent-runs";
+import { completeAgentRun, failAgentRun, startAgentRun } from "@/lib/agent-runs";
 import { getCurrentDependencyRun, resolveAgentRunContext } from "@/lib/agent-dependencies";
 import { apiAgentsWeeklyReportRouteMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export const runtime = "nodejs";
 export const maxDuration = 180;
 
-function isoWeekNumber(d: Date): number {
-  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-  const dayOfWeek = date.getUTCDay() || 7;
-  date.setUTCDate(date.getUTCDate() + 4 - dayOfWeek);
-  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
-  return Math.ceil((((date.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
-}
 
 const SYSTEM_PROMPT = `Ти PM-асистент у fashion retail. Відповідай українською мовою та пишеш щотижневий звіт для двох аудиторій.
 
@@ -99,7 +92,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const now = asOf ?? new Date();
-    const currentWeek = isoWeekNumber(now);
+    const currentWeek = isoWeek(now, "local").week;
     const year = now.getFullYear();
 
     const latestRuns = dependencyStates.map((state) => state.run);
@@ -200,7 +193,7 @@ export async function POST(req: NextRequest) {
         summary: ukrainianCopy.emptySummary,
         message: ukrainianCopy.messageЗапуститеАгентовБлоков13Для,
       };
-      await prisma.agentRun.update({ where: { id: run.id }, data: { status: "done", output, finishedAt: new Date() } });
+      await completeAgentRun(run.id, output);
       return NextResponse.json({ runId: run.id, ...output });
     }
 
@@ -248,11 +241,11 @@ ${sections.join("\n\n")}
       analyzedAt: new Date().toISOString(),
     };
 
-    await prisma.agentRun.update({ where: { id: run.id }, data: { status: "done", output, finishedAt: new Date() } });
+    await completeAgentRun(run.id, output);
     return NextResponse.json({ runId: run.id, ...output });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    await prisma.agentRun.update({ where: { id: run.id }, data: { status: "error", errorMsg: msg, finishedAt: new Date() } });
+    await failAgentRun(run.id, msg);
     return serverError(msg);
   }
 }

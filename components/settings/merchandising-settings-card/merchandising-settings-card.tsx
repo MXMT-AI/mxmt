@@ -1,4 +1,5 @@
 "use client";
+import { commonActions } from "@/i18n/common-actions";
 import { Field } from "@/components/ui/field/field";
 import { Button } from "@/components/ui/button/button";
 import { Text } from "@/components/ui/text/text";
@@ -121,7 +122,7 @@ export default function MerchandisingSettingsCard({
       )}
       {loading && (
         <Text variant="body" role="status" className="leading-normal text-inherit mt-3 text-sm text-(--muted)">
-          {uk ? ukrainianCopy.loading : englishCopy.loading}
+          {commonActions[lang].loading}
         </Text>
       )}
       {resource !== "client" && (

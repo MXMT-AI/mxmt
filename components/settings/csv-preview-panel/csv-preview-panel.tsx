@@ -17,7 +17,7 @@ export function CsvPreviewPanel({ preview, lang, busy, suppliers, panelRef, onAc
   onAction: (action: CsvPacketAction) => void | Promise<void>;
 }) {
   const uk = lang === "uk";
-  const copy = (ukText: string, enText: string) => uk ? ukText : enText;
+  const copy = lang === "uk" ? ukrainianCopy : englishCopy;
   return (
     <div
       className="space-y-4 rounded-xl border border-(--border) p-4"
@@ -26,7 +26,7 @@ export function CsvPreviewPanel({ preview, lang, busy, suppliers, panelRef, onAc
       aria-live="polite"
     >
       <Heading as="h3" variant="compact" className="text-base font-medium">
-        {copy(ukrainianCopy.previewResult, englishCopy.previewResult)} —{" "}
+        {copy.previewResult} —{" "}
         {preview.state}
       </Heading>
       <p className="text-sm text-(--muted)">
@@ -35,18 +35,12 @@ export function CsvPreviewPanel({ preview, lang, busy, suppliers, panelRef, onAc
           .join("; ")}
       </p>
       <p className="text-xs text-(--muted)">
-        {copy(
-          ukrainianCopy.unactivatedPacketRetention,
-          englishCopy.unactivatedPacketRetention,
-        )}{" "}
+        {copy.unactivatedPacketRetention}{" "}
         {new Date(preview.expiresAt).toLocaleDateString(
           uk ? "uk-UA" : "en-GB",
         )}
         .{" "}
-        {copy(
-          ukrainianCopy.activatedFilesAreRetainedFor,
-          englishCopy.activatedFilesAreRetainedFor,
-        )}
+        {copy.activatedFilesAreRetainedFor}
       </p>
       <p className="break-all text-xs text-(--muted)">{englishCopy.sHA256}{preview.contentHash}
       </p>
@@ -56,40 +50,37 @@ export function CsvPreviewPanel({ preview, lang, busy, suppliers, panelRef, onAc
       {preview.options && (
         <details className="text-sm text-(--muted)">
           <summary className="cursor-pointer">
-            {copy(
-              ukrainianCopy.frozenRulesAndColumnMappings,
-              englishCopy.frozenRulesAndColumnMappings,
-            )}
+            {copy.frozenRulesAndColumnMappings}
           </summary>
           <div className="mt-3 space-y-3 wrap-break-word">
             <p>
               {preview.options.timezone} ·{" "}
               {preview.options.policy.amounts.currency} ·{" "}
-              {copy(ukrainianCopy.revision, englishCopy.revision)}{" "}
+              {copy.revision}{" "}
               {preview.options.mappingRevision}
             </p>
             <p>
-              {copy(ukrainianCopy.catalogStock, englishCopy.catalogStock)}{" "}
+              {copy.catalogStock}{" "}
               {preview.options.catalog} / {preview.options.stock}.{" "}
               {preview.options.policy.amounts.price} ·{" "}
               {preview.options.discountUnit} ·{" "}
               {preview.options.policy.amounts.absoluteDiscount}
             </p>
             <p>
-              {copy(ukrainianCopy.statuses, englishCopy.statuses)}{" "}
+              {copy.statuses}{" "}
               {Object.entries(preview.options.policy.statuses)
                 .map(([k, v]) => `${k}: ${v}`)
                 .join("; ")}
             </p>
             <p>
-              {copy(ukrainianCopy.channels, englishCopy.channels)}{" "}
+              {copy.channels}{" "}
               {Object.entries(preview.options.policy.channels)
                 .map(([k, v]) => `${k}: ${v}`)
                 .join("; ")}
             </p>
             {preview.options.history && (
               <p>
-                {copy(ukrainianCopy.orderHistory, englishCopy.orderHistory)}{" "}
+                {copy.orderHistory}{" "}
                 {preview.options.history.from} –{" "}
                 {preview.options.history.to};{" "}
                 {String(preview.options.history.complete)}
@@ -97,7 +88,7 @@ export function CsvPreviewPanel({ preview, lang, busy, suppliers, panelRef, onAc
             )}
             {preview.options.receiptHistory && (
               <p>
-                {copy(ukrainianCopy.receiptHistory, englishCopy.receiptHistory)}{" "}
+                {copy.receiptHistory}{" "}
                 {preview.options.receiptHistory.from} –{" "}
                 {preview.options.receiptHistory.to};{" "}
                 {String(preview.options.receiptHistory.complete)}{englishCopy.baseline}{" "}
@@ -106,10 +97,7 @@ export function CsvPreviewPanel({ preview, lang, busy, suppliers, panelRef, onAc
             )}
             {preview.options.policy.receipts && (
               <p>
-                {copy(
-                  ukrainianCopy.postedStatusesSuppliers,
-                  englishCopy.postedStatusesSuppliers,
-                )}{" "}
+                {copy.postedStatusesSuppliers}{" "}
                 {preview.options.policy.receipts.postedStatuses.join(
                   ", ",
                 )}{" "}
@@ -135,7 +123,7 @@ export function CsvPreviewPanel({ preview, lang, busy, suppliers, panelRef, onAc
                 </a>{" "}
                 (
                 {m.delimiter === "\t"
-                  ? copy(ukrainianCopy.tab, englishCopy.tab)
+                  ? copy.tab
                   : m.delimiter}
                 )
                 <ul className="list-inside list-disc">
@@ -166,13 +154,10 @@ export function CsvPreviewPanel({ preview, lang, busy, suppliers, panelRef, onAc
                 }}
               >
                 {names[lang][e.resource as CsvResource]} ·{" "}
-                {copy(ukrainianCopy.row, englishCopy.row)} {e.row || "—"}{" "}
+                {copy.row} {e.row || "—"}{" "}
                 {e.field ? `(${e.field})` : ""}:{" "}
                 {(rowErrorCopy[e.code] ?? csvErrorCopy[e.code])?.[uk ? 0 : 1] ??
-                  copy(
-                    ukrainianCopy.correctTheRowOrMapping,
-                    englishCopy.correctTheRowOrMapping,
-                  ) + e.code}
+                  copy.correctTheRowOrMapping + e.code}
               </a>
             </li>
           ))}
@@ -181,10 +166,7 @@ export function CsvPreviewPanel({ preview, lang, busy, suppliers, panelRef, onAc
       {preview.preview.warnings.length > 0 && (
         <details className="text-sm text-(--muted)">
           <summary className="cursor-pointer">
-            {copy(
-              ukrainianCopy.limitationsAndWarnings,
-              englishCopy.limitationsAndWarnings,
-            )}
+            {copy.limitationsAndWarnings}
           </summary>
           <ul className="mt-2 list-inside list-disc">
             {preview.preview.warnings.map((w) => (
@@ -195,7 +177,7 @@ export function CsvPreviewPanel({ preview, lang, busy, suppliers, panelRef, onAc
       )}
       {preview.job?.errorCode && (
         <p role="alert" className="text-sm text-(--text)">
-          {copy(ukrainianCopy.importPaused, englishCopy.importPaused)}{" "}
+          {copy.importPaused}{" "}
           {csvErrorCopy[preview.job.errorCode]?.[uk ? 0 : 1] ?? preview.job.errorCode}
         </p>
       )}
@@ -210,10 +192,7 @@ export function CsvPreviewPanel({ preview, lang, busy, suppliers, panelRef, onAc
           }
           onClick={() => void onAction("activate")}
         >
-          {copy(
-            ukrainianCopy.activateValidatedPacket,
-            englishCopy.activateValidatedPacket,
-          )}
+          {copy.activateValidatedPacket}
         </button>
         {preview.state === "QUEUED" && (
           <button
@@ -230,7 +209,7 @@ export function CsvPreviewPanel({ preview, lang, busy, suppliers, panelRef, onAc
               )
             }
           >
-            {copy(ukrainianCopy.continueImport, englishCopy.continueImport)}
+            {copy.continueImport}
           </button>
         )}
         <button
@@ -242,14 +221,11 @@ export function CsvPreviewPanel({ preview, lang, busy, suppliers, panelRef, onAc
           }
           onClick={() => void onAction("cancel")}
         >
-          {copy(ukrainianCopy.cancelPacket, englishCopy.cancelPacket)}
+          {copy.cancelPacket}
         </button>
       </div>
       <p className="text-xs text-(--muted)">
-        {copy(
-          ukrainianCopy.toActivateChooseCSVIn,
-          englishCopy.toActivateChooseCSVIn,
-        )}
+        {copy.toActivateChooseCSVIn}
       </p>
     </div>
   );

@@ -1,3 +1,4 @@
+import { isoWeek } from "@/lib/iso-week";
 import type { CalendarSchedule, Chip, Week } from "./calendar-types";
 import type { Locale } from "@/i18n/routing";
 import { calendarMarketingCalendarCalendarWeeksMessages as englishCopy } from "@/messages/en.json";
@@ -8,13 +9,6 @@ const months = {
   en: ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
 };
 
-function getISOWeek(d: Date): number {
-  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-  const day = date.getUTCDay() || 7;
-  date.setUTCDate(date.getUTCDate() + 4 - day);
-  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
-  return Math.ceil((((date.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
-}
 
 function generateWeeks(count: number, today: Date, locale: Locale): Week[] {
   const weeks: Week[] = [];
@@ -28,11 +22,11 @@ function generateWeeks(count: number, today: Date, locale: Locale): Week[] {
     start.setDate(monday.getDate() + i * 7);
     const end = new Date(start);
     end.setDate(start.getDate() + 6);
-    const isoWeek = getISOWeek(start);
+    const { week } = isoWeek(start, "local");
     const fmt = (d: Date) => `${d.getDate()}.${String(d.getMonth() + 1).padStart(2, "0")}`;
     weeks.push({
-      k: `w${isoWeek}`,
-      l: `${locale === "uk" ? ukrainianCopy.lWeek : englishCopy.lWeek} ${isoWeek}`,
+      k: `w${week}`,
+      l: `${locale === "uk" ? ukrainianCopy.lWeek : englishCopy.lWeek} ${week}`,
       d: `${fmt(start)}–${fmt(end)}`,
       m: months[locale][start.getMonth()],
     });
@@ -59,7 +53,7 @@ const UA_HOLIDAYS_LIST = [
 function buildHolidayChips(weeks: Week[], year: number): Record<string, Chip[]> {
   const chips: Record<string, Chip[]> = {};
   for (const h of UA_HOLIDAYS_LIST) {
-    const w = getISOWeek(new Date(year, h.month - 1, h.day));
+    const w = isoWeek(new Date(year, h.month - 1, h.day), "local").week;
     const weekKey = `w${w}`;
     if (weeks.some((wk) => wk.k === weekKey)) {
       if (!chips[weekKey]) chips[weekKey] = [];

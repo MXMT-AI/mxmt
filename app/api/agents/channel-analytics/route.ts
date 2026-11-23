@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { getChannelMetrics } from "@/lib/channel-metrics";
 import { chat } from "@/lib/ai";
 import { requireApiUser } from "@/lib/server-auth";
 import { serverError } from "@/lib/api-contracts";
 import { parseAgentJson } from "@/lib/agent-output";
-import { startAgentRun } from "@/lib/agent-runs";
+import { completeAgentRun, failAgentRun, startAgentRun } from "@/lib/agent-runs";
 import { formatMessage } from "@/i18n/format-message";
 import { apiAgentsChannelAnalyticsRouteMessages as ukrainianCopy } from "@/messages/uk.json";
 
@@ -66,14 +65,7 @@ export async function POST(req: NextRequest) {
     const metrics = await getChannelMetrics(tenantId, asOf, dateFrom);
 
     if (metrics.channels.length === 0) {
-      await prisma.agentRun.update({
-        where: { id: run.id },
-        data: {
-          status: "done",
-          output: { channels: [], message: ukrainianCopy.messageВАктивномуІмпортіНовоїБази },
-          finishedAt: new Date(),
-        },
-      });
+      await completeAgentRun(run.id, { channels: [], message: ukrainianCopy.messageВАктивномуІмпортіНовоїБази });
       return NextResponse.json({ runId: run.id, channels: [] });
     }
 
@@ -130,18 +122,12 @@ ${metrics.channels
       analyzedAt: new Date().toISOString(),
     };
 
-    await prisma.agentRun.update({
-      where: { id: run.id },
-      data: { status: "done", output, finishedAt: new Date() },
-    });
+    await completeAgentRun(run.id, output);
 
     return NextResponse.json({ runId: run.id, ...output });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    await prisma.agentRun.update({
-      where: { id: run.id },
-      data: { status: "error", errorMsg: msg, finishedAt: new Date() },
-    });
+    await failAgentRun(run.id, msg);
     return serverError(msg);
   }
 }

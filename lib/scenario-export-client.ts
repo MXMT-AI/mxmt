@@ -1,3 +1,4 @@
+import { commonActions } from "@/i18n/common-actions";
 import type { ExportKind } from "./scenario-export-contract";
 import { exportCopy as exportCopyEn, scenarioExportClientMessages as englishCopy } from "@/messages/en.json";
 import { exportCopy as exportCopyUk, scenarioExportClientMessages as ukrainianCopy } from "@/messages/uk.json";
@@ -15,7 +16,10 @@ export class ExportAttempt {
     this.pending.delete(key);
   }
 }
-export const exportCopy = { en: exportCopyEn, uk: exportCopyUk } as const;
+export const exportCopy = {
+  en: { ...exportCopyEn, retry: commonActions.en.retry },
+  uk: { ...exportCopyUk, retry: commonActions.uk.retry },
+} as const;
 export type ExportCopy = (typeof exportCopy)["en"] | (typeof exportCopy)["uk"];
 export const exportKindLabel = (kind: ExportKind, lang: "uk" | "en") =>
   kind === "reprice"
