@@ -74,8 +74,9 @@ describe("locale routing and authentication", () => {
     expect(response.headers.get("x-middleware-request-x-tenant-id")).toBe("tenant");
     expect(response.headers.get("x-middleware-request-x-next-intl-locale")).toBe("en");
   });
-  it("keeps locale and filters through silent refresh", async () => {
-    const response = await middleware(request("/en/stock?currency=EUR", `access_token=${await token(true)}; refresh_token=present`));
+  it.each([true, false])("keeps locale and filters if the access cookie is present=%s", async (hasExpiredAccessCookie) => {
+    const cookie = (hasExpiredAccessCookie ? `access_token=${await token(true)}; ` : "") + "refresh_token=present";
+    const response = await middleware(request("/en/stock?currency=EUR", cookie));
     const url = new URL(response.headers.get("location")!);
     expect(url.pathname).toBe("/api/auth/silent-refresh");
     expect(url.searchParams.get("next")).toBe("/en/stock?currency=EUR");

@@ -22,11 +22,10 @@ export default function TokenRefreshProvider() {
     function schedule() {
       if (stopped || refreshing) return;
       clearTimeout(timer);
+      if (document.visibilityState !== "visible") return;
 
       const exp = getExpCookie();
-      if (!exp) return;
-
-      const msUntilRefresh = exp * 1000 - Date.now() - 2 * 60 * 1000;
+      const msUntilRefresh = (exp ?? 0) * 1000 - Date.now() - 2 * 60 * 1000;
 
       if (msUntilRefresh <= 0) {
         void doRefresh();
@@ -37,14 +36,15 @@ export default function TokenRefreshProvider() {
     }
 
     async function doRefresh() {
-      if (stopped || refreshing) return;
+      if (stopped || refreshing || document.visibilityState !== "visible") return;
       refreshing = true;
       try {
         const refreshed = await refreshAccessToken();
         if (stopped) return;
         if (refreshed) {
           refreshing = false;
-          schedule();
+          if ((getExpCookie() ?? 0) * 1000 > Date.now() + 2 * 60 * 1000) schedule();
+          else timer = setTimeout(doRefresh, 30_000);
           router.refresh();
         } else {
           const { pathname, search, hash } = window.location;
@@ -59,15 +59,12 @@ export default function TokenRefreshProvider() {
 
     schedule();
 
-    function onVisibilityChange() {
-      if (document.visibilityState === "visible") schedule();
-    }
-    document.addEventListener("visibilitychange", onVisibilityChange);
+    document.addEventListener("visibilitychange", schedule);
 
     return () => {
       stopped = true;
       clearTimeout(timer);
-      document.removeEventListener("visibilitychange", onVisibilityChange);
+      document.removeEventListener("visibilitychange", schedule);
     };
   }, [router]);
 

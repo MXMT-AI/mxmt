@@ -32,11 +32,13 @@ export async function signAccessToken(
 }
 
 export async function signRefreshToken(
-  payload: Omit<TokenPayload, "type">
+  payload: Omit<TokenPayload, "type">,
+  sessionId: string = crypto.randomUUID(),
 ): Promise<string> {
   return new SignJWT({ ...payload, type: "refresh" })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
+    .setJti(sessionId)
     .setExpirationTime("30d")
     .sign(REFRESH_SECRET);
 }
@@ -47,7 +49,8 @@ export async function verifyAccessToken(token: string): Promise<TokenPayload> {
   return payload as unknown as TokenPayload;
 }
 
-export async function verifyRefreshToken(token: string): Promise<TokenPayload> {
-  const { payload } = await jwtVerify(token, REFRESH_SECRET);
-  return payload as unknown as TokenPayload;
+export async function verifyRefreshToken(token: string): Promise<TokenPayload & { jti?: string }> {
+  const { payload } = await jwtVerify(token, REFRESH_SECRET, { algorithms: ["HS256"], requiredClaims: ["exp", "sub"] });
+  if (payload.type !== "refresh" || !payload.sub) throw new Error("Invalid refresh token");
+  return payload as unknown as TokenPayload & { jti?: string };
 }

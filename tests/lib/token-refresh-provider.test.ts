@@ -32,11 +32,18 @@ it("refreshes two minutes before expiry and schedules the updated cookie", async
   expect(vi.getTimerCount()).toBe(0);
   expect(doc.removeEventListener).toHaveBeenCalledWith("visibilitychange", doc.addEventListener.mock.calls[0][1]);
 });
-it.each(["", "access_token_exp=123junk", "access_token_exp=NaN", "access_token_exp=-1"])("does not schedule an invalid expiry cookie %s", cookie => {
-  doc.cookie = cookie;
-  start();
+it("waits for the tab to become visible, then renews even without an expiry cookie", async () => {
+  doc.cookie = "";
+  doc.visibilityState = "hidden";
+  const cleanup = start();
+  await vi.advanceTimersByTimeAsync(60 * 60 * 1000);
   expect(refreshAccessToken).not.toHaveBeenCalled();
-  expect(vi.getTimerCount()).toBe(0);
+  doc.visibilityState = "visible";
+  doc.addEventListener.mock.calls[0][1]();
+  await vi.advanceTimersByTimeAsync(0);
+  expect(refreshAccessToken).toHaveBeenCalledOnce();
+  expect(vi.getTimerCount()).toBe(1);
+  cleanup?.();
 });
 it.each([true, false])("ignores repeated visibility events and late success=%s after cleanup", async result => {
   let finish!: (value: boolean) => void;

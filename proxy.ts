@@ -58,8 +58,14 @@ export async function proxy(request: NextRequest) {
     }
     return NextResponse.redirect(loginUrl);
   };
+  const refreshPage = () => {
+    const refreshUrl = new URL("/api/auth/silent-refresh", request.url);
+    refreshUrl.searchParams.set("next", pathname + request.nextUrl.search);
+    return NextResponse.redirect(refreshUrl, { headers: { "Cache-Control": "private, no-store" } });
+  };
   const token = request.cookies.get("access_token")?.value;
   if (!token) {
+    if (!api && protectedPage && request.cookies.has("refresh_token")) return refreshPage();
     return api
       ? NextResponse.json({ error: "Unauthorized" }, { status: 401 })
       : anonymousPage();
@@ -74,9 +80,7 @@ export async function proxy(request: NextRequest) {
     return intlMiddleware(new NextRequest(request, { headers: requestHeaders }));
   } catch (err) {
     if (err instanceof errors.JWTExpired && !api && protectedPage && request.cookies.has("refresh_token")) {
-      const refreshUrl = new URL("/api/auth/silent-refresh", request.url);
-      refreshUrl.searchParams.set("next", pathname + request.nextUrl.search);
-      return NextResponse.redirect(refreshUrl);
+      return refreshPage();
     }
     if (api) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const response = anonymousPage();

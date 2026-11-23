@@ -11,6 +11,7 @@ const requestContext = vi.hoisted(() => {
     headers: new Headers(),
     findUser: vi.fn(),
     updateUser: vi.fn(),
+    updateManyUsers: vi.fn(),
   };
 });
 
@@ -26,13 +27,20 @@ vi.mock("next/headers", () => ({
   headers: async () => requestContext.headers,
 }));
 
+vi.mock("server-only", () => ({}));
 vi.mock("@/lib/prisma", () => ({
-  prisma: { user: { findUnique: requestContext.findUser, update: requestContext.updateUser } },
+  prisma: { user: {
+    findUnique: requestContext.findUser,
+    update: requestContext.updateUser,
+    updateMany: requestContext.updateManyUsers,
+  } },
 }));
 
 import { requireApiUser } from "@/lib/server-auth";
 import { signAccessToken, signRefreshToken, verifyAccessToken, verifyRefreshToken } from "@/lib/auth";
 import { GET } from "@/app/api/auth/silent-refresh/route";
+import { POST as refresh } from "@/app/api/auth/refresh/route";
+import { POST as logout } from "@/app/api/auth/logout/route";
 
 const userIdentity = { sub: "user-1", tenantId: "tenant-1", role: "ANALYST" };
 
@@ -122,6 +130,7 @@ describe("silent refresh redirects", () => {
       refreshToken: storedRefreshToken,
     });
     requestContext.updateUser.mockReset().mockResolvedValue(undefined);
+    requestContext.updateManyUsers.mockReset().mockResolvedValue({ count: 1 });
   });
 
   it("falls back to the dashboard for a slash-backslash external destination", async () => {
@@ -186,6 +195,54 @@ describe("silent refresh redirects", () => {
       ...userIdentity,
       type: "refresh",
     });
+  });
+
+  it("renews overlapping page and API requests without replacing their shared session", async () => {
+    let stored = storedRefreshToken;
+    let releaseInitialReads!: () => void;
+    const bothRead = new Promise<void>(resolve => { releaseInitialReads = resolve; });
+    let reads = 0;
+    requestContext.findUser.mockImplementation(async () => {
+      const observed = stored;
+      if (++reads === 2) releaseInitialReads();
+      if (reads <= 2) await bothRead;
+      return {
+        id: userIdentity.sub, tenantId: userIdentity.tenantId, role: userIdentity.role, refreshToken: observed,
+      };
+    });
+    requestContext.updateManyUsers.mockImplementation(async ({ where, data }) => {
+      if (where.refreshToken !== stored) return { count: 0 };
+      stored = data.refreshToken;
+      return { count: 1 };
+    });
+    const api = new NextRequest("https://mxmt.example/api/auth/refresh", { method: "POST" });
+    const page = new NextRequest("https://mxmt.example/api/auth/silent-refresh?next=%2Fuk%2Foverview");
+    const [apiResponse, pageResponse] = await Promise.all([refresh(api), GET(page)]);
+    expect(apiResponse.status).toBe(200);
+    expect(pageResponse.headers.get("location")).toBe("https://mxmt.example/uk/overview");
+    expect(requestContext.updateManyUsers).toHaveBeenCalledTimes(2);
+    requestContext.cookies.set("refresh_token", refreshToken);
+    expect((await refresh(api)).status).toBe(200);
+    expect(requestContext.updateManyUsers).toHaveBeenCalledTimes(2);
+  });
+
+  it("returns a retryable error and keeps cookies when the session database is unavailable", async () => {
+    requestContext.findUser.mockRejectedValueOnce(new Error("Unavailable"));
+    const response = await GET(new NextRequest("https://mxmt.example/api/auth/silent-refresh?next=%2Fuk%2Foverview"));
+    expect(response.status).toBe(503);
+    expect(response.headers.get("location")).toBeNull();
+    expect(requestContext.cookies.get("refresh_token")).toBe(refreshToken);
+  });
+
+  it("revokes the session on explicit logout when only the refresh cookie remains", async () => {
+    requestContext.cookies.set("access_token_exp", "1");
+    const response = await logout(new NextRequest("https://mxmt.example/api/auth/logout", { method: "POST" }));
+    expect(response.status).toBe(200);
+    expect(requestContext.updateManyUsers).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: userIdentity.sub, refreshToken: { in: expect.arrayContaining([storedRefreshToken]) } },
+      data: { refreshToken: null },
+    }));
+    expect(requestContext.cookies.size).toBe(0);
   });
 
   it("requires a refresh cookie before returning to a destination", async () => {

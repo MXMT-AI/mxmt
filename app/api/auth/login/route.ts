@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { compare, hash } from "bcryptjs";
-import { cookies } from "next/headers";
+import { compare } from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { signAccessToken, signRefreshToken } from "@/lib/auth";
+import { startSession } from "@/lib/auth-session";
 import { apiError, serverError } from "@/lib/api-contracts";
 import { createRequestContext, logError, requestLogContext, withRequestId } from "@/lib/observability";
 import { apiAuthLoginRouteMessages as englishCopy } from "@/messages/en.json";
@@ -26,38 +25,7 @@ export async function POST(request: NextRequest) {
       return withRequestId(apiError(englishCopy.invalidCredentials, 401, "INVALID_CREDENTIALS", undefined, context.requestId), context.requestId);
     }
 
-    const tokenPayload = {
-      sub: user.id,
-      tenantId: user.tenantId,
-      role: user.role,
-    };
-    const [accessToken, refreshToken] = await Promise.all([
-      signAccessToken(tokenPayload),
-      signRefreshToken(tokenPayload),
-    ]);
-
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { refreshToken: await hash(refreshToken, 10) },
-    });
-
-    const cookieStore = await cookies();
-    const expAt = Math.floor(Date.now() / 1000) + 15 * 60;
-    const cookieOpts = {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax" as const,
-      path: "/",
-    };
-    cookieStore.set("access_token", accessToken, { ...cookieOpts, maxAge: 15 * 60 });
-    cookieStore.set("refresh_token", refreshToken, { ...cookieOpts, maxAge: 30 * 24 * 60 * 60 });
-    cookieStore.set("access_token_exp", String(expAt), {
-      httpOnly: false,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax" as const,
-      path: "/",
-      maxAge: 15 * 60,
-    });
+    await startSession({ sub: user.id, tenantId: user.tenantId, role: user.role });
 
     return withRequestId(NextResponse.json({
       user: { id: user.id, name: user.name, email: user.email, role: user.role },

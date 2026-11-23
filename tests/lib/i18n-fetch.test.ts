@@ -22,6 +22,15 @@ it("retries the original API call after a successful refresh", async () => {
   expect(await apiFetch("/api/data/sales")).toBe(response);
   expect(fetch).toHaveBeenNthCalledWith(3, "/api/data/sales", undefined);
 });
+it("keeps the current page on a temporary refresh failure", async () => {
+  const location = { pathname: "/uk/overview", search: "", hash: "", href: "" };
+  vi.stubGlobal("window", { location });
+  vi.stubGlobal("fetch", vi.fn()
+    .mockResolvedValueOnce(new Response(null, { status: 401 }))
+    .mockResolvedValueOnce(new Response(null, { status: 503 })));
+  await expect(apiFetch("/api/merchandising/overview")).rejects.toThrow("503");
+  expect(location.href).toBe("");
+});
 it("shares one refresh across concurrent API failures and the proactive refresh caller", async () => {
   let finish!: (response: Response) => void;
   let authorized = false;
