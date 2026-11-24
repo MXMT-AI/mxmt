@@ -5,6 +5,7 @@ import {
   Upload, Search, Download, Plus, type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button/button";
+import { plannerAmount } from "../planner-money";
 import type { PlannerSection } from "../planner-types";
 import { plannerPlannerToolbarMessages as ukrainianCopy } from "@/messages/uk.json";
 
@@ -20,7 +21,7 @@ const tabs = [
 const actionClassName = "min-h-0 gap-2 px-3 py-1.5 font-medium";
 
 export function PlannerToolbar({
-  section, onSectionChange, totalCartItems, totalSpent, totalBudget, fmt,
+  section, onSectionChange, totalCartItems, totalSpent, totalBudget, fmt, currency = "EUR",
   loading, hasCartItems, onUpload, onScan, onExport, onAddBrand, exporting = false,
 }: {
   section: PlannerSection;
@@ -28,6 +29,7 @@ export function PlannerToolbar({
   totalCartItems: number;
   totalSpent: number;
   totalBudget: number;
+  currency?: string | null;
   fmt: (value: number) => string;
   loading: boolean;
   hasCartItems: boolean;
@@ -55,9 +57,9 @@ export function PlannerToolbar({
       </nav>
       <div className="flex items-center gap-3">
         <div className="text-xs font-mono text-(--muted) bg-white/3 border border-(--border) px-3 py-1.5 rounded-lg">
-          €{fmt(totalSpent)}{" "}
-          <span className="text-(--subtle)">/ €{fmt(totalBudget)}</span>
-          {totalBudget > 0 ? (
+          {plannerAmount(totalSpent, currency, fmt)}{" "}
+          <span className="text-(--subtle)">/ {plannerAmount(totalBudget, currency, fmt)}</span>
+          {currency && totalBudget > 0 ? (
             <span className={`ml-2 ${totalSpent / totalBudget > 0.9 ? "text-accent-orange" : "text-accent-cyan"}`}>
               {Math.round((totalSpent / totalBudget) * 100)}%
             </span>

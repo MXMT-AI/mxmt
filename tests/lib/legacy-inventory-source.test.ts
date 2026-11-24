@@ -24,6 +24,8 @@ vi.mock("@/components/dashboard/sales-sparkline/sales-sparkline", () => ({
 }));
 vi.mock("@/lib/prisma", () => ({
   prisma: {
+    $queryRaw: async ({ text, values }: { text: string; values: unknown[] }) =>
+      (await state.pg.query(text, values)).rows,
     inventorySnapshot: {
       findMany: async (args: any) => {
         const parameters: any[] = [args.where.tenantId];

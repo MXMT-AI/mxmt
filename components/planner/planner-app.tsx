@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button/button";
 import { plannerDataErrors } from "./planner-data-copy";
 import { useXlsxExport } from "@/components/ui/use-xlsx-export/use-xlsx-export";
 import { buildPlannerOrderWorkbook } from "./planner-order-workbook";
+import { sharedPlannerCurrency } from "./planner-money";
 import { calculatePlannerBudget } from "./calculate-planner-budget";
 import { useToast } from "@/components/ui/toast/use-toast";
 import { Toast } from "@/components/ui/toast/toast";
@@ -92,6 +93,7 @@ export default function PlannerApp({
         totalCartItems={totalCartItems}
         totalSpent={totalSpent}
         totalBudget={totalBudget}
+        currency={sharedPlannerCurrency([...brands, ...cart])}
         fmt={fmt}
         loading={scanning}
         hasCartItems={cart.length > 0}

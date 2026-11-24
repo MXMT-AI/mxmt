@@ -23,6 +23,7 @@ import { getReorderingPreview } from "./reordering-store";
 import type { RepricingRequest } from "./repricing-contract";
 import type { ReorderingRequest } from "./reordering-contract";
 import type { ReportPublicationStorage } from "./merchandising-publication-storage";
+import { workspaceReportStorage } from "./workspace-report-storage";
 
 type ScreenResponse = Awaited<ReturnType<typeof getMerchandisingScreen>>;
 
@@ -65,6 +66,11 @@ async function readManifest(tenantId: string, storage: ReportPublicationStorage)
 
 export async function readReportPublication(tenantId: string, storage: ReportPublicationStorage) {
   return (await readManifest(tenantId, storage))?.publication ?? null;
+}
+
+export async function readWorkspacePublication(tenantId: string) {
+  const storage = await workspaceReportStorage(tenantId);
+  return storage && await readReportPublication(tenantId, storage);
 }
 
 function standardQuery(screen: ScreenName, snapshotId: string, monobrand: boolean) {

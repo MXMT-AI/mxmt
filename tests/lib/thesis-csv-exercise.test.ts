@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { appendFile, mkdir, mkdtemp, readFile, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -27,6 +28,7 @@ import { parseReorderingRequest } from "@/lib/reorder-calc";
 import { parseScreenQuery } from "@/lib/merchandising-screen-query";
 import { getProductQuality } from "@/lib/product-quality";
 import { saveProductKind } from "@/lib/product-normalization";
+import { loadAnalystClassification } from "@/lib/analyst-classification";
 import { csvFile, csvOptions } from "../fixtures/csv-connector";
 import { createMerchandisingDb } from "../helpers/merchandising-db";
 
@@ -188,6 +190,14 @@ it("runs the documented thesis CSV exercise in a new workspace", async () => {
     expect(retriedImport).toMatchObject({ id: nextImport.id, state: "ACTIVE" });
     expect(await processCsvJob(tenantId, db)).toEqual({ processed: false });
 
+    // The source remains selected after restoring the import without connector metadata.
+    await pg.query('DELETE FROM "ConnectorConnection" WHERE "tenantId"=$1 AND "sourceId"=$2',
+      [tenantId, preview.sourceId]);
+    expect(await listConnectorSources(tenantId, db)).toMatchObject({
+      sourceId: preview.sourceId,
+      connections: [{ sourceId: preview.sourceId, provider: "csv", readiness: "READY" }],
+    });
+
     const selection = { dateFrom: "2026-09-01", dateTo: "2026-10-01" };
     const publish = vi.spyOn(storage, "publish");
     const [newer, simultaneousRetry] = await Promise.all([
@@ -278,6 +288,21 @@ it("runs the documented thesis CSV exercise in a new workspace", async () => {
       .toEqual(JSON.parse(JSON.stringify(expectedPricing)));
     expect(await readPublishedReorderingPreview(tenantId, orderRequest, storage))
       .toEqual(JSON.parse(JSON.stringify(expectedOrder)));
+
+    const activePath = `merchandising/v1/${createHash("sha256").update(tenantId).digest("hex")}/active.json`;
+    const saved = await storage.read(activePath);
+    expect(await storage.publish(activePath, JSON.stringify({
+      ...newer,
+      agentSource: { importRunId: "archived-agents", reportSourceId: preview.sourceId },
+    }), saved!.revision)).toBe(true);
+    vi.stubEnv("MERCHANDISING_PUBLICATION_DIR", directory);
+    const analyst = await loadAnalystClassification(tenantId);
+    expect(analyst.skus.reduce((sum, sku) => sum + sku.stock, 0)).toBe(120);
+    expect(analyst.skus.some((sku) => sku.sold7 > 0)).toBe(true);
+    const brand = analyst.skus.find((sku) => sku.brand)?.brand;
+    const filtered = await loadAnalystClassification(tenantId, { brand });
+    expect(filtered.skus.length).toBeLessThan(analyst.skus.length);
+    expect(filtered.skus.every((sku) => sku.brand === brand)).toBe(true);
   } finally {
     if (!closed) await pg.close();
     await rm(directory, { recursive: true, force: true });

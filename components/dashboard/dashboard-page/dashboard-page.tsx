@@ -1,4 +1,6 @@
 import { getLocale } from "next-intl/server";
+import { redirect } from "@/i18n/navigation";
+import { readWorkspacePublication } from "@/lib/merchandising-publication";
 import { requireWorkspaceTenantId } from "@/lib/workspace-request";
 import { prisma } from "@/lib/prisma";
 import { getT } from "@/lib/translations";
@@ -12,6 +14,9 @@ import { DashboardSalesPanel } from "../dashboard-sales-panel/dashboard-sales-pa
 
 export default async function DashboardPage() {
   const tenantId = await requireWorkspaceTenantId();
+  const publication = await readWorkspacePublication(tenantId);
+  if (publication?.agentSource) return redirect({ href: "/overview", locale: await getLocale() });
+
   const now = new Date();
   const since30 = new Date(now.getTime() - 30 * 86400000);
   const since14 = new Date(now.getTime() - 14 * 86400000);

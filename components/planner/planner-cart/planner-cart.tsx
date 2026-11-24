@@ -3,6 +3,7 @@
 import { ShoppingCart } from "lucide-react";
 import type { CartItem, BrandBudgetStatus } from "../planner-types";
 import { PlannerCartItem } from "../planner-cart-item/planner-cart-item";
+import { plannerAmount, sharedPlannerCurrency } from "../planner-money";
 import { groupPlannerCart } from "./group-planner-cart";
 import { plannerPlannerCartMessages as englishCopy } from "@/messages/en.json";
 import { plannerPlannerCartMessages as ukrainianCopy } from "@/messages/uk.json";
@@ -35,10 +36,10 @@ export function PlannerCart({ cart, budgetStatus, removeFromCart, updateQty, fmt
             <div className="px-5 py-3 border-b border-(--border) flex items-center justify-between">
               <span className="text-(--text) font-semibold">{b?.name ?? brandId}</span>
               <div className="flex items-center gap-4 text-sm font-mono">
-                <span className="text-(--text)">€{fmt(subtotal)}</span>
+                <span className="text-(--text)">{plannerAmount(subtotal, sharedPlannerCurrency(items), fmt)}</span>
                 {b && b.budget > 0 && (
                   <span className={b.remaining < 0 ? "text-accent-orange" : "text-(--muted)"}>
-                    {b.remaining >= 0 ? "€" + fmt(b.remaining) + englishCopy.left : "€" + fmt(Math.abs(b.remaining)) + englishCopy.over}
+                    {b.remaining >= 0 ? plannerAmount(b.remaining, b.currency, fmt) + englishCopy.left : plannerAmount(Math.abs(b.remaining), b.currency, fmt) + englishCopy.over}
                   </span>
                 )}
               </div>
@@ -55,7 +56,7 @@ export function PlannerCart({ cart, budgetStatus, removeFromCart, updateQty, fmt
       <div className="bg-(--surface) border border-(--border) rounded-xl p-5 flex justify-between items-center">
         <span className="text-(--muted) text-sm">{ukrainianCopy.загальнаСумаЗамовлення}</span>
         <span className="text-2xl font-bold text-(--text) font-mono">
-          €{fmt(total)}
+          {plannerAmount(total, sharedPlannerCurrency(cart), fmt)}
         </span>
       </div>
     </div>

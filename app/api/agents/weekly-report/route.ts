@@ -6,6 +6,7 @@ import { apiError, serverError } from "@/lib/api-contracts";
 import { parseAgentJson } from "@/lib/agent-output";
 import { completeAgentRun, failAgentRun, startAgentRun } from "@/lib/agent-runs";
 import { getCurrentDependencyRun, resolveAgentRunContext } from "@/lib/agent-dependencies";
+import { groundWeeklyCampaignBrief, readWeeklyCampaignStatus } from "@/lib/weekly-campaign-status";
 import { apiAgentsWeeklyReportRouteMessages as ukrainianCopy } from "@/messages/uk.json";
 
 export const runtime = "nodejs";
@@ -168,15 +169,9 @@ export async function POST(req: NextRequest) {
     }
 
     const campRun = runMap["campaign_analysis"];
-    if (campRun?.output) {
-      const out = campRun.output as any;
-      const campaigns: any[] = out.campaigns ?? [];
-      const behind = campaigns.filter((c: any) => c.status === "behind" || c.status === "stalled").length;
-      const active = out.active_campaign_count ?? campaigns.length;
-      const scheduled = out.scheduled_campaign_count ?? campaigns.length;
-      const pending = out.pending_recommendations ?? 0;
-      sections.push(`КАМПАНІЇ: активних ${active}, у календарі ${scheduled}, очікують погодження ${pending}, відстають ${behind}
-Стан: ${out.overall_health ?? "—"}, Підсумок: ${out.summary ?? "—"}`);
+    const campaignStatus = readWeeklyCampaignStatus(campRun?.output);
+    if (campaignStatus) {
+      sections.push(`КАМПАНІЇ: активних ${campaignStatus.active}, у календарі ${campaignStatus.scheduled}, очікують погодження ${campaignStatus.pending}`);
     }
 
     if (sections.length === 0) {
@@ -241,8 +236,9 @@ ${sections.join("\n\n")}
       analyzedAt: new Date().toISOString(),
     };
 
-    await completeAgentRun(run.id, output);
-    return NextResponse.json({ runId: run.id, ...output });
+    const grounded = groundWeeklyCampaignBrief(output, campaignStatus) as typeof output;
+    await completeAgentRun(run.id, grounded);
+    return NextResponse.json({ runId: run.id, ...grounded });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     await failAgentRun(run.id, msg);

@@ -18,9 +18,9 @@ import { repricingUiSkus } from "../helpers/repricing-workspace";
 import { reorderingUiSkus } from "../helpers/reordering-workspace";
 const id = "11111111-1111-4111-8111-111111111111";
 describe("CSV wire format and formula protection", () => {
-  it("preserves the approved D09 repricing column order", () => {
+  it("separates recommended and effective repricing percentages", () => {
     expect(REPRICE_CSV_HEADERS.join(";")).toBe(
-      "sku;barcode;brand;category;name;old_price;new_price;discount_pct;promo_days;reason",
+      "sku;barcode;brand;category;name;old_price;new_price;recommended_discount_pct;effective_discount_pct;promo_days;reason",
     );
   });
   it("emits BOM, semicolon columns, CRLF records and escaped localized multiline text", () => {
@@ -85,6 +85,10 @@ describe("CSV wire format and formula protection", () => {
     expect(built.files[0].content.split("\r\n")[0]).toBe(
       "\uFEFF" + REPRICE_CSV_HEADERS.map((h) => '"' + h + '"').join(";"),
     );
+    const row = result.rows.find((candidate) => candidate.selected)!;
+    const fileRow = built.files[0].content.split("\r\n")[1].split(";").map((cell) => cell.slice(1, -1));
+    expect(fileRow[7]).toBe(row.targetDiscountPct);
+    expect(Number(fileRow[8])).toBeCloseTo(Number(row.effectiveDiscount) * 100, 2);
     expect(built.totals).toEqual(result.totals);
   });
   it("requires readiness per explicit supplier/currency scope and excludes seasonal/zero rows", () => {

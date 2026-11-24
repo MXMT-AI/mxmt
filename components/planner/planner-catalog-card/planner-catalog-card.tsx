@@ -6,6 +6,7 @@ import { control } from "@/components/ui/control-styles/control-styles";
 import { cn } from "@/lib/utils";
 import type { CatalogItem } from "../planner-types";
 import { parsePlannerQuantity } from "../planner-quantity";
+import { plannerAmount } from "../planner-money";
 import { formatMessage } from "@/i18n/format-message";
 import { plannerPlannerCatalogCardMessages as englishCopy } from "@/messages/en.json";
 import { plannerPlannerCatalogCardMessages as ukrainianCopy } from "@/messages/uk.json";
@@ -42,7 +43,7 @@ export function PlannerCatalogCard({ item, addToCart }: {
       <p className="text-[11px] text-(--muted) mb-2">
         {item.brand.name} · {item.category}{item.color && ` · ${item.color}`}
       </p>
-      <div className="text-lg font-bold font-mono text-(--text) mb-3">{item.brand.currency}{item.priceWholesale.toFixed(0)}</div>
+      <div className="text-lg font-bold font-mono text-(--text) mb-3">{plannerAmount(item.priceWholesale, item.brand.currency, (value) => value.toFixed(2))}</div>
       {item.tags.length > 0 ? (
         <div className="flex flex-wrap gap-1 mb-3">
           {item.tags.slice(0, 2).map(tag => <span key={tag} className="text-[9px] bg-white/5 text-(--muted) px-1.5 py-0.5 rounded-sm">{tag}</span>)}

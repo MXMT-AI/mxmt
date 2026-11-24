@@ -33,22 +33,39 @@ export function selectedConnection(alias = "c") {
 }
 export const mappingKey = (provider: string, sourceId: string) =>
   `${provider}:${sourceId}`;
+
+// A restored CSV import can still serve reports without upload credentials.
+const restoredCsvReady = Prisma.sql`
+  EXISTS (
+    SELECT 1 FROM "DataImportRun" r
+    JOIN "ConnectorSyncJob" j ON j."tenantId"=r."tenantId" AND j."sourceId"=r."sourceId"
+      AND j."importRunId"=r.id AND j.resource='csv' AND j.state='COMPLETE'
+    WHERE r."tenantId"=s."tenantId" AND r."sourceId"=s.id AND r.id=s."activeImportRunId"
+      AND r.status IN ('SUCCESS','WARNING')
+  ) AND EXISTS (
+    SELECT 1 FROM "MerchandisingConfig" m
+    WHERE m."tenantId"=s."tenantId" AND m."configType"='SOURCE_MAPPING' AND m.key='csv:'||s.id
+      AND m."isActive" AND m."approvedAt" IS NOT NULL
+  )`;
+
 export async function readSelectedSource(tenantId: string, tx: SqlClient) {
   const [source] = await tx.$queryRaw<
     Array<{
       id: string;
+      name: string | null;
       timezone: string;
       provider: ReportingSourceProvider;
       revision: number;
     }>
   >(Prisma.sql`
-    SELECT s.id,s.timezone,
-      CASE WHEN s.kind='GOOGLE_SHEETS' THEN 'sheets' ELSE c.provider END provider,
+    SELECT s.id,s.name,s.timezone,
+      CASE WHEN s.kind='GOOGLE_SHEETS' THEN 'sheets' WHEN s.kind='CSV' THEN 'csv' ELSE c.provider END provider,
       COALESCE(x.revision,0)::int revision FROM "DataSource" s
     LEFT JOIN "ConnectorConnection" c ON c."sourceId"=s.id AND c."tenantId"=s."tenantId"
     LEFT JOIN "ConnectorSelection" x ON x."tenantId"=s."tenantId"
     WHERE s."tenantId"=${tenantId} AND (
       (s.kind='GOOGLE_SHEETS' AND x."sourceId"=s.id)
+      OR (s.kind='CSV' AND c.id IS NULL AND x."sourceId"=s.id AND ${restoredCsvReady})
       OR (s.kind<>'GOOGLE_SHEETS' AND ${selectedConnection()} AND s.kind::text=upper(c.provider)))`);
   return source??null;
 }
@@ -82,6 +99,18 @@ export async function listConnectorSources(
   >(
     Prisma.sql`SELECT "sourceId",revision FROM "ConnectorSelection" WHERE "tenantId"=${tenantId}`,
   );
+  const restoredCsv = selection?.provider === "csv" &&
+    !connections.some((connection) => connection.sourceId === selection.id)
+    ? [{
+        sourceId: selection.id,
+        provider: "csv" as const,
+        accountHost: selection.name ?? "CSV",
+        revision: selection.revision,
+        lastCheck: null,
+        readiness: "READY" as const,
+        selectable: false,
+      }]
+    : [];
   return {
     sourceId: saved?.sourceId ?? selection?.id ?? null,
     revision: saved?.revision ?? selection?.revision ?? 0,
@@ -92,6 +121,7 @@ export async function listConnectorSources(
           readiness:!checked?"CONNECTION_CHECK_REQUIRED" as const:importReady?"READY" as const:"IMPORT_REQUIRED" as const};
       }),
       ...sheets,
+      ...restoredCsv,
     ],
   };
 }

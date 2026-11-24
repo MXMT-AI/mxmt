@@ -13,6 +13,7 @@ const fixture = vi.hoisted(() => ({
   catalogCount: vi.fn(),
   headers: vi.fn(),
   locale: vi.fn(),
+  publication: vi.fn(),
   redirect: vi.fn(),
   sync: vi.fn(),
 }));
@@ -21,6 +22,7 @@ vi.mock("next/headers", () => ({ headers: fixture.headers }));
 vi.mock("next-intl/server", () => ({ getLocale: fixture.locale }));
 vi.mock("@/i18n/navigation", () => ({ redirect: fixture.redirect }));
 vi.mock("@/lib/analyst-classification", () => ({ loadAnalystClassification: fixture.classify }));
+vi.mock("@/lib/merchandising-publication", () => ({ readWorkspacePublication: fixture.publication }));
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     googleDriveSync: { findFirst: fixture.sync },
@@ -39,10 +41,18 @@ beforeEach(() => {
   vi.resetAllMocks();
   fixture.headers.mockResolvedValue(new Headers({ "x-tenant-id": "store" }));
   fixture.locale.mockResolvedValue("en");
+  fixture.publication.mockResolvedValue(null);
   fixture.redirect.mockImplementation(() => { throw new Error("REDIRECT"); });
   fixture.sync.mockResolvedValue(null);
   fixture.catalogCount.mockResolvedValue(0);
   fixture.dailySales.mockResolvedValue([]);
+});
+
+it("opens the modern overview for the published demo without loading the legacy dashboard", async () => {
+  fixture.publication.mockResolvedValue({ agentSource: { importRunId: "archived-agents" } });
+  await expect(DashboardPage()).rejects.toThrow("REDIRECT");
+  expect(fixture.redirect).toHaveBeenCalledWith({ href: "/overview", locale: "en" });
+  expect(fixture.classify).not.toHaveBeenCalled();
 });
 
 it.each(["uk", "en"])("redirects missing tenant context before any report query in %s", async locale => {

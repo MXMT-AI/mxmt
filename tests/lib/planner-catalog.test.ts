@@ -71,9 +71,12 @@ it("preserves both empty states and suppresses them while loading", () => {
 it("preserves margin, price, tags and the stock count", () => {
   const html = renderToStaticMarkup(createElement(PlannerCatalogCard, { item, addToCart }));
   expect(html).toContain("60%");
-  expect(html).toContain("EUR40");
+  expect(html).toContain("€40.00");
   expect(html).toContain("20 avail");
   expect(html).toContain(">a</span>");
   expect(html).toContain(">b</span>");
   expect(html).not.toContain(">c</span>");
+  const demo = { ...item, brand: { ...item.brand, currency: "UAH" } };
+  expect(renderToStaticMarkup(createElement(PlannerCatalogCard, { item: demo, addToCart })))
+    .toContain("40.00 UAH");
 });

@@ -1,5 +1,6 @@
 import { MetricTile } from "@/components/ui/metric-tile/metric-tile";
 import type { Brand, CatalogUpload, BrandBudgetStatus } from "../planner-types";
+import { plannerAmount, sharedPlannerCurrency } from "../planner-money";
 import { formatMessage } from "@/i18n/format-message";
 import { plannerPlannerDashboardMessages as englishCopy } from "@/messages/en.json";
 import { plannerPlannerDashboardMessages as ukrainianCopy } from "@/messages/uk.json";
@@ -16,14 +17,15 @@ export function PlannerDashboard({ brands, catalogs, budgetStatus, cartLineCount
 }) {
   const totalItems = catalogs.reduce((sum, catalog) => sum + catalog.itemCount, 0);
 
+  const currency = sharedPlannerCurrency(brands);
   const stats = [
     { label: ukrainianCopy.labelБрендів, value: brands.length, sub: formatMessage(ukrainianCopy.subКаталогів, { length: catalogs.length }) },
     { label: ukrainianCopy.labelТоварівУКаталозі, value: totalItems, sub: ukrainianCopy.subПоВсіхБрендах },
     { label: ukrainianCopy.labelУЗамовленні, value: cartLineCount, sub: formatMessage(ukrainianCopy.subОдиниць, { totalCartItems }) },
     {
       label: ukrainianCopy.labelБюджетВикористано,
-      value: `${Math.round((totalSpent / Math.max(totalBudget, 1)) * 100)}%`,
-      sub: formatMessage(ukrainianCopy.subЗ, { value1: fmt(totalSpent), value2: fmt(totalBudget) }),
+      value: currency ? `${Math.round((totalSpent / Math.max(totalBudget, 1)) * 100)}%` : "—",
+      sub: formatMessage(ukrainianCopy.subЗ, { value1: plannerAmount(totalSpent, currency, fmt), value2: plannerAmount(totalBudget, currency, fmt) }),
     },
   ];
 
@@ -53,7 +55,7 @@ export function PlannerDashboard({ brands, catalogs, budgetStatus, cartLineCount
               />
             </div>
             <div className="text-xs font-mono text-(--muted) w-24 text-right">
-              €{fmt(b.spent)} / €{fmt(b.budget)}
+              {plannerAmount(b.spent, b.currency, fmt)} / {plannerAmount(b.budget, b.currency, fmt)}
             </div>
             <div className={`text-xs font-mono w-10 text-right ${b.pct > 100 ? "text-accent-orange" : "text-(--muted)"}`}>
               {b.pct}%

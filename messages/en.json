@@ -1756,7 +1756,7 @@
     "labelУЗамовленні": "У замовленні",
     "subОдиниць": "{totalCartItems} одиниць",
     "labelБюджетВикористано": "Бюджет використано",
-    "subЗ": "€{value1} з €{value2}",
+    "subЗ": "{value1} з {value2}",
     "бюджетПоБрендах": "Бюджет по брендах",
     "брендівЩеНемаєДодайтеБренди": "Брендів ще немає. Додайте бренди для відстеження бюджету.",
     "останніЗавантаження": "Останні завантаження",
@@ -4532,5 +4532,8 @@
   "commonActionMessages": {
     "loading": "Loading…",
     "retry": "Retry"
+  },
+  "weeklyCampaignStatusMessages": {
+    "noActiveCampaigns": "There are no active campaigns. On the calendar: {scheduled}. Awaiting approval: {pending}. Review and approve the recommendations before launching."
   }
 }

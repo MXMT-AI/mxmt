@@ -223,7 +223,7 @@ it("connect check → incremental sync → pinned KPIs/details → both audited 
       expect(saved.rowCount).toBeGreaterThan(0);
       expect(saved.content.split("\n")[0].trim()).toBe(
         (command.kind === "reprice"
-          ? "sku;barcode;brand;category;name;old_price;new_price;discount_pct;promo_days;reason"
+          ? "sku;barcode;brand;category;name;old_price;new_price;recommended_discount_pct;effective_discount_pct;promo_days;reason"
           : "supplier;sku;barcode;name;qty;unit_cost;sum"
         )
           .split(";")

@@ -7,6 +7,7 @@ import { control } from "@/components/ui/control-styles/control-styles";
 import { cn } from "@/lib/utils";
 import type { CartItem } from "../planner-types";
 import { parsePlannerQuantity } from "../planner-quantity";
+import { plannerAmount } from "../planner-money";
 import { formatMessage } from "@/i18n/format-message";
 import { plannerPlannerCartItemMessages as ukrainianCopy } from "@/messages/uk.json";
 
@@ -47,7 +48,7 @@ export function PlannerCartItem({ item, removeFromCart, updateQty, fmt }: {
           }}
           className={cn(control, "min-h-0 w-14 bg-white/5 px-2 py-1.5 text-center")}
         />
-        <span className="text-sm font-mono text-(--text) w-20 text-right">€{fmt(item.price * item.qty)}</span>
+        <span className="text-sm font-mono text-(--text) w-20 text-right">{plannerAmount(item.price * item.qty, item.currency, fmt)}</span>
         <Button
           variant="icon"
           aria-label={formatMessage(ukrainianCopy.ariaLabelВидалитиІзЗамовлення, { name: item.name, sku: item.sku })}

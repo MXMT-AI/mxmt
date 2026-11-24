@@ -20,7 +20,8 @@ export const REPRICE_CSV_HEADERS = [
   "name",
   "old_price",
   "new_price",
-  "discount_pct",
+  "recommended_discount_pct",
+  "effective_discount_pct",
   "promo_days",
   "reason",
 ] as const;
@@ -118,7 +119,8 @@ export function repricingCsv(result: RepriceResult, exportId: string) {
       text(r.name),
       decimal(r.currentPrice!),
       decimal(r.newPrice!),
-      decimal(D(r.effectiveDiscount!).mul(100).toFixed()),
+      decimal(r.targetDiscountPct),
+      decimal(D(r.effectiveDiscount!).mul(100).toDecimalPlaces(2).toFixed()),
       decimal(result.parameters.durationDays),
       text(
         [
@@ -152,6 +154,7 @@ export function repricingCsv(result: RepriceResult, exportId: string) {
       unitCost: r.unitCost,
       oldPrice: r.currentPrice,
       newPrice: r.newPrice,
+      targetDiscountPct: r.targetDiscountPct,
       effectiveDiscount: r.effectiveDiscount,
       manualPrice: r.manualPrice,
       ownership: r.ownership,

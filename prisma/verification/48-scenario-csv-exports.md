@@ -7,7 +7,7 @@ from #44 and #46. No migration is required; exports reuse `MerchandisingAction`.
 ## CSV and scenario contract
 
 Repricing columns, in order:
-`sku;barcode;brand;category;name;old_price;new_price;discount_pct;promo_days;reason`.
+`sku;barcode;brand;category;name;old_price;new_price;recommended_discount_pct;effective_discount_pct;promo_days;reason`.
 The export contains the full final selected set, independently of table pagination.
 Prices, effective discount percentage and duration come from the server calculation;
 manual prices and cost-floor/liquidation decisions remain represented in the audit.
